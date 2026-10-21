@@ -8,19 +8,17 @@ Innholdet handler foreløpig om webutvikling. Laben skal også kunne romme drift
 
 ## Innhold
 
-| Side                                                                      | Adresse på nettstedet | Hva elevene kan utforske                                                                                        |
-| ------------------------------------------------------------------------- | --------------------- | --------------------------------------------------------------------------------------------------------------- |
-| [Forside](src/routes/+page.svelte)                                        | `/`                   | Oversikt over forklaringene og øvelsene.                                                                        |
-| [Frontend møter backend](src/routes/backend/+page.svelte)                 | `/backend/`           | Følge en melding fra inputfeltet via `fetch`, GET/POST og `req.body` til serveren.                              |
-| [Frontend møter backend 2 – test](src/routes/backend-2-test/+page.svelte) | `/backend-2-test/`    | Følge POST og GET i korte kodeutdrag, klikke fram forklaringer ved linjene og prøve validering i backend.       |
-| [Bygg chatrom](src/routes/chatrom/+page.svelte)                           | `/chatrom/`           | Koble sammen romvalg, requests og filtrering. Sammenligne én meldingsliste med rom som har egne meldingslister. |
-| [Lagring i JSON-fil](src/routes/fillagring/+page.svelte)                  | `/fillagring/`        | Følge koden stegvis, endre en melding, slå lagringen av og på og undersøke hva som overlever en omstart.        |
-| [Sessions og pålogging](src/routes/sessions/+page.svelte)                 | `/sessions/`          | Utforske sammenhengen mellom cookie, session, pålogging, utlogging og `credentials`.                            |
-| [Sessions 2 – test](src/routes/sessions-2-test/+page.svelte)              | `/sessions-2-test/`   | Følge innlogging i fire trinn, med kode som følger trinnet og markeringer som forklarer resultatet.             |
+| Side                                                      | Adresse på nettstedet | Hva elevene kan utforske                                                                                 |
+| --------------------------------------------------------- | --------------------- | -------------------------------------------------------------------------------------------------------- |
+| [Forside](src/routes/+page.svelte)                        | `/`                   | Oversikt over forklaringene og øvelsene.                                                                 |
+| [Frontend møter backend](src/routes/backend/+page.svelte) | `/backend/`           | Følge POST og GET stegvis, klikke fram forklaringer ved kodelinjene og prøve validering i backend.       |
+| [Bygg videre på chatten](src/routes/chatrom/+page.svelte) | `/chatrom/`           | Hente riktig rom, bruke session som avsender og kontrollere hvem som får slette en melding.              |
+| [Lagring i JSON-fil](src/routes/fillagring/+page.svelte)  | `/fillagring/`        | Følge koden stegvis, endre en melding, slå lagringen av og på og undersøke hva som overlever en omstart. |
+| [Sessions og pålogging](src/routes/sessions/+page.svelte) | `/sessions/`          | Følge innlogging i fire trinn, med kode som følger trinnet, cookie, session og egne feilforsøk.          |
 
-Sessions 2 er en test av en mer trinnvis presentasjon, med ekstra forsøk og fordypning tilgjengelig ved behov.
+De nyeste frontend/backend- og sessions-visningene er hovedversjonene på de vanlige adressene. Forsiden har én inngang til hvert tema.
 
-Frontend møter backend 2 viderefører kodefokuset fra fillagringssiden. Eleven følger én kjøring om gangen og kan klikke på kodelinjer for å få en forklaring ved siden av koden, eller rett under linjen på mobil. Data og feilforsøk åpnes ved behov. Den opprinnelige frontend/backend-siden beholdes for sammenligning.
+På chatrom-siden følger eleven tre avgrensede kodeforsøk: filtrering per rom, avsender fra `req.session.bruker` og sletting med kontroll av `avsenderId` på backend. Etter en vellykket sending eller sletting hentes rommet på nytt med GET. Data, feilforsøk og alternativet med en meldingsliste inne i hvert rom åpnes ved behov.
 
 ## Hvordan vi bygger undervisningssidene
 
@@ -72,12 +70,13 @@ npm run preview
 
 ## Finne fram i prosjektet
 
-| Fil eller mappe                  | Bruk                                                                               |
-| -------------------------------- | ---------------------------------------------------------------------------------- |
-| `src/routes/+page.svelte`        | Forsiden. Listen `sider` bestemmer hvilke kort som vises.                          |
-| `src/routes/<tema>/+page.svelte` | En undervisningsside med egen adresse.                                             |
-| `src/lib/components/`            | Komponenter som kan brukes på sidene, blant annet kodevisningen i sessions-testen. |
-| `docs/serverdrift.md`            | Publisering, kontroll av serveren og feilsøking.                                   |
+| Fil eller mappe                  | Bruk                                                                          |
+| -------------------------------- | ----------------------------------------------------------------------------- |
+| `src/routes/+page.svelte`        | Forsiden. Listen `sider` bestemmer hvilke kort som vises.                     |
+| `src/routes/<tema>/+page.svelte` | En undervisningsside med egen adresse.                                        |
+| `src/lib/components/`            | Felles kodevisninger og forklaringer ved klikk på kodelinjer.                 |
+| `src/lib/chatromLab.js`          | Rene simuleringssteg og kodeutdrag for chatrom, session-avsender og sletting. |
+| `docs/serverdrift.md`            | Publisering, kontroll av serveren og feilsøking.                              |
 
 ### Legge til en ny undervisningsside
 

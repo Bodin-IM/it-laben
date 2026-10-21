@@ -5,31 +5,21 @@
 		{
 			tittel: 'Frontend møter backend',
 			beskrivelse:
-				'Følg en melding fra inputfeltet, gjennom en request og helt inn i listen på serveren.',
+				'Send en melding og hent den tilbake. Følg koden og klikk på en linje for en forklaring rett ved den.',
 			href: '/backend',
 			kategori: 'Utvikling',
-			type: 'Interaktiv forklaring',
+			type: 'Interaktiv kodelab',
 			emner: ['fetch', 'req.body', 'GET / POST'],
 			symbol: '↔'
 		},
 		{
-			tittel: 'Frontend møter backend 2 – test',
+			tittel: 'Bygg videre på chatten',
 			beskrivelse:
-				'Send en melding og hent den tilbake. Følg koden og klikk på en linje for en forklaring rett ved den.',
-			href: '/backend-2-test',
-			kategori: 'Utvikling',
-			type: 'Interaktiv kodelab · testversjon',
-			emner: ['fetch', 'POST / GET', 'Klikk på koden'],
-			symbol: '02'
-		},
-		{
-			tittel: 'Bygg chatrom',
-			beskrivelse:
-				'Utforsk hvordan frontend, requests og backend må samarbeide for å holde orden på meldinger i ulike rom.',
+				'Hent riktig rom, bruk avsenderen fra en session og undersøk hvem som får slette en melding.',
 			href: '/chatrom',
 			kategori: 'Utvikling',
-			type: 'Stegvis hjelp og utprøving',
-			emner: ['Chatrom', 'Filtrering', 'Datastruktur'],
+			type: 'Tre interaktive kodeforsøk',
+			emner: ['Chatrom', 'Session', 'DELETE'],
 			symbol: '#'
 		},
 		{
@@ -45,22 +35,12 @@
 		{
 			tittel: 'Sessions og pålogging',
 			beskrivelse:
-				'Se hvordan en cookie kobler nettleseren til en session på serveren. Prøv pålogging, utlogging og requests uten cookie.',
+				'Følg én innlogging, ett steg om gangen. Utforsk cookie og session med kode som følger forsøket.',
 			href: '/sessions',
 			kategori: 'Utvikling',
-			type: 'Interaktiv forklaring og kodehjelp',
+			type: 'Stegvis forklaring med kode',
 			emner: ['Session', 'Cookie', 'credentials'],
 			symbol: 'ID'
-		},
-		{
-			tittel: 'Sessions 2 – test',
-			beskrivelse:
-				'Følg én innlogging, ett steg om gangen. Åpne ekstra forsøk og kodehjelp når du trenger det.',
-			href: '/sessions-2-test',
-			kategori: 'Utvikling',
-			type: 'Testversjon · fire korte forsøk',
-			emner: ['Cookie', 'Session', 'Steg for steg'],
-			symbol: '02'
 		}
 	];
 </script>

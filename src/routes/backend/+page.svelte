@@ -1,772 +1,553 @@
 <script>
-	// Selvstendig Svelte 5-komponent. Hele demonstrasjonen kjører lokalt.
-	// Express-koden nedenfor vises som lærestoff; den kjører ikke i nettleseren.
+	import { onMount } from 'svelte';
+	import CodeExplanation from '#lib/components/CodeExplanation.svelte';
+	import { codeLines, makeRun, EXAMPLE_MESSAGE, CODE_CONTEXTS } from '#lib/frontendBackendLab.js';
+
 	/** @typedef {{ avsender: string, tekst: string }} Melding */
-	/** @typedef {{ avsender: string, tekst?: string, message?: string }} Meldingsdata */
-	let avsender = $state('Gruppe 1');
-	let tekst = $state('Hei fra oss!');
-	let scenario = $state('normal');
-	let step = $state(0);
-	let playing = $state(false);
-	let speed = $state(2600);
-	let codeTab = $state('auto');
+	/** @typedef {{ text: string, type: string }} Token */
+	/** @type {'post' | 'get'} */
+	let handling = $state('post');
+	/** @type {'frontend' | 'backend'} */
+	let side = $state('frontend');
+	/** @type {string} */
+	let avsender = $state(EXAMPLE_MESSAGE.avsender);
+	/** @type {string} */
+	let tekst = $state(EXAMPLE_MESSAGE.tekst);
+	let feilNokkel = $state(false);
 	/** @type {Melding[]} */
-	let baseline = $state([]);
+	let serverMeldinger = $state([]);
 	/** @type {Melding[]} */
-	let clientBaseline = $state([]);
-	/** @type {Meldingsdata | null} */
-	let packet = $state(null);
-	let round = $state(1);
-	let copied = $state(false);
-	const API = 'http://backend.example:3000';
-	const steps = [
-		['Skriv', 'Input → variabel', 'frontend'],
-		['Objekt', 'Samle verdiene', 'frontend'],
-		['JSON', 'Objekt → tekst', 'frontend'],
-		['POST', 'Send en request', 'network'],
-		['req.body', 'Tekst → objekt', 'backend'],
-		['Kontroll', 'Sjekk innholdet', 'backend'],
-		['push()', 'Legg til i listen', 'backend'],
-		['Response', 'Send et svar', 'network'],
-		['Bekreft', 'Les POST-svaret', 'frontend'],
-		['GET', 'Hent listen', 'network'],
-		['200 OK', 'Returner listen', 'backend'],
-		['Vis', 'Oppdater nettsiden', 'frontend']
-	];
-	/** @param {unknown} value */
-	const pretty = (value) => JSON.stringify(value, null, 2);
-	let draft = $derived(
-		scenario === 'wrongkey'
-			? { avsender, message: tekst }
-			: { avsender, tekst: scenario === 'empty' ? '' : tekst }
-	);
-	let payload = $derived(packet ?? draft);
-	let valid = $derived(
-		typeof payload.avsender === 'string' &&
-			typeof payload.tekst === 'string' &&
-			Boolean(payload.avsender.trim()) &&
-			Boolean(payload.tekst.trim())
-	);
-	let saved = $derived(
-		valid && typeof payload.tekst === 'string'
-			? { avsender: payload.avsender.trim(), tekst: payload.tekst.trim() }
-			: null
-	);
-	let serverList = $derived(step >= 6 && saved ? [...baseline, saved] : baseline);
-	let clientList = $derived(step >= 11 ? serverList : clientBaseline);
-	let response = $derived(
-		valid
-			? { beskjed: 'Meldingen er mottatt!', melding: saved }
-			: { beskjed: 'Avsender og tekst må fylles ut.' }
-	);
-	let status = $derived(
-		step >= 11
-			? 'Meldingene er hentet.'
-			: step >= 8
-				? valid
-					? response.beskjed
-					: `Kunne ikke sende: ${response.beskjed}`
-				: 'Venter på svar …'
-	);
-	let activeTab = $derived(
-		codeTab === 'auto' ? ([4, 5, 6, 7, 10].includes(step) ? 'backend' : 'frontend') : codeTab
-	);
-	let description = $derived(
-		[
-			'bind:value kobler inputfeltene til variablene avsender og tekst. Skriv noe selv og se verdiene endre seg.',
-			'Når du trykker Send melding, leser sendMelding() variablene. { avsender, tekst } er kortform for { avsender: avsender, tekst: tekst }.',
-			'JSON.stringify() gjør JavaScript-objektet om til JSON-tekst. Det er denne teksten som blir requestens body.',
-			'fetch() kjøres i nettleseren. URL velger server og rute, method velger POST, og Content-Type forteller at body inneholder JSON.',
-			'express.json() leser JSON-bodyen og gjør den tilgjengelig som et JavaScript-objekt i req.body. Middleware må stå før rutene.',
-			valid
-				? 'POST-ruten leser req.body.avsender og req.body.tekst. Begge må være strenger og inneholde mer enn mellomrom.'
-				: 'Kontrollen feiler: backend trenger både avsender og tekst med innhold. Et felt som heter message blir ikke automatisk til tekst.',
-			valid
-				? 'meldinger.push(melding) legger objektet bakerst i backendens array. Se at listen i nettleseren fortsatt er uendret!'
-				: 'return stopper ruten før push(). Backend-listen endres ikke. Svaret blir 400 med en forklaring.',
-			valid
-				? 'res.status(201).json(...) sender en bekreftelse og den nye meldingen som JSON. Dette svaret følger POST-requesten tilbake.'
-				: 'res.status(400).json(...) sender feilmeldingen tilbake. Det sendes ingen ny melding til en annen innboks.',
-			valid
-				? 'await svar.json() leser responsen. status får bekreftelsen, og tekstfeltet tømmes. POST-koden i øvingen henter ikke hele listen.'
-				: 'fetch() kaster ikke automatisk feil ved 400. Koden sjekker svar.ok, kaster en feil og viser den i catch.',
-			'Nå trykker vi Hent meldinger, som i øvingen. fetch(URL) bruker GET som standard. Denne forespørselen trenger ingen body.',
-			'GET-ruten kjører res.json(meldinger). Backend sender hele den nåværende listen som JSON, med status 200.',
-			'meldinger = await svar.json() gir frontend en egen kopi av listen. $state og {#each} sørger for at meldingene vises på siden.'
-		][step]
-	);
+	let klientMeldinger = $state([]);
+	/** @type {ReturnType<typeof makeRun>} */
+	let plan = $state([]);
+	let steg = $state(0);
+	let forberedt = $state(false);
+	/** @type {string | null} */
+	let valgtId = $state(null);
+	/** @type {HTMLElement | null} */
+	let valgtKnapp = $state(null);
+	/** @type {HTMLElement | undefined} */
+	let forklaringskolonne = $state();
+	let smalSkjerm = $state(false);
+	let visData = $state(false);
 
-	const frontendCode = [
-		'const API = "http://backend.example:3000";',
-		'let avsender = $state("");',
-		'let tekst = $state("");',
-		'let meldinger = $state([]);',
-		'let status = $state("");',
-		'',
-		'async function sendMelding() {',
-		'  try {',
-		'    const svar = await fetch(`${API}/meldinger`, {',
-		'      method: "POST",',
-		'      headers: { "Content-Type": "application/json" },',
-		'      body: JSON.stringify({ avsender, tekst })',
-		'    });',
-		'    const data = await svar.json();',
-		'    if (!svar.ok) throw new Error(data.beskjed);',
-		'    status = data.beskjed;',
-		'    tekst = "";',
-		'  } catch (feil) {',
-		'    status = `Kunne ikke sende: ${feil.message}`;',
-		'  }',
-		'}',
-		'',
-		'async function hentMeldinger() {',
-		'  try {',
-		'    const svar = await fetch(`${API}/meldinger`);',
-		'    if (!svar.ok) throw new Error(`HTTP ${svar.status}`);',
-		'    meldinger = await svar.json();',
-		'    status = "Meldingene er hentet.";',
-		'  } catch (feil) {',
-		'    status = `Kunne ikke hente: ${feil.message}`;',
-		'  }',
-		'}',
-		'',
-		'// HTML-delen i samme Svelte-fil:',
-		'<input bind:value={avsender} />',
-		'<input bind:value={tekst} />',
-		'<button onclick={sendMelding}>Send melding</button>',
-		'<button onclick={hentMeldinger}>Hent meldinger</button>',
-		'<p>{status}</p>',
-		'{#each meldinger as melding}',
-		'  <p>{melding.avsender}: {melding.tekst}</p>',
-		'{/each}'
-	];
-	const backendCode = [
-		'import express from "express";',
-		'const app = express();',
-		'const meldinger = [];',
-		'// CORS-konfigurasjonen fra del 3 legges her.',
-		'app.use(express.json());',
-		'',
-		'app.post("/meldinger", (req, res) => {',
-		'  const avsender = req.body?.avsender;',
-		'  const tekst = req.body?.tekst;',
-		'  if (typeof avsender !== "string" ||',
-		'      typeof tekst !== "string" ||',
-		'      !avsender.trim() || !tekst.trim()) {',
-		'    return res.status(400).json({',
-		'      beskjed: "Avsender og tekst må fylles ut."',
-		'    });',
-		'  }',
-		'  const melding = {',
-		'    avsender: avsender.trim(),',
-		'    tekst: tekst.trim()',
-		'  };',
-		'  meldinger.push(melding);',
-		'  res.status(201).json({',
-		'    beskjed: "Meldingen er mottatt!",',
-		'    melding: melding',
-		'  });',
-		'});',
-		'',
-		'app.get("/meldinger", (req, res) => {',
-		'  res.json(meldinger);',
-		'});',
-		'app.listen(3000, "0.0.0.0");'
-	];
-	let codeLines = $derived(activeTab === 'frontend' ? frontendCode : backendCode);
-	let activeLines = $derived(
-		activeTab === 'frontend'
-			? step === 0
-				? [2, 3, 35, 36]
-				: step === 1
-					? [7, 12, 37]
-					: step === 2
-						? [12]
-						: step === 3
-							? [9, 10, 11, 12, 13]
-							: step === 8
-								? valid
-									? [14, 15, 16, 17]
-									: [14, 15, 18, 19]
-								: step === 9
-									? [23, 25, 38]
-									: step === 11
-										? [27, 28, 40, 41, 42]
-										: []
-			: step === 4
-				? [5, 7, 8, 9]
-				: step === 5
-					? [8, 9, 10, 11, 12]
-					: step === 6
-						? valid
-							? [17, 18, 19, 20, 21]
-							: [13, 14, 15]
-						: step === 7
-							? valid
-								? [22, 23, 24, 25]
-								: [13, 14, 15]
-							: step === 10
-								? [28, 29, 30]
-								: []
-	);
-	let focusLines = $derived(
-		codeLines
-			.map((text, i) => ({ text, number: i + 1 }))
-			.filter((line) => activeLines.includes(line.number))
-	);
-
-	/** @param {string} line */
-	function tokens(line) {
-		return line
-			.split(
-				/("[^"\n]*"|'[^'\n]*'|`[^`\n]*`|\/\/.*$|\b(?:const|let|async|await|function|return|if|throw|new|try|catch|import|from|typeof)\b|\b\d+\b)/g
-			)
-			.filter(Boolean)
-			.map((text) => ({
-				text,
-				kind: text.startsWith('//')
-					? 'comment'
-					: /^["'`]/.test(text)
-						? 'string'
-						: /^(const|let|async|await|function|return|if|throw|new|try|catch|import|from|typeof)$/.test(
-									text
-							  )
-							? 'keyword'
-							: /^\d+$/.test(text)
-								? 'number'
-								: ''
-			}));
-	}
-	function next() {
-		if (step === 0) packet = JSON.parse(JSON.stringify(draft));
-		if (step < 11) step += 1;
-		if (step === 11) playing = false;
-	}
-	function play() {
-		if (step === 11) rewind();
-		playing = !playing;
-		if (playing && step === 0) next();
-	}
-	function rewind() {
-		playing = false;
-		step = 0;
-		packet = null;
-		copied = false;
-	}
-	function newMessage() {
-		baseline = JSON.parse(JSON.stringify(serverList));
-		clientBaseline = JSON.parse(JSON.stringify(clientList));
-		rewind();
-		tekst = '';
-		scenario = 'normal';
-		round += 1;
-	}
-	function clearAll() {
-		rewind();
-		baseline = [];
-		clientBaseline = [];
-		round = 1;
-		scenario = 'normal';
-		avsender = 'Gruppe 1';
-		tekst = 'Hei fra oss!';
-	}
-	async function copyCode() {
-		try {
-			await navigator.clipboard.writeText(codeLines.join('\n'));
-			copied = true;
-		} catch {
-			copied = false;
-		}
-	}
-	$effect(() => {
-		if (!playing) return;
-		const timer = setInterval(next, Number(speed));
-		return () => clearInterval(timer);
+	const forklaringsId = 'linjeforklaring';
+	let kode = $derived(codeLines(handling, side, feilNokkel));
+	let valgt = $derived(kode.find((linje) => linje.id === valgtId));
+	let aktuelt = $derived(steg > 0 ? plan[steg - 1] : null);
+	let underveis = $derived(steg > 0 && steg < plan.length);
+	let ferdig = $derived(plan.length > 0 && steg === plan.length);
+	let metode = $derived.by(() => (handling === 'post' ? 'POST' : 'GET'));
+	let sideNavn = $derived.by(() => (side === 'frontend' ? 'Frontend' : 'Backend'));
+	let erFeil = $derived(ferdig && aktuelt?.httpStatus === 400);
+	let ulikeLister = $derived(JSON.stringify(serverMeldinger) !== JSON.stringify(klientMeldinger));
+	let overskrift = $derived.by(() => {
+		if (aktuelt) return aktuelt.title;
+		if (forberedt) return 'Klar for et nytt forsøk.';
+		return handling === 'post' ? 'Start i nettleseren.' : 'Be om listen fra serveren.';
 	});
+	let stegTekst = $derived.by(() => {
+		if (aktuelt) return aktuelt.explanation;
+		if (handling === 'get')
+			return 'Trykk «Hent meldinger». GET ber om listen som ligger på serveren akkurat nå.';
+		return 'Endre gjerne teksten. Trykk «Send melding», og følg det som skjer én kodebit om gangen.';
+	});
+
+	onMount(() => {
+		const media = window.matchMedia('(max-width: 900px)');
+		function oppdaterSkjerm() {
+			smalSkjerm = media.matches;
+			lukkForklaring();
+		}
+		oppdaterSkjerm();
+		media.addEventListener('change', oppdaterSkjerm);
+		return () => media.removeEventListener('change', oppdaterSkjerm);
+	});
+
+	function lukkForklaring() {
+		valgtId = null;
+		valgtKnapp = null;
+	}
+
+	/** @param {string} id @param {MouseEvent & {currentTarget: EventTarget & HTMLButtonElement}} event */
+	function forklar(id, event) {
+		if (valgtId === id) {
+			lukkForklaring();
+			return;
+		}
+		valgtKnapp = event.currentTarget;
+		valgtId = id;
+	}
+
+	function klargjor() {
+		if (underveis) return;
+		plan = [];
+		steg = 0;
+		forberedt = true;
+		lukkForklaring();
+	}
+
+	/** @param {'post' | 'get'} neste */
+	function velgHandling(neste) {
+		if (underveis || neste === handling) return;
+		klargjor();
+		handling = neste;
+		side = 'frontend';
+	}
+
+	/** @param {'frontend' | 'backend'} neste */
+	function velgSide(neste) {
+		lukkForklaring();
+		side = neste;
+	}
+
+	function start() {
+		if (underveis) return;
+		lukkForklaring();
+		plan = makeRun(handling, { avsender, tekst }, serverMeldinger, klientMeldinger, feilNokkel);
+		steg = 0;
+		forberedt = false;
+		nesteSteg();
+	}
+
+	function nesteSteg() {
+		if (steg >= plan.length) return;
+		lukkForklaring();
+		const neste = plan[steg];
+		side = neste.side;
+		serverMeldinger = neste.serverMessages.map((melding) => ({ ...melding }));
+		klientMeldinger = neste.clientMessages.map((melding) => ({ ...melding }));
+		if (neste.id === 'post-status') tekst = '';
+		steg += 1;
+	}
+
+	function kjorFerdig() {
+		while (steg < plan.length) nesteSteg();
+	}
+
+	function nullstill() {
+		lukkForklaring();
+		plan = [];
+		steg = 0;
+		serverMeldinger = [];
+		klientMeldinger = [];
+		handling = 'post';
+		side = 'frontend';
+		avsender = EXAMPLE_MESSAGE.avsender;
+		tekst = EXAMPLE_MESSAGE.tekst;
+		feilNokkel = false;
+		forberedt = false;
+	}
+
+	/** @param {unknown} verdi */
+	function json(verdi) {
+		return JSON.stringify(verdi, null, 2);
+	}
+
+	/** @param {string} kilde @returns {Token[]} */
+	function fargelegg(kilde) {
+		const monster =
+			/\/\/.*|"(?:[^"\\]|\\.)*"|'(?:[^'\\]|\\.)*'|`(?:[^`\\]|\\.)*`|\b(?:import|from|const|let|if|return|async|await|function|try|catch|throw|new|typeof)\b|\b(?:fetch|stringify|json|push|trim|status|post|get|use|Error|JSON|express)\b|\b\d+\b/g;
+		/** @type {Token[]} */
+		const deler = [];
+		let slutt = 0;
+		for (const treff of kilde.matchAll(monster)) {
+			const i = treff.index ?? 0;
+			if (i > slutt) deler.push({ text: kilde.slice(slutt, i), type: 'vanlig' });
+			const ord = treff[0];
+			const type = ord.startsWith('//')
+				? 'kommentar'
+				: /^["'`]/.test(ord)
+					? 'streng'
+					: /^\d+$/.test(ord)
+						? 'tall'
+						: /^(import|from|const|let|if|return|async|await|function|try|catch|throw|new|typeof)$/.test(
+									ord
+							  )
+							? 'nokkelord'
+							: 'funksjon';
+			deler.push({ text: ord, type });
+			slutt = i + ord.length;
+		}
+		if (slutt < kilde.length) deler.push({ text: kilde.slice(slutt), type: 'vanlig' });
+		return deler;
+	}
 </script>
 
 <svelte:head>
-	<title>Meldingens reise · Frontend ↔ Backend · IT-laben</title>
+	<title>Frontend møter backend · IT-laben</title>
 	<meta
 		name="description"
-		content="Følg en melding fra input og fetch, gjennom req.body og push, og tilbake til Svelte. En interaktiv gjennomgang for Vg2 IT."
+		content="Send en melding, følg koden og hent den tilbake. Klikk på en kodelinje for en forklaring rett ved linjen."
 	/>
 </svelte:head>
 
-<div class="lab">
-	<header class="topbar">
-		<a href="/" class="brand" aria-label="Til forsiden i IT-laben"
-			><span class="brand-icon">←</span> IT-laben<span class="brand-dot"> / </span><span
-				class="brand-course">Vg2 IT</span
-			></a
+<div class="side">
+	<header class="sidehode">
+		<a class="logo" href="/" aria-label="IT-laben – forside"
+			><span class="logoikon" aria-hidden="true">IT</span> IT-laben<span class="punkt">.</span></a
 		>
-		<span class="simulation"><i></i> Interaktiv simulering</span>
+		<a class="videre" href="/chatrom/">Videre til chatrom <span aria-hidden="true">↗</span></a>
 	</header>
-
-	<main id="top">
-		<section class="intro">
-			<div>
-				<p class="eyebrow">DEL 2 + 3 / FRONTEND OG BACKEND</p>
-				<h1>En liten melding.<br /><span>En hel reise.</span></h1>
-				<p class="lead">
-					Hva skjer egentlig når du trykker «Send»? Følg dataene fra inputfeltet til listen på
-					serveren — og tilbake til skjermen.
-				</p>
-			</div>
-			<div class="intro-mark" aria-hidden="true">
-				<span>{'{ }'}</span>
-				<div class="orbit-label">input → body → array</div>
-				<b>01 — 12</b>
-			</div>
+	<main>
+		<section class="intro" aria-labelledby="tittel">
+			<p class="overlinje">UTVIKLING · Vg2 IT</p>
+			<h1 id="tittel">Frontend møter backend</h1>
+			<p class="ingress">
+				Fra klikk til melding. Send den til serveren. Hent den tilbake. Følg koden underveis.
+			</p>
 		</section>
 
-		<section class="workbench" aria-label="Interaktiv gjennomgang">
-			<div class="bench-header">
-				<div>
-					<span class="live-dot"></span><strong>Følg meldingen</strong><span class="muted">
-						/ Runde {round}</span
+		<section class="lab" aria-label="Interaktiv kode for frontend og backend">
+			<div class="forsokslinje">
+				<div class="forsoksvalg" role="group" aria-label="Velg forsøk">
+					<button
+						class:valgt={handling === 'post'}
+						aria-pressed={handling === 'post'}
+						disabled={underveis}
+						onclick={() => velgHandling('post')}
+						><span class="nummer">1</span> Send til serveren <code>POST</code></button
+					>
+					<button
+						class:valgt={handling === 'get'}
+						aria-pressed={handling === 'get'}
+						disabled={underveis}
+						onclick={() => velgHandling('get')}
+						><span class="nummer">2</span> Hent til nettsiden <code>GET</code></button
 					>
 				</div>
-				<span class="step-count">STEG {String(step + 1).padStart(2, '0')} / 12</span>
-			</div>
-			<div class="controls">
-				<button class="primary" onclick={play}
-					>{playing ? 'Ⅱ Pause' : step === 11 ? '↻ Spill igjen' : '▶ Spill av'}</button
-				>
 				<button
-					onclick={() => {
-						playing = false;
-						next();
-					}}
-					disabled={step === 11}>Neste steg →</button
-				>
-				<button
-					class="quiet"
-					onclick={rewind}
-					title="Spol tilbake denne runden til før meldingen ble sendt">↶ Spol tilbake</button
-				>
-				<label class="speed"
-					>Tempo <select bind:value={speed}
-						><option value={4200}>Rolig</option><option value={2600}>Vanlig</option><option
-							value={1300}>Raskt</option
-						></select
-					></label
+					class="tekstknapp nullstill"
+					onclick={nullstill}
+					title="Tøm begge listene og begynn på nytt">Nullstill alt</button
 				>
 			</div>
-			<ol class="stepper" aria-label="Stegene i reisen">
-				{#each steps as item, i}
-					<li
-						class:current={step === i}
-						class:done={step > i}
-						aria-current={step === i ? 'step' : undefined}
-					>
-						<span>{step > i ? '✓' : String(i + 1).padStart(2, '0')}</span><b>{item[0]}</b>
-					</li>
-				{/each}
-			</ol>
 
-			<div class="stage-grid">
-				<article class="endpoint browser" class:active={steps[step][2] === 'frontend'}>
-					<div class="window-head">
-						<span class="window-dots">● ● ●</span><span>NETTLESER / SVELTE</span><span>01</span>
+			{#if handling === 'post'}
+				<div class="proveverdier">
+					<p>Verdier i frontend <span>endre og prøv</span></p>
+					<label
+						><code>avsender</code><input
+							bind:value={avsender}
+							oninput={klargjor}
+							disabled={underveis}
+							maxlength="32"
+							spellcheck="false"
+							aria-label="Avsender"
+						/></label
+					>
+					<label class="meldingsfelt"
+						><code>tekst</code><input
+							bind:value={tekst}
+							oninput={klargjor}
+							disabled={underveis}
+							maxlength="160"
+							spellcheck="false"
+							aria-label="Meldingstekst"
+						/></label
+					>
+				</div>
+			{:else}
+				<div class="getverdier">
+					<code>GET /meldinger</code>
+					<p>Ingen melding sendes med. Vi ber om listen.</p>
+				</div>
+			{/if}
+
+			<div class="arbeidsflate">
+				<div class="editor">
+					<div class="editorhode">
+						<div class="sidevalg" role="group" aria-label="Velg kode å se på">
+							<button
+								class:aktiv={side === 'frontend'}
+								aria-pressed={side === 'frontend'}
+								onclick={() => velgSide('frontend')}
+								><span class="sideprikk front" aria-hidden="true"></span> Frontend
+								<small>+page.svelte</small></button
+							>
+							<button
+								class:aktiv={side === 'backend'}
+								aria-pressed={side === 'backend'}
+								onclick={() => velgSide('backend')}
+								><span class="sideprikk back" aria-hidden="true"></span> Backend
+								<small>server.js</small></button
+							>
+						</div>
+						<span class="utdrag">UTDRAG</span>
 					</div>
-					<div class="endpoint-body">
-						<div class="endpoint-title">
-							<h2>Frontend</h2>
-							<span class="pill teal">Klient</span>
+					<div class="kjorverktoy">
+						<div class="kjorhandlinger">
+							{#if underveis}
+								<button class="primaer" onclick={nesteSteg}
+									><span aria-hidden="true">→</span> Neste steg</button
+								>
+								<button class="sekundaer" onclick={kjorFerdig}>Kjør ferdig</button>
+							{:else}
+								<button class="primaer" onclick={start}
+									><span aria-hidden="true">▶</span>
+									{handling === 'post' ? 'Send melding' : 'Hent meldinger'}</button
+								>
+							{/if}
 						</div>
-						<p class="address">http://localhost:5173</p>
-						<div class="form-fields">
-							<label
-								>Avsender <input
-									bind:value={avsender}
-									disabled={step > 0}
-									maxlength="50"
-									placeholder="F.eks. Gruppe 1"
-								/></label
+						<p class="stegteller">
+							{plan.length ? `Steg ${steg} av ${plan.length}` : 'Kjør steg for steg'}<span
+								>{aktuelt
+									? aktuelt.side === 'frontend'
+										? 'i nettleseren'
+										: 'på serveren'
+									: metode + ' /meldinger'}</span
 							>
-							<label
-								>Melding <input
-									value={step >= 8 && valid ? '' : tekst}
-									oninput={(event) => (tekst = event.currentTarget.value)}
-									disabled={step > 0}
-									maxlength="180"
-									placeholder="Skriv en melding …"
-								/></label
-							>
-						</div>
-						<div class="variable-pair">
-							<span>avsender</span><code>{JSON.stringify(step ? payload.avsender : avsender)}</code>
-						</div>
-						<div class="variable-pair">
-							<span>tekst</span><code>{JSON.stringify(step >= 8 && valid ? '' : tekst)}</code>
-						</div>
-						<div class="mini-actions">
-							<button
-								class="send"
-								disabled={step !== 0}
-								onclick={() => {
-									next();
-									playing = true;
-								}}>Send melding ↗</button
-							>
-							<button
-								disabled={step !== 8}
-								onclick={() => {
-									playing = false;
-									next();
-								}}>Hent meldinger ↓</button
-							>
-						</div>
-						<p class="form-status" class:error={step >= 8 && step < 11 && !valid}>
-							{step >= 8 ? status : 'Skriv i feltene og følg verdiene.'}
 						</p>
-						<div class="list-heading">
-							<strong>Listen på nettsiden</strong><span>{clientList.length}</span>
-						</div>
-						<div class="message-list" class:flash={step === 11}>
-							{#each clientList as melding, i}
-								<div class="message">
-									<span class="avatar">{melding.avsender.slice(0, 1).toUpperCase()}</span>
-									<div>
-										<b>{melding.avsender}</b>
-										<p>{melding.tekst}</p>
-									</div>
-									<small>#{i + 1}</small>
-								</div>
-							{:else}<div class="empty"><span>▤</span>Ingen meldinger hentet ennå.</div>{/each}
-						</div>
-						<p class="tiny">Egen kopi i nettleseren. Oppdateres med GET.</p>
 					</div>
-				</article>
-
-				<div class="connection">
-					<div class="network-label">HTTP <span>↔</span></div>
-					<div
-						class="wire"
-						class:outbound={step === 3 || step === 9}
-						class:inbound={step === 7 || step === 10}
-					>
-						<div class="wire-track"></div>
-						<span class="wire-arrow left">‹</span><span class="wire-arrow right">›</span>
-						{#if [3, 7, 9, 10].includes(step)}<span class="travel-packet"
-								>{step === 3
-									? 'POST'
-									: step === 9
-										? 'GET'
-										: step === 7
-											? valid
-												? '201'
-												: '400'
-											: '200'}</span
+					<div class="steginfo" class:feil={erFeil} aria-live="polite" aria-atomic="true">
+						<div class="stegoverskrift">
+							<strong>{overskrift}</strong>{#if aktuelt?.httpStatus}<span
+									class="httpstatus"
+									data-testid="http-status">{aktuelt.httpStatus}</span
+								>{/if}
+						</div>
+						<p>{stegTekst}</p>
+						{#if aktuelt?.status}
+							<p class="statusverdi">
+								<code>status</code><span data-testid="frontend-status">{aktuelt.status}</span>
+							</p>
+						{/if}
+						{#if aktuelt && side !== aktuelt.side}<button
+								class="folglinje"
+								onclick={() => velgSide(aktuelt.side)}
+								>Tilbake til koden i dette steget <span aria-hidden="true">↗</span></button
 							>{/if}
 					</div>
-					<div class="transit-card">
-						<span class="eyebrow">{step >= 9 ? 'HENTING' : step >= 7 ? 'RESPONSE' : 'REQUEST'}</span
-						>
-						<b
-							>{step >= 10
-								? '200 OK'
-								: step === 9
-									? 'GET /meldinger'
-									: step >= 7
-										? valid
-											? '201 Created'
-											: '400 Bad Request'
-										: 'POST /meldinger'}</b
-						>
-						<p>
-							{step >= 10
-								? 'Hele listen tilbake'
-								: step === 9
-									? 'Ingen body'
-									: step >= 7
-										? 'Et svar på POST'
-										: 'Body: JSON-tekst'}
-						</p>
-					</div>
-					<p class="network-note">Nettleseren snakker direkte med Express i denne øvingen.</p>
-				</div>
-
-				<article class="endpoint server" class:active={steps[step][2] === 'backend'}>
-					<div class="window-head">
-						<span class="server-leds">▰ ▰ ▰</span><span>SERVER / NODE + EXPRESS</span><span>02</span
+					<div class="kodehjelp">
+						<span>Klikk på en linje for forklaring <span aria-hidden="true">↗</span></span><span
+							class="kjorelegende"><i aria-hidden="true">→</i> Utført steg</span
 						>
 					</div>
-					<div class="endpoint-body">
-						<div class="endpoint-title">
-							<h2>Backend</h2>
-							<span class="pill orange">Server</span>
-						</div>
-						<p class="address">{API}</p>
-						<div class="pipeline">
-							<div class:lit={step === 4}>
-								<span>01</span><code>express.json()</code><b>JSON → objekt</b>
-							</div>
-							<div class:lit={step === 5} class:failed={!valid && step === 5}>
-								<span>02</span><code>req.body</code><b>Les + kontroller</b>
-							</div>
-							<div class:lit={step === 6 && valid} class:failed={!valid && step === 6}>
-								<span>03</span><code>meldinger.push()</code><b
-									>{step >= 6 && !valid ? 'Stoppet av return' : 'Legg til'}</b
-								>
-							</div>
-						</div>
-						<div class="body-preview">
-							<span>req.body {step < 4 ? '· venter' : '· JavaScript-objekt'}</span>
-							<pre>{step >= 4 ? pretty(payload) : '// Requesten har ikke kommet frem'}</pre>
-						</div>
-						<div class="list-heading">
-							<strong>meldinger <span class="array-label">/ array i minnet</span></strong><span
-								>{serverList.length}</span
+					<div class="kodeliste" aria-label={`${sideNavn}: ${metode}-kode`}>
+						{#each kode as linje, i (linje.id)}
+							{@const aktiv = aktuelt?.side === side && aktuelt.lineIds.includes(linje.id)}
+							<div
+								class="linjerad"
+								class:markert={valgtId === linje.id}
+								class:utfort={aktiv}
+								data-line-id={linje.id}
 							>
-						</div>
-						<div class="server-array" class:flash={step === 6 && valid}>
-							<span class="bracket">[</span>
-							{#each serverList as melding, i}<div class="array-row">
-									<span class="index">{i}</span>
-									<pre>{pretty(melding)}</pre>
-								</div>{:else}<p class="empty-array">Tom liste</p>{/each}
-							<span class="bracket">]</span>
-						</div>
-						<p class="tiny">Ingen database: listen forsvinner ved serverstart.</p>
+								{#if linje.text.trim()}
+									<button
+										class="kodelinje"
+										data-explanation-for={forklaringsId}
+										aria-label={`Forklar ${sideNavn.toLowerCase()} linje ${i + 1}: ${linje.text}`}
+										aria-expanded={valgtId === linje.id}
+										aria-controls={valgtId === linje.id ? forklaringsId : undefined}
+										aria-describedby={valgtId === linje.id ? forklaringsId + '-body' : undefined}
+										onclick={(event) => forklar(linje.id, event)}
+									>
+										<span class="linjenummer" aria-hidden="true">{i + 1}</span><span
+											class="kjorepil"
+											aria-hidden="true">{aktiv ? '→' : ''}</span
+										><code
+											>{#each fargelegg(linje.text) as bit}<span class={bit.type}>{bit.text}</span
+												>{/each}</code
+										><span class="forklaringsmerke" aria-hidden="true"
+											>{valgtId === linje.id ? '←' : '?'}</span
+										>
+									</button>
+								{:else}<div class="tomlinje" aria-hidden="true">
+										<span class="linjenummer">{i + 1}</span>
+									</div>{/if}
+								{#if smalSkjerm && valgtId === linje.id}
+									<div class="inlineforklaring">
+										<CodeExplanation
+											anchor={valgtKnapp}
+											id={forklaringsId}
+											title={linje.title}
+											explanation={linje.explanation}
+											label={`${sideNavn} · linje ${i + 1}`}
+											onclose={lukkForklaring}
+											mode="inline"
+										/>
+									</div>
+								{/if}
+							</div>
+						{/each}
 					</div>
-				</article>
+					<div class="kodefot">
+						<span
+							class="sideprikk"
+							class:front={side === 'frontend'}
+							class:back={side === 'backend'}
+							aria-hidden="true"
+						></span><span
+							>{side === 'frontend' ? 'Kjører i nettleseren' : 'Kjører på serveren'} <b>·</b>
+							{metode} /meldinger</span
+						>
+					</div>
+				</div>
+				<aside
+					class="forklaringskolonne"
+					bind:this={forklaringskolonne}
+					aria-label="Forklaring ved kodelinjen"
+				>
+					{#if !smalSkjerm && valgt}
+						<CodeExplanation
+							anchor={valgtKnapp}
+							boundary={forklaringskolonne}
+							id={forklaringsId}
+							title={valgt.title}
+							explanation={valgt.explanation}
+							label={`${sideNavn} · linje ${kode.findIndex((linje) => linje.id === valgtId) + 1}`}
+							onclose={lukkForklaring}
+						/>
+					{/if}
+					{#if !smalSkjerm}
+						<div class="forklaringshint" class:skjult={Boolean(valgt)} aria-hidden={Boolean(valgt)}>
+							<span class="peker" aria-hidden="true">↖</span>
+							<p>
+								<strong>Lurer du på en linje?</strong>Trykk på koden. Forklaringen åpner her, rett
+								ved linjen du velger.
+							</p>
+							<small>Du kan lese forklaringer uten å kjøre koden.</small>
+						</div>
+					{/if}
+				</aside>
 			</div>
 
-			<div
-				class="explanation"
-				class:warning={!valid && step >= 5 && step <= 8}
-				aria-live="polite"
-				aria-atomic="true"
-			>
-				<span class="explanation-number">{String(step + 1).padStart(2, '0')}</span>
-				<div>
-					<p class="eyebrow">
-						{steps[step][2] === 'frontend'
-							? 'I NETTLESEREN'
-							: steps[step][2] === 'backend'
-								? 'PÅ SERVEREN'
-								: 'OVER NETTVERKET'}
-					</p>
-					<h3>{step === 6 && !valid ? 'Stopp! Meldingen blir avvist.' : steps[step][1]}</h3>
-					<p>{description}</p>
+			<div class="resultatlinje" class:ulikt={ulikeLister}>
+				<div class="tallpar">
+					<span>Backend <b data-testid="server-count">{serverMeldinger.length}</b></span><span
+						class="skille"
+						aria-hidden="true">/</span
+					><span>Frontend <b data-testid="client-count">{klientMeldinger.length}</b></span><small
+						>meldinger i hver sin liste</small
+					>
 				</div>
-			</div>
-			<div class="experiment">
-				<div><strong>Hva om …?</strong><span> Prøv samme reise med andre data.</span></div>
-				<label class="sr-only" for="scenario">Velg test</label><select
-					id="scenario"
-					bind:value={scenario}
-					disabled={step > 0}
-					><option value="normal">Vanlig melding</option><option value="empty"
-						>Send tom tekst</option
-					><option value="wrongkey">Send «message» i stedet for «tekst»</option></select
-				><button onclick={newMessage} disabled={step !== 11}>Ny melding +</button><button
-					class="quiet"
-					onclick={clearAll}>Nullstill alt</button
+				{#if ferdig && handling === 'post' && !erFeil}<button
+						class="tekstknapp hentneste"
+						onclick={() => velgHandling('get')}
+						>Nå: hent til nettsiden <span aria-hidden="true">→</span></button
+					>{/if}
+				<button
+					class="tekstknapp"
+					aria-expanded={visData}
+					aria-controls="dataoversikt"
+					onclick={() => (visData = !visData)}
+					>{visData ? 'Skjul data' : 'Se dataene'}
+					<span aria-hidden="true">{visData ? '−' : '+'}</span></button
 				>
 			</div>
-			{#if scenario !== 'normal'}<p class="scenario-note">
-					{scenario === 'empty'
-						? 'Testen erstatter tekst med en tom streng når body bygges, selv om inputfeltet har innhold.'
-						: 'Testen sender feltet message i body. Backend-koden leter fortsatt etter tekst.'}
-				</p>{/if}
+			{#if visData}
+				<div class="dataoversikt" id="dataoversikt">
+					<section>
+						<p class="datamerke">PÅ SERVEREN</p>
+						<h2><code>meldinger</code> i backend</h2>
+						<pre data-testid="server-data"><code>{json(serverMeldinger)}</code></pre>
+					</section>
+					<section>
+						<p class="datamerke">I NETTLESEREN</p>
+						<h2>Dette viser nettsiden</h2>
+						<div class="meldingsliste" data-testid="client-view">
+							{#each klientMeldinger as melding}<p>
+									<strong>{melding.avsender}</strong><span>{melding.tekst}</span>
+								</p>{:else}<p class="tomliste">Ingen meldinger å vise.</p>{/each}
+						</div>
+					</section>
+					<section class="nettverksdata">
+						<p class="datamerke">DENNE REQUESTEN</p>
+						<div class="requestpar">
+							<div>
+								<h2>{metode} · {aktuelt?.id === 'post-object' ? 'planlagt body' : 'body'}</h2>
+								{#if handling === 'get'}<p class="tomliste">
+										Ingen body i denne GET-requesten.
+									</p>{:else if aktuelt?.requestBody}<pre data-testid="request-body"><code
+											>{json(aktuelt.requestBody)}</code
+										></pre>{:else}<p class="tomliste">Ikke sendt ennå.</p>{/if}
+							</div>
+							<div>
+								<h2>Svar {aktuelt?.httpStatus ?? ''}</h2>
+								{#if aktuelt?.responseBody}<pre data-testid="response-body"><code
+											>{json(aktuelt.responseBody)}</code
+										></pre>{:else}<p class="tomliste">Ikke mottatt ennå.</p>{/if}
+							</div>
+						</div>
+					</section>
+				</div>
+			{/if}
 		</section>
 
-		<section class="details-grid">
-			<article class="inspector">
-				<div class="section-top">
-					<span class="section-number">01 /</span>
-					<h2>Se hva som sendes</h2>
+		<div class="fordypning">
+			<details>
+				<summary><span>Prøv en feil</span><small>Hva stopper backend?</small></summary>
+				<div class="detaljinnhold">
+					<p>
+						Send en tom tekst, eller bytt navn på feltet i JSON-objektet. Se hvilken linje som
+						stopper meldingen.
+					</p>
+					<label class="feilvalg"
+						><input
+							type="checkbox"
+							bind:checked={feilNokkel}
+							onchange={klargjor}
+							disabled={underveis || handling !== 'post'}
+						/><span>Send <code>message: tekst</code> i stedet for <code>tekst</code></span></label
+					>
+					{#if handling === 'get'}<p class="detaljhint">
+							Velg «Send til serveren» for å prøve feilen.
+						</p>{:else}<p class="detaljhint">
+							Se at objektlinjen i frontend endrer seg. Frontend-listen og tidligere meldinger
+							beholdes.
+						</p>{/if}
+					<p class="tenk">Blir meldingen lagt til før backend svarer med 400?</p>
 				</div>
-				<p class="section-intro">De samme verdiene. Forskjellige former.</p>
-				<div class="data-block" class:selected={step <= 1}>
-					<div><b>JavaScript-objekt</b><span>FØR SENDING</span></div>
-					<pre>{pretty(payload)}</pre>
-				</div>
-				<div class="transform">
-					<span>↓</span><code>JSON.stringify()</code><span>objekt → tekst</span>
-				</div>
-				<div class="data-block" class:selected={step === 2 || step === 3}>
-					<div><b>HTTP-request</b><span>{step >= 9 ? 'GET' : 'POST'}</span></div>
-					<pre class="http">{step >= 9
-							? 'GET /meldinger\nHost: backend.example:3000\n\n// Ingen body'
-							: 'POST /meldinger\nHost: backend.example:3000\nContent-Type: application/json\n\n' +
-								JSON.stringify(payload)}</pre>
-				</div>
-				<p class="tiny">Forenklet HTTP-visning. JSON-teksten etter den tomme linjen er body.</p>
-				<div class="transform">
-					<span>↓</span><code>express.json()</code><span>tekst → objekt</span>
-				</div>
-				<div class="data-block" class:selected={step === 4 || step === 5}>
-					<div><b>req.body på backend</b><span>ETTER PARSING</span></div>
-					<pre>{pretty(payload)}</pre>
-					<p class="field-check">
-						<code>req.body.tekst</code> →
-						<strong class:error={payload.tekst === undefined}
-							>{payload.tekst === undefined ? 'undefined' : JSON.stringify(payload.tekst)}</strong
-						>
+			</details>
+			<details>
+				<summary
+					><span>Koble til eget prosjekt</span><small>Hvor hører utdragene hjemme?</small></summary
+				>
+				<div class="detaljinnhold prosjekt">
+					<div>
+						<h2>Frontend · Svelte</h2>
+						<p>{CODE_CONTEXTS.frontend}</p>
+						<pre><code
+								>{'const API = "http://localhost:3000";\nlet avsender = $state("");\nlet tekst = $state("");\nlet meldinger = $state([]);\nlet status = $state("");'}</code
+							></pre>
+						<p>
+							Inputfeltene bruker <code>bind:value</code>. Knappene kaller <code>sendMelding</code>
+							og <code>hentMeldinger</code>.
+						</p>
+						<pre><code
+								>{'<input bind:value={avsender} />\n<input bind:value={tekst} />\n<button onclick={sendMelding}>Send</button>\n<button onclick={hentMeldinger}>Hent</button>\n<p>{status}</p>\n{#each meldinger as melding}\n  <p>{melding.avsender}: {melding.tekst}</p>\n{/each}'}</code
+							></pre>
+					</div>
+					<div>
+						<h2>Backend · Express</h2>
+						<p>{CODE_CONTEXTS.backend}</p>
+						<pre><code
+								>{'import express from "express";\nconst app = express();\nconst meldinger = [];\n\n// Legg POST- og GET-rutene her.\n\napp.listen(3000);'}</code
+							></pre>
+						<p>
+							<code>express.json()</code> må stå før POST-ruten. <code>meldinger</code> er én felles liste
+							for begge rutene, i serverens minne.
+						</p>
+						<p>
+							På en annen maskin erstatter du <code>localhost</code> med serverens adresse. Bruk CORS-oppsettet
+							fra prosjektet når frontend og backend har ulik origin.
+						</p>
+					</div>
+					<p class="kildelenker">
+						Les mer: <a
+							href="https://developer.mozilla.org/en-US/docs/Web/API/Fetch_API/Using_Fetch"
+							>fetch hos MDN ↗</a
+						><a href="https://expressjs.com/en/5x/api.html">Express-dokumentasjonen ↗</a>
 					</p>
 				</div>
-				<div class="response-block">
-					<span class="pill" class:orange={!valid}
-						>{step >= 10
-							? '200 OK · GET'
-							: `${valid ? '201 Created' : '400 Bad Request'} · POST`}</span
-					>
-					<p>{step < 7 ? 'Forventet response' : 'Response body'}</p>
-					<pre>{pretty(step >= 10 ? serverList : response)}</pre>
-				</div>
-			</article>
-
-			<article class="code-panel">
-				<div class="section-top">
-					<span class="section-number">02 /</span>
-					<h2>Koden bak reisen</h2>
-				</div>
-				<p class="section-intro">Fra øving 2 og 3. Markeringene følger steget du er på.</p>
-				<p class="tiny">
-					I eget prosjekt: Bytt <code>backend.example</code> med adressen til din egen backend.
-				</p>
-				<div class="code-tabs" role="group" aria-label="Velg kode">
-					<button
-						class:chosen={codeTab === 'auto'}
-						onclick={() => {
-							codeTab = 'auto';
-							copied = false;
-						}}>Følg reisen</button
-					><button
-						class:chosen={codeTab === 'frontend'}
-						onclick={() => {
-							codeTab = 'frontend';
-							copied = false;
-						}}>Frontend</button
-					><button
-						class:chosen={codeTab === 'backend'}
-						onclick={() => {
-							codeTab = 'backend';
-							copied = false;
-						}}>Backend</button
-					>
-				</div>
-				<div class="editor">
-					<div class="editor-bar">
-						<span
-							><i></i>{activeTab === 'frontend'
-								? '+page.svelte · JavaScript + HTML'
-								: 'server.js · Express'}</span
-						><button onclick={copyCode}>{copied ? 'Kopiert ✓' : 'Kopier'}</button>
-					</div>
-					<div class="focus-code">
-						<span>AKKURAT NÅ</span>{#if focusLines.length}{#each focusLines as line}<div
-									class="code-line"
-								>
-									<span class="line-number">{line.number}</span><code
-										>{#each tokens(line.text) as token}<span class={token.kind}>{token.text}</span
-											>{/each}</code
-									>
-								</div>{/each}{:else}<p>
-								Dette steget har ingen markert linje i den valgte filen.
-							</p>{/if}
-					</div>
-					<!-- svelte-ignore a11y_no_noninteractive_tabindex (Keyboard users need to scroll this code region.) -->
-					<div
-						class="all-code"
-						tabindex="0"
-						role="region"
-						aria-label="Fullt kodeeksempel, bla for å se alle linjer"
-					>
-						{#each codeLines as line, i}<div
-								class="code-line"
-								class:highlight={activeLines.includes(i + 1)}
-							>
-								<span class="line-number">{i + 1}</span><code
-									>{#each tokens(line || ' ') as token}<span class={token.kind}>{token.text}</span
-										>{/each}</code
-								>
-							</div>{/each}
-					</div>
-				</div>
-				<p class="code-note">
-					Kodeutdragene følger øvingene. I frontend ligger JavaScript i script-delen og HTML under.
-					Backend trenger også CORS-oppsettet fra del 3 når portene er ulike. Simuleringen av feil
-					feltnavn endrer bare testdataene.
-				</p>
-			</article>
-		</section>
-
-		<section class="takeaways">
-			<div class="takeaway-title">
-				<p class="eyebrow">DET VIKTIGE SKILLET</p>
-				<h2>Samme navn.<br />To ulike lister.</h2>
-				<p>
-					Både frontend og backend bruker navnet <code>meldinger</code>. De deler likevel ikke
-					variabelen eller minnet.
-				</p>
-			</div>
-			<div class="takeaway">
-				<span>POST ↗</span>
-				<h3>Endrer listen på serveren</h3>
-				<p>
-					Body inneholder én melding. Backend kontrollerer den, legger den til og sender en
-					bekreftelse.
-				</p>
-				<code>meldinger.push(melding)</code>
-			</div>
-			<div class="takeaway">
-				<span>GET ↙</span>
-				<h3>Henter en kopi til klienten</h3>
-				<p>
-					Backend returnerer listen. Frontend leser svaret og viser innholdet med en each-blokk.
-				</p>
-				<code>meldinger = await svar.json()</code>
-			</div>
-		</section>
-
-		<section class="notes" aria-label="Prøv og forstå">
-			<details>
-				<summary>Hvor kommer selve nettsiden fra?</summary>
-				<p>
-					Først henter nettleseren siden og JavaScript fra frontendserveren, for eksempel port 5173.
-					Etterpå kjører knappefunksjonene i nettleseren. fetch() i denne øvingen går direkte fra
-					nettleseren til Express på port 3000.
-				</p>
-				<p>
-					Andre oppsett kan bruke en proxy eller serverruter i SvelteKit. Det er ikke oppsettet som
-					vises her.
-				</p>
 			</details>
-			<details>
-				<summary>Hva med CORS og OPTIONS?</summary>
-				<p>
-					Ulike porter betyr ulike origins. Backend må tillate frontendens origin. Ved POST med
-					application/json på tvers av origins gjør nettleseren normalt en OPTIONS-forhåndssjekk før
-					POST. Den er utelatt fra animasjonen for å vise selve dataflyten tydelig.
-				</p>
-				<p>
-					CORS håndheves av nettleseren og er ikke pålogging. API-adressen skal peke på
-					backendmaskinen. localhost betyr alltid maskinen der nettleseren kjører.
-				</p>
-			</details>
-			<details>
-				<summary>Tre ting å prøve sammen</summary>
-				<ol>
-					<li>
-						Stopp på push(). Hvilken liste har fått meldingen? Hvorfor er den andre fortsatt
-						uendret?
-					</li>
-					<li>Velg feil feltnavn og se på req.body. Hvorfor får du undefined for tekst?</li>
-					<li>Fullfør reisen, velg Ny melding, og send en til. Hva inneholder GET-svaret nå?</li>
-				</ol>
-			</details>
-		</section>
+		</div>
+		<p class="simuleringsnote">
+			Dette er en simulering i nettleseren. Ingen meldinger sendes til en ekte server. «Nullstill
+			alt» eller en oppdatering av siden tømmer begge listene.
+		</p>
 		<footer>
-			<span>IT-laben / FRONTEND ↔ BACKEND</span>
-			<p>
-				En lokal undervisningssimulering basert på øving 2 og 3. Ingen ekte HTTP-kall eller server
-				startes. Nullstill alt tømmer begge demolistene.
-			</p>
+			<a href="/">← Flere forsøk i IT-laben</a><span>Prøv. Les koden. Prøv igjen.</span>
 		</footer>
 	</main>
 </div>
@@ -774,1417 +555,1148 @@
 <style>
 	:global(body) {
 		margin: 0;
-		background: #f3f4ee;
-		color: #182e32;
+		background: #f4f5ef;
+	}
+	.side {
+		--blekk: #193c3b;
+		--gronn: #087f79;
+		--kant: #d8e0d5;
+		min-height: 100vh;
+		color: var(--blekk);
 		font-family:
 			Inter,
-			ui-sans-serif,
 			system-ui,
 			-apple-system,
 			BlinkMacSystemFont,
 			'Segoe UI',
 			sans-serif;
 	}
-	:global(*) {
+	.side,
+	.side * {
 		box-sizing: border-box;
 	}
-	:global(html) {
-		scroll-behavior: smooth;
-	}
-	.lab {
-		--teal: #087e80;
-		--orange: #e98c49;
-		--ink: #162e33;
-		--border: #d9e0d9;
-		--muted: #647578;
-		min-height: 100vh;
-		background: radial-gradient(ellipse at 80% 2%, #d7eee66b, transparent 38%);
-	}
 	button,
-	input,
-	select {
+	input {
 		font: inherit;
 	}
-	button,
-	select {
+	button {
 		cursor: pointer;
 	}
-	button {
-		border: 1px solid #cdd8d2;
-		background: white;
-		color: var(--ink);
-		border-radius: 8px;
-		padding: 10px 15px;
-		font-size: 13px;
-		font-weight: 650;
-		transition:
-			background 0.2s,
-			transform 0.2s;
-	}
-	button:hover:not(:disabled) {
-		background: #e5eee8;
-		transform: translateY(-1px);
-	}
 	button:disabled {
-		opacity: 0.42;
-		cursor: not-allowed;
+		cursor: default;
+		opacity: 0.5;
+	}
+	button,
+	a,
+	input,
+	summary {
+		-webkit-tap-highlight-color: transparent;
 	}
 	button:focus-visible,
 	a:focus-visible,
 	input:focus-visible,
-	select:focus-visible,
-	summary:focus-visible,
-	[tabindex]:focus-visible {
-		outline: 3px solid #df9552;
-		outline-offset: 4px;
+	summary:focus-visible {
+		outline: 3px solid #bd6e31;
+		outline-offset: 3px;
+	}
+	a {
+		color: inherit;
 	}
 	code,
 	pre {
 		font-family: 'SFMono-Regular', Consolas, 'Liberation Mono', monospace;
 	}
-	pre {
-		margin: 0;
-		white-space: pre-wrap;
-		overflow-wrap: anywhere;
-		font-size: 12px;
-		line-height: 1.65;
+	.sidehode,
+	main {
+		width: min(1240px, calc(100% - 64px));
+		margin-inline: auto;
 	}
-	p {
-		line-height: 1.65;
+	.sidehode {
+		display: flex;
+		align-items: center;
+		justify-content: space-between;
+		padding-block: 25px;
+		border-bottom: 1px solid var(--kant);
 	}
-	h1,
-	h2,
-	h3,
-	p {
-		margin-top: 0;
-	}
-	h2 {
-		font-size: 23px;
+	.logo {
+		display: inline-flex;
+		align-items: center;
+		gap: 8px;
+		font-size: 21px;
+		font-weight: 780;
+		text-decoration: none;
 		letter-spacing: -0.7px;
 	}
-	h3 {
-		font-size: 22px;
-		letter-spacing: -0.6px;
-	}
-	a {
-		color: inherit;
-	}
-	main {
-		max-width: 1430px;
-		margin: auto;
-		padding: 0 46px;
-	}
-	.topbar {
-		height: 78px;
-		border-bottom: 1px solid var(--border);
-		display: flex;
-		align-items: center;
-		justify-content: space-between;
-		padding: 0 46px;
-		max-width: 1522px;
-		margin: auto;
-	}
-	.brand {
-		text-decoration: none;
-		font-size: 14px;
-		font-weight: 850;
-		letter-spacing: 1.5px;
-		display: flex;
-		gap: 12px;
-		align-items: center;
-	}
-	.brand-icon {
+	.logoikon {
 		display: grid;
 		place-items: center;
-		background: var(--ink);
-		color: #b8efce;
-		width: 33px;
-		height: 33px;
-		border-radius: 9px;
-		font-size: 24px;
+		width: 30px;
+		height: 30px;
+		background: var(--blekk);
+		color: #f0f5d8;
+		font-size: 13px;
+		border-radius: 7px;
+		letter-spacing: -0.5px;
 	}
-	.brand-dot {
-		color: #9baca6;
+	.punkt {
+		color: var(--gronn);
+		margin-left: -8px;
 	}
-	.brand-course {
-		font-weight: 500;
-		letter-spacing: 0;
-	}
-	.simulation {
+	.videre {
 		font-size: 12px;
-		color: #536962;
-		display: flex;
-		gap: 8px;
-		align-items: center;
+		text-decoration: none;
+		color: #576e61;
 	}
-	.simulation i,
-	.live-dot {
-		width: 7px;
-		height: 7px;
-		border-radius: 50%;
-		background: #0b8c77;
-		display: inline-block;
+	.videre span {
+		margin-left: 6px;
 	}
 	.intro {
-		display: flex;
-		justify-content: space-between;
-		align-items: center;
-		padding: 62px 0 44px;
-		gap: 45px;
+		padding-block: 32px 27px;
 	}
-	.eyebrow {
+	.overlinje {
+		display: flex;
+		align-items: center;
+		gap: 10px;
+		margin: 0 0 12px;
 		font-size: 10px;
-		font-weight: 800;
-		letter-spacing: 1.8px;
-		color: var(--teal);
-		margin-bottom: 15px;
+		font-weight: 750;
+		letter-spacing: 1.6px;
 	}
 	h1 {
-		font-size: clamp(42px, 5.4vw, 76px);
-		line-height: 1.04;
-		letter-spacing: -3.5px;
-		margin-bottom: 24px;
-		font-weight: 780;
-	}
-	h1 span {
-		color: var(--teal);
-	}
-	.lead {
-		font-size: 16px;
-		color: #5e7171;
-		max-width: 610px;
-		margin-bottom: 0;
-	}
-	.intro-mark {
-		position: relative;
-		display: flex;
-		flex-direction: column;
-		align-items: center;
-		justify-content: center;
-		width: 225px;
-		height: 225px;
-		flex-shrink: 0;
-		border: 1px dashed #a4bdb2;
-		border-radius: 50%;
-		margin-right: 55px;
-		background: repeating-radial-gradient(
-			circle,
-			transparent 0,
-			transparent 37px,
-			#c9dcd15c 38px,
-			transparent 39px
-		);
-		transform: rotate(-8deg);
-	}
-	.intro-mark > span {
-		font: 600 70px monospace;
-		color: var(--teal);
-		letter-spacing: 10px;
-	}
-	.orbit-label {
-		background: var(--ink);
-		color: #d5f8e9;
-		padding: 10px 18px;
-		border-radius: 6px;
-		font: 12px monospace;
-		position: absolute;
-		bottom: 37px;
-		right: -38px;
-		transform: rotate(8deg);
-	}
-	.intro-mark b {
-		font: 10px monospace;
-		position: absolute;
-		top: 18px;
-		color: #58736d;
-	}
-	.workbench {
-		background: #fff;
-		border: 1px solid #cad7cf;
-		border-radius: 16px;
-		box-shadow: 0 18px 50px #213e2f08;
-		overflow: hidden;
-	}
-	.bench-header {
-		display: flex;
-		justify-content: space-between;
-		gap: 10px;
-		padding: 20px 24px;
-		border-bottom: 1px solid #e3e9e3;
-		font-size: 13px;
-	}
-	.live-dot {
-		margin-right: 9px;
-	}
-	.muted {
-		color: var(--muted);
-		font-size: 12px;
-	}
-	.step-count {
-		font: 11px monospace;
-		color: var(--muted);
-	}
-	.controls {
-		display: flex;
-		gap: 9px;
-		align-items: center;
-		padding: 19px 24px;
-	}
-	.primary,
-	.send {
-		background: var(--teal);
-		border-color: var(--teal);
-		color: white;
-	}
-	.primary:hover:not(:disabled),
-	.send:hover:not(:disabled) {
-		background: #086668;
-	}
-	.quiet {
-		background: transparent;
-		border-color: transparent;
-		color: #6c7d79;
-	}
-	.speed {
-		margin-left: auto;
-		display: flex;
-		align-items: center;
-		gap: 8px;
-		font-size: 12px;
-		color: var(--muted);
-	}
-	select {
-		border: 1px solid #d3ddd5;
-		background: #f9faf7;
-		padding: 9px;
-		border-radius: 6px;
-		color: #25403e;
-		font-size: 12px;
-		max-width: 100%;
-	}
-	.stepper {
-		list-style: none;
-		padding: 0 24px;
-		margin: 4px 0 25px;
-		display: grid;
-		grid-template-columns: repeat(12, 1fr);
-	}
-	.stepper li {
-		position: relative;
-		display: flex;
-		flex-direction: column;
-		align-items: center;
-		gap: 9px;
-		min-width: 0;
-	}
-	.stepper li:before {
-		content: '';
-		position: absolute;
-		top: 14px;
-		left: 0;
-		right: 0;
-		height: 1px;
-		background: #e0e7df;
-	}
-	.stepper li:first-child:before {
-		left: 50%;
-	}
-	.stepper li:last-child:before {
-		right: 50%;
-	}
-	.stepper li > span {
-		z-index: 1;
-		border-radius: 50%;
-		background: #f2f5ef;
-		border: 1px solid #dce4dc;
-		width: 29px;
-		height: 29px;
-		display: grid;
-		place-items: center;
-		font: 10px monospace;
-		color: #64766a;
-	}
-	.stepper li > b {
-		font-size: 10px;
-		font-weight: 550;
-		color: #687d78;
-	}
-	.stepper .current > span {
-		background: var(--teal);
-		color: white;
-		border-color: var(--teal);
-		box-shadow: 0 0 0 5px #e2f3eb;
-	}
-	.stepper .current > b {
-		color: var(--teal);
-		font-weight: 800;
-	}
-	.stepper .done > span {
-		background: #dceddf;
-		color: #237a55;
-	}
-	.stage-grid {
-		display: grid;
-		grid-template-columns: minmax(0, 1fr) 165px minmax(0, 1fr);
-		padding: 0 24px;
-		align-items: start;
-	}
-	.endpoint {
-		border: 1px solid #dce5df;
-		border-radius: 12px;
-		overflow: hidden;
-		transition:
-			box-shadow 0.35s,
-			border-color 0.35s;
-		min-width: 0;
-	}
-	.browser.active {
-		border-color: #4ba79b;
-		box-shadow: 0 0 0 4px #e9f6f0;
-	}
-	.server.active {
-		border-color: #dba064;
-		box-shadow: 0 0 0 4px #fcf0e6;
-	}
-	.window-head {
-		display: flex;
-		justify-content: space-between;
-		align-items: center;
-		background: #f0f5f0;
-		padding: 12px 15px;
-		font: 9px monospace;
-		letter-spacing: 0.5px;
-		color: #65817a;
-	}
-	.window-dots {
-		letter-spacing: 1px;
-		color: #b4cbbf;
-	}
-	.server .window-head {
-		background: #f6f1ea;
-		color: #8b7664;
-	}
-	.server-leds {
-		color: #d6a16c;
-	}
-	.endpoint-body {
-		padding: 20px;
-	}
-	.endpoint-title {
-		display: flex;
-		align-items: center;
-		justify-content: space-between;
-	}
-	.endpoint-title h2 {
 		margin: 0;
+		font-size: clamp(30px, 4vw, 44px);
+		letter-spacing: -1.8px;
+		line-height: 1.15;
+		font-weight: 740;
 	}
-	.pill {
-		border-radius: 5px;
-		padding: 5px 8px;
-		font: 10px monospace;
-		display: inline-block;
-		background: #e4f3ec;
-		color: #176455;
+	.ingress {
+		margin: 12px 0 0;
+		color: #5a6f62;
+		font-size: 16px;
+		line-height: 1.6;
 	}
-	.pill.orange {
-		background: #fff0df;
-		color: #9b571b;
+	.forsokslinje {
+		display: flex;
+		justify-content: space-between;
+		gap: 16px;
+		align-items: center;
+		margin-bottom: 18px;
 	}
-	.address {
-		font: 10px monospace;
-		color: #7b8b83;
-		margin: 8px 0 24px;
+	.forsoksvalg {
+		display: flex;
+		gap: 8px;
 	}
-	.form-fields {
-		display: grid;
-		gap: 12px;
-	}
-	.form-fields label {
-		font-size: 11px;
-		font-weight: 700;
-		color: #48645c;
-		display: grid;
-		gap: 6px;
-	}
-	input {
-		width: 100%;
-		min-width: 0;
-		padding: 11px 12px;
-		border: 1px solid #ceddd2;
-		border-radius: 7px;
+	.forsoksvalg button {
+		display: flex;
+		align-items: center;
+		gap: 9px;
+		min-height: 45px;
+		border: 1px solid var(--kant);
+		border-radius: 8px;
+		background: #fffdf7;
+		color: #567064;
+		padding: 8px 13px;
 		font-size: 13px;
-		background: white;
-		color: #294139;
+		font-weight: 600;
 	}
-	input:disabled {
-		background: #f4f7f3;
-		color: #526c61;
+	.forsoksvalg button.valgt {
+		border-color: #195d50;
+		background: #e1ebd8;
+		color: #184b40;
+		box-shadow: inset 0 0 0 1px #195d50;
+	}
+	.forsoksvalg button:disabled {
+		opacity: 0.7;
+	}
+	.forsoksvalg button.valgt:disabled {
 		opacity: 1;
 	}
-	.variable-pair {
-		display: flex;
-		gap: 12px;
-		align-items: start;
-		font: 11px monospace;
-		margin-top: 10px;
-		overflow-wrap: anywhere;
-	}
-	.variable-pair > span {
-		color: #8e6c9a;
-		min-width: 64px;
-	}
-	.variable-pair code {
-		color: var(--teal);
-		min-width: 0;
-	}
-	.mini-actions {
-		display: flex;
-		gap: 7px;
-		margin-top: 17px;
-		flex-wrap: wrap;
-	}
-	.mini-actions button {
-		font-size: 11px;
-		padding: 9px 10px;
-	}
-	.form-status {
-		font-size: 11px;
-		color: #657c70;
-		margin: 10px 0 18px;
-		min-height: 18px;
-	}
-	.error {
-		color: #b74136 !important;
-	}
-	.list-heading {
-		border-top: 1px solid #e0e8df;
-		display: flex;
-		justify-content: space-between;
-		align-items: center;
-		padding-top: 17px;
-		margin: 10px 0;
-		font-size: 11px;
-	}
-	.list-heading > span {
-		font: 10px monospace;
-		background: #ecf2eb;
-		padding: 3px 7px;
-		border-radius: 4px;
-	}
-	.message-list {
-		border: 1px dashed #cfded1;
-		border-radius: 7px;
-		min-height: 99px;
-		max-height: 230px;
-		overflow: auto;
-		background: #f8faf6;
-	}
-	.empty {
-		padding: 23px 9px;
-		text-align: center;
-		font-size: 11px;
-		color: #87998b;
-		display: flex;
-		flex-direction: column;
-		gap: 5px;
-	}
-	.empty > span {
-		font-size: 20px;
-	}
-	.message {
-		display: flex;
-		gap: 8px;
-		padding: 12px;
-		border-bottom: 1px solid #e2eae1;
-		font-size: 11px;
-		animation: arrive 0.45s ease-out;
-	}
-	.message:last-child {
-		border-bottom: none;
-	}
-	.avatar {
-		border-radius: 7px;
-		background: #d8e9df;
-		color: #2b7661;
-		width: 27px;
-		height: 27px;
+	.nummer {
 		display: grid;
 		place-items: center;
-		flex-shrink: 0;
-	}
-	.message > div {
-		min-width: 0;
-	}
-	.message p {
-		margin: 3px 0 0;
-		overflow-wrap: anywhere;
-	}
-	.message small {
-		margin-left: auto;
-		color: #8da193;
-		font: 9px monospace;
-	}
-	.tiny {
-		font-size: 10px;
-		line-height: 1.6;
-		color: #708778;
-		margin: 10px 0 0;
-	}
-	.connection {
-		text-align: center;
-		padding-top: 90px;
-		min-width: 0;
-	}
-	.network-label {
-		font: 11px monospace;
-		color: #789083;
-		letter-spacing: 2px;
-	}
-	.network-label span {
-		color: var(--teal);
-		margin-left: 4px;
-	}
-	.wire {
-		position: relative;
-		height: 73px;
-		margin: 6px 0;
-	}
-	.wire-track {
-		position: absolute;
-		top: 36px;
-		left: 0;
-		right: 0;
-		border-top: 2px dashed #c7d8cb;
-	}
-	.wire-arrow {
-		position: absolute;
-		top: 22px;
-		color: #abc6b7;
-		font-size: 26px;
-	}
-	.wire-arrow.left {
-		left: 2px;
-	}
-	.wire-arrow.right {
-		right: 2px;
-	}
-	.travel-packet {
-		position: absolute;
-		top: 24px;
-		left: 0;
-		background: var(--teal);
-		color: white;
-		border: 4px solid white;
-		border-radius: 8px;
-		font: 10px monospace;
-		padding: 7px 10px;
-		box-shadow: 0 3px 12px #26453422;
-		animation: send 1.8s ease-in-out infinite;
-	}
-	.inbound .travel-packet {
-		background: #b96e2f;
-		animation-name: receive;
-	}
-	.transit-card {
-		padding: 12px 3px;
-		margin: 0 10px;
-		background: #f5f7f2;
-		border: 1px solid #e8ede5;
-		border-radius: 8px;
-	}
-	.transit-card .eyebrow {
-		font-size: 8px;
-		display: block;
-		margin-bottom: 9px;
-	}
-	.transit-card > b {
-		font: 10px monospace;
-		display: block;
-		overflow-wrap: anywhere;
-	}
-	.transit-card p {
-		font-size: 10px;
-		margin: 7px 0 0;
-		color: #7b8c81;
-	}
-	.network-note {
-		font-size: 10px;
-		line-height: 1.7;
-		margin: 15px;
-		color: #7a8b80;
-	}
-	.pipeline {
-		display: grid;
-		gap: 6px;
-	}
-	.pipeline > div {
-		display: flex;
-		align-items: center;
-		gap: 9px;
-		border: 1px solid #e6e7df;
-		border-radius: 5px;
-		padding: 10px 9px;
-		transition: background 0.3s;
-	}
-	.pipeline span {
-		font: 9px monospace;
-		color: #a5ad9f;
-	}
-	.pipeline code {
+		width: 22px;
+		height: 22px;
+		border: 1px solid currentColor;
+		border-radius: 50%;
 		font-size: 11px;
 	}
-	.pipeline b {
-		margin-left: auto;
-		font-size: 9px;
-		font-weight: 500;
-		color: #7e8c7d;
-	}
-	.pipeline .lit {
-		background: #fff0db;
-		border-color: #e4ae72;
-	}
-	.pipeline .failed {
-		background: #ffede8;
-		border-color: #dd8572;
-	}
-	.body-preview {
-		margin-top: 13px;
-		padding: 10px;
-		background: #f7f7f2;
-		border: 1px solid #eaeae2;
-		border-radius: 6px;
-		min-height: 112px;
-	}
-	.body-preview > span {
-		font: 9px monospace;
-		color: #8a8e7d;
-		display: block;
-		margin-bottom: 7px;
-	}
-	.body-preview pre {
+	.forsoksvalg code {
 		font-size: 10px;
-		color: #496958;
+		font-weight: 600;
+		opacity: 0.7;
+		margin-left: 5px;
 	}
-	.array-label {
-		font-size: 9px;
-		color: #92a08c;
-		font-weight: 400;
-	}
-	.server-array {
-		background: #f8f7f1;
-		border: 1px solid #e7e7da;
-		border-radius: 6px;
-		padding: 8px 12px;
-		min-height: 99px;
-		max-height: 230px;
-		overflow: auto;
-	}
-	.bracket {
-		font: 15px monospace;
-		color: #9b8a6d;
-	}
-	.array-row {
-		display: flex;
-		gap: 8px;
-		margin: 3px 0;
-		animation: arrive 0.5s ease-out;
-	}
-	.array-row pre {
-		font-size: 10px;
-		color: #75633f;
-	}
-	.index {
-		font: 9px monospace;
-		color: #a79a7e;
-		padding-top: 3px;
-	}
-	.empty-array {
-		font: 10px monospace;
-		color: #a9a08c;
-		margin: 6px 0 6px 14px;
-	}
-	.flash {
-		animation: flash 0.8s ease-out;
-	}
-	.explanation {
-		display: flex;
-		gap: 22px;
-		background: #eff7f0;
-		border-left: 3px solid var(--teal);
-		margin: 25px 24px 0;
-		padding: 22px;
-		border-radius: 0 8px 8px 0;
-	}
-	.explanation-number {
-		font: 38px monospace;
-		color: #9fc8b6;
-	}
-	.explanation .eyebrow {
-		font-size: 9px;
-		margin-bottom: 7px;
-	}
-	.explanation h3 {
-		margin-bottom: 8px;
-		font-size: 21px;
-	}
-	.explanation p:last-child {
-		font-size: 13px;
-		line-height: 1.7;
-		margin-bottom: 0;
-		color: #466457;
-	}
-	.explanation.warning {
-		background: #fff3e9;
-		border-color: #c86a32;
-	}
-	.experiment {
-		display: flex;
-		align-items: center;
-		gap: 10px;
-		flex-wrap: wrap;
-		padding: 20px 24px;
-		font-size: 11px;
-	}
-	.experiment > div {
-		margin-right: auto;
-	}
-	.experiment span {
-		color: #7a8c81;
-	}
-	.experiment button {
-		font-size: 11px;
-	}
-	.scenario-note {
-		margin: 0 24px 20px;
-		padding: 9px 12px;
-		border-radius: 6px;
-		background: #fff6e8;
-		color: #896d43;
-		font-size: 11px;
-	}
-	.details-grid {
-		display: grid;
-		grid-template-columns: minmax(0, 0.9fr) minmax(0, 1.3fr);
-		gap: 35px;
-		margin-top: 52px;
-		align-items: start;
-	}
-	.section-top {
-		display: flex;
-		gap: 12px;
-		align-items: baseline;
-	}
-	.section-top h2 {
-		font-size: 23px;
-		margin-bottom: 10px;
-	}
-	.section-number {
-		font: 12px monospace;
-		color: var(--teal);
-	}
-	.section-intro {
-		font-size: 12px;
-		color: #79877d;
-		margin-bottom: 22px;
-	}
-	.data-block {
-		padding: 17px;
-		background: #fff;
-		border: 1px solid #dce4d9;
-		border-radius: 9px;
-		transition: box-shadow 0.3s;
-	}
-	.data-block.selected {
-		box-shadow: 0 0 0 3px #abd9c4;
-		border-color: #70b59b;
-	}
-	.data-block > div {
-		display: flex;
-		justify-content: space-between;
-		gap: 8px;
-		margin-bottom: 14px;
-	}
-	.data-block b {
-		font-size: 12px;
-	}
-	.data-block > div > span {
-		font: 8px monospace;
-		color: #8b9b8c;
-		align-self: center;
-	}
-	.data-block pre {
-		color: #3a7164;
-		font-size: 11px;
-	}
-	.transform {
-		display: flex;
-		align-items: center;
-		gap: 10px;
-		padding: 12px 16px;
-		font-size: 10px;
-		color: #849584;
-	}
-	.transform > span:first-child {
-		font-size: 20px;
-		color: var(--teal);
-	}
-	.transform code {
-		color: #467960;
-		font-size: 11px;
-	}
-	.transform > span:last-child {
-		margin-left: auto;
-		font-size: 9px;
-	}
-	.field-check {
-		margin: 12px 0 0;
-		font-size: 10px;
-		border-top: 1px solid #e7ede4;
-		padding-top: 10px;
-		overflow-wrap: anywhere;
-	}
-	.response-block {
-		border-left: 2px solid #8fae90;
-		padding: 3px 17px;
-		margin-top: 24px;
-	}
-	.response-block > p {
-		font-size: 10px;
-		color: #7f8d7b;
-		margin: 12px 0 7px;
-	}
-	.response-block pre {
-		font-size: 11px;
-		color: #60744f;
-	}
-	.code-tabs {
-		display: flex;
-		gap: 4px;
-		padding: 4px;
-		background: #e5eae2;
-		border-radius: 8px;
-		margin-bottom: 10px;
-		width: fit-content;
-	}
-	.code-tabs button {
+	.tekstknapp {
+		padding: 7px 0;
 		border: 0;
-		background: none;
-		font-size: 11px;
-		padding: 8px 13px;
-		color: #73816d;
+		color: #245b4c;
+		background: transparent;
+		font-size: 12px;
+		font-weight: 650;
 	}
-	.code-tabs .chosen {
-		background: white;
-		color: #2c5847;
-		box-shadow: 0 2px 5px #2343280b;
+	.tekstknapp:hover {
+		text-decoration: underline;
+		text-underline-offset: 3px;
+	}
+	.nullstill {
+		color: #68776a;
+		font-weight: 500;
+		white-space: nowrap;
+	}
+	.proveverdier,
+	.getverdier {
+		display: flex;
+		align-items: center;
+		gap: 18px;
+		padding: 14px 18px;
+		background: #e9ede3;
+		border: 1px solid var(--kant);
+		border-radius: 9px 9px 0 0;
+	}
+	.proveverdier > p {
+		margin: 0;
+		font-size: 11px;
+		font-weight: 650;
+		flex: 0 0 128px;
+		line-height: 1.6;
+	}
+	.proveverdier > p span {
+		display: block;
+		font-weight: 400;
+		color: #697a69;
+	}
+	.proveverdier label {
+		display: flex;
+		align-items: center;
+		gap: 10px;
+		min-width: 0;
+	}
+	.proveverdier label code {
+		font-size: 12px;
+		color: #4e6a58;
+	}
+	.proveverdier input {
+		width: 150px;
+		min-width: 0;
+		border: 1px solid #c7d2bf;
+		background: #fcfcf6;
+		color: #284c40;
+		border-radius: 5px;
+		padding: 8px 10px;
+		font-size: 13px;
+	}
+	.proveverdier .meldingsfelt {
+		flex: 1;
+	}
+	.meldingsfelt input {
+		width: 100%;
+	}
+	.getverdier {
+		min-height: 68px;
+	}
+	.getverdier > code {
+		font-size: 12px;
+		font-weight: 650;
+	}
+	.getverdier p {
+		margin: 0;
+		color: #5d7364;
+		font-size: 13px;
+	}
+	.arbeidsflate {
+		display: grid;
+		grid-template-columns: minmax(0, 1fr) 292px;
+		column-gap: 24px;
+		align-items: stretch;
 	}
 	.editor {
-		border-radius: 11px;
-		overflow: hidden;
-		background: #162c31;
-		color: #cedfdb;
-		box-shadow: 0 10px 30px #16321d10;
+		min-width: 0;
+		background: #132f2c;
+		color: #e7eee1;
+		border-radius: 0 0 9px 9px;
+		overflow: clip;
 	}
-	.editor-bar {
-		background: #20383c;
-		padding: 12px 14px;
+	.editorhode {
+		display: flex;
+		align-items: stretch;
+		justify-content: space-between;
+		border-bottom: 1px solid #39534a;
+		background: #1c3c34;
+		padding-inline: 12px;
+		min-height: 54px;
+		gap: 10px;
+	}
+	.sidevalg {
+		display: flex;
+		gap: 4px;
+	}
+	.sidevalg button {
+		border: 0;
+		border-bottom: 2px solid transparent;
+		border-radius: 4px 4px 0 0;
+		background: transparent;
+		color: #a6b7a5;
+		display: flex;
+		align-items: center;
+		gap: 6px;
+		padding: 13px 10px;
+		font-size: 12px;
+		font-weight: 650;
+	}
+	.sidevalg button.aktiv {
+		color: #eef3df;
+		border-bottom-color: #cee19e;
+		background: #2a493c;
+	}
+	.sidevalg small {
+		font-size: 10px;
+		font-weight: 400;
+		color: #a9baa7;
+		margin-left: 4px;
+	}
+	.sideprikk {
+		display: inline-block;
+		flex: 0 0 auto;
+		width: 6px;
+		height: 6px;
+		border-radius: 50%;
+	}
+	.sideprikk.front {
+		background: #a5d6cb;
+	}
+	.sideprikk.back {
+		background: #e0bc7e;
+	}
+	.utdrag {
+		align-self: center;
+		color: #a0b09f;
+		font-size: 9px;
+		letter-spacing: 1px;
+		padding-right: 6px;
+	}
+	.kjorverktoy {
 		display: flex;
 		align-items: center;
 		justify-content: space-between;
-		gap: 7px;
-		font: 10px monospace;
-		color: #a2bab0;
+		padding: 14px 18px 12px;
+		gap: 12px;
 	}
-	.editor-bar i {
-		display: inline-block;
-		width: 7px;
-		height: 7px;
-		background: #9bceaf;
-		border-radius: 50%;
-		margin-right: 8px;
-	}
-	.editor-bar button {
-		padding: 5px 8px;
-		font-size: 9px;
-		border-color: #3a5557;
-		background: #2c4548;
-		color: #c8dcd4;
-	}
-	.focus-code {
-		padding: 15px 0;
-		background: #1f3c3b;
-		border-bottom: 1px solid #3d5b51;
-		overflow: auto;
-	}
-	.focus-code > span {
-		display: block;
-		padding: 0 18px 10px;
-		font: 8px monospace;
-		letter-spacing: 1.8px;
-		color: #a6d6b5;
-	}
-	.focus-code > p {
-		padding: 0 18px;
-		font-size: 11px;
-		color: #9fb9ac;
-	}
-	.code-line {
+	.kjorhandlinger {
 		display: flex;
-		font-size: 11px;
-		line-height: 1.85;
-		min-width: max-content;
-		padding-right: 15px;
-		border-left: 2px solid transparent;
+		gap: 9px;
+		align-items: center;
 	}
-	.code-line code {
-		white-space: pre;
+	.primaer,
+	.sekundaer {
+		border-radius: 5px;
+		padding: 10px 13px;
+		font-size: 12px;
+		font-weight: 700;
+		border: 1px solid transparent;
 	}
-	.line-number {
-		user-select: none;
-		min-width: 39px;
-		padding: 0 10px;
+	.primaer {
+		background: #d7e7ab;
+		color: #253f2b;
+		box-shadow: 0 2px 0 #0d221c;
+	}
+	.primaer:hover {
+		background: #e7f1c8;
+	}
+	.primaer span {
+		margin-right: 5px;
+	}
+	.sekundaer {
+		border-color: #58715d;
+		color: #d4e0c8;
+		background: transparent;
+	}
+	.sekundaer:hover {
+		background: #28473b;
+	}
+	.stegteller {
+		margin: 0;
 		text-align: right;
-		color: #6b8886;
-		font: 10px/2.04 monospace;
+		font-size: 11px;
+		color: #d4e1c6;
+		white-space: nowrap;
 	}
-	.all-code {
-		padding: 13px 0;
-		overflow: auto;
-		max-height: 565px;
-		scrollbar-color: #45635b #162c31;
+	.stegteller span {
+		display: block;
+		margin-top: 4px;
+		font-size: 10px;
+		color: #9db59d;
 	}
-	.highlight {
-		background: #2f5145;
-		border-left-color: #c4eb8f;
+	.steginfo {
+		padding: 12px 16px;
+		margin: 0 18px 13px;
+		border: 1px solid #4d6749;
+		border-left: 3px solid #bcd789;
+		border-radius: 5px;
+		background: #243f33;
 	}
-	.highlight .line-number {
-		color: #c4eb8f;
+	.stegoverskrift {
+		display: flex;
+		gap: 8px;
+		align-items: center;
+		justify-content: space-between;
 	}
-	.keyword {
-		color: #c7b0eb;
+	.stegoverskrift strong {
+		font-size: 13px;
+		font-weight: 650;
+		color: #e0eacb;
 	}
-	.string {
-		color: #b5d997;
+	.steginfo p {
+		margin: 5px 0 0;
+		font-size: 12px;
+		line-height: 1.6;
+		color: #c5d4b9;
+		max-width: 70ch;
 	}
-	.comment {
-		color: #88a5a2;
+	.steginfo.feil {
+		border-color: #ae7b56;
+		background: #473e2c;
+	}
+	.steginfo .statusverdi {
+		display: flex;
+		gap: 10px;
+		align-items: baseline;
+		margin-top: 10px;
+		padding-top: 8px;
+		border-top: 1px solid #70815b55;
+		color: #edf2d7;
+	}
+	.statusverdi code {
+		font-size: 10px;
+		color: #b6c8a7;
+	}
+	.httpstatus {
+		padding: 3px 6px;
+		color: #d9e9b7;
+		border: 1px solid #708459;
+		border-radius: 4px;
+		font:
+			11px 'SFMono-Regular',
+			Consolas,
+			monospace;
+	}
+	.feil .httpstatus {
+		color: #f0ceac;
+		border-color: #b1906e;
+	}
+	.folglinje {
+		background: none;
+		border: 0;
+		color: #e7deb6;
+		font-size: 11px;
+		padding: 8px 0 0;
+		text-decoration: underline;
+		text-underline-offset: 3px;
+	}
+	.kodehjelp {
+		display: flex;
+		justify-content: space-between;
+		align-items: center;
+		gap: 8px;
+		border-top: 1px solid #304a3f;
+		padding: 11px 18px 8px;
+		font-size: 10px;
+		color: #b0c0ac;
+	}
+	.kjorelegende {
+		font-size: 9px;
+		white-space: nowrap;
+		color: #bdcea9;
+	}
+	.kjorelegende i {
+		color: #d7e9a7;
+		font-size: 13px;
+		font-style: normal;
+		padding-right: 4px;
+	}
+	.kodeliste {
+		overflow-x: auto;
+		padding: 5px 0 18px;
+		scrollbar-color: #557357 #172f28;
+		scrollbar-width: thin;
+	}
+	.linjerad {
+		width: 100%;
+		position: relative;
+	}
+	.kodelinje {
+		display: flex;
+		align-items: center;
+		width: max-content;
+		min-width: 100%;
+		min-height: 27px;
+		padding: 2px 16px 2px 0;
+		border: 0;
+		border-left: 3px solid transparent;
+		background: transparent;
+		color: #e3ebd8;
+		text-align: left;
+		line-height: 23px;
+	}
+	.kodelinje:hover {
+		background: #274a3b;
+	}
+	.kodelinje:focus-visible {
+		outline: 2px solid #e2be89;
+		outline-offset: -3px;
+	}
+	.linjenummer {
+		display: inline-block;
+		width: 37px;
+		min-width: 37px;
+		padding-right: 6px;
+		text-align: right;
+		color: #829a85;
+		font:
+			10px/23px 'SFMono-Regular',
+			Consolas,
+			monospace;
+		user-select: none;
+	}
+	.kjorepil {
+		display: inline-block;
+		width: 22px;
+		min-width: 22px;
+		text-align: center;
+		color: #d4e8a1;
+		font-size: 14px;
+	}
+	.kodelinje code {
+		white-space: pre;
+		font-size: 13px;
+		line-height: 23px;
+		tab-size: 2;
+	}
+	.forklaringsmerke {
+		margin-left: auto;
+		padding-left: 20px;
+		min-width: 32px;
+		font-size: 11px;
+		color: #b4d0b5;
+		opacity: 0;
+	}
+	.kodelinje:hover .forklaringsmerke,
+	.kodelinje:focus-visible .forklaringsmerke,
+	.markert .forklaringsmerke {
+		opacity: 1;
+	}
+	.utfort > .kodelinje {
+		background: #345239;
+		border-left-color: #c6df8c;
+	}
+	.markert > .kodelinje {
+		background: #3c5c50;
+		box-shadow:
+			inset 0 1px 0 #9dbaa8,
+			inset 0 -1px 0 #9dbaa8;
+		border-left-color: #a5d6cb;
+	}
+	.markert .linjenummer {
+		color: #d6e9d2;
+	}
+	.tomlinje {
+		height: 18px;
+		padding-left: 3px;
+	}
+	.tomlinje .linjenummer {
+		line-height: 18px;
+	}
+	.nokkelord {
+		color: #9cded1;
+	}
+	.streng {
+		color: #e0d29f;
+	}
+	.funksjon {
+		color: #e6bd8c;
+	}
+	.tall {
+		color: #d8c0e4;
+	}
+	.kommentar {
+		color: #8fa98d;
 		font-style: italic;
 	}
-	.number {
-		color: #e9b681;
-	}
-	.code-note {
+	.kodefot {
+		display: flex;
+		align-items: center;
+		gap: 7px;
+		border-top: 1px solid #334d40;
+		padding: 10px 18px;
+		color: #b1c3a6;
 		font-size: 10px;
-		color: #7b8c79;
-		line-height: 1.7;
-		margin-top: 13px;
 	}
-	.takeaways {
-		display: grid;
-		grid-template-columns: 1.1fr 1fr 1fr;
-		gap: 34px;
-		padding: 38px;
-		border-radius: 13px;
-		background: #e6ece0;
-		margin: 47px 0 25px;
+	.kodefot b {
+		margin-inline: 5px;
+		color: #768f75;
 	}
-	.takeaway-title h2 {
+	.forklaringskolonne {
+		min-width: 0;
+		position: relative;
+	}
+	.forklaringshint {
+		margin-top: 255px;
+		max-width: 254px;
+		padding: 5px 10px;
+		color: #6b7c69;
+	}
+	.forklaringshint.skjult {
+		/* Keep the same space when the explanation replaces this hint. */
+		visibility: hidden;
+	}
+	.peker {
+		display: block;
 		font-size: 30px;
-		line-height: 1.15;
+		line-height: 1;
+		color: #5e7c68;
 		margin-bottom: 14px;
-		letter-spacing: -1px;
 	}
-	.takeaway-title p:last-child,
-	.takeaway p {
-		font-size: 12px;
-		color: #61745c;
+	.forklaringshint p {
+		font-size: 13px;
+		line-height: 1.7;
 		margin: 0;
 	}
-	.takeaway {
-		padding-left: 24px;
-		border-left: 1px solid #cdd9c8;
-	}
-	.takeaway > span {
-		font: 11px monospace;
-		color: var(--teal);
+	.forklaringshint strong {
 		display: block;
-		margin-bottom: 19px;
+		color: #365c49;
+		font-size: 14px;
+		font-weight: 650;
+		margin-bottom: 5px;
 	}
-	.takeaway h3 {
-		font-size: 18px;
-		line-height: 1.35;
-		letter-spacing: -0.4px;
+	.forklaringshint small {
+		display: block;
+		margin-top: 15px;
+		font-size: 11px;
+		line-height: 1.6;
+		color: #697a68;
 	}
-	.takeaway > code {
+	.inlineforklaring {
+		position: sticky;
+		left: 0;
+		width: 100%;
+		padding: 4px 12px 12px;
+	}
+	.resultatlinje {
+		display: flex;
+		align-items: center;
+		justify-content: space-between;
+		flex-wrap: wrap;
+		gap: 12px;
+		padding: 14px 0 16px;
+		border-bottom: 1px solid var(--kant);
+	}
+	.tallpar {
+		display: flex;
+		align-items: center;
+		gap: 11px;
+		font-size: 11px;
+		color: #60715e;
+	}
+	.tallpar > span:not(.skille) {
+		display: inline-flex;
+		align-items: center;
+		gap: 7px;
+	}
+	.tallpar b {
+		display: inline-grid;
+		place-items: center;
+		min-width: 22px;
+		height: 22px;
+		padding-inline: 5px;
+		background: #e4eadd;
+		border: 1px solid #d0dac3;
+		border-radius: 4px;
+		font-weight: 650;
+		color: #3e5840;
+	}
+	.ulikt .tallpar b {
+		background: #f0e7cc;
+		border-color: #dbcaa1;
+		color: #685834;
+	}
+	.skille {
+		color: #a1ad97;
+	}
+	.tallpar small {
+		margin-left: 4px;
+		color: #70806b;
 		font-size: 10px;
-		display: block;
-		margin-top: 17px;
-		color: #3e6d4c;
+	}
+	.hentneste {
+		margin-left: auto;
+		margin-right: 18px;
+	}
+	.dataoversikt {
+		display: grid;
+		grid-template-columns: 1fr 1fr;
+		margin-top: 18px;
+		gap: 16px;
+	}
+	.dataoversikt > section {
+		min-width: 0;
+		border: 1px solid var(--kant);
+		background: #fffdf6;
+		padding: 18px;
+		border-radius: 8px;
+	}
+	.datamerke {
+		margin: 0 0 8px;
+		font-size: 9px;
+		font-weight: 700;
+		letter-spacing: 1.2px;
+		color: #79866f;
+	}
+	.dataoversikt h2 {
+		margin: 0 0 12px;
+		font-size: 13px;
+		font-weight: 650;
+	}
+	.dataoversikt h2 code {
+		font-size: 12px;
+	}
+	.dataoversikt pre,
+	.prosjekt pre {
+		margin: 0;
+		font-size: 11px;
+		line-height: 1.7;
+		padding: 14px;
+		background: #edf1e6;
+		border-radius: 5px;
+		overflow-x: auto;
+		color: #3b5942;
+		max-height: 280px;
+	}
+	.dataoversikt .nettverksdata {
+		grid-column: 1 / -1;
+	}
+	.requestpar {
+		display: grid;
+		grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+		gap: 20px;
+	}
+	.requestpar > div {
+		min-width: 0;
+	}
+	.tomliste {
+		color: #73816c;
+		font-size: 12px;
+		line-height: 1.7;
+	}
+	.meldingsliste {
+		max-height: 280px;
+		overflow-y: auto;
+	}
+	.meldingsliste p:not(.tomliste) {
+		display: flex;
+		flex-direction: column;
+		gap: 6px;
+		padding: 11px 12px;
+		margin: 0 0 9px;
+		background: #ecf1e2;
+		border-radius: 5px;
+		font-size: 12px;
 		overflow-wrap: anywhere;
 	}
-	.notes {
-		display: grid;
-		grid-template-columns: 1fr;
-		gap: 0;
+	.meldingsliste strong {
+		font-size: 10px;
+	}
+	.fordypning {
+		margin-top: 22px;
+		border-top: 1px solid var(--kant);
 	}
 	details {
-		border-bottom: 1px solid #d7dfd2;
-		padding: 18px 3px;
+		border-bottom: 1px solid var(--kant);
 	}
 	summary {
+		padding: 17px 3px;
 		font-size: 13px;
 		font-weight: 650;
 		cursor: pointer;
 	}
-	details p,
-	details li {
-		font-size: 12px;
-		line-height: 1.8;
-		color: #62735b;
-		max-width: 850px;
+	summary span {
+		margin-left: 7px;
 	}
-	details p {
-		margin: 14px 0 0;
+	summary small {
+		font-size: 11px;
+		font-weight: 400;
+		color: #7a866e;
+		margin-left: 15px;
+	}
+	.detaljinnhold {
+		padding: 0 16px 20px 20px;
+		max-width: 850px;
+		font-size: 13px;
+		line-height: 1.8;
+	}
+	.detaljinnhold p {
+		margin: 0 0 14px;
+	}
+	.detaljinnhold code {
+		font-size: 11px;
+		background: #e6eddd;
+		padding: 1px 3px;
+		border-radius: 3px;
+	}
+	.feilvalg {
+		display: flex;
+		align-items: start;
+		gap: 8px;
+		width: fit-content;
+		border: 1px solid #cbd7bd;
+		border-radius: 6px;
+		background: #e8eedf;
+		padding: 10px 14px;
+	}
+	.feilvalg input {
+		accent-color: #2b674f;
+		margin-top: 5px;
+	}
+	.detaljinnhold .detaljhint {
+		color: #6e7e65;
+		font-size: 11px;
+		margin-top: 10px;
+	}
+	.detaljinnhold .tenk {
+		margin-top: 18px;
+		padding-left: 13px;
+		border-left: 2px solid #a8be91;
+		color: #506747;
+		font-weight: 600;
+	}
+	.prosjekt {
+		display: grid;
+		grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+		gap: 22px;
+		max-width: none;
+	}
+	.prosjekt h2 {
+		font-size: 15px;
+		margin: 0 0 10px;
+	}
+	.prosjekt > div {
+		min-width: 0;
+	}
+	.prosjekt pre {
+		margin-bottom: 15px;
+	}
+	.prosjekt pre code {
+		padding: 0;
+		background: transparent;
+	}
+	.kildelenker {
+		display: flex;
+		flex-wrap: wrap;
+		gap: 16px;
+		grid-column: 1 / -1;
+		font-size: 11px;
+	}
+	.kildelenker a {
+		text-underline-offset: 3px;
+	}
+	.simuleringsnote {
+		margin: 19px 0 30px;
+		max-width: 95ch;
+		font-size: 11px;
+		line-height: 1.7;
+		color: #77816d;
 	}
 	footer {
 		display: flex;
-		gap: 40px;
-		justify-content: space-between;
 		align-items: center;
-		padding: 30px 0 38px;
+		justify-content: space-between;
+		gap: 20px;
+		padding-block: 22px 30px;
+		border-top: 1px solid var(--kant);
+		font-size: 11px;
+		color: #6c7e68;
 	}
-	footer > span {
-		font: 9px monospace;
-		color: #6a8268;
-		flex-shrink: 0;
+	footer a {
+		text-decoration: none;
 	}
-	footer p {
-		max-width: 600px;
-		font-size: 10px;
-		color: #84917c;
-		margin: 0;
-	}
-	.sr-only {
-		position: absolute;
-		width: 1px;
-		height: 1px;
-		padding: 0;
-		margin: -1px;
-		overflow: hidden;
-		clip: rect(0, 0, 0, 0);
-		white-space: nowrap;
-		border: 0;
-	}
-	@keyframes send {
-		0% {
-			left: 0;
-			opacity: 0;
-			transform: translateX(-20%);
-		}
-		20% {
-			opacity: 1;
-		}
-		85% {
-			opacity: 1;
-		}
-		100% {
-			left: 100%;
-			transform: translateX(-80%);
-			opacity: 0;
-		}
-	}
-	@keyframes receive {
-		0% {
-			left: 100%;
-			transform: translateX(-80%);
-			opacity: 0;
-		}
-		20% {
-			opacity: 1;
-		}
-		85% {
-			opacity: 1;
-		}
-		100% {
-			left: 0;
-			transform: translateX(-20%);
-			opacity: 0;
-		}
-	}
-	@keyframes arrive {
-		from {
-			opacity: 0;
-			transform: translateY(10px);
-		}
-		to {
-			opacity: 1;
-			transform: translateY(0);
-		}
-	}
-	@keyframes flash {
-		0% {
-			box-shadow: 0 0 0 4px #dfa457;
-		}
-		100% {
-			box-shadow: 0 0 0 0 transparent;
-		}
-	}
-	@media (min-width: 1500px) {
-		.intro {
-			padding-top: 70px;
-		}
-		.endpoint-body {
-			padding: 24px;
-		}
-		.stage-grid {
-			grid-template-columns: minmax(0, 1fr) 190px minmax(0, 1fr);
-		}
-	}
-	@media (max-width: 1050px) {
+	@media (max-width: 1100px) {
+		.sidehode,
 		main {
-			padding: 0 25px;
+			width: min(1240px, calc(100% - 40px));
 		}
-		.topbar {
-			padding: 0 25px;
-		}
-		.intro-mark {
-			margin-right: 10px;
-			width: 180px;
-			height: 180px;
-		}
-		.intro-mark > span {
-			font-size: 60px;
-		}
-		.orbit-label {
-			font-size: 10px;
-			right: -10px;
-			bottom: 25px;
-		}
-		.stage-grid {
-			grid-template-columns: minmax(0, 1fr) 115px minmax(0, 1fr);
-			padding: 0 15px;
-		}
-		.endpoint-body {
-			padding: 15px;
-		}
-		.pipeline b {
-			display: none;
-		}
-		.network-note {
-			margin: 12px 6px;
-			font-size: 9px;
-		}
-		.transit-card {
-			margin: 0 4px;
-		}
-		.stepper {
-			padding: 0 14px;
-		}
-		.stepper li > b {
-			font-size: 9px;
-		}
-		.details-grid {
-			gap: 22px;
-			grid-template-columns: minmax(0, 1fr) minmax(0, 1.25fr);
-		}
-		.takeaways {
-			padding: 25px;
+		.arbeidsflate {
+			grid-template-columns: minmax(0, 1fr) 260px;
 			gap: 20px;
 		}
-		.takeaway {
-			padding-left: 18px;
-		}
-		.takeaway-title h2 {
-			font-size: 26px;
-		}
-	}
-	@media (max-width: 760px) {
-		main {
-			padding: 0 15px;
-		}
-		.topbar {
-			padding: 0 18px;
-			height: 65px;
-		}
-		.brand {
-			font-size: 11px;
-			gap: 8px;
-		}
-		.brand-course,
-		.brand-dot {
+		.sidevalg small {
 			display: none;
 		}
-		.simulation {
+		.proveverdier {
+			gap: 14px;
+		}
+		.proveverdier > p {
+			flex-basis: 115px;
+		}
+		.proveverdier input {
+			width: 130px;
+		}
+		.meldingsfelt input {
+			width: 100%;
+		}
+		.tallpar small {
+			display: none;
+		}
+	}
+	@media (max-width: 900px) {
+		.linjerad {
+			display: contents;
+		}
+		.arbeidsflate {
+			display: block;
+		}
+		.forklaringskolonne {
+			display: none;
+		}
+		.sidevalg small {
+			display: inline;
+		}
+		.kodelinje {
+			min-height: 32px;
+		}
+		.kodelinje code {
+			font-size: 12px;
+		}
+		.kjorverktoy {
+			position: sticky;
+			top: 0;
+			z-index: 4;
+			background: #132f2c;
+			box-shadow: 0 3px 8px #10251b22;
+		}
+	}
+	@media (max-width: 620px) {
+		.sidehode,
+		main {
+			width: calc(100% - 28px);
+		}
+		.sidehode {
+			padding-block: 18px;
+		}
+		.logo {
+			font-size: 19px;
+		}
+		.videre {
 			font-size: 10px;
 		}
 		.intro {
-			padding: 35px 0 30px;
+			padding-block: 24px 22px;
 		}
-		.intro-mark {
-			display: none;
+		.overlinje {
+			gap: 8px;
+			font-size: 9px;
+			letter-spacing: 1px;
 		}
 		h1 {
-			font-size: 49px;
-			letter-spacing: -2.6px;
+			font-size: 32px;
+			letter-spacing: -1.3px;
 		}
-		.lead {
-			font-size: 14px;
+		.ingress {
+			font-size: 13px;
+			margin-top: 9px;
 		}
-		.controls {
-			padding: 15px;
+		.forsokslinje {
+			align-items: flex-start;
+			gap: 8px;
+			margin-bottom: 12px;
 			flex-wrap: wrap;
+		}
+		.forsoksvalg {
+			flex: 1 1 100%;
+			gap: 7px;
+		}
+		.forsoksvalg button {
+			flex: 1;
+			min-width: 0;
+			padding: 9px 8px;
+			gap: 6px;
+			font-size: 10px;
+			white-space: nowrap;
+		}
+		.forsoksvalg code {
+			display: none;
+		}
+		.nummer {
+			width: 19px;
+			height: 19px;
+			min-width: 19px;
+			font-size: 9px;
+		}
+		.nullstill {
+			margin-left: auto;
+			font-size: 10px;
+			padding: 2px 0;
+		}
+		.proveverdier {
+			display: grid;
+			grid-template-columns: 1fr;
+			gap: 9px;
+			padding: 11px 13px 14px;
+		}
+		.proveverdier > p {
+			display: flex;
+			justify-content: space-between;
+			font-size: 10px;
+		}
+		.proveverdier label {
+			display: grid;
+			grid-template-columns: 64px minmax(0, 1fr);
+			gap: 8px;
+		}
+		.proveverdier label code {
+			font-size: 11px;
+		}
+		.proveverdier input {
+			width: 100%;
+			padding: 7px 9px;
+			font-size: 13px;
+		}
+		.getverdier {
+			flex-direction: column;
+			gap: 8px;
+			align-items: flex-start;
+			padding: 16px;
+		}
+		.getverdier p {
+			font-size: 12px;
+		}
+		.editorhode {
+			padding-inline: 5px;
+			min-height: 48px;
+			gap: 0;
+		}
+		.sidevalg {
+			flex: 1;
+			gap: 0;
+		}
+		.sidevalg button {
+			flex: 1;
+			padding: 10px;
+			font-size: 11px;
 			gap: 6px;
 		}
-		.controls button {
+		.sidevalg small,
+		.utdrag {
+			display: none;
+		}
+		.kjorverktoy {
+			padding: 12px;
+			gap: 6px;
+		}
+		.kjorhandlinger {
+			gap: 6px;
+		}
+		.primaer,
+		.sekundaer {
 			font-size: 11px;
 			padding: 9px 10px;
 		}
-		.speed {
-			width: 100%;
-			justify-content: flex-end;
+		.primaer span {
+			margin-right: 3px;
 		}
-		.stepper {
-			grid-template-columns: repeat(6, 1fr);
-			row-gap: 14px;
-			margin-bottom: 20px;
-		}
-		.stepper li:nth-child(6):before {
-			right: 50%;
-		}
-		.stepper li:nth-child(7):before {
-			left: 50%;
-		}
-		.stepper li > b {
-			font-size: 9px;
-		}
-		.stage-grid {
-			grid-template-columns: 1fr;
-		}
-		.connection {
-			padding: 15px 0;
-			display: grid;
-			grid-template-columns: 1fr 1fr;
-			align-items: center;
-			gap: 5px 15px;
-		}
-		.network-label {
-			grid-column: 1;
-		}
-		.wire {
-			grid-column: 1;
-			margin: 0;
-			height: 42px;
-			grid-row: 2;
-		}
-		.wire-track {
-			top: 21px;
-		}
-		.wire-arrow {
-			top: 7px;
-		}
-		.travel-packet {
-			top: 8px;
-		}
-		.transit-card {
-			grid-row: 1 / 3;
-			grid-column: 2;
-			padding: 13px;
-		}
-		.network-note {
-			grid-column: 1 / 3;
-			margin: 4px 0 0;
+		.stegteller {
 			font-size: 10px;
 		}
-		.endpoint-body {
-			padding: 19px;
+		.stegteller span {
+			font-size: 9px;
 		}
-		.pipeline b {
+		.steginfo {
+			margin: 0 12px 10px;
+			padding: 10px 11px;
+		}
+		.stegoverskrift strong {
+			font-size: 12px;
+		}
+		.steginfo p {
+			font-size: 11px;
+			line-height: 1.65;
+		}
+		.kodehjelp {
+			padding-inline: 12px;
+			font-size: 9px;
+		}
+		.kjorelegende {
+			font-size: 8px;
+		}
+		.linjenummer {
+			min-width: 28px;
+			width: 28px;
+			padding-right: 4px;
+			font-size: 9px;
+		}
+		.kjorepil {
+			min-width: 17px;
+			width: 17px;
+			font-size: 12px;
+		}
+		.kodelinje code {
+			font-size: 11px;
+		}
+		.kodelinje {
+			padding-right: 12px;
+		}
+		.kodefot {
+			padding-inline: 12px;
+			font-size: 9px;
+		}
+		.resultatlinje {
+			gap: 10px 15px;
+			padding-block: 14px;
+		}
+		.tallpar {
+			font-size: 10px;
+			gap: 8px;
+		}
+		.resultatlinje > .tekstknapp:not(.hentneste) {
+			margin-left: auto;
+		}
+		.hentneste {
+			order: 3;
+			flex-basis: 100%;
+			margin: 0;
+			text-align: left;
+			font-size: 11px;
+		}
+		.dataoversikt,
+		.requestpar,
+		.prosjekt {
+			grid-template-columns: minmax(0, 1fr);
+		}
+		.dataoversikt > section {
+			padding: 15px;
+		}
+		summary {
+			font-size: 12px;
+		}
+		summary small {
 			display: block;
+			margin: 6px 0 0 21px;
+			font-size: 10px;
 		}
-		.explanation {
-			margin: 20px 15px 0;
-			padding: 17px;
-			gap: 13px;
-		}
-		.explanation-number {
-			font-size: 27px;
-		}
-		.explanation h3 {
-			font-size: 19px;
-		}
-		.explanation p:last-child {
+		.detaljinnhold {
 			font-size: 12px;
+			padding-inline: 5px;
 		}
-		.experiment {
-			padding: 16px 15px;
+		.feilvalg {
+			padding: 10px;
 		}
-		.experiment > div {
-			width: 100%;
-			margin-bottom: 4px;
-		}
-		.experiment select {
-			width: 100%;
-		}
-		.details-grid {
-			grid-template-columns: 1fr;
-			margin-top: 34px;
-			gap: 30px;
-		}
-		.takeaways {
-			grid-template-columns: 1fr;
-			margin-top: 30px;
-			padding: 25px;
-		}
-		.takeaway {
-			padding: 20px 0 0;
-			border-left: 0;
-			border-top: 1px solid #cdd9c8;
-		}
-		.takeaway > span {
-			margin-bottom: 12px;
-		}
-		.takeaway h3 {
-			margin-bottom: 10px;
-		}
-		.takeaway-title h2 br {
-			display: none;
-		}
-		.bench-header {
-			padding: 16px;
-			font-size: 12px;
-		}
-		.muted {
+		.simuleringsnote {
 			font-size: 10px;
 		}
 		footer {
-			flex-direction: column;
-			align-items: start;
-			gap: 14px;
-		}
-		.code-line {
 			font-size: 10px;
+			align-items: flex-start;
 		}
-		.line-number {
-			font-size: 9px;
-			line-height: 2.055;
-		}
-		.all-code {
-			max-height: 440px;
-		}
-	}
-	@media (prefers-reduced-motion: reduce) {
-		:global(html) {
-			scroll-behavior: auto;
-		}
-		*,
-		*:before,
-		*:after {
-			animation: none !important;
-			transition: none !important;
-		}
-		.travel-packet {
-			left: 50%;
-			transform: translateX(-50%);
+		footer span {
+			max-width: 110px;
+			text-align: right;
 		}
 	}
 </style>
