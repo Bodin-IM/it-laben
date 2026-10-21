@@ -8,6 +8,8 @@ Interaktive forklaringer og øvelser for IT-fagene, bygget med SvelteKit.
 
 Undervisningssidene ligger under `src/routes`: `/backend`, `/chatrom` og `/sessions`.
 
+En alternativ sessions-side finnes på `/sessions-2-test`: fire korte forsøk med én nettleserprofil, valgfri visning av HTTP-detaljer, ekstra forsøk og kodehjelp. Den opprinnelige siden er tilgjengelig på `/sessions` for sammenligning.
+
 ## Svelte-prosjektet
 
 Everything you need to build a Svelte project, powered by [`sv`](https://github.com/sveltejs/cli).

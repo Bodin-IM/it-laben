@@ -1,0 +1,1755 @@
+<script>
+	// En lokal undervisningsmodell. Ingen cookies, innlogging eller nettverkskall opprettes.
+	/** @typedef {'grunnlag' | 'ekstra' | 'kode'} Del */
+	/** @typedef {'profiler' | 'cookie' | 'utlopt'} Forsok */
+	/** @typedef {'A' | 'B'} ProfilId */
+	/** @typedef {{ id: string, navn: string }} Bruker */
+	/** @typedef {{ id: string, bruker: Bruker }} Session */
+	/** @typedef {{ tittel: string, request: string, response: string, session: string }} Spor */
+	/** @typedef {{ status: number, tittel: string, tekst: string }} Resultat */
+
+	const adaId = 'q7Kp2x';
+	const noahId = 'v4Lm8a';
+	const ada = { id: 'elev-ada', navn: 'Ada' };
+	const noah = { id: 'elev-noah', navn: 'Noah' };
+	const profilvalg = /** @type {ProfilId[]} */ (['A', 'B']);
+	/** @type {Del} */
+	let del = $state('grunnlag');
+	let trinn = $state(0);
+	/** @type {Forsok} */
+	let forsok = $state('profiler');
+	/** @type {ProfilId} */
+	let profil = $state('A');
+	/** @type {Record<ProfilId, string | null>} */
+	let cookies = $state({ A: null, B: null });
+	/** @type {Session[]} */
+	let sessioner = $state([]);
+	/** @type {Spor[]} */
+	let spor = $state([]);
+	/** @type {Resultat | null} */
+	let resultat = $state(null);
+	let credentials = $state(false);
+	let visDetaljer = $state(false);
+	let kodevalg = $state('oppsett');
+	let cookie = $derived(cookies[profil]);
+
+	const trinnene = [
+		{
+			navn: 'Før innlogging',
+			sporsmal: 'Vet serveren hvem du er?',
+			start: 'Ingen er logget inn. Nettleseren har ingen cookie, og sessionlageret er tomt.',
+			handling: 'Spør hvem jeg er',
+			hint: 'Send GET /meg og se om serveren finner en bruker.'
+		},
+		{
+			navn: 'Logg inn',
+			sporsmal: 'Hva må lagres for å kjenne deg igjen?',
+			start: 'Vi starter uten cookie og session. I øvelsen bruker vi visningsnavnet Ada.',
+			handling: 'Logg inn som Ada',
+			hint: 'Se etter samme ID i nettleseren og på serveren.'
+		},
+		{
+			navn: 'Spør igjen',
+			sporsmal: 'Hvordan finner serveren navnet ditt?',
+			start:
+				'Dette eksemplet starter med Ada innlogget: en cookie og en tilhørende session er lagt inn.',
+			handling: 'Spør hvem jeg er',
+			hint: 'Nettleseren sender ID-en. Serveren må slå den opp på nytt.'
+		},
+		{
+			navn: 'Logg ut',
+			sporsmal: 'Hvem er du etter utlogging?',
+			start:
+				'Dette eksemplet starter med Ada innlogget. Handlingen logger ut og sender så en ny GET /meg.',
+			handling: 'Logg ut og spør på nytt',
+			hint: 'Følg både cookien og sessionen når innloggingen avsluttes.'
+		}
+	];
+	const forsokene = [
+		{
+			id: /** @type {Forsok} */ ('profiler'),
+			navn: 'To profiler',
+			sporsmal: 'Samme backend. Hvem får svar?',
+			start: 'Ada er allerede logget inn i profil A, og Noah i profil B. De har hver sin cookie.',
+			handling: 'Spør hvem jeg er',
+			hint: 'Velg en profil og spør. Bare ID-en fra den valgte profilen sendes.'
+		},
+		{
+			id: /** @type {Forsok} */ ('cookie'),
+			navn: 'Cookie sendes ikke',
+			sporsmal: 'Hvorfor får Ada 401 selv om sessionen finnes?',
+			start: 'Ada har en cookie, og serveren har sessionen. Første forsøk sender ikke cookien.',
+			handling: 'Spør hvem jeg er',
+			hint: 'Prøv uten cookie. Slå deretter på bryteren og spør igjen.'
+		},
+		{
+			id: /** @type {Forsok} */ ('utlopt'),
+			navn: 'Session utløper',
+			sporsmal: 'Er en cookie nok til å være innlogget?',
+			start:
+				'Ada er innlogget. Handlingen lar sessionen utløpe, beholder cookien og spør så backend.',
+			handling: 'La sessionen utløpe og spør',
+			hint: 'Se hva som skjer når ID-en fortsatt finnes i nettleseren, men ikke på serveren.'
+		}
+	];
+	let aktivt = $derived.by(() =>
+		del === 'ekstra'
+			? (forsokene.find((item) => item.id === forsok) ?? forsokene[0])
+			: trinnene[trinn]
+	);
+	/** @param {unknown} verdi */
+	const json = (verdi) => JSON.stringify(verdi, null, 2) ?? 'null';
+
+	function tomtSvar() {
+		spor = [];
+		resultat = null;
+	}
+	function tomModell() {
+		cookies = { A: null, B: null };
+		sessioner = [];
+		profil = 'A';
+		visDetaljer = false;
+		tomtSvar();
+	}
+	function leggInnAda() {
+		cookies.A = adaId;
+		sessioner = [{ id: adaId, bruker: ada }];
+	}
+	/** @param {number} nummer */
+	function velgTrinn(nummer) {
+		trinn = nummer;
+		tomModell();
+		if (nummer >= 2) leggInnAda();
+	}
+	/** @param {Forsok} id */
+	function velgForsok(id) {
+		forsok = id;
+		tomModell();
+		leggInnAda();
+		credentials = false;
+		if (id === 'profiler') {
+			cookies.B = noahId;
+			sessioner = [...sessioner, { id: noahId, bruker: noah }];
+		}
+	}
+	/** @param {Del} neste */
+	function velgDel(neste) {
+		del = neste;
+		if (neste === 'grunnlag') velgTrinn(trinn);
+		if (neste === 'ekstra') velgForsok(forsok);
+	}
+	/** @param {ProfilId} neste */
+	function velgProfil(neste) {
+		profil = neste;
+		tomtSvar();
+	}
+	/** @param {string | null} id */
+	function cookieHeader(id) {
+		return id ? 'Cookie: itlab.sid=' + id : '// Ingen Cookie-header';
+	}
+	/** @param {Session | undefined} session */
+	function sessionTekst(session) {
+		return session
+			? json({ bruker: session.bruker })
+			: '// Ingen innlogget bruker.\n// req.session.bruker er undefined.';
+	}
+	function hentMeg() {
+		const sendCookie = !(del === 'ekstra' && forsok === 'cookie' && !credentials);
+		const sendtId = sendCookie ? cookies[profil] : null;
+		const funnet = sessioner.find((session) => session.id === sendtId);
+		const status = funnet ? 200 : 401;
+		spor = [
+			...spor,
+			{
+				tittel: 'GET /meg',
+				request: ['GET /meg', 'Origin: http://localhost:5173', cookieHeader(sendtId)].join('\n'),
+				response: [
+					funnet ? '200 OK' : '401 Unauthorized',
+					'Content-Type: application/json',
+					'Access-Control-Allow-Origin: http://localhost:5173',
+					'Access-Control-Allow-Credentials: true',
+					'',
+					json(funnet ? { bruker: funnet.bruker } : { beskjed: 'Du er ikke logget inn.' })
+				].join('\n'),
+				session: sessionTekst(funnet)
+			}
+		];
+		resultat = {
+			status,
+			tittel: funnet
+				? 'Serveren kjenner igjen ' + funnet.bruker.navn + '.'
+				: 'Ingen innlogget bruker.',
+			tekst: funnet
+				? 'Nettleseren sendte ID-en ' +
+					sendtId +
+					'. Serveren slo den opp, fant ' +
+					funnet.bruker.navn +
+					' og svarte 200. Det samme oppslaget må gjøres ved neste request.'
+				: sendtId
+					? 'ID-en ' +
+						sendtId +
+						' kom frem, men sessionen finnes ikke lenger. Serveren svarer 401 selv om nettleseren har en cookie.'
+					: del === 'ekstra' && forsok === 'cookie'
+						? 'Cookien ble ikke sendt. Både cookien i nettleseren og sessionen på serveren er fortsatt der. Slå på bryteren og spør igjen.'
+						: 'Requesten hadde ingen session-ID. Backend finner derfor ingen innlogget bruker og svarer 401.'
+		};
+	}
+	function loggInn() {
+		const gammelId = cookies.A;
+		leggInnAda();
+		spor = [
+			{
+				tittel: 'POST /logginn — lokal demo',
+				request: [
+					'POST /logginn',
+					'Origin: http://localhost:5173',
+					'Content-Type: application/json',
+					cookieHeader(gammelId),
+					'',
+					json({ visningsnavn: 'Ada' })
+				].join('\n'),
+				response: [
+					'200 OK',
+					'Content-Type: application/json',
+					'Access-Control-Allow-Origin: http://localhost:5173',
+					'Access-Control-Allow-Credentials: true',
+					'Set-Cookie: itlab.sid=' + adaId + '; Path=/; HttpOnly; SameSite=Lax',
+					'',
+					json({ bruker: ada })
+				].join('\n'),
+				session: sessionTekst(sessioner[0])
+			}
+		];
+		resultat = {
+			status: 200,
+			tittel: 'En ID i nettleseren. Ada på serveren.',
+			tekst:
+				'Serveren lagrer brukerdata og sender ID-en med Set-Cookie. Nettleseren lagrer den. I ekte innlogging må identiteten kontrolleres før brukeren lagres som innlogget i sessionen.'
+		};
+	}
+	function loggUtOgSpor() {
+		const gammelId = cookies.A;
+		sessioner = sessioner.filter((session) => session.id !== gammelId);
+		cookies.A = null;
+		spor = [
+			{
+				tittel: '1. POST /loggut',
+				request: ['POST /loggut', 'Origin: http://localhost:5173', cookieHeader(gammelId)].join(
+					'\n'
+				),
+				response: [
+					'204 No Content',
+					'Access-Control-Allow-Origin: http://localhost:5173',
+					'Access-Control-Allow-Credentials: true',
+					'Set-Cookie: itlab.sid=; Path=/; Expires=Thu, 01 Jan 1970 00:00:00 GMT; HttpOnly; SameSite=Lax',
+					'',
+					'// Ingen body ved 204.'
+				].join('\n'),
+				session:
+					'// req.session.destroy() fjerner sessionen.\n// Svaret ber nettleseren slette cookien.'
+			}
+		];
+		hentMeg();
+		resultat = {
+			status: 401,
+			tittel: 'Utlogget. Neste forespørsel får 401.',
+			tekst:
+				'POST /loggut ga 204 og fjernet sessionen og cookien. Deretter sendte vi en ny GET /meg. Uten session-ID fant serveren ingen innlogget bruker.'
+		};
+	}
+	function kjor() {
+		// Gjenta grunntrinnet fra det oppgitte utgangspunktet, uten skjulte forespørsler.
+		if (del === 'grunnlag') {
+			const aapneDetaljer = visDetaljer;
+			velgTrinn(trinn);
+			visDetaljer = aapneDetaljer;
+			if (trinn === 1) loggInn();
+			else if (trinn === 3) loggUtOgSpor();
+			else hentMeg();
+			return;
+		}
+		tomtSvar();
+		if (forsok === 'utlopt') {
+			sessioner = sessioner.filter((session) => session.id !== cookies.A);
+		}
+		hentMeg();
+	}
+
+	const kodebiter = [
+		{
+			id: 'oppsett',
+			navn: '1. Oppsett',
+			sted: 'EXPRESS-BACKEND',
+			tittel: 'La middleware håndtere sessionen.',
+			intro:
+				'Installer express-session og cors i elevens Express-backend. Legg dette før rutene som bruker req.session.',
+			kode: [
+				'import express from "express";',
+				'import session from "express-session";',
+				'import cors from "cors";',
+				'',
+				'const app = express();',
+				'const secret = process.env.SESSION_SECRET;',
+				'if (!secret) throw new Error("SESSION_SECRET mangler");',
+				'',
+				'app.use(cors({',
+				'  origin: "http://localhost:5173",',
+				'  credentials: true',
+				'}));',
+				'app.use(express.json());',
+				'',
+				'const cookieOptions = {',
+				'  path: "/",',
+				'  httpOnly: true,',
+				'  sameSite: "lax",',
+				'  secure: false // Bare i den lokale HTTP-laben.',
+				'};',
+				'app.use(session({',
+				'  name: "itlab.sid", secret,',
+				'  resave: false,',
+				'  saveUninitialized: false,',
+				'  cookie: { ...cookieOptions, maxAge: 30 * 60 * 1000 }',
+				'}));',
+				'',
+				'// Legg rutene her.',
+				'app.listen(3000);'
+			].join('\n'),
+			forklaring:
+				'saveUninitialized: false hindrer lagring av nye, uendrede sessioner. resave: false unngår unødvendig lagring. HttpOnly hindrer JavaScript i å lese cookien; nettleseren kan fortsatt sende den.'
+		},
+		{
+			id: 'innlogging',
+			navn: '2. Innlogging',
+			sted: 'INNE I POST /logginn',
+			tittel: 'Lagre en bruker som faktisk er kontrollert.',
+			intro:
+				'Dette er et utdrag etter vellykket autentisering. bruker må komme fra en reell identitetskontroll. Et navn fra req.body er ikke nok.',
+			kode: [
+				'// Inne i ruten med (req, res, next).',
+				'// bruker er allerede autentisert.',
+				'req.session.regenerate((feil) => {',
+				'  if (feil) return next(feil);',
+				'  req.session.bruker = {',
+				'    id: bruker.id,',
+				'    navn: bruker.navn',
+				'  };',
+				'  req.session.save((feil) => {',
+				'    if (feil) return next(feil);',
+				'    res.json({ bruker: req.session.bruker });',
+				'  });',
+				'});'
+			].join('\n'),
+			forklaring:
+				'regenerate gir en ny session-ID etter innlogging. Lagre brukerdata før svaret sendes. Passord skal ikke lagres i sessionen.'
+		},
+		{
+			id: 'ruter',
+			navn: '3. /meg og utlogging',
+			sted: 'EXPRESS-BACKEND',
+			tittel: 'Sjekk sessionen ved hver beskyttet request.',
+			intro:
+				'Middleware slår opp sessionen før ruten kjører. Ruten avgjør om den gir tilgang. cookieOptions er de samme innstillingene som i oppsettet.',
+			kode: [
+				'app.get("/meg", (req, res) => {',
+				'  if (!req.session.bruker) {',
+				'    return res.status(401).json({',
+				'      beskjed: "Du er ikke logget inn."',
+				'    });',
+				'  }',
+				'  res.json({ bruker: req.session.bruker });',
+				'});',
+				'',
+				'app.post("/loggut", (req, res, next) => {',
+				'  req.session.destroy((feil) => {',
+				'    if (feil) return next(feil);',
+				'    res.clearCookie("itlab.sid", cookieOptions);',
+				'    res.sendStatus(204);',
+				'  });',
+				'});'
+			].join('\n'),
+			forklaring:
+				'destroy fjerner sessionen. clearCookie må bruke samme cookienavn, path og eventuell domain, uten maxAge/expires. I en chat hentes avsender fra req.session.bruker etter kontroll, ikke fra req.body.avsender.'
+		},
+		{
+			id: 'fetch',
+			navn: '4. Fetch',
+			sted: 'SVELTE-FRONTEND',
+			tittel: 'Send cookien med forespørselen.',
+			intro:
+				'Utdrag til egne hendelsesfunksjoner. Bruk credentials: "include" ved innlogging, henting og utlogging når frontend og backend har ulike origins.',
+			kode: [
+				'const API = "http://localhost:3000";',
+				'',
+				'// I deres innloggingsfunksjon:',
+				'const svar = await fetch(API + "/logginn", {',
+				'  method: "POST",',
+				'  credentials: "include",',
+				'  headers: { "Content-Type": "application/json" },',
+				'  body: JSON.stringify({ brukernavn, passord })',
+				'});',
+				'if (!svar.ok) throw new Error("Innlogging mislyktes");',
+				'',
+				'async function hentMeg() {',
+				'  const svar = await fetch(API + "/meg", {',
+				'    credentials: "include"',
+				'  });',
+				'  if (svar.status === 401) return null;',
+				'  if (!svar.ok) throw new Error("Kunne ikke hente bruker");',
+				'  return (await svar.json()).bruker;',
+				'}',
+				'',
+				'async function loggUt() {',
+				'  const svar = await fetch(API + "/loggut", {',
+				'    method: "POST", credentials: "include"',
+				'  });',
+				'  if (!svar.ok) throw new Error("Utlogging mislyktes");',
+				'  // 204 har ingen JSON-body.',
+				'}'
+			].join('\n'),
+			forklaring:
+				'Nettleseren setter Cookie-headeren og tar imot Set-Cookie. Frontend gjør ikke dette selv. Kall funksjonene fra hendelser, fang feil og oppdater Svelte-state med svaret.'
+		}
+	];
+	let aktivKode = $derived(kodebiter.find((bit) => bit.id === kodevalg) ?? kodebiter[0]);
+</script>
+
+<svelte:head>
+	<title>Sessions 2 · testversjon · IT-laben</title>
+	<meta
+		name="description"
+		content="Lær sessions i fire små forsøk. Se samme ID i nettleseren og på serveren, og prøv kode i eget Express-prosjekt."
+	/>
+</svelte:head>
+
+<div class="side">
+	<header class="ramme">
+		<a class="tilbake" href="/"><span aria-hidden="true">←</span> IT-laben</a>
+		<div class="headerhoyre">
+			<span class="testmerke">SESSIONS 2 · TEST</span><a href="/sessions/"
+				>Se originalen <span aria-hidden="true">↗</span></a
+			>
+		</div>
+	</header>
+	<main class="ramme">
+		<section class="intro" aria-labelledby="sidetittel">
+			<div>
+				<p class="overlinje">UTVIKLING · Vg2 IT</p>
+				<h1 id="sidetittel">Hvordan husker serveren deg?</h1>
+				<p class="ingress">
+					Nettleseren har en ID. Serveren bruker den til å finne brukeren. Prøv sammenhengen, ett
+					spørsmål om gangen.
+				</p>
+			</div>
+			<span class="intromerke" aria-hidden="true">ID <span>↔</span> bruker</span>
+		</section>
+		<nav class="hovedvalg" aria-label="Velg del av øvingen">
+			<button
+				class:valgt={del === 'grunnlag'}
+				aria-pressed={del === 'grunnlag'}
+				onclick={() => velgDel('grunnlag')}><span>01</span> Følg innloggingen</button
+			>
+			<button
+				class:valgt={del === 'ekstra'}
+				aria-pressed={del === 'ekstra'}
+				onclick={() => velgDel('ekstra')}><span>02</span> Ekstra forsøk</button
+			>
+			<button
+				class:valgt={del === 'kode'}
+				aria-pressed={del === 'kode'}
+				onclick={() => velgDel('kode')}><span>03</span> Bruk i eget prosjekt</button
+			>
+		</nav>
+
+		{#if del !== 'kode'}
+			<section class="oving" aria-labelledby="ovingtittel">
+				<div class="seksjonstopp">
+					<h2 id="ovingtittel">{del === 'grunnlag' ? 'Fire små trinn.' : 'Prøv én forskjell.'}</h2>
+					<span class="lokalmerke">LOKAL SIMULERING</span>
+				</div>
+				<p class="demomerknad">
+					Vi bruker et demonavn uten passordkontroll. Ingen ekte innlogging, cookies eller
+					nettverkskall opprettes.
+				</p>
+				{#if del === 'grunnlag'}
+					<div class="trinnvalg" role="group" aria-label="Velg trinn">
+						{#each trinnene as item, i}
+							<button
+								class:aktiv={trinn === i}
+								aria-pressed={trinn === i}
+								onclick={() => velgTrinn(i)}><span>{i + 1}</span>{item.navn}</button
+							>
+						{/each}
+					</div>
+				{:else}
+					<div class="forsokvalg" role="group" aria-label="Velg ekstra forsøk">
+						{#each forsokene as item}
+							<button
+								class:aktiv={forsok === item.id}
+								aria-pressed={forsok === item.id}
+								onclick={() => velgForsok(item.id)}>{item.navn}</button
+							>
+						{/each}
+					</div>
+				{/if}
+				<p class="navhint">
+					Du kan hoppe fritt. Hvert valg setter opp eksemplet som beskrives under, uten å sende en
+					request.
+				</p>
+
+				<div class="arbeidsflate">
+					<div class="oppgave">
+						<div class="sporsmal">
+							<p class="overlinje">
+								{del === 'grunnlag' ? 'TRINN ' + (trinn + 1) + ' AV 4' : 'EKSTRA FORSØK'}
+							</p>
+							<h3>{aktivt.sporsmal}</h3>
+							<p class="utgangspunkt"><b>Utgangspunkt:</b> {aktivt.start}</p>
+						</div>
+						{#if del === 'ekstra' && forsok === 'profiler'}
+							<div class="ekstrakontroll">
+								<div class="profilvalg" role="group" aria-label="Velg nettleserprofil">
+									{#each profilvalg as id}<button
+											class:aktiv={profil === id}
+											aria-pressed={profil === id}
+											onclick={() => velgProfil(id)}>Profil {id}</button
+										>{/each}
+								</div>
+								<p>
+									Separate nettleserprofiler. Vanlige faner i samme profil deler normalt cookies.
+								</p>
+							</div>
+						{:else if del === 'ekstra' && forsok === 'cookie'}
+							<div class="ekstrakontroll">
+								<label class="bryter"
+									><input
+										type="checkbox"
+										checked={credentials}
+										onchange={(event) => {
+											credentials = event.currentTarget.checked;
+											tomtSvar();
+										}}
+									/>Ta med cookien
+									<code
+										>{credentials ? 'credentials: "include"' : 'credentials: "same-origin"'}</code
+									></label
+								>
+								<p>
+									Frontend på localhost:5173 og backend på localhost:3000 har ulike origins. CORS er
+									riktig satt opp i dette forsøket.
+								</p>
+							</div>
+						{/if}
+						<div class="handling">
+							<button class="primaer" onclick={kjor}
+								>{aktivt.handling}<span aria-hidden="true">→</span></button
+							>
+							<p>{resultat ? 'Du kan gjenta eller velge et annet trinn.' : aktivt.hint}</p>
+						</div>
+						<div
+							class="resultat"
+							class:harresultat={resultat !== null}
+							role="status"
+							aria-atomic="true"
+						>
+							{#if resultat}
+								<span class="statuskode" class:avvist={resultat.status === 401}
+									>{resultat.status}</span
+								>
+								<div>
+									<h4>{resultat.tittel}</h4>
+									<p>{resultat.tekst}</p>
+								</div>
+							{:else}
+								<span class="venter" aria-hidden="true">↳</span>
+								<p>Ingen request sendt ennå. Panelet under viser utgangspunktet.</p>
+							{/if}
+						</div>
+					</div>
+
+					<div class="modellomrade">
+						<div class="modell" aria-label="Cookie i nettleseren og sessiondata på serveren">
+							<article class="nettleser">
+								<div class="modellhode">
+									<h3>
+										Nettleseren{del === 'ekstra' && forsok === 'profiler' ? ' · ' + profil : ''}
+									</h3>
+									<span>COOKIE</span>
+								</div>
+								{#if cookie}
+									<p class="feltetikett">Session-ID</p>
+									<code class="idverdi">{cookie}</code>
+									<p class="modelltekst">Cookien heter <code>itlab.sid</code>. Her ligger ID-en.</p>
+								{:else}
+									<div class="tomt">
+										<span aria-hidden="true">—</span>
+										<p>Ingen session-cookie</p>
+									</div>
+								{/if}
+							</article>
+							<div class="mellom" aria-hidden="true"><span>↔</span><small>ID → oppslag</small></div>
+							<article class="server">
+								<div class="modellhode">
+									<h3>Serveren</h3>
+									<span>SESSIONLAGER</span>
+								</div>
+								{#if sessioner.length}
+									<div class="sessionliste">
+										{#each sessioner as session (session.id)}
+											<div class="sessionrad" class:samme={cookie === session.id}>
+												<div><span>ID</span><code>{session.id}</code></div>
+												<div><span>Bruker</span><b>{session.bruker.navn}</b></div>
+											</div>
+										{/each}
+									</div>
+								{:else}
+									<div class="tomt">
+										<span aria-hidden="true">—</span>
+										<p>Ingen lagrede sessioner</p>
+									</div>
+								{/if}
+							</article>
+						</div>
+						<p class="modellfot">
+							HTTP er tilstandsløst: backend må finne brukerens session ved hver request. Brukerdata
+							ligger på serveren.
+						</p>
+					</div>
+				</div>
+
+				<details class="teknisk" bind:open={visDetaljer}>
+					<summary
+						><span>Se hva som sendes <small>HTTP og req.session</small></span><span
+							class="pluss"
+							aria-hidden="true">+</span
+						></summary
+					>
+					{#if spor.length}
+						<div class="spor">
+							{#each spor as item}
+								<article>
+									<h3>{item.tittel}</h3>
+									<div class="httpgrid">
+										<div>
+											<h4>Request · nettleser → server</h4>
+											<pre>{item.request}</pre>
+										</div>
+										<div>
+											<h4>Response · server → nettleser</h4>
+											<pre>{item.response}</pre>
+										</div>
+									</div>
+									<div class="reqsession">
+										<h4>På serveren · req.session</h4>
+										<pre>{item.session}</pre>
+									</div>
+								</article>
+							{/each}
+						</div>
+					{:else}
+						<p class="tomlogg">
+							Bruk handlingsknappen først. Da vises requesten, svaret og brukerdataene som backend
+							fant.
+						</p>
+					{/if}
+					<p class="tekniskmerknad">
+						Forenklet HTTP: nettleseren håndterer <code>Cookie</code> og <code>Set-Cookie</code>
+						automatisk. Demo-ID-ene er korte; ekte ID-er genereres tilfeldig. Signatur, URL-koding, cookie-innstillinger
+						i <code>req.session</code> og eventuell CORS-preflight er utelatt.
+					</p>
+				</details>
+			</section>
+		{:else}
+			<section class="kodehjelp" aria-labelledby="kodetittel">
+				<div class="seksjonstopp">
+					<h2 id="kodetittel">Bruk det i eget prosjekt.</h2>
+					<span class="lokalmerke">SVELTE + EXPRESS</span>
+				</div>
+				<p class="kodeintro">
+					Disse utdragene er til elevprosjektet. Sessionpakken installeres i <b>Express-backenden</b
+					>, og skal ikke legges inn i IT-labens Svelte-app.
+				</p>
+				<div class="installasjon">
+					<span>I backend-mappen</span><code>npm install express-session cors</code>
+				</div>
+				<div class="kodevalg" role="group" aria-label="Velg kodeeksempel">
+					{#each kodebiter as bit}<button
+							class:aktiv={kodevalg === bit.id}
+							aria-pressed={kodevalg === bit.id}
+							onclick={() => (kodevalg = bit.id)}>{bit.navn}</button
+						>{/each}
+				</div>
+				<article class="kodeinnhold">
+					<p class="overlinje">{aktivKode.sted}</p>
+					<h3>{aktivKode.tittel}</h3>
+					<p>{aktivKode.intro}</p>
+					<div class="kodevindu">
+						<div><span aria-hidden="true">● ● ●</span><span>{aktivKode.sted}</span></div>
+						<pre><code>{aktivKode.kode}</code></pre>
+					</div>
+					<p class="kodeforklaring">{aktivKode.forklaring}</p>
+					{#if kodevalg === 'oppsett'}
+						<aside class="kodenotat">
+							<h4>Før du starter backend</h4>
+							<p>
+								Generer en tilfeldig hemmelighet én gang. Lagre den som <code
+									>SESSION_SECRET=verdien</code
+								>
+								i backendens <code>.env</code>, og legg <code>.env</code> i <code>.gitignore</code>.
+							</p>
+							<pre><code
+									>{"node -e \"console.log(require('node:crypto').randomBytes(32).toString('hex'))\""}</code
+								></pre>
+							<p>
+								Start for eksempel med <code>node --env-file=.env server.js</code>. Bruk samme
+								secret videre; ikke generer en ny ved hver request.
+							</p>
+							<p>
+								<b>Kun lokal HTTP-lab:</b> <code>secure: false</code> og standardlageret MemoryStore
+								er for øving. Drift trenger HTTPS, <code>secure: true</code>, et egnet sessionlager
+								og riktig proxy-oppsett. Sessiondata i MemoryStore forsvinner ved omstart.
+							</p>
+						</aside>
+					{:else if kodevalg === 'fetch'}
+						<aside class="kodenotat">
+							<h4>Ulik origin er ikke alltid ulik site</h4>
+							<p>
+								<code>http://localhost:5173</code> og <code>http://localhost:3000</code> er ulike
+								origins, men same-site. <code>SameSite=Lax</code> kan derfor brukes i denne laben.
+							</p>
+							<p>
+								Backend må tillate den konkrete frontend-adressen med CORS og <code
+									>credentials: true</code
+								>, som i oppsettet. <code>origin: "*"</code> kan ikke brukes her.
+								<code>credentials: "include"</code> overstyrer ikke SameSite eller nettleserens øvrige
+								cookie-regler.
+							</p>
+						</aside>
+					{:else if kodevalg === 'innlogging'}
+						<aside class="kodenotat">
+							<h4>Autentisering og session er to deler</h4>
+							<p>
+								Sessionen husker en kontrollert innlogging. Den kontrollerer ikke passordet for deg.
+								Demoen godtar «Ada» for å vise flyten; dette er ingen sikker påloggingsløsning.
+							</p>
+						</aside>
+					{:else}
+						<aside class="kodenotat">
+							<h4>Backend bestemmer tilgangen</h4>
+							<p>
+								Kontroller session og nødvendige rettigheter i hver beskyttet rute. Å skjule en
+								knapp i Svelte er ikke tilgangskontroll. Vurder også CSRF-beskyttelse for handlinger
+								som endrer data.
+							</p>
+						</aside>
+					{/if}
+				</article>
+				<div class="kilder">
+					<span>Dokumentasjon</span><a
+						href="https://expressjs.com/en/resources/middleware/session/"
+						target="_blank"
+						rel="noreferrer">express-session ↗</a
+					><a
+						href="https://expressjs.com/en/resources/middleware/cors/"
+						target="_blank"
+						rel="noreferrer">CORS ↗</a
+					><a
+						href="https://developer.mozilla.org/en-US/docs/Web/API/Fetch_API/Using_Fetch#including_credentials"
+						target="_blank"
+						rel="noreferrer">Fetch og credentials ↗</a
+					>
+				</div>
+			</section>
+		{/if}
+		<footer>
+			<a href="/sessions/">← Sammenlign med den opprinnelige sessions-siden</a><span
+				>Testversjon · ett spørsmål om gangen</span
+			>
+		</footer>
+	</main>
+</div>
+
+<style>
+	:global(body) {
+		margin: 0;
+		background: #f4f5ef;
+	}
+	.side {
+		--ink: #193c3b;
+		--teal: #087f79;
+		--muted: #5e7469;
+		--border: #d4dfd1;
+		min-height: 100vh;
+		color: var(--ink);
+		font-family:
+			Inter,
+			system-ui,
+			-apple-system,
+			BlinkMacSystemFont,
+			'Segoe UI',
+			sans-serif;
+		background: radial-gradient(ellipse at 90% 0, #e2edde, transparent 30%);
+	}
+	.side,
+	.side * {
+		box-sizing: border-box;
+	}
+	.ramme {
+		width: min(1080px, calc(100% - 64px));
+		margin-inline: auto;
+	}
+	header {
+		min-height: 76px;
+		display: flex;
+		align-items: center;
+		justify-content: space-between;
+		gap: 20px;
+		border-bottom: 1px solid var(--border);
+	}
+	a {
+		color: inherit;
+		text-decoration: none;
+	}
+	a:hover {
+		color: var(--teal);
+	}
+	.tilbake {
+		font-size: 16px;
+		font-weight: 750;
+		white-space: nowrap;
+	}
+	.tilbake > span {
+		margin-right: 7px;
+	}
+	.headerhoyre {
+		display: flex;
+		align-items: center;
+		gap: 20px;
+	}
+	.headerhoyre > a {
+		font-size: 12px;
+	}
+	.testmerke {
+		font: 10px monospace;
+		letter-spacing: 1px;
+		color: #72653e;
+		border: 1px solid #ded4b8;
+		background: #f7efd9;
+		border-radius: 5px;
+		padding: 7px 9px;
+	}
+	h1,
+	h2,
+	h3,
+	h4,
+	p {
+		margin-top: 0;
+	}
+	p {
+		line-height: 1.65;
+	}
+	button,
+	input {
+		font: inherit;
+	}
+	button {
+		cursor: pointer;
+		color: var(--ink);
+		background: #fffdf8;
+		border: 1px solid var(--border);
+		border-radius: 7px;
+		padding: 10px 14px;
+		font-size: 13px;
+		font-weight: 600;
+		transition:
+			background 0.15s,
+			border-color 0.15s;
+	}
+	button:hover {
+		background: #eaf1e4;
+		border-color: #9bbb9b;
+	}
+	a:focus-visible,
+	button:focus-visible,
+	input:focus-visible,
+	summary:focus-visible {
+		outline: 3px solid #b8753a;
+		outline-offset: 4px;
+	}
+	code,
+	pre {
+		font-family: 'SFMono-Regular', Consolas, 'Liberation Mono', monospace;
+	}
+	p code {
+		font-size: 0.92em;
+		color: #096c65;
+		overflow-wrap: anywhere;
+	}
+	.intro {
+		display: flex;
+		align-items: center;
+		justify-content: space-between;
+		gap: 24px;
+		padding: 34px 0 27px;
+	}
+	.overlinje {
+		color: var(--teal);
+		font-size: 10px;
+		font-weight: 750;
+		letter-spacing: 1.5px;
+		margin-bottom: 10px;
+	}
+	h1 {
+		font-size: clamp(30px, 3.6vw, 43px);
+		line-height: 1.15;
+		letter-spacing: -1.5px;
+		margin-bottom: 13px;
+	}
+	.ingress {
+		font-size: 15px;
+		color: var(--muted);
+		max-width: 680px;
+		margin-bottom: 0;
+	}
+	.intromerke {
+		display: flex;
+		gap: 10px;
+		align-items: center;
+		color: var(--teal);
+		font: 15px monospace;
+		background: #e6efdf;
+		border: 1px solid #d0dfc8;
+		border-radius: 8px;
+		padding: 20px;
+		white-space: nowrap;
+	}
+	.intromerke > span {
+		color: #8aab7d;
+	}
+	.hovedvalg {
+		display: grid;
+		grid-template-columns: repeat(3, minmax(0, 1fr));
+		gap: 8px;
+		margin-bottom: 22px;
+	}
+	.hovedvalg button {
+		display: flex;
+		align-items: center;
+		gap: 12px;
+		padding: 15px 17px;
+		text-align: left;
+		background: #edf1e7;
+		border-color: transparent;
+	}
+	.hovedvalg button > span {
+		font: 11px monospace;
+		color: #809776;
+	}
+	.hovedvalg button.valgt {
+		color: #086d65;
+		border-color: #adc8a8;
+		background: #fffdf8;
+		box-shadow: inset 0 -3px #468d78;
+	}
+	.oving,
+	.kodehjelp {
+		padding: 25px;
+		background: #fffefa;
+		border: 1px solid var(--border);
+		border-radius: 12px;
+	}
+	.seksjonstopp {
+		display: flex;
+		justify-content: space-between;
+		align-items: center;
+		gap: 15px;
+	}
+	h2 {
+		font-size: 23px;
+		letter-spacing: -0.6px;
+		margin-bottom: 0;
+	}
+	.lokalmerke {
+		font: 9px monospace;
+		letter-spacing: 1px;
+		color: #74876d;
+		white-space: nowrap;
+	}
+	.demomerknad {
+		font-size: 12px;
+		color: var(--muted);
+		margin: 10px 0 20px;
+		max-width: 800px;
+	}
+	.trinnvalg {
+		display: grid;
+		grid-template-columns: repeat(4, minmax(0, 1fr));
+		gap: 8px;
+	}
+	.trinnvalg button {
+		display: flex;
+		align-items: center;
+		gap: 10px;
+		text-align: left;
+		background: #f5f7ee;
+	}
+	.trinnvalg button > span {
+		display: grid;
+		place-items: center;
+		border-radius: 50%;
+		background: #e3eadc;
+		color: #7b9270;
+		width: 25px;
+		height: 25px;
+		font: 12px monospace;
+		flex-shrink: 0;
+	}
+	button.aktiv {
+		border-color: #6ca68d;
+		background: #e5f1e5;
+		color: #09685d;
+	}
+	.trinnvalg button.aktiv > span {
+		background: #287e69;
+		color: white;
+	}
+	.forsokvalg,
+	.kodevalg {
+		display: flex;
+		flex-wrap: wrap;
+		gap: 8px;
+	}
+	.navhint {
+		font-size: 11px;
+		color: var(--muted);
+		margin: 10px 0 20px;
+	}
+	.oppgave {
+		padding: 20px;
+		border: 1px solid #d8e3d2;
+		background: #f3f7ed;
+		border-radius: 9px;
+	}
+	.sporsmal .overlinje {
+		font-size: 9px;
+		margin-bottom: 8px;
+	}
+	.sporsmal h3 {
+		font-size: 22px;
+		letter-spacing: -0.6px;
+		line-height: 1.25;
+		margin-bottom: 10px;
+	}
+	.utgangspunkt {
+		font-size: 13px;
+		color: var(--muted);
+		margin-bottom: 16px;
+	}
+	.utgangspunkt > b {
+		font-weight: 600;
+		color: #466452;
+	}
+	.handling {
+		display: flex;
+		align-items: center;
+		gap: 18px;
+	}
+	.primaer {
+		display: flex;
+		justify-content: space-between;
+		align-items: center;
+		gap: 26px;
+		padding: 12px 16px;
+		border-color: var(--teal);
+		background: var(--teal);
+		color: white;
+		white-space: nowrap;
+	}
+	.primaer:hover {
+		background: #066560;
+		border-color: #066560;
+	}
+	.handling > p {
+		font-size: 12px;
+		color: var(--muted);
+		margin: 0;
+		max-width: 475px;
+	}
+	.resultat {
+		display: flex;
+		align-items: flex-start;
+		gap: 13px;
+		padding: 15px 0 0;
+		margin-top: 16px;
+		border-top: 1px solid #d8e2cf;
+	}
+	.resultat h4 {
+		font-size: 14px;
+		line-height: 1.5;
+		margin-bottom: 4px;
+	}
+	.resultat p {
+		font-size: 13px;
+		color: #536f5d;
+		margin-bottom: 0;
+	}
+	.resultat:not(.harresultat) p {
+		font-size: 12px;
+		color: #6d8363;
+	}
+	.statuskode {
+		font: 13px monospace;
+		color: #126b50;
+		background: #d8ebd7;
+		padding: 7px 8px;
+		border-radius: 5px;
+		flex-shrink: 0;
+	}
+	.statuskode.avvist {
+		color: #935d2d;
+		background: #efe2cb;
+	}
+	.venter {
+		font-size: 18px;
+		color: #94ac83;
+		line-height: 1.2;
+	}
+	.ekstrakontroll {
+		padding: 13px 0 16px;
+		border-top: 1px solid #d8e2cf;
+	}
+	.ekstrakontroll p {
+		font-size: 12px;
+		margin: 9px 0 0;
+		color: var(--muted);
+	}
+	.profilvalg {
+		display: flex;
+		gap: 8px;
+	}
+	.profilvalg button {
+		padding-inline: 24px;
+	}
+	.bryter {
+		display: flex;
+		gap: 9px;
+		align-items: center;
+		flex-wrap: wrap;
+		font-size: 13px;
+		font-weight: 600;
+		cursor: pointer;
+	}
+	.bryter input {
+		accent-color: var(--teal);
+		width: 17px;
+		height: 17px;
+		cursor: pointer;
+	}
+	.bryter code {
+		font-size: 11px;
+		color: #69805e;
+		font-weight: 400;
+		overflow-wrap: anywhere;
+	}
+	.modell {
+		display: grid;
+		grid-template-columns: minmax(0, 1fr) 85px minmax(0, 1fr);
+		gap: 0;
+		align-items: stretch;
+		margin-top: 20px;
+	}
+	.modell article {
+		min-width: 0;
+		border: 1px solid #d4dfcf;
+		border-radius: 9px;
+		padding: 17px;
+		background: #f7f9f1;
+	}
+	.modell .server {
+		background: #faf7ee;
+		border-color: #e0dac8;
+	}
+	.modellhode {
+		display: flex;
+		align-items: center;
+		justify-content: space-between;
+		gap: 10px;
+		margin-bottom: 16px;
+	}
+	.modellhode h3 {
+		font-size: 16px;
+		letter-spacing: -0.25px;
+		margin-bottom: 0;
+	}
+	.modellhode > span {
+		font: 8px monospace;
+		letter-spacing: 0.7px;
+		color: #79906e;
+	}
+	.server .modellhode > span {
+		color: #978565;
+	}
+	.feltetikett {
+		color: var(--muted);
+		font-size: 11px;
+		margin-bottom: 5px;
+	}
+	.idverdi {
+		display: inline-block;
+		background: #e2eed9;
+		color: #12695c;
+		border: 1px solid #c8dcc1;
+		border-radius: 5px;
+		padding: 6px 11px;
+		font-size: 17px;
+		letter-spacing: 0.5px;
+	}
+	.modelltekst {
+		font-size: 11px;
+		color: var(--muted);
+		margin: 10px 0 0;
+	}
+	.tomt {
+		display: flex;
+		align-items: center;
+		gap: 14px;
+		min-height: 70px;
+		color: #7f9276;
+	}
+	.tomt > span {
+		font: 24px monospace;
+		color: #a7b59d;
+	}
+	.tomt p {
+		font-size: 13px;
+		margin-bottom: 0;
+	}
+	.mellom {
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		flex-direction: column;
+		gap: 7px;
+		color: #83a27a;
+	}
+	.mellom > span {
+		font-size: 28px;
+	}
+	.mellom > small {
+		font-size: 8px;
+	}
+	.sessionliste {
+		display: grid;
+		gap: 7px;
+	}
+	.sessionrad {
+		display: grid;
+		grid-template-columns: 1.2fr 1fr;
+		border: 1px solid #dedecb;
+		border-radius: 6px;
+		padding: 9px 11px;
+		gap: 14px;
+		background: #fffdf7;
+	}
+	.sessionrad.samme {
+		border-color: #b5ceaa;
+		background: #edf4e4;
+	}
+	.sessionrad > div {
+		display: flex;
+		flex-direction: column;
+		gap: 5px;
+	}
+	.sessionrad span {
+		font-size: 10px;
+		color: var(--muted);
+	}
+	.sessionrad code {
+		font-size: 15px;
+		color: #12695c;
+	}
+	.sessionrad b {
+		font-size: 15px;
+		font-weight: 650;
+	}
+	.modellfot {
+		font-size: 11px;
+		color: var(--muted);
+		margin: 12px 0 19px;
+	}
+	.teknisk {
+		border-top: 1px solid var(--border);
+	}
+	summary {
+		display: flex;
+		align-items: center;
+		justify-content: space-between;
+		gap: 15px;
+		cursor: pointer;
+		list-style: none;
+		font-size: 13px;
+		font-weight: 650;
+		padding: 16px 0 0;
+	}
+	summary::-webkit-details-marker {
+		display: none;
+	}
+	summary small {
+		font-size: 11px;
+		font-weight: 400;
+		color: #7c8d72;
+		margin-left: 9px;
+	}
+	.pluss {
+		color: var(--teal);
+		font-size: 21px;
+		font-weight: 400;
+	}
+	details[open] .pluss {
+		transform: rotate(45deg);
+	}
+	.spor {
+		display: grid;
+		gap: 22px;
+		margin-top: 20px;
+	}
+	.spor article > h3 {
+		font-size: 15px;
+		margin-bottom: 12px;
+	}
+	.httpgrid {
+		display: grid;
+		grid-template-columns: repeat(2, minmax(0, 1fr));
+		gap: 13px;
+	}
+	.httpgrid > div,
+	.reqsession {
+		min-width: 0;
+		border: 1px solid #dbe3d5;
+		border-radius: 7px;
+		background: #f6f8f0;
+		padding: 14px;
+	}
+	.httpgrid h4,
+	.reqsession h4 {
+		font-size: 11px;
+		color: #58745b;
+		margin-bottom: 13px;
+	}
+	.spor pre {
+		white-space: pre-wrap;
+		overflow-wrap: anywhere;
+		font-size: 11px;
+		line-height: 1.7;
+		color: #4f6f5b;
+		margin: 0;
+	}
+	.reqsession {
+		margin-top: 13px;
+	}
+	.tekniskmerknad,
+	.tomlogg {
+		font-size: 11px;
+		color: var(--muted);
+		margin: 17px 0 0;
+	}
+	.kodeintro {
+		font-size: 14px;
+		color: var(--muted);
+		margin: 14px 0 18px;
+		max-width: 800px;
+	}
+	.installasjon {
+		display: flex;
+		flex-wrap: wrap;
+		align-items: center;
+		gap: 10px 20px;
+		border-radius: 7px;
+		padding: 13px 15px;
+		background: #eaf1e1;
+		margin-bottom: 20px;
+	}
+	.installasjon > span {
+		font-size: 11px;
+		color: #6d8360;
+	}
+	.installasjon > code {
+		font-size: 12px;
+		overflow-wrap: anywhere;
+	}
+	.kodevalg {
+		padding-bottom: 20px;
+		margin-bottom: 22px;
+		border-bottom: 1px solid var(--border);
+	}
+	.kodevalg button {
+		font-size: 12px;
+	}
+	.kodeinnhold {
+		max-width: 850px;
+	}
+	.kodeinnhold h3 {
+		font-size: 23px;
+		letter-spacing: -0.5px;
+		margin-bottom: 12px;
+	}
+	.kodeinnhold > p {
+		font-size: 13px;
+		color: var(--muted);
+	}
+	.kodeinnhold > .overlinje {
+		color: var(--teal);
+		font-size: 10px;
+	}
+	.kodevindu {
+		border: 1px solid #2a5040;
+		border-radius: 8px;
+		overflow: hidden;
+		margin-top: 20px;
+	}
+	.kodevindu > div {
+		display: flex;
+		justify-content: space-between;
+		align-items: center;
+		gap: 15px;
+		background: #244737;
+		color: #9ab892;
+		padding: 11px 16px;
+		font: 9px monospace;
+		letter-spacing: 0.6px;
+	}
+	.kodevindu > div > span:first-child {
+		color: #75916a;
+		letter-spacing: 4px;
+	}
+	.kodevindu pre {
+		font-size: 12px;
+		line-height: 1.7;
+		padding: 19px;
+		margin: 0;
+		background: #193c2f;
+		color: #ddecce;
+		overflow-x: auto;
+		tab-size: 2;
+	}
+	.kodeforklaring {
+		margin: 18px 0 22px;
+		border-left: 3px solid #abc49c;
+		padding-left: 14px;
+	}
+	.kodenotat {
+		padding: 17px;
+		background: #f1f5e8;
+		border: 1px solid #d7e2ca;
+		border-radius: 8px;
+	}
+	.kodenotat h4 {
+		font-size: 14px;
+		margin-bottom: 10px;
+	}
+	.kodenotat p {
+		font-size: 12px;
+		color: var(--muted);
+		margin-bottom: 12px;
+	}
+	.kodenotat p:last-child {
+		margin-bottom: 0;
+	}
+	.kodenotat pre {
+		font-size: 11px;
+		line-height: 1.7;
+		white-space: pre-wrap;
+		overflow-wrap: anywhere;
+		padding: 12px;
+		margin: 0 0 12px;
+		background: #e4edd9;
+		border-radius: 5px;
+		color: #42613e;
+	}
+	.kilder {
+		display: flex;
+		flex-wrap: wrap;
+		gap: 12px 18px;
+		padding-top: 20px;
+		margin-top: 24px;
+		border-top: 1px solid var(--border);
+		font-size: 12px;
+	}
+	.kilder > span {
+		color: var(--muted);
+	}
+	.kilder a {
+		color: var(--teal);
+		text-decoration: underline;
+		text-underline-offset: 3px;
+	}
+	footer {
+		display: flex;
+		justify-content: space-between;
+		gap: 20px;
+		padding: 25px 0 35px;
+		font-size: 11px;
+	}
+	footer > span {
+		color: #798b71;
+	}
+	@media (min-width: 1100px) {
+		.arbeidsflate {
+			display: grid;
+			grid-template-columns: minmax(0, 1.2fr) minmax(0, 1fr);
+			gap: 20px;
+			align-items: start;
+			margin-bottom: 20px;
+		}
+		.arbeidsflate .modell {
+			margin-top: 0;
+			grid-template-columns: minmax(0, 1fr) 32px minmax(0, 1fr);
+		}
+		.arbeidsflate .mellom > small {
+			display: none;
+		}
+		.arbeidsflate .sessionrad {
+			grid-template-columns: 1fr;
+			gap: 9px;
+		}
+		.arbeidsflate .modellfot {
+			margin-bottom: 0;
+		}
+	}
+	@media (max-width: 900px) {
+		.ramme {
+			width: calc(100% - 40px);
+		}
+		.intromerke {
+			display: none;
+		}
+		.hovedvalg button {
+			font-size: 12px;
+			gap: 9px;
+			padding: 14px;
+		}
+		.trinnvalg button {
+			font-size: 12px;
+			gap: 8px;
+			padding: 10px;
+		}
+		.modell {
+			grid-template-columns: minmax(0, 1fr) 55px minmax(0, 1fr);
+		}
+		.mellom > small {
+			display: none;
+		}
+		.handling {
+			align-items: flex-start;
+		}
+	}
+	@media (max-width: 650px) {
+		.ramme {
+			width: calc(100% - 28px);
+		}
+		header {
+			min-height: 67px;
+			gap: 12px;
+		}
+		.headerhoyre {
+			gap: 12px;
+		}
+		.headerhoyre > a {
+			font-size: 11px;
+		}
+		.testmerke {
+			font-size: 8px;
+			letter-spacing: 0.5px;
+			padding: 6px 7px;
+		}
+		.tilbake {
+			font-size: 14px;
+		}
+		.intro {
+			padding: 27px 0 23px;
+		}
+		h1 {
+			font-size: 34px;
+			max-width: 500px;
+			letter-spacing: -1.2px;
+		}
+		.ingress {
+			font-size: 14px;
+		}
+		.hovedvalg {
+			gap: 6px;
+			margin-bottom: 15px;
+		}
+		.hovedvalg button {
+			flex-direction: column;
+			align-items: flex-start;
+			gap: 7px;
+			font-size: 11px;
+			padding: 11px 10px;
+			line-height: 1.4;
+		}
+		.hovedvalg button > span {
+			font-size: 10px;
+		}
+		.oving,
+		.kodehjelp {
+			padding: 17px;
+		}
+		h2 {
+			font-size: 21px;
+		}
+		.lokalmerke {
+			font-size: 8px;
+			letter-spacing: 0.3px;
+		}
+		.demomerknad {
+			font-size: 11px;
+			margin-bottom: 17px;
+		}
+		.trinnvalg {
+			grid-template-columns: repeat(2, minmax(0, 1fr));
+			gap: 7px;
+		}
+		.forsokvalg {
+			gap: 6px;
+		}
+		.forsokvalg button {
+			font-size: 11px;
+			padding: 9px 10px;
+		}
+		.navhint {
+			font-size: 10px;
+			margin-bottom: 16px;
+		}
+		.oppgave {
+			padding: 16px;
+		}
+		.sporsmal h3 {
+			font-size: 21px;
+		}
+		.utgangspunkt {
+			font-size: 12px;
+		}
+		.handling {
+			flex-direction: column;
+			gap: 10px;
+		}
+		.handling > p {
+			font-size: 11px;
+		}
+		.primaer {
+			width: 100%;
+			white-space: normal;
+			text-align: left;
+			font-size: 12px;
+		}
+		.resultat {
+			gap: 10px;
+			padding-top: 13px;
+			margin-top: 14px;
+		}
+		.resultat h4 {
+			font-size: 13px;
+		}
+		.resultat p {
+			font-size: 12px;
+		}
+		.statuskode {
+			font-size: 11px;
+			padding: 6px;
+		}
+		.modell {
+			grid-template-columns: 1fr;
+			margin-top: 16px;
+		}
+		.mellom {
+			height: 34px;
+		}
+		.mellom > span {
+			transform: rotate(90deg);
+			font-size: 22px;
+		}
+		.modell article {
+			padding: 15px;
+		}
+		.modellhode {
+			margin-bottom: 12px;
+		}
+		.tomt {
+			min-height: 40px;
+		}
+		.modellfot {
+			font-size: 10px;
+			margin-bottom: 15px;
+		}
+		summary {
+			font-size: 12px;
+		}
+		summary small {
+			display: block;
+			margin: 5px 0 0;
+			font-size: 10px;
+		}
+		.httpgrid {
+			grid-template-columns: 1fr;
+		}
+		.spor pre {
+			font-size: 10px;
+		}
+		.tekniskmerknad {
+			font-size: 10px;
+		}
+		.bryter {
+			font-size: 12px;
+		}
+		.bryter code {
+			font-size: 10px;
+		}
+		.ekstrakontroll p {
+			font-size: 11px;
+		}
+		.kodevalg {
+			display: grid;
+			grid-template-columns: repeat(2, minmax(0, 1fr));
+			gap: 7px;
+		}
+		.kodevalg button {
+			font-size: 11px;
+			padding: 10px;
+			text-align: left;
+		}
+		.kodeinnhold h3 {
+			font-size: 21px;
+		}
+		.kodeintro,
+		.kodeinnhold > p {
+			font-size: 12px;
+		}
+		.kodevindu pre {
+			font-size: 11px;
+			padding: 14px;
+		}
+		.kodevindu > div {
+			padding-inline: 14px;
+			font-size: 8px;
+		}
+		.installasjon > code {
+			font-size: 11px;
+		}
+		.kodenotat {
+			padding: 14px;
+		}
+		.kodenotat p {
+			font-size: 11px;
+		}
+		footer {
+			flex-direction: column;
+			gap: 10px;
+			font-size: 10px;
+		}
+	}
+	@media (prefers-reduced-motion: reduce) {
+		button {
+			transition: none;
+		}
+	}
+</style>

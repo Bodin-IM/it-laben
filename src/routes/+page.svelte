@@ -31,6 +31,16 @@
 			type: 'Interaktiv forklaring og kodehjelp',
 			emner: ['Session', 'Cookie', 'credentials'],
 			symbol: 'ID'
+		},
+		{
+			tittel: 'Sessions 2 – test',
+			beskrivelse:
+				'Følg én innlogging, ett steg om gangen. Åpne ekstra forsøk og kodehjelp når du trenger det.',
+			href: '/sessions-2-test',
+			kategori: 'Utvikling',
+			type: 'Testversjon · fire korte forsøk',
+			emner: ['Cookie', 'Session', 'Steg for steg'],
+			symbol: '02'
 		}
 	];
 </script>
