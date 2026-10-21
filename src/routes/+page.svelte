@@ -13,6 +13,16 @@
 			symbol: '↔'
 		},
 		{
+			tittel: 'Frontend møter backend 2 – test',
+			beskrivelse:
+				'Send en melding og hent den tilbake. Følg koden og klikk på en linje for en forklaring rett ved den.',
+			href: '/backend-2-test',
+			kategori: 'Utvikling',
+			type: 'Interaktiv kodelab · testversjon',
+			emner: ['fetch', 'POST / GET', 'Klikk på koden'],
+			symbol: '02'
+		},
+		{
 			tittel: 'Bygg chatrom',
 			beskrivelse:
 				'Utforsk hvordan frontend, requests og backend må samarbeide for å holde orden på meldinger i ulike rom.',

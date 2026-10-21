@@ -8,16 +8,19 @@ Innholdet handler foreløpig om webutvikling. Laben skal også kunne romme drift
 
 ## Innhold
 
-| Side                                                         | Adresse på nettstedet | Hva elevene kan utforske                                                                                        |
-| ------------------------------------------------------------ | --------------------- | --------------------------------------------------------------------------------------------------------------- |
-| [Forside](src/routes/+page.svelte)                           | `/`                   | Oversikt over forklaringene og øvelsene.                                                                        |
-| [Frontend møter backend](src/routes/backend/+page.svelte)    | `/backend/`           | Følge en melding fra inputfeltet via `fetch`, GET/POST og `req.body` til serveren.                              |
-| [Bygg chatrom](src/routes/chatrom/+page.svelte)              | `/chatrom/`           | Koble sammen romvalg, requests og filtrering. Sammenligne én meldingsliste med rom som har egne meldingslister. |
-| [Lagring i JSON-fil](src/routes/fillagring/+page.svelte)     | `/fillagring/`        | Følge koden stegvis, endre en melding, slå lagringen av og på og undersøke hva som overlever en omstart.        |
-| [Sessions og pålogging](src/routes/sessions/+page.svelte)    | `/sessions/`          | Utforske sammenhengen mellom cookie, session, pålogging, utlogging og `credentials`.                            |
-| [Sessions 2 – test](src/routes/sessions-2-test/+page.svelte) | `/sessions-2-test/`   | Følge innlogging i fire trinn, med kode som følger trinnet og markeringer som forklarer resultatet.             |
+| Side                                                                      | Adresse på nettstedet | Hva elevene kan utforske                                                                                        |
+| ------------------------------------------------------------------------- | --------------------- | --------------------------------------------------------------------------------------------------------------- |
+| [Forside](src/routes/+page.svelte)                                        | `/`                   | Oversikt over forklaringene og øvelsene.                                                                        |
+| [Frontend møter backend](src/routes/backend/+page.svelte)                 | `/backend/`           | Følge en melding fra inputfeltet via `fetch`, GET/POST og `req.body` til serveren.                              |
+| [Frontend møter backend 2 – test](src/routes/backend-2-test/+page.svelte) | `/backend-2-test/`    | Følge POST og GET i korte kodeutdrag, klikke fram forklaringer ved linjene og prøve validering i backend.       |
+| [Bygg chatrom](src/routes/chatrom/+page.svelte)                           | `/chatrom/`           | Koble sammen romvalg, requests og filtrering. Sammenligne én meldingsliste med rom som har egne meldingslister. |
+| [Lagring i JSON-fil](src/routes/fillagring/+page.svelte)                  | `/fillagring/`        | Følge koden stegvis, endre en melding, slå lagringen av og på og undersøke hva som overlever en omstart.        |
+| [Sessions og pålogging](src/routes/sessions/+page.svelte)                 | `/sessions/`          | Utforske sammenhengen mellom cookie, session, pålogging, utlogging og `credentials`.                            |
+| [Sessions 2 – test](src/routes/sessions-2-test/+page.svelte)              | `/sessions-2-test/`   | Følge innlogging i fire trinn, med kode som følger trinnet og markeringer som forklarer resultatet.             |
 
 Sessions 2 er en test av en mer trinnvis presentasjon, med ekstra forsøk og fordypning tilgjengelig ved behov.
+
+Frontend møter backend 2 viderefører kodefokuset fra fillagringssiden. Eleven følger én kjøring om gangen og kan klikke på kodelinjer for å få en forklaring ved siden av koden, eller rett under linjen på mobil. Data og feilforsøk åpnes ved behov. Den opprinnelige frontend/backend-siden beholdes for sammenligning.
 
 ## Hvordan vi bygger undervisningssidene
 
@@ -26,6 +29,7 @@ Når vi lager og videreutvikler sider, legger vi vekt på å:
 - Ta utgangspunkt i et konkret spørsmål eller en liten funksjon.
 - La eleven prøve selv og se hva som endrer seg.
 - Vise korte kodeutdrag sammen med handlingen de forklarer.
+- La eleven undersøke én kodelinje om gangen, med en forklaring tett på linjen.
 - Dele opp informasjonen og gjøre flere detaljer tilgjengelige når eleven trenger dem.
 
 ## Teknisk oppsett
