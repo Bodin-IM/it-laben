@@ -1,4 +1,14 @@
-# sv
+# IT-laben
+
+Interaktive forklaringer og øvelser for IT-fagene, bygget med SvelteKit.
+
+## Oppdatering og serverdrift
+
+[Kort driftsveiledning](docs/serverdrift.md) med huskeliste for publisering, logger, timer, Nginx og kontroll av publisert versjon. Veiledningen skiller mellom kommandoer på utviklingsmaskinen og på Ubuntu-serveren.
+
+Undervisningssidene ligger under `src/routes`: `/backend`, `/chatrom` og `/sessions`.
+
+## Svelte-prosjektet
 
 Everything you need to build a Svelte project, powered by [`sv`](https://github.com/sveltejs/cli).
 

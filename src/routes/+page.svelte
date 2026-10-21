@@ -21,17 +21,17 @@
 			type: 'Stegvis hjelp og utprøving',
 			emner: ['Chatrom', 'Filtrering', 'Datastruktur'],
 			symbol: '#'
+		},
+		{
+			tittel: 'Sessions og pålogging',
+			beskrivelse:
+				'Se hvordan en cookie kobler nettleseren til en session på serveren. Prøv pålogging, utlogging og requests uten cookie.',
+			href: '/sessions',
+			kategori: 'Utvikling',
+			type: 'Interaktiv forklaring og kodehjelp',
+			emner: ['Session', 'Cookie', 'credentials'],
+			symbol: 'ID'
 		}
-		// Eksempel på en ny side (fjern // og legg til komma etter objektet over):
-		// {
-		//   tittel: 'Sessions og pålogging',
-		//   beskrivelse: 'Se hvordan backend husker hvem som er logget inn.',
-		//   href: '/sessions',
-		//   kategori: 'Utvikling',
-		//   type: 'Eksempel og hjelp',
-		//   emner: ['Session', 'Cookie'],
-		//   symbol: '{ }'
-		// }
 	];
 </script>
 
