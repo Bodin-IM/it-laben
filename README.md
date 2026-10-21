@@ -13,6 +13,7 @@ Innholdet handler foreløpig om webutvikling. Laben skal også kunne romme drift
 | [Forside](src/routes/+page.svelte)                           | `/`                   | Oversikt over forklaringene og øvelsene.                                                                        |
 | [Frontend møter backend](src/routes/backend/+page.svelte)    | `/backend/`           | Følge en melding fra inputfeltet via `fetch`, GET/POST og `req.body` til serveren.                              |
 | [Bygg chatrom](src/routes/chatrom/+page.svelte)              | `/chatrom/`           | Koble sammen romvalg, requests og filtrering. Sammenligne én meldingsliste med rom som har egne meldingslister. |
+| [Lagring i JSON-fil](src/routes/fillagring/+page.svelte)     | `/fillagring/`        | Følge koden stegvis, endre en melding, slå lagringen av og på og undersøke hva som overlever en omstart.        |
 | [Sessions og pålogging](src/routes/sessions/+page.svelte)    | `/sessions/`          | Utforske sammenhengen mellom cookie, session, pålogging, utlogging og `credentials`.                            |
 | [Sessions 2 – test](src/routes/sessions-2-test/+page.svelte) | `/sessions-2-test/`   | Følge innlogging i fire trinn, med kode som følger trinnet og markeringer som forklarer resultatet.             |
 

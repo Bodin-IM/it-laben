@@ -23,6 +23,16 @@
 			symbol: '#'
 		},
 		{
+			tittel: 'Lagring i JSON-fil',
+			beskrivelse:
+				'Følg koden fra minne til fil. Slå av lagringen og se hva som overlever en omstart.',
+			href: '/fillagring',
+			kategori: 'Utvikling',
+			type: 'Interaktiv kodelab',
+			emner: ['JSON', 'Fillagring', 'Omstart'],
+			symbol: '{}'
+		},
+		{
 			tittel: 'Sessions og pålogging',
 			beskrivelse:
 				'Se hvordan en cookie kobler nettleseren til en session på serveren. Prøv pålogging, utlogging og requests uten cookie.',
