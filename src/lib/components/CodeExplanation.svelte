@@ -3,6 +3,8 @@
 	 * Mount one instance for the selected line. The parent owns aria-expanded
 	 * and aria-controls on its native line button. `${id}-body` can also be
 	 * used as the selected button's aria-describedby target.
+	 * Related line buttons set data-explanation-for to this id so a pointer
+	 * press can switch lines without closing the current explanation first.
 	 *
 	 * Anchored mode needs a gutter that stretches alongside the code, without
 	 * clipping or transformed ancestors. Inline mode belongs after the line.
@@ -194,6 +196,13 @@
 		function outsidePointer(event) {
 			if (event.button !== 0) return;
 			const path = event.composedPath();
+			const switchesLine = path.some(
+				(target) =>
+					target instanceof HTMLButtonElement &&
+					!target.disabled &&
+					target.dataset.explanationFor === id
+			);
+			if (switchesLine) return;
 			if (!path.includes(element) && !path.includes(trigger)) close(false);
 		}
 		/** @param {KeyboardEvent} event */

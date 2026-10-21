@@ -333,6 +333,7 @@
 								{#if linje.text.trim()}
 									<button
 										class="kodelinje"
+										data-explanation-for={forklaringsId}
 										aria-label={`Forklar ${sideNavn.toLowerCase()} linje ${i + 1}: ${linje.text}`}
 										aria-expanded={valgtId === linje.id}
 										aria-controls={valgtId === linje.id ? forklaringsId : undefined}
@@ -395,8 +396,9 @@
 							label={`${sideNavn} · linje ${kode.findIndex((linje) => linje.id === valgtId) + 1}`}
 							onclose={lukkForklaring}
 						/>
-					{:else if !smalSkjerm}
-						<div class="forklaringshint">
+					{/if}
+					{#if !smalSkjerm}
+						<div class="forklaringshint" class:skjult={Boolean(valgt)} aria-hidden={Boolean(valgt)}>
 							<span class="peker" aria-hidden="true">↖</span>
 							<p>
 								<strong>Lurer du på en linje?</strong>Trykk på koden. Forklaringen åpner her, rett
@@ -1147,6 +1149,10 @@
 		max-width: 254px;
 		padding: 5px 10px;
 		color: #6b7c69;
+	}
+	.forklaringshint.skjult {
+		/* Keep the same space when the explanation replaces this hint. */
+		visibility: hidden;
 	}
 	.peker {
 		display: block;
