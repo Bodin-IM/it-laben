@@ -1,4 +1,6 @@
 <script>
+	import SessionStepCode from '#lib/components/SessionStepCode.svelte';
+
 	// En lokal undervisningsmodell. Ingen cookies, innlogging eller nettverkskall opprettes.
 	/** @typedef {'grunnlag' | 'ekstra' | 'kode'} Del */
 	/** @typedef {'profiler' | 'cookie' | 'utlopt'} Forsok */
@@ -182,16 +184,14 @@
 			tekst: funnet
 				? 'Nettleseren sendte ID-en ' +
 					sendtId +
-					'. Serveren slo den opp, fant ' +
+					'. Serveren fant ' +
 					funnet.bruker.navn +
-					' og svarte 200. Det samme oppslaget må gjøres ved neste request.'
+					' i sessionen og sendte brukeren tilbake.'
 				: sendtId
-					? 'ID-en ' +
-						sendtId +
-						' kom frem, men sessionen finnes ikke lenger. Serveren svarer 401 selv om nettleseren har en cookie.'
+					? 'ID-en ' + sendtId + ' ble sendt, men sessionen finnes ikke lenger.'
 					: del === 'ekstra' && forsok === 'cookie'
-						? 'Cookien ble ikke sendt. Både cookien i nettleseren og sessionen på serveren er fortsatt der. Slå på bryteren og spør igjen.'
-						: 'Requesten hadde ingen session-ID. Backend finner derfor ingen innlogget bruker og svarer 401.'
+						? 'Cookien ble ikke sendt. Cookien og sessionen finnes fortsatt. Slå på bryteren og prøv igjen.'
+						: 'Ingen session-ID ble sendt. Backend finner derfor ingen innlogget bruker.'
 		};
 	}
 	function loggInn() {
@@ -224,7 +224,7 @@
 			status: 200,
 			tittel: 'En ID i nettleseren. Ada på serveren.',
 			tekst:
-				'Serveren lagrer brukerdata og sender ID-en med Set-Cookie. Nettleseren lagrer den. I ekte innlogging må identiteten kontrolleres før brukeren lagres som innlogget i sessionen.'
+				'Serveren lagret Ada og sendte ID-en med Set-Cookie. Nettleseren lagret ID-en i en cookie.'
 		};
 	}
 	function loggUtOgSpor() {
@@ -254,7 +254,7 @@
 			status: 401,
 			tittel: 'Utlogget. Neste forespørsel får 401.',
 			tekst:
-				'POST /loggut ga 204 og fjernet sessionen og cookien. Deretter sendte vi en ny GET /meg. Uten session-ID fant serveren ingen innlogget bruker.'
+				'POST /loggut ga 204. Deretter fikk en ny GET /meg svaret 401 fordi innloggingen var avsluttet.'
 		};
 	}
 	function kjor() {
@@ -561,7 +561,7 @@
 								</div>
 							{:else}
 								<span class="venter" aria-hidden="true">↳</span>
-								<p>Ingen request sendt ennå. Panelet under viser utgangspunktet.</p>
+								<p>Ingen request sendt ennå. Se utgangspunktet og koden før du prøver.</p>
 							{/if}
 						</div>
 					</div>
@@ -614,6 +614,17 @@
 							ligger på serveren.
 						</p>
 					</div>
+				</div>
+
+				<div class="kodevedtrinn">
+					<SessionStepCode
+						{trinn}
+						ekstra={del === 'ekstra'}
+						{forsok}
+						{credentials}
+						{resultat}
+						navn={profil === 'A' ? ada.navn : noah.navn}
+					/>
 				</div>
 
 				<details class="teknisk" bind:open={visDetaljer}>
@@ -1278,6 +1289,10 @@
 	}
 	.teknisk {
 		border-top: 1px solid var(--border);
+	}
+	.kodevedtrinn {
+		min-width: 0;
+		margin: 20px 0;
 	}
 	summary {
 		display: flex;
