@@ -22,15 +22,18 @@ På chatrom-siden følger eleven tre avgrensede kodeforsøk: filtrering per rom,
 
 ### Spill og utfordringer
 
-Spillene har en egen seksjon på forsiden. Eleven får et oppdrag og bygger et forsøk selv, med kodeforklaringer tilgjengelig underveis.
+Spillene har en egen seksjon på forsiden. Begge variantene er tilgjengelige, slik at elevene kan prøve dem og sammenligne hvordan de hjelper dem å forstå chatten.
 
-| Spill                                                        | Adresse på nettstedet | Oppdrag                                                      |
-| ------------------------------------------------------------ | --------------------- | ------------------------------------------------------------ |
-| [To nettlesere, én chat](src/routes/spill/chat/+page.svelte) | `/spill/chat/`        | Bygg en handlingsrekke som får riktig melding fram til Noah. |
+| Spill                                                        | Adresse på nettstedet  | Oppdrag                                                                                   |
+| ------------------------------------------------------------ | ---------------------- | ----------------------------------------------------------------------------------------- |
+| [Redd chatten](src/routes/spill/redd-chatten/+page.svelte)   | `/spill/redd-chatten/` | Reparer backend-koden, og få serveren til å håndtere både vanlige requests og feilforsøk. |
+| [To nettlesere, én chat](src/routes/spill/chat/+page.svelte) | `/spill/chat/`         | Bygg en handlingsrekke som får riktig melding fram til Noah.                              |
 
-Kodepuslespillet har tre starttilstander: meldingen er ikke sendt, meldingen ligger allerede på backend, eller meldingen ligger i et annet rom enn Noah viser. Eleven velger handlinger for Ada og Noah, tester rekkefølgen og undersøker resultatet. Oppdraget vurderes ut fra dataene på serveren og i Noahs visning, så flere handlingsrekker kan gi riktig løsning.
+**Redd chatten** bruker koden som spillebrett. Eleven legger til, bytter og flytter kodeblokker i en feilaktig Express-rute. Tre oppdrag handler om validering før lagring, avsender fra session og kontroll av eierskap før sletting. Virtuelle brukere prøver ulike situasjoner. Vurderingen ser både på svaret og hva som faktisk ble lagret eller slettet, så det er ikke nok å sende riktig HTTP-status. Flere korrekte løsninger kan godtas.
 
-Hvert forsøk starter fra oppdragets opprinnelige tilstand. Begge nettleserne og backend er lokale simuleringer; spillet sender ingen ekte chatmeldinger mellom brukere.
+**To nettlesere, én chat** er den første varianten. Den har tre starttilstander: meldingen er ikke sendt, meldingen ligger allerede på backend, eller meldingen ligger i et annet rom enn Noah viser. Eleven velger handlinger for Ada og Noah, tester rekkefølgen og undersøker resultatet.
+
+Spillene bruker faste startdata for å gjøre forsøkene sammenlignbare. Nettleserne, brukerne og backend er lokale simuleringer; spillene sender ingen ekte chatmeldinger mellom brukere.
 
 ## Hvordan vi bygger undervisningssidene
 
@@ -88,7 +91,8 @@ npm run preview
 | `src/routes/<tema>/+page.svelte` | En undervisningsside med egen adresse.                                        |
 | `src/lib/components/`            | Felles kodevisninger og forklaringer ved klikk på kodelinjer.                 |
 | `src/lib/chatromLab.js`          | Rene simuleringssteg og kodeutdrag for chatrom, session-avsender og sletting. |
-| `src/lib/chatSpill.js`           | Oppdrag, handlingskort, kjøreplaner og målsjekker for kodepuslespillet.       |
+| `src/lib/chatSpill.js`           | Oppdrag, handlingskort, kjøreplaner og målsjekker for det første chatspillet. |
+| `src/lib/reddChatten.js`         | Backend-blokker, requests og vurdering av svar og data i Redd chatten.        |
 | `docs/serverdrift.md`            | Publisering, kontroll av serveren og feilsøking.                              |
 
 ### Legge til en ny undervisningsside

@@ -140,40 +140,54 @@
 					<p class="overlinje">BYGG. TEST. PRØV IGJEN.</p>
 					<h2 id="spilloversikt">Spill og utfordringer</h2>
 				</div>
-				<span class="antall">1 spill</span>
+				<span class="antall">2 spill</span>
 			</div>
-			<a class="spillkort" href="/spill/chat/">
-				<div class="spilltekst">
-					<p class="spilltype">Kodepuslespill <span aria-hidden="true">·</span> 3 oppdrag</p>
-					<h3>To nettlesere,<br />én chat.</h3>
+			<p class="spillintroduksjon">
+				Prøv begge: reparer serverkoden, eller styr hva nettleserne gjør.
+			</p>
+			<div class="spillkortliste">
+				<a class="spillkort nyvariant" href="/spill/redd-chatten/">
+					<div class="spillkorttopp">
+						<p class="spilltype">Reparer backend <span aria-hidden="true">·</span> 3 oppdrag</p>
+						<span class="nymerke">Ny variant</span>
+					</div>
+					<h3>Redd chatten</h3>
 					<p class="spillbeskrivelse">
-						Bygg en handlingsrekke og få meldingen fram til Noah. Se hva koden gjør, finn feilen og
-						prøv igjen.
+						Reparer serverkoden, og slipp virtuelle brukere løs. Klarer chatten både vanlige
+						meldinger og feilforsøk?
 					</p>
-					<span class="spillknapp">Prøv spillet <span aria-hidden="true">→</span></span>
-				</div>
-				<div class="spillmotiv" aria-hidden="true">
-					<div class="motivtopp"><span>● ● ●</span><span>Ditt forsøk</span></div>
-					<div class="spillhandling">
-						<div>
-							<span class="motivaktor">ADA · NETTLESER</span><code><b>await</b> sendMelding();</code
+					<div class="spillmotiv servermotiv" aria-hidden="true">
+						<span class="motivkode">&#123; &#125;</span>
+						<div class="testtyper">
+							<span>Vanlig melding <b>?</b></span><span>Tom tekst <b>?</b></span><span
+								>Sletting <b>?</b></span
 							>
 						</div>
-						<span class="motivmetode post">POST</span>
 					</div>
-					<div class="spillhandling">
-						<div>
-							<span class="motivaktor">NOAH · NETTLESER</span><code
-								><b>await</b> hentRom(<i>"generelt"</i>);</code
-							>
-						</div>
-						<span class="motivmetode get">GET</span>
+					<div class="spillkortfot">
+						<span>Prøv Redd chatten</span><span class="spillpil" aria-hidden="true">→</span>
 					</div>
-					<div class="motivrute">
+				</a>
+				<a class="spillkort" href="/spill/chat/">
+					<div class="spillkorttopp">
+						<p class="spilltype">Styr nettleserne <span aria-hidden="true">·</span> 3 oppdrag</p>
+						<span class="variantmerke">Første variant</span>
+					</div>
+					<h3>To nettlesere, én chat.</h3>
+					<p class="spillbeskrivelse">
+						Bygg en handlingsrekke som får meldingen fram til Noah. Følg POST og GET mellom
+						nettleserne og serveren.
+					</p>
+					<div class="spillmotiv nettlesermotiv" aria-hidden="true">
 						<span>Ada</span><b>↔</b><span class="motivserver">Server</span><b>↔</b><span>Noah</span>
 					</div>
-				</div>
-			</a>
+					<div class="spillkortfot">
+						<span>Prøv To nettlesere, én chat</span><span class="spillpil" aria-hidden="true"
+							>→</span
+						>
+					</div>
+				</a>
+			</div>
 		</section>
 
 		<footer>
@@ -590,160 +604,159 @@
 		margin-top: 60px;
 		scroll-margin-top: 24px;
 	}
-	.spillkort {
+	.spillintroduksjon {
+		margin: -8px 0 24px;
+		color: var(--dempa);
+		font-size: 13px;
+		line-height: 1.7;
+	}
+	.spillkortliste {
 		display: grid;
-		grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
-		align-items: center;
-		gap: 42px;
-		padding: 38px;
-		border: 1px solid #b8cfae;
-		border-radius: 13px;
-		background: linear-gradient(115deg, #e5eed8, #eef4e8);
+		grid-template-columns: repeat(2, minmax(0, 1fr));
+		gap: 22px;
+	}
+	.spillkort {
+		display: flex;
+		flex-direction: column;
+		min-width: 0;
+		padding: 28px;
+		border: 1px solid #c5d4be;
+		border-radius: 12px;
+		background: #f0f4e8;
 		transition:
 			border-color 0.2s,
 			box-shadow 0.2s;
 	}
+	.spillkort.nyvariant {
+		background: linear-gradient(115deg, #e5eed8, #eef4e8);
+		border-color: #acc6a0;
+	}
 	.spillkort:hover {
 		border-color: #7da487;
-		box-shadow: 0 14px 30px #234e3010;
+		box-shadow: 0 10px 24px #234e3010;
+	}
+	.spillkorttopp {
+		display: flex;
+		align-items: center;
+		justify-content: space-between;
+		flex-wrap: wrap;
+		gap: 9px;
+		margin-bottom: 20px;
 	}
 	.spilltype {
-		margin: 0 0 15px;
+		margin: 0;
 		color: #56764b;
-		font-size: 10px;
+		font-size: 9px;
 		font-weight: 650;
-		letter-spacing: 0.7px;
+		letter-spacing: 0.55px;
 		text-transform: uppercase;
 	}
 	.spilltype > span {
-		margin-inline: 6px;
+		margin-inline: 4px;
 		color: #7d946e;
 	}
+	.nymerke,
+	.variantmerke {
+		padding: 4px 7px;
+		border-radius: 4px;
+		font-size: 9px;
+		line-height: 1.4;
+		white-space: nowrap;
+	}
+	.nymerke {
+		background: #d1e3bf;
+		color: #385d37;
+		font-weight: 650;
+	}
+	.variantmerke {
+		border: 1px solid #d5dfcc;
+		color: #75856a;
+	}
 	.spillkort h3 {
-		font-size: clamp(27px, 3vw, 35px);
-		letter-spacing: -1px;
-		line-height: 1.16;
-		margin-bottom: 16px;
+		font-size: clamp(24px, 2.3vw, 29px);
+		letter-spacing: -0.8px;
+		line-height: 1.2;
+		margin: 0 0 12px;
 	}
 	.spillbeskrivelse {
 		margin: 0 0 22px;
-		max-width: 380px;
 		font-size: 13px;
 		line-height: 1.8;
 		color: #5b7355;
 	}
-	.spillknapp {
+	.spillmotiv {
+		display: flex;
+		align-items: center;
+		min-height: 78px;
+		margin-top: auto;
+		padding: 15px;
+		border: 1px solid #395e4d;
+		border-radius: 8px;
+		background: #193b32;
+		color: #dce8d5;
+	}
+	.servermotiv {
+		gap: 16px;
+	}
+	.motivkode {
+		flex: 0 0 auto;
+		color: #b6ce92;
+		font: 25px/1 monospace;
+	}
+	.testtyper {
+		display: flex;
+		flex-wrap: wrap;
+		gap: 6px;
+		font-size: 9px;
+	}
+	.testtyper > span {
 		display: inline-flex;
 		align-items: center;
-		gap: 28px;
-		padding: 12px 17px;
-		border-radius: 6px;
-		background: #1d5147;
-		color: #f2f6e9;
+		gap: 7px;
+		padding: 6px 7px;
+		border: 1px solid #456550;
+		border-radius: 4px;
+		background: #26473a;
+		color: #b9cdb0;
+	}
+	.testtyper b {
+		font: 10px monospace;
+		color: #dfd5a3;
+	}
+	.nettlesermotiv {
+		justify-content: center;
+		gap: 17px;
+		font-size: 11px;
+	}
+	.nettlesermotiv b {
+		font-size: 18px;
+		font-weight: 400;
+		color: #8aad86;
+	}
+	.motivserver {
+		padding: 7px 12px;
+		border: 1px dashed #597c60;
+		border-radius: 4px;
+		color: #bed0ac;
+	}
+	.spillkortfot {
+		display: flex;
+		align-items: center;
+		justify-content: space-between;
+		gap: 15px;
+		margin-top: 23px;
+		color: #1d5147;
 		font-size: 12px;
 		font-weight: 650;
 	}
-	.spillknapp > span {
-		font-size: 17px;
+	.spillpil {
+		font-size: 20px;
 		transition: transform 0.2s;
 	}
-	.spillkort:hover .spillknapp > span {
+	.spillkort:hover .spillpil {
 		transform: translateX(3px);
 	}
-	.spillmotiv {
-		min-width: 0;
-		padding: 0 18px 18px;
-		border: 1px solid #395e4d;
-		border-radius: 10px;
-		background: #193b32;
-		box-shadow: 0 14px 24px #25482d14;
-		color: #dce8d5;
-	}
-	.motivtopp {
-		display: flex;
-		justify-content: space-between;
-		gap: 15px;
-		padding-block: 17px;
-		color: #9ab59d;
-		font: 10px monospace;
-	}
-	.motivtopp > span:first-child {
-		font-size: 8px;
-		letter-spacing: 3px;
-		color: #6f9579;
-	}
-	.spillhandling {
-		display: flex;
-		align-items: center;
-		justify-content: space-between;
-		gap: 12px;
-		padding: 15px 13px;
-		border: 1px solid #41634f;
-		border-radius: 6px;
-		background: #25463a;
-	}
-	.spillhandling + .spillhandling {
-		margin-top: 11px;
-	}
-	.spillhandling > div {
-		min-width: 0;
-	}
-	.motivaktor {
-		display: block;
-		margin-bottom: 7px;
-		font-size: 8px;
-		font-weight: 650;
-		letter-spacing: 1px;
-		color: #adc29e;
-	}
-	.spillhandling code {
-		display: block;
-		font:
-			11px/1.5 Consolas,
-			monospace;
-		overflow-wrap: anywhere;
-	}
-	.spillhandling code b {
-		font-weight: 400;
-		color: #a2d8c7;
-	}
-	.spillhandling code i {
-		font-style: normal;
-		color: #d7d29c;
-	}
-	.motivmetode {
-		flex: 0 0 auto;
-		padding: 5px 7px;
-		border-radius: 4px;
-		font: 9px monospace;
-	}
-	.motivmetode.post {
-		background: #4b5339;
-		color: #ddd9a7;
-	}
-	.motivmetode.get {
-		background: #2c5a4b;
-		color: #b2d9bf;
-	}
-	.motivrute {
-		display: flex;
-		align-items: center;
-		justify-content: center;
-		gap: 15px;
-		margin-top: 18px;
-		font-size: 10px;
-		color: #a7be9e;
-	}
-	.motivrute b {
-		font-size: 17px;
-		font-weight: 400;
-		color: #759c7e;
-	}
-	.motivserver {
-		padding: 6px 12px;
-		border: 1px dashed #597c60;
-		border-radius: 4px;
-	}
+
 	footer {
 		display: flex;
 		justify-content: space-between;
@@ -781,11 +794,7 @@
 	}
 	@media (max-width: 950px) {
 		.spillkort {
-			gap: 25px;
-			padding: 28px;
-		}
-		.spillmotiv {
-			padding-inline: 12px;
+			padding: 23px;
 		}
 		.intro {
 			gap: 35px;
@@ -809,29 +818,23 @@
 		.spillseksjon {
 			margin-top: 40px;
 		}
-		.spillkort {
+		.spillkortliste {
 			grid-template-columns: 1fr;
-			padding: 23px;
-			gap: 25px;
+			gap: 16px;
 		}
-		.spilltype {
-			font-size: 9px;
-			letter-spacing: 0.4px;
+		.spillkort {
+			padding: 22px;
 		}
-		.spillhandling {
-			padding: 12px 9px;
-			gap: 8px;
+		.spillkorttopp {
+			margin-bottom: 17px;
 		}
-		.spillhandling code {
-			font-size: 10px;
+		.nettlesermotiv {
+			gap: 12px;
 		}
-		.motivmetode {
-			font-size: 8px;
-			padding: 4px 5px;
+		.motivserver {
+			padding-inline: 9px;
 		}
-		.motivrute {
-			gap: 11px;
-		}
+
 		header,
 		main {
 			width: calc(100% - 40px);
