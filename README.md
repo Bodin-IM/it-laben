@@ -20,6 +20,18 @@ De nyeste frontend/backend- og sessions-visningene er hovedversjonene på de van
 
 På chatrom-siden følger eleven tre avgrensede kodeforsøk: filtrering per rom, avsender fra `req.session.bruker` og sletting med kontroll av `avsenderId` på backend. Etter en vellykket sending eller sletting hentes rommet på nytt med GET. Data, feilforsøk og alternativet med en meldingsliste inne i hvert rom åpnes ved behov.
 
+### Spill og utfordringer
+
+Spillene har en egen seksjon på forsiden. Eleven får et oppdrag og bygger et forsøk selv, med kodeforklaringer tilgjengelig underveis.
+
+| Spill                                                        | Adresse på nettstedet | Oppdrag                                                      |
+| ------------------------------------------------------------ | --------------------- | ------------------------------------------------------------ |
+| [To nettlesere, én chat](src/routes/spill/chat/+page.svelte) | `/spill/chat/`        | Bygg en handlingsrekke som får riktig melding fram til Noah. |
+
+Kodepuslespillet har tre starttilstander: meldingen er ikke sendt, meldingen ligger allerede på backend, eller meldingen ligger i et annet rom enn Noah viser. Eleven velger handlinger for Ada og Noah, tester rekkefølgen og undersøker resultatet. Oppdraget vurderes ut fra dataene på serveren og i Noahs visning, så flere handlingsrekker kan gi riktig løsning.
+
+Hvert forsøk starter fra oppdragets opprinnelige tilstand. Begge nettleserne og backend er lokale simuleringer; spillet sender ingen ekte chatmeldinger mellom brukere.
+
 ## Hvordan vi bygger undervisningssidene
 
 Når vi lager og videreutvikler sider, legger vi vekt på å:
@@ -76,6 +88,7 @@ npm run preview
 | `src/routes/<tema>/+page.svelte` | En undervisningsside med egen adresse.                                        |
 | `src/lib/components/`            | Felles kodevisninger og forklaringer ved klikk på kodelinjer.                 |
 | `src/lib/chatromLab.js`          | Rene simuleringssteg og kodeutdrag for chatrom, session-avsender og sletting. |
+| `src/lib/chatSpill.js`           | Oppdrag, handlingskort, kjøreplaner og målsjekker for kodepuslespillet.       |
 | `docs/serverdrift.md`            | Publisering, kontroll av serveren og feilsøking.                              |
 
 ### Legge til en ny undervisningsside

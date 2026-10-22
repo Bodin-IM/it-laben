@@ -15,11 +15,13 @@
 	 *   activeSide: CodeSide | null,
 	 *   activeLineIds: string[],
 	 *   resetKey: string,
-	 *   label: string
+	 *   label: string,
+	 *   onexplain?: () => void
 	 * }} Props
 	 */
 	/** @type {Props} */
-	let { lines, side, onsidechange, activeSide, activeLineIds, resetKey, label } = $props();
+	let { lines, side, onsidechange, activeSide, activeLineIds, resetKey, label, onexplain } =
+		$props();
 	const componentId = $props.id();
 	const explanationId = componentId + '-code-explanation';
 	/** @type {string | null} */
@@ -67,6 +69,7 @@
 			closeExplanation();
 			return;
 		}
+		onexplain?.();
 		selectedButton = event.currentTarget;
 		selectedId = id;
 	}
