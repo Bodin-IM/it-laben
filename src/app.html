@@ -4,6 +4,23 @@
 		<meta charset="utf-8" />
 		<meta name="viewport" content="width=device-width, initial-scale=1" />
 		<meta name="text-scale" content="scale" />
+		<script>
+			// Apply the saved theme before styles and page content can be painted.
+			(() => {
+				let saved = null;
+				try {
+					saved = localStorage.getItem('it-laben-theme');
+				} catch {
+					// Storage can be unavailable; the device preference still works.
+				}
+				document.documentElement.dataset.theme =
+					saved === 'light' || saved === 'dark'
+						? saved
+						: window.matchMedia('(prefers-color-scheme: dark)').matches
+							? 'dark'
+							: 'light';
+			})();
+		</script>
 		%sveltekit.head%
 	</head>
 	<body data-sveltekit-preload-data="hover">

@@ -1,4 +1,5 @@
 <script>
+	import ThemeToggle from '#lib/components/ThemeToggle.svelte';
 	import { onMount, onDestroy } from 'svelte';
 	import InteractiveCode from '#lib/components/InteractiveCode.svelte';
 	import ChatGameBoard from '#lib/components/ChatGameBoard.svelte';
@@ -359,6 +360,7 @@
 			><span class="logoikon" aria-hidden="true">IT</span>IT-laben<span class="punkt">.</span></a
 		>
 		<a class="tilbake" href="/#spill">← Spill og utfordringer</a>
+		<div class="theme-control"><ThemeToggle /></div>
 	</header>
 	<main>
 		<div class="spillintro">
@@ -811,13 +813,13 @@
 <style>
 	:global(body) {
 		margin: 0;
-		background: #f3f5ed;
+		background: var(--color-page);
 	}
 	.spill-side {
-		--ink: #193c3b;
-		--teal: #087f79;
-		--muted: #687b6b;
-		--line: #d5dfcf;
+		--ink: var(--color-text);
+		--teal: var(--color-accent);
+		--muted: var(--color-text-muted);
+		--line: var(--color-border);
 		min-height: 100vh;
 		color: var(--ink);
 		font-family:
@@ -829,7 +831,7 @@
 			sans-serif;
 		font-size: 14px;
 		line-height: 1.55;
-		background: radial-gradient(ellipse at 90% 0%, #e1edda 0, transparent 32%);
+		background: radial-gradient(ellipse at 90% 0%, var(--color-page-glow) 0, transparent 32%);
 	}
 	.spill-side * {
 		box-sizing: border-box;
@@ -865,8 +867,8 @@
 		place-items: center;
 		width: 30px;
 		height: 30px;
-		background: var(--ink);
-		color: #eff5e5;
+		background: var(--color-brand);
+		color: var(--color-on-brand);
 		border-radius: 5px;
 		font-size: 14px;
 	}
@@ -913,7 +915,7 @@
 	}
 	.spillintro > div > p:last-child {
 		margin: 10px 0 0;
-		color: #61745f;
+		color: var(--color-text-muted);
 		font-size: 13px;
 	}
 	.framdrift {
@@ -923,7 +925,7 @@
 		display: block;
 		text-align: right;
 		font-size: 10px;
-		color: #718063;
+		color: var(--color-text-muted);
 		margin-bottom: 8px;
 	}
 	.nivavalg {
@@ -945,16 +947,16 @@
 	a:focus-visible,
 	select:focus-visible,
 	summary:focus-visible {
-		outline: 3px solid #bb853a;
+		outline: 3px solid var(--color-focus);
 		outline-offset: 3px;
 	}
 	.nivavalg button {
 		width: 64px;
 		min-height: 58px;
-		border: 1px solid #d4deca;
+		border: 1px solid var(--color-border);
 		border-radius: 7px;
-		color: #6f805f;
-		background: #eaf0e0;
+		color: var(--color-text-muted);
+		background: var(--color-surface-soft);
 		display: flex;
 		flex-direction: column;
 		justify-content: center;
@@ -974,14 +976,14 @@
 		letter-spacing: 1px;
 	}
 	.nivavalg button.valgt {
-		border-color: #6f9b70;
-		background: #dceac4;
-		color: #335333;
-		box-shadow: 0 0 0 2px #e7efdb;
+		border-color: var(--color-accent);
+		background: var(--color-surface-active);
+		color: var(--color-text);
+		box-shadow: 0 0 0 2px var(--color-accent-soft);
 	}
 	.nivavalg button.lost {
-		background: #e0edda;
-		color: #257154;
+		background: var(--color-success-soft);
+		color: var(--color-success);
 	}
 	.oppdrag {
 		display: grid;
@@ -989,19 +991,19 @@
 		gap: 0 19px;
 		align-items: start;
 		padding: 21px 23px;
-		border: 1px solid #c9d9bf;
+		border: 1px solid var(--color-border);
 		border-radius: 9px;
-		background: #ebf0df;
+		background: var(--color-surface-soft);
 	}
 	.oppdragsnummer {
 		width: 51px;
 		height: 57px;
-		border: 1px solid #c5d6b7;
+		border: 1px solid var(--color-border);
 		border-radius: 6px;
 		display: grid;
 		place-items: center;
-		background: #dde9cb;
-		color: #59734d;
+		background: var(--color-surface-soft);
+		color: var(--color-text-muted);
 		font:
 			500 25px ui-monospace,
 			SFMono-Regular,
@@ -1020,7 +1022,7 @@
 	}
 	.oppdragstekst > p:not(.overlinje) {
 		font-size: 12px;
-		color: #5b7156;
+		color: var(--color-text-muted);
 		margin: 7px 0 0;
 		max-width: 830px;
 	}
@@ -1030,7 +1032,7 @@
 		gap: 8px;
 		font-size: 12px;
 		margin-top: 10px;
-		color: #315f42;
+		color: var(--color-text-muted);
 	}
 	.mal strong {
 		font-weight: 630;
@@ -1043,7 +1045,7 @@
 		align-items: center;
 		gap: 9px;
 		font-size: 11px;
-		color: #567546;
+		color: var(--color-text-muted);
 		border: 0;
 		background: transparent;
 		padding: 4px 0 8px 12px;
@@ -1054,7 +1056,7 @@
 		place-items: center;
 		width: 19px;
 		height: 19px;
-		border: 1px solid #b6cba4;
+		border: 1px solid var(--color-border-strong);
 		border-radius: 50%;
 	}
 	.hinttekst {
@@ -1062,15 +1064,15 @@
 		margin: 12px 0 0;
 		font-size: 12px;
 		padding: 11px 14px;
-		border-left: 3px solid #9eb780;
-		background: #e3ecd5;
-		color: #4e6945;
+		border-left: 3px solid var(--color-border-strong);
+		background: var(--color-surface-soft);
+		color: var(--color-text-muted);
 	}
 	.spillebrett {
 		margin-top: 21px;
-		border: 1px solid #cfdbca;
+		border: 1px solid var(--color-border);
 		border-radius: 10px;
-		background: #e8eee2;
+		background: var(--color-surface-soft);
 		padding: 17px 19px 0;
 		scroll-margin-top: 14px;
 	}
@@ -1093,15 +1095,15 @@
 		width: 6px;
 		height: 6px;
 		border-radius: 50%;
-		background: #94a77c;
+		background: var(--color-text-subtle);
 	}
 	.statuslys.spiller {
-		background: #16836e;
-		box-shadow: 0 0 0 4px #d3e7d1;
+		background: var(--color-accent);
+		box-shadow: 0 0 0 4px var(--color-border);
 	}
 	.simuleringsmerke {
 		font-size: 8px;
-		color: #7b8c6c;
+		color: var(--color-text-muted);
 		letter-spacing: 1px;
 	}
 	.hendelse {
@@ -1117,11 +1119,11 @@
 		flex: 0 0 29px;
 		width: 29px;
 		height: 29px;
-		border: 1px solid #c3d2b8;
+		border: 1px solid var(--color-border);
 		border-radius: 7px;
-		background: #e0e9d5;
+		background: var(--color-surface-soft);
 		font-size: 16px;
-		color: #55784a;
+		color: var(--color-text-muted);
 	}
 	.hendelse > div:nth-child(2) {
 		flex: 1;
@@ -1135,7 +1137,7 @@
 		margin: 4px 0 0;
 		font-size: 11px;
 		line-height: 1.6;
-		color: #65785d;
+		color: var(--color-text-muted);
 		max-width: 870px;
 	}
 	.hendelsestall {
@@ -1145,7 +1147,7 @@
 			SFMono-Regular,
 			Consolas,
 			monospace;
-		color: #718063;
+		color: var(--color-text-muted);
 		text-align: right;
 		padding-top: 4px;
 	}
@@ -1155,10 +1157,10 @@
 			9px system-ui,
 			sans-serif;
 		margin-top: 5px;
-		color: #6b8061;
+		color: var(--color-text-muted);
 	}
 	.avspilling {
-		border-top: 1px solid #d1dcc5;
+		border-top: 1px solid var(--color-border);
 		display: flex;
 		flex-wrap: wrap;
 		align-items: center;
@@ -1168,44 +1170,44 @@
 	.avspillingsspor {
 		flex: 1 1 150px;
 		height: 5px;
-		background: #d1dec5;
+		background: var(--color-surface-soft);
 		border-radius: 3px;
 		overflow: hidden;
 	}
 	.avspillingsspor > span {
 		display: block;
 		height: 100%;
-		background: #4d8760;
+		background: var(--color-text-subtle);
 		transition: width 0.2s;
 	}
 	.tekstknapp {
 		background: transparent;
 		border: 0;
 		padding: 5px 2px;
-		color: #527346;
+		color: var(--color-text-muted);
 		font-size: 11px;
 	}
 	.tekstknapp:hover:not(:disabled) {
 		text-decoration: underline;
 	}
 	.sekundaerknapp {
-		border: 1px solid #b4c5a5;
-		color: #4b6b3e;
-		background: #f2f6e8;
+		border: 1px solid var(--color-border-strong);
+		color: var(--color-text-muted);
+		background: var(--color-surface);
 		border-radius: 5px;
 		padding: 7px 14px;
 		font-weight: 650;
 		font-size: 11px;
 	}
 	.tilbakeblikk {
-		border-top: 1px solid #d1dcc5;
+		border-top: 1px solid var(--color-border);
 		display: flex;
 		gap: 12px;
 		justify-content: space-between;
 		align-items: center;
 		padding: 10px 0;
 		font-size: 11px;
-		color: #687d5c;
+		color: var(--color-text-muted);
 	}
 	.resultat {
 		display: flex;
@@ -1213,13 +1215,13 @@
 		gap: 18px;
 		margin-top: 18px;
 		padding: 20px 22px;
-		border: 1px solid #e2cfb1;
-		background: #faf1df;
+		border: 1px solid var(--color-warning-border);
+		background: var(--color-warning-soft);
 		border-radius: 9px;
 	}
 	.resultat.seier {
-		background: #e4efd6;
-		border-color: #b6cfa0;
+		background: var(--color-success-soft);
+		border-color: var(--color-success-border);
 	}
 	.resultatsymbol {
 		display: grid;
@@ -1228,24 +1230,24 @@
 		height: 43px;
 		flex: 0 0 43px;
 		border-radius: 50%;
-		background: #ecddbc;
-		color: #8b6a37;
+		background: var(--color-warning-soft);
+		color: var(--color-warning);
 		font-size: 22px;
 	}
 	.seier .resultatsymbol {
-		background: #cedfb6;
-		color: #41702f;
+		background: var(--color-success-soft);
+		color: var(--color-success);
 	}
 	.resultatinnhold {
 		flex: 1;
 		min-width: 0;
 	}
 	.resultat .overlinje {
-		color: #9b7a43;
+		color: var(--color-warning);
 		font-size: 8px;
 	}
 	.seier .overlinje {
-		color: #648147;
+		color: var(--color-success);
 	}
 	.resultat h2 {
 		font-size: 21px;
@@ -1253,10 +1255,10 @@
 	.resultat p:not(.overlinje) {
 		margin: 8px 0 0;
 		font-size: 12px;
-		color: #796848;
+		color: var(--color-warning);
 	}
 	.seier p:not(.overlinje) {
-		color: #58714b;
+		color: var(--color-success);
 	}
 	.malsjekker {
 		list-style: none;
@@ -1271,17 +1273,17 @@
 		align-items: baseline;
 		gap: 7px;
 		font-size: 10px;
-		color: #877753;
+		color: var(--color-warning);
 	}
 	.malsjekker li.oppfylt {
-		color: #50713f;
+		color: var(--color-success);
 	}
 	.malsjekker li > span:first-child {
 		font-size: 13px;
 	}
 	.resultat .laring {
 		font-size: 11px !important;
-		border-top: 1px solid #cbdcba;
+		border-top: 1px solid var(--color-border);
 		padding-top: 10px;
 		margin-top: 13px !important;
 	}
@@ -1300,22 +1302,22 @@
 	.allelost {
 		font-size: 11px;
 		font-weight: 650;
-		color: #58783d;
+		color: var(--color-success);
 	}
 	.hovedknapp {
 		display: inline-flex;
 		align-items: center;
 		gap: 22px;
-		background: #d1e3a4;
-		border: 1px solid #adca84;
-		color: #355e2d;
+		background: var(--color-surface-soft);
+		border: 1px solid var(--color-border-strong);
+		color: var(--color-text);
 		border-radius: 6px;
 		padding: 11px 17px;
 		font-weight: 700;
 		font-size: 12px;
 	}
 	.hovedknapp:hover {
-		background: #c4da96;
+		background: var(--color-surface-hover);
 	}
 	.byggelosning {
 		margin-top: 30px;
@@ -1336,7 +1338,7 @@
 	}
 	.plassmerking {
 		font-size: 11px;
-		color: #6f815f;
+		color: var(--color-text-muted);
 	}
 	.byggegrid {
 		display: grid;
@@ -1357,7 +1359,7 @@
 	}
 	h3 > span {
 		font-size: 10px;
-		color: #7f8e71;
+		color: var(--color-text-subtle);
 		font-weight: 400;
 		margin-left: 7px;
 	}
@@ -1368,20 +1370,20 @@
 	}
 	.kodekort {
 		min-width: 0;
-		border: 1px solid #cddbc4;
+		border: 1px solid var(--color-border);
 		border-radius: 7px;
 		overflow: hidden;
-		background: #fafcf5;
+		background: var(--color-surface-raised);
 		transition:
 			border-color 0.15s,
 			box-shadow 0.15s;
 	}
 	.kodekort:hover {
-		border-color: #9ebd97;
+		border-color: var(--color-border-strong);
 	}
 	.kodekort.valgt {
-		border-color: #659783;
-		box-shadow: 0 0 0 1px #659783;
+		border-color: var(--color-accent);
+		box-shadow: 0 0 0 1px var(--color-accent-soft);
 	}
 	.leggtil {
 		display: block;
@@ -1399,8 +1401,8 @@
 		margin-bottom: 10px;
 	}
 	.aktor {
-		background: #e6dfed;
-		color: #795e86;
+		background: var(--color-violet-soft);
+		color: var(--color-violet);
 		border-radius: 3px;
 		padding: 2px 6px;
 		font-size: 8px;
@@ -1408,8 +1410,8 @@
 		font-weight: 750;
 	}
 	.aktor.noah {
-		background: #dbe9ed;
-		color: #4c7680;
+		background: var(--color-info-soft);
+		color: var(--color-info);
 	}
 	.metode {
 		font:
@@ -1417,16 +1419,16 @@
 			SFMono-Regular,
 			Consolas,
 			monospace;
-		color: #3d8072;
+		color: var(--color-text-muted);
 	}
 	.post .metode {
-		color: #936b32;
+		color: var(--color-warning);
 	}
 	.plusstegn {
 		margin-left: auto;
 		font-size: 19px;
 		line-height: 1;
-		color: #86a070;
+		color: var(--color-text-subtle);
 	}
 	.leggtil > strong {
 		display: block;
@@ -1442,29 +1444,29 @@
 		display: block;
 		font-size: 10px;
 		line-height: 1.65;
-		color: #5e7966;
+		color: var(--color-text-muted);
 		overflow-wrap: anywhere;
 	}
 	.sekode {
 		display: flex;
 		justify-content: space-between;
 		align-items: center;
-		background: #f0f5e9;
+		background: var(--color-surface);
 		border: 0;
-		border-top: 1px solid #e2e9d9;
+		border-top: 1px solid var(--color-border);
 		padding: 6px 13px;
 		width: 100%;
-		color: #7c8f6a;
+		color: var(--color-text-muted);
 		font-size: 9px;
 	}
 	.sekode:hover {
-		color: #365e43;
-		background: #e9f0e0;
+		color: var(--color-accent);
+		background: var(--color-surface-hover);
 	}
 	.programbygger {
 		min-width: 0;
-		background: #eaf0e2;
-		border: 1px solid #ceddc2;
+		background: var(--color-surface-soft);
+		border: 1px solid var(--color-border);
 		border-radius: 8px;
 		padding: 14px;
 	}
@@ -1488,17 +1490,17 @@
 		align-items: center;
 		gap: 9px;
 		min-width: 0;
-		border: 1px solid #cedbc5;
-		background: #fafcf5;
+		border: 1px solid var(--color-border);
+		background: var(--color-surface-raised);
 		border-radius: 6px;
 		padding: 8px 7px 8px 9px;
 	}
 	.programliste li.valgt {
-		border-color: #6f9c7c;
-		box-shadow: inset 3px 0 #6f9c7c;
+		border-color: var(--color-accent);
+		box-shadow: inset 3px 0 var(--color-accent-soft);
 	}
 	.programliste li.kjorer {
-		background: #e1edcf;
+		background: var(--color-surface-active);
 	}
 	.rekkefolgenummer {
 		flex: 0 0 17px;
@@ -1507,7 +1509,7 @@
 			SFMono-Regular,
 			Consolas,
 			monospace;
-		color: #90a07d;
+		color: var(--color-text-subtle);
 		text-align: center;
 	}
 	.programkort {
@@ -1527,7 +1529,7 @@
 	}
 	.programetikett > span:last-child {
 		font-size: 9px;
-		color: #7a8c69;
+		color: var(--color-text-muted);
 	}
 	.programkort > code {
 		font-size: 11px;
@@ -1546,18 +1548,18 @@
 		background: transparent;
 		padding: 4px 5px;
 		min-width: 20px;
-		color: #7b8f69;
+		color: var(--color-text-muted);
 		font-size: 14px;
 		line-height: 1.3;
 		border-radius: 3px;
 	}
 	.kortkontroller button:hover:not(:disabled) {
-		background: #e9efdf;
-		color: #45653e;
+		background: var(--color-surface-hover);
+		color: var(--color-accent);
 	}
 	.kortkontroller .fjern:hover:not(:disabled) {
-		background: #f0e2d7;
-		color: #9b6845;
+		background: var(--color-danger-soft);
+		color: var(--color-danger);
 	}
 	.droppsone {
 		display: flex;
@@ -1566,14 +1568,14 @@
 		gap: 11px;
 		padding: 22px 14px;
 		margin-top: 8px;
-		border: 1px dashed #b8cba6;
+		border: 1px dashed var(--color-border-strong);
 		border-radius: 6px;
 		min-height: 90px;
-		color: #7b916a;
+		color: var(--color-text-subtle);
 	}
 	.droppsone > span {
 		font-size: 23px;
-		color: #91aa7c;
+		color: var(--color-text-subtle);
 	}
 	.droppsone p {
 		margin: 0;
@@ -1583,16 +1585,16 @@
 		display: block;
 		font-size: 10px;
 		margin-top: 4px;
-		color: #8a9b78;
+		color: var(--color-text-subtle);
 	}
 	.slipp {
-		border-color: #5e9276 !important;
-		background: #e0edce !important;
-		box-shadow: 0 -3px #73a388 !important;
+		border-color: var(--color-accent) !important;
+		background: var(--color-surface-active) !important;
+		box-shadow: 0 -3px var(--color-accent-soft) !important;
 	}
 	.kapasitet {
 		font-size: 10px;
-		color: #83916c;
+		color: var(--color-text-subtle);
 		margin: 12px 0 0;
 	}
 	.testomrade {
@@ -1607,23 +1609,23 @@
 		align-items: center;
 		gap: 10px;
 		padding: 12px 15px;
-		border: 1px solid #1e5e4e;
+		border: 1px solid var(--color-action);
 		border-radius: 6px;
-		background: #245b4f;
-		color: #eff4da;
+		background: var(--color-action);
+		color: var(--color-on-action);
 		font-size: 12px;
 		font-weight: 700;
 	}
 	.testknapp:hover:not(:disabled) {
-		background: #18483e;
+		background: var(--color-action-hover);
 	}
 	.testknapp > span:first-child {
 		font-size: 10px;
-		color: #bbd7a4;
+		color: var(--color-on-action);
 	}
 	.testpil {
 		margin-left: auto;
-		color: #c1dba9;
+		color: var(--color-on-action);
 		font-size: 16px;
 	}
 	.tempovalg {
@@ -1631,20 +1633,20 @@
 		flex-direction: column;
 		gap: 2px;
 		font-size: 8px;
-		color: #859574;
+		color: var(--color-text-subtle);
 	}
 	.tempovalg select {
 		font-size: 10px;
 		padding: 4px 17px 4px 5px;
-		color: #6c815a;
-		background: #f0f5e7;
-		border: 1px solid #d1ddc5;
+		color: var(--color-text-muted);
+		background: var(--color-surface);
+		border: 1px solid var(--color-border);
 		border-radius: 3px;
 	}
 	.startregel {
 		margin: 9px 0 0;
 		font-size: 9px;
-		color: #80916d;
+		color: var(--color-text-subtle);
 		text-align: center;
 	}
 	.kodeomrade {
@@ -1656,30 +1658,30 @@
 	}
 	.kodekontekst {
 		font-size: 10px;
-		color: #7b8d6c;
+		color: var(--color-text-muted);
 		white-space: nowrap;
 	}
 	.kodeintro {
 		margin: 0 0 15px;
 		font-size: 12px;
-		color: #62775b;
+		color: var(--color-text-muted);
 	}
 	.kodeintro > span {
-		color: #829372;
+		color: var(--color-text-subtle);
 		font-size: 11px;
 		margin-left: 4px;
 	}
 	.aktorforklaring {
 		font-size: 10px;
-		color: #829173;
+		color: var(--color-violet);
 		margin: 10px 0 21px;
 		max-width: 950px;
 	}
 	.tillegg {
 		margin-top: 12px;
-		border: 1px solid #d7e1cf;
+		border: 1px solid var(--color-border);
 		border-radius: 7px;
-		background: #f8faf2;
+		background: var(--color-surface-raised);
 	}
 	summary {
 		list-style: none;
@@ -1698,13 +1700,13 @@
 	summary small {
 		font-size: 9px;
 		font-weight: 400;
-		color: #8a9978;
+		color: var(--color-text-subtle);
 		margin-left: 13px;
 	}
 	summary > span:last-child {
 		font-size: 20px;
 		font-weight: 400;
-		color: #8ba078;
+		color: var(--color-text-subtle);
 		line-height: 1;
 	}
 	details[open] > summary > span:last-child {
@@ -1715,7 +1717,7 @@
 	}
 	.historikkinnhold > p {
 		font-size: 11px;
-		color: #7a8c69;
+		color: var(--color-text-muted);
 		margin: 0 0 11px;
 	}
 	.historikkinnhold ol {
@@ -1731,20 +1733,20 @@
 		gap: 12px;
 		align-items: center;
 		width: 100%;
-		background: #f0f5e8;
-		border: 1px solid #dce6d1;
+		background: var(--color-surface);
+		border: 1px solid var(--color-border);
 		border-radius: 5px;
 		padding: 10px 12px;
 		text-align: left;
-		color: #667f56;
+		color: var(--color-text-muted);
 	}
 	.historikkinnhold button.valgt {
-		border-color: #8aaf7b;
-		background: #e5efd8;
+		border-color: var(--color-accent);
+		background: var(--color-surface-active);
 	}
 	.historikkinnhold button > span:first-child {
 		font: 10px monospace;
-		color: #8c9e7a;
+		color: var(--color-text-subtle);
 	}
 	.historikkinnhold button div {
 		flex: 1;
@@ -1756,7 +1758,7 @@
 	.historikkinnhold small {
 		display: block;
 		font-size: 9px;
-		color: #829572;
+		color: var(--color-text-subtle);
 		margin-top: 2px;
 	}
 	.datagrid {
@@ -1771,21 +1773,21 @@
 	.datagrid h3 {
 		font-size: 11px;
 		margin: 0 0 8px;
-		color: #697f5a;
+		color: var(--color-text-muted);
 	}
 	.datagrid pre {
 		margin: 0;
 		padding: 13px;
-		background: #edf2e5;
+		background: var(--color-surface);
 		border-radius: 5px;
 		overflow: auto;
 		max-height: 280px;
 		font-size: 10px;
-		color: #5c7657;
+		color: var(--color-text-muted);
 	}
 	.datagrid .requestdata {
 		grid-column: 1/-1;
-		border-top: 1px solid #d8e2ce;
+		border-top: 1px solid var(--color-border);
 		padding-top: 13px;
 	}
 	.requestdata h3 {
@@ -1798,14 +1800,14 @@
 	}
 	.requestdata h4 {
 		font-size: 9px;
-		color: #819272;
+		color: var(--color-text-subtle);
 		margin: 0 0 6px;
 		font-weight: 500;
 	}
 	.forklarmer {
 		padding: 0 17px 18px;
 		font-size: 12px;
-		color: #6b805e;
+		color: var(--color-text-muted);
 	}
 	.forklarmer p {
 		margin: 8px 0 12px;
@@ -1825,7 +1827,7 @@
 		justify-content: space-between;
 		gap: 20px;
 		font-size: 11px;
-		color: #859474;
+		color: var(--color-text-subtle);
 	}
 	footer a {
 		text-decoration: none;
@@ -2171,6 +2173,42 @@
 			transition: none !important;
 			animation: none !important;
 			scroll-behavior: auto !important;
+		}
+	}
+
+	.sidehode {
+		flex-wrap: wrap;
+	}
+	.tilbake {
+		margin-left: auto;
+	}
+	@media (max-width: 620px) {
+		.sidehode {
+			display: grid;
+			grid-template-columns: minmax(0, 1fr) auto;
+			gap: 8px 12px;
+			padding-block: 12px;
+		}
+		.tilbake {
+			grid-column: 1 / -1;
+			grid-row: 2;
+			justify-self: end;
+			margin-left: 0;
+		}
+	}
+
+	.theme-control {
+		flex: 0 0 auto;
+		justify-self: end;
+	}
+	@media (max-width: 380px) {
+		.tilbake {
+			grid-column: 2;
+			grid-row: 1;
+		}
+		.theme-control {
+			grid-column: 1 / -1;
+			grid-row: 2;
 		}
 	}
 </style>

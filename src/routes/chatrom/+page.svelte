@@ -1,4 +1,5 @@
 <script>
+	import ThemeToggle from '#lib/components/ThemeToggle.svelte';
 	import InteractiveCode from '#lib/components/InteractiveCode.svelte';
 	import { initState, codeLines, planRun, USERS, ROOMS, DEFAULT_OPTIONS } from '#lib/chatromLab.js';
 
@@ -239,11 +240,14 @@
 		<a class="logo" href="/"
 			><span class="logosymbol" aria-hidden="true">IT</span> IT-laben<span class="punkt">.</span></a
 		>
-		<nav aria-label="Relaterte forklaringer">
-			<a href="/backend/">Frontend og backend <span aria-hidden="true">↗</span></a><a
-				href="/sessions/">Sessions <span aria-hidden="true">↗</span></a
-			>
-		</nav>
+		<div class="header-actions">
+			<nav aria-label="Relaterte forklaringer">
+				<a href="/backend/">Frontend og backend <span aria-hidden="true">↗</span></a><a
+					href="/sessions/">Sessions <span aria-hidden="true">↗</span></a
+				>
+			</nav>
+			<ThemeToggle />
+		</div>
 	</header>
 
 	<main>
@@ -680,13 +684,13 @@
 <style>
 	:global(body) {
 		margin: 0;
-		background: #f4f5ef;
+		background: var(--color-page);
 	}
 	.side {
-		--blekk: #193c3b;
-		--gronn: #087f79;
-		--dempa: #63786e;
-		--kant: #d9e2d6;
+		--blekk: var(--color-text);
+		--gronn: var(--color-accent);
+		--dempa: var(--color-text-muted);
+		--kant: var(--color-border);
 		min-height: 100vh;
 		color: var(--blekk);
 		font-family:
@@ -707,7 +711,19 @@
 		width: min(1240px, calc(100% - 64px));
 		margin: 0 auto;
 	}
+	.header-actions {
+		display: flex;
+		align-items: center;
+		justify-content: flex-end;
+		flex-wrap: wrap;
+		gap: 12px 20px;
+		margin-left: auto;
+		min-width: 0;
+	}
+
 	.sidehode {
+		flex-wrap: wrap;
+		row-gap: 12px;
 		min-height: 90px;
 		display: flex;
 		justify-content: space-between;
@@ -735,8 +751,8 @@
 		width: 31px;
 		height: 31px;
 		border-radius: 5px;
-		background: var(--blekk);
-		color: #ecf2df;
+		background: var(--color-brand);
+		color: var(--color-on-brand);
 		font-size: 15px;
 		letter-spacing: -0.5px;
 	}
@@ -794,7 +810,7 @@
 	.ingress {
 		max-width: 660px;
 		margin: 15px 0 11px;
-		color: #526b61;
+		color: var(--color-text-muted);
 		font-size: 16px;
 	}
 	.simulering {
@@ -827,13 +843,13 @@
 	summary:focus-visible,
 	input:focus-visible,
 	select:focus-visible {
-		outline: 3px solid #d69d45;
+		outline: 3px solid var(--color-focus);
 		outline-offset: 3px;
 	}
 	.modulvalg {
 		display: grid;
 		grid-template-columns: repeat(3, minmax(0, 1fr));
-		border: 1px solid #ccd9c8;
+		border: 1px solid var(--color-border);
 		border-radius: 9px;
 		overflow: hidden;
 		margin-bottom: 30px;
@@ -844,8 +860,8 @@
 		gap: 14px;
 		padding: 17px 21px;
 		border: 0;
-		border-right: 1px solid #ccd9c8;
-		background: #edf0e6;
+		border-right: 1px solid var(--color-border);
+		background: var(--color-surface);
 		color: var(--blekk);
 		text-align: left;
 	}
@@ -853,11 +869,11 @@
 		border-right: 0;
 	}
 	.modulvalg button.valgt {
-		background: #dce9c5;
+		background: var(--color-surface-active);
 		box-shadow: inset 0 -3px var(--gronn);
 	}
 	.modulvalg button:not(:disabled):hover {
-		background: #e3eacb;
+		background: var(--color-surface-hover);
 	}
 	.modulnummer {
 		font:
@@ -865,7 +881,7 @@
 			SFMono-Regular,
 			Menlo,
 			monospace;
-		color: #6b806c;
+		color: var(--color-text-muted);
 	}
 	.modultekst {
 		font-weight: 680;
@@ -873,7 +889,7 @@
 	}
 	.modultekst small {
 		display: block;
-		color: #63765b;
+		color: var(--color-text-muted);
 		font-size: 10px;
 		letter-spacing: 1px;
 		margin-top: 3px;
@@ -881,7 +897,7 @@
 	}
 	.modulpil {
 		margin-left: auto;
-		color: #668763;
+		color: var(--color-text-muted);
 		font-size: 19px;
 	}
 	.forsokhode {
@@ -908,7 +924,7 @@
 	.nullstill {
 		border: 0;
 		background: transparent;
-		color: #526d61;
+		color: var(--color-text-muted);
 		font-size: 12px;
 		padding: 9px 0 9px 12px;
 		white-space: nowrap;
@@ -942,9 +958,9 @@
 	select {
 		width: 100%;
 		min-height: 42px;
-		background: #fffef8;
+		background: var(--color-surface-raised);
 		color: var(--blekk);
-		border: 1px solid #cbd7c5;
+		border: 1px solid var(--color-border);
 		border-radius: 5px;
 		padding: 9px 12px;
 		font-size: 14px;
@@ -953,7 +969,7 @@
 		padding-right: 28px;
 	}
 	input::placeholder {
-		color: #7a8b7a;
+		color: var(--color-text-subtle);
 	}
 	.meldingfelt {
 		flex: 1 1 250px;
@@ -976,7 +992,7 @@
 	label code {
 		font-size: 0.91em;
 		padding: 1px 4px;
-		background: #e9eee0;
+		background: var(--color-surface-soft);
 		border-radius: 3px;
 		overflow-wrap: anywhere;
 	}
@@ -991,7 +1007,7 @@
 	}
 	.eksperimentvarsel {
 		font-size: 11px;
-		color: #7c5b2f;
+		color: var(--color-warning);
 		margin: 9px 0 0;
 	}
 	.kjorefelt {
@@ -1010,11 +1026,11 @@
 		gap: 10px;
 	}
 	.hovedknapp {
-		border: 1px solid #b8cea2;
+		border: 1px solid var(--color-border);
 		border-radius: 5px;
 		padding: 10px 17px;
-		background: #d7e7ab;
-		color: #29482d;
+		background: var(--color-action);
+		color: var(--color-on-action);
 		font-weight: 700;
 		font-size: 13px;
 	}
@@ -1022,22 +1038,22 @@
 		margin-left: 14px;
 	}
 	.hovedknapp:hover {
-		background: #cbdfa0;
+		background: var(--color-action-hover);
 	}
 	.sekundaerknapp {
-		border: 1px solid #ccd7c3;
+		border: 1px solid var(--color-border);
 		border-radius: 5px;
 		padding: 10px 14px;
 		background: transparent;
-		color: #486251;
+		color: var(--color-text-muted);
 		font-size: 12px;
 	}
 	.sekundaerknapp:hover {
-		background: #e9eedf;
+		background: var(--color-surface-hover);
 	}
 	.stegteller {
 		font-size: 11px;
-		color: #6b7c6c;
+		color: var(--color-text-muted);
 		margin-left: 3px;
 	}
 	.oppfolging {
@@ -1046,8 +1062,8 @@
 	}
 	.stegbeskrivelse {
 		min-height: 94px;
-		border: 1px solid #d3dfc9;
-		background: #eef3e6;
+		border: 1px solid var(--color-border);
+		background: var(--color-surface);
 		padding: 15px 18px;
 		display: flex;
 		align-items: flex-start;
@@ -1057,8 +1073,8 @@
 		margin-bottom: 14px;
 	}
 	.stegbeskrivelse.feil {
-		background: #fbf0e5;
-		border-color: #ead5ba;
+		background: var(--color-warning-soft);
+		border-color: var(--color-warning-border);
 	}
 	.stegtekst h3 {
 		font-size: 14px;
@@ -1067,11 +1083,11 @@
 	.stegtekst p {
 		margin: 0;
 		font-size: 12px;
-		color: #596f5e;
+		color: var(--color-text-muted);
 		max-width: 840px;
 	}
 	.stegbeskrivelse.feil p {
-		color: #806345;
+		color: var(--color-warning);
 	}
 	.httpstatus {
 		font:
@@ -1079,25 +1095,26 @@
 			SFMono-Regular,
 			Menlo,
 			monospace;
-		background: #dfeacc;
-		color: #43653a;
+		background: var(--color-success-soft);
+		color: var(--color-success);
 		padding: 6px 8px;
 		border-radius: 4px;
 		white-space: nowrap;
 		margin-top: 2px;
 	}
 	.httpstatus.feil {
-		background: #f1dfc8;
-		color: #865930;
+		background: var(--color-warning-soft);
+		color: var(--color-warning);
 	}
 	.httpstatus > span {
-		color: #728864;
+		color: inherit;
+		opacity: 0.85;
 	}
 	.resultatlinje {
 		margin-top: 14px;
-		border: 1px solid #d7e0cf;
+		border: 1px solid var(--color-border);
 		border-radius: 6px;
-		background: #edf1e5;
+		background: var(--color-surface);
 		padding: 13px 17px;
 		display: flex;
 		align-items: center;
@@ -1119,15 +1136,15 @@
 		flex: 0 0 6px;
 		width: 6px;
 		height: 6px;
-		background: #789a59;
+		background: var(--color-success);
 		border-radius: 50%;
 	}
 	.resultatlinje.feil {
-		background: #fbf0e5;
-		border-color: #ead5ba;
+		background: var(--color-warning-soft);
+		border-color: var(--color-warning-border);
 	}
 	.resultatlinje.feil .resultatprikk {
-		background: #ad7545;
+		background: var(--color-warning);
 	}
 	.resultatlinje button {
 		border: 0;
@@ -1148,14 +1165,14 @@
 	}
 	.datakort {
 		min-width: 0;
-		background: #fbfcf7;
+		background: var(--color-surface-raised);
 		border: 1px solid var(--kant);
 		border-radius: 7px;
 		overflow: hidden;
 	}
 	.datakorthode {
 		padding: 13px 15px;
-		border-bottom: 1px solid #e0e6d9;
+		border-bottom: 1px solid var(--color-border);
 		display: flex;
 		align-items: center;
 		justify-content: space-between;
@@ -1180,7 +1197,7 @@
 	.tomtekst {
 		font-size: 12px;
 		margin: 17px 15px;
-		color: #6f806c;
+		color: var(--color-text-muted);
 	}
 	.meldingsliste {
 		list-style: none;
@@ -1191,7 +1208,7 @@
 	}
 	.meldingsliste li {
 		padding: 12px 0;
-		border-bottom: 1px solid #e1e7d8;
+		border-bottom: 1px solid var(--color-border);
 	}
 	.meldingsliste li:last-child {
 		border-bottom: 0;
@@ -1203,7 +1220,7 @@
 		font-size: 11px;
 	}
 	.meldingsliste li > div > span {
-		color: #7a8b73;
+		color: var(--color-text-muted);
 		font: 10px monospace;
 	}
 	.meldingsliste p {
@@ -1212,7 +1229,7 @@
 		overflow-wrap: anywhere;
 	}
 	.datamerknad {
-		color: #8b6b44;
+		color: var(--color-warning);
 		font-size: 11px;
 		margin: 12px 15px;
 	}
@@ -1224,14 +1241,14 @@
 	.datalabel {
 		font-size: 10px;
 		margin: 0 15px;
-		color: #73816a;
+		color: var(--color-text-muted);
 	}
 	.datakort .sessiondata {
 		padding-top: 5px;
 	}
 	.tillegg {
 		border: 1px solid var(--kant);
-		background: #f8f9f2;
+		background: var(--color-surface-raised);
 		border-radius: 7px;
 		margin-top: 14px;
 	}
@@ -1252,7 +1269,7 @@
 	summary > span:last-child {
 		font-size: 20px;
 		line-height: 1;
-		color: #8a9b77;
+		color: var(--color-text-subtle);
 		font-weight: 400;
 		transition: transform 0.15s;
 	}
@@ -1263,7 +1280,7 @@
 		display: inline-block;
 		min-width: 126px;
 		margin-right: 16px;
-		color: #7a8e67;
+		color: var(--color-text-muted);
 		font-size: 9px;
 		letter-spacing: 1px;
 		font-weight: 700;
@@ -1271,7 +1288,7 @@
 	.tilleggsinnhold {
 		padding: 3px 19px 18px;
 		font-size: 13px;
-		color: #526b5b;
+		color: var(--color-text-muted);
 	}
 	.tilleggsinnhold > p {
 		max-width: 960px;
@@ -1304,7 +1321,7 @@
 		font-size: 11px;
 		font-weight: 400;
 		margin-top: 3px;
-		color: #6d8066;
+		color: var(--color-text-muted);
 	}
 	.tilleggsinnhold .miniforsok {
 		font-size: 12px;
@@ -1325,7 +1342,7 @@
 	.kildelenker {
 		font-size: 11px;
 		padding-top: 8px;
-		border-top: 1px solid #e0e7d7;
+		border-top: 1px solid var(--color-border);
 	}
 	.alternativgrid {
 		display: grid;
@@ -1350,11 +1367,11 @@
 	.alternativstatus {
 		font-size: 11px;
 		min-height: 36px;
-		color: #69815b;
+		color: var(--color-success);
 	}
 	.lyskode {
-		background: #edf1e6;
-		border: 1px solid #dbe3d0;
+		background: var(--color-surface);
+		border: 1px solid var(--color-border);
 		border-radius: 6px;
 		padding: 16px;
 		font-size: 11px;
@@ -1378,7 +1395,7 @@
 		justify-content: space-between;
 		align-items: center;
 		font-size: 12px;
-		color: #70826c;
+		color: var(--color-text-muted);
 		gap: 20px;
 	}
 	footer a {
@@ -1567,6 +1584,14 @@
 	@media (prefers-reduced-motion: reduce) {
 		summary > span:last-child {
 			transition: none;
+		}
+	}
+	@media (max-width: 700px) {
+		.sidehode {
+			padding-block: 14px;
+		}
+		.header-actions {
+			gap: 10px 14px;
 		}
 	}
 </style>

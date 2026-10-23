@@ -54,6 +54,22 @@ Prosjektet er bygget med **Svelte 5, SvelteKit 3 og Vite**. Demonstrasjonene sim
 
 Nettsiden bygges som statiske filer med `@sveltejs/adapter-static`, konfigurert i [vite.config.js](vite.config.js). [Rotlayouten](src/routes/+layout.js) aktiverer prerendering og avsluttende skråstrek i sidestiene. Produksjonsbygget legges i `build/` og kan serveres av Nginx.
 
+### Lyst og mørkt tema
+
+Alle sidene har den felles Svelte-komponenten [ThemeToggle](src/lib/components/ThemeToggle.svelte) i toppfeltet. Første besøk følger enhetens fargetema. Et manuelt valg lagres som `light` eller `dark` i `localStorage` under nøkkelen `it-laben-theme`, og gjelder videre på tvers av sidene og neste besøk. Åpne faner synkroniseres også.
+
+[theme.js](src/lib/theme.js) holder felles tilstand og startes fra rotlayouten. Et lite skript i `src/app.html` velger tema før siden tegnes, slik at lagret mørkt tema ikke først vises som lyst. Om lokal lagring er utilgjengelig, kan temaet fortsatt byttes under besøket.
+
+Fargene er samlet i [theme.css](src/lib/theme.css). Nye sider bruker variabler som `var(--color-surface)`, `var(--color-text)` og `var(--color-border)` for å støtte begge temaer. Kodepanelene beholder en mørk editorpalett i begge temaer. Legg temavelgeren i toppfeltet på nye sider:
+
+```svelte
+<script>
+	import ThemeToggle from '#lib/components/ThemeToggle.svelte';
+</script>
+
+<ThemeToggle />
+```
+
 ## Kjøre prosjektet lokalt
 
 **Disse kommandoene kjøres på utviklingsmaskinen.** Du trenger Git og Node.js med npm.

@@ -278,14 +278,14 @@
 		display: flex;
 		flex-direction: column;
 		min-width: 0;
-		border: 1px solid #adc6a8;
+		border: 1px solid var(--color-border-strong);
 		border-radius: 10px;
-		background: #f5f9ed;
-		color: #193c3b;
+		background: var(--color-surface-raised);
+		color: var(--color-text);
 		font-family: inherit;
 		text-align: left;
 		white-space: normal;
-		box-shadow: 0 6px 22px #193c3b12;
+		box-shadow: 0 6px 22px var(--color-shadow);
 	}
 	.code-explanation[hidden] {
 		display: none;
@@ -306,7 +306,7 @@
 		position: relative;
 		width: 100%;
 		margin: 10px 0 14px;
-		border-left: 3px solid #087f79;
+		border-left: 3px solid var(--color-accent);
 		box-shadow: none;
 	}
 	.pointer {
@@ -315,7 +315,7 @@
 		top: var(--pointer-top, 28px);
 		width: var(--pointer-width, 16px);
 		height: 0;
-		border-top: 1px solid #6a987c;
+		border-top: 1px solid var(--color-border-strong);
 		transform-origin: right center;
 		transform: rotate(var(--pointer-angle, 0rad));
 		pointer-events: none;
@@ -327,8 +327,8 @@
 		top: -4px;
 		width: 6px;
 		height: 6px;
-		border-left: 1px solid #6a987c;
-		border-bottom: 1px solid #6a987c;
+		border-left: 1px solid var(--color-border-strong);
+		border-bottom: 1px solid var(--color-border-strong);
 		transform: rotate(45deg);
 	}
 	header {
@@ -344,7 +344,7 @@
 	}
 	.label {
 		margin: 0 0 7px;
-		color: #376c58;
+		color: var(--color-accent);
 		font-size: 11px;
 		font-weight: 650;
 		line-height: 1.45;
@@ -369,18 +369,18 @@
 		border: 1px solid transparent;
 		border-radius: 6px;
 		background: transparent;
-		color: #406b57;
+		color: var(--color-accent);
 		font: inherit;
 		font-size: 24px;
 		line-height: 1;
 		cursor: pointer;
 	}
 	button:hover {
-		background: #e1edd9;
-		border-color: #c3d6b9;
+		background: var(--color-surface-hover);
+		border-color: var(--color-border);
 	}
 	button:focus-visible {
-		outline: 3px solid #bd8042;
+		outline: 3px solid var(--color-focus);
 		outline-offset: 2px;
 	}
 	.explanation-body {

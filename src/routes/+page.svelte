@@ -1,4 +1,6 @@
 <script>
+	import ThemeToggle from '#lib/components/ThemeToggle.svelte';
+
 	// Legg til flere sider ved å kopiere objektet nedenfor inn i listen.
 	// «href» er adressen til siden, f.eks. /backend for src/routes/backend/+page.svelte.
 	const sider = [
@@ -58,7 +60,10 @@
 		<a class="logo" href="/" aria-label="IT-laben – forside"
 			><span class="logo-symbol" aria-hidden="true">IT</span>IT-laben<span class="punkt">.</span></a
 		>
-		<span class="header-note">SE. PRØV. FORSTÅ.</span>
+		<div class="header-actions">
+			<span class="header-note">SE. PRØV. FORSTÅ.</span>
+			<ThemeToggle />
+		</div>
 	</header>
 
 	<main>
@@ -219,13 +224,13 @@
 <style>
 	:global(body) {
 		margin: 0;
-		background: #f4f5ef;
+		background: var(--color-page);
 	}
 	.forside {
-		--blekk: #193c3b;
-		--gronn: #087f79;
-		--dempa: #657b71;
-		--kant: #d9e2d6;
+		--blekk: var(--color-text);
+		--gronn: var(--color-accent);
+		--dempa: var(--color-text-muted);
+		--kant: var(--color-border);
 		min-height: 100vh;
 		color: var(--blekk);
 		font-family:
@@ -235,7 +240,7 @@
 			BlinkMacSystemFont,
 			'Segoe UI',
 			sans-serif;
-		background: radial-gradient(ellipse at 83% 9%, #dfeee1 0, transparent 43%);
+		background: radial-gradient(ellipse at 83% 9%, var(--color-page-glow) 0, transparent 43%);
 	}
 	.forside,
 	.forside * {
@@ -246,7 +251,7 @@
 		text-decoration: none;
 	}
 	a:focus-visible {
-		outline: 3px solid #bd6e31;
+		outline: 3px solid var(--color-focus);
 		outline-offset: 6px;
 	}
 	header,
@@ -255,9 +260,12 @@
 		margin: 0 auto;
 	}
 	header {
-		height: 94px;
+		min-height: 94px;
+		padding-block: 14px;
 		display: flex;
 		align-items: center;
+		flex-wrap: wrap;
+		gap: 12px 24px;
 		justify-content: space-between;
 		border-bottom: 1px solid var(--kant);
 	}
@@ -274,8 +282,8 @@
 		width: 36px;
 		height: 36px;
 		margin-right: 11px;
-		background: var(--blekk);
-		color: #d8f0cb;
+		background: var(--color-brand);
+		color: var(--color-on-brand);
 		border-radius: 10px;
 		font: 600 17px monospace;
 	}
@@ -286,6 +294,15 @@
 		font: 10px monospace;
 		letter-spacing: 1.8px;
 		color: var(--dempa);
+	}
+	.header-actions {
+		display: flex;
+		align-items: center;
+		justify-content: flex-end;
+		flex-wrap: wrap;
+		gap: 12px 24px;
+		margin-left: auto;
+		max-width: 100%;
 	}
 	.intro {
 		display: grid;
@@ -334,7 +351,7 @@
 		gap: 22px;
 		align-items: center;
 		padding: 12px 0;
-		border-bottom: 1px solid #a9c4af;
+		border-bottom: 1px solid var(--color-border-strong);
 		font-size: 13px;
 		font-weight: 650;
 	}
@@ -369,7 +386,7 @@
 		position: absolute;
 		z-index: -1;
 		inset: -12px -18px;
-		background-image: radial-gradient(#99b7a7 1px, transparent 1px);
+		background-image: radial-gradient(var(--color-border-strong) 1px, transparent 1px);
 		background-size: 18px 18px;
 		opacity: 0.45;
 		mask-image: radial-gradient(ellipse, #000 25%, transparent 70%);
@@ -380,7 +397,7 @@
 		border-radius: 12px;
 		overflow: hidden;
 		transform: rotate(-4deg);
-		box-shadow: 0 22px 35px #173e3318;
+		box-shadow: 0 22px 35px var(--color-shadow);
 	}
 	.korttopp {
 		display: flex;
@@ -420,12 +437,12 @@
 		gap: 12px;
 		margin: 25px 12px 0;
 		font: 9px monospace;
-		color: #587b63;
+		color: var(--color-text-muted);
 	}
 	.dataflyt > span {
 		padding: 9px 12px;
-		background: #eef4e8;
-		border: 1px solid #c9dcc6;
+		background: var(--color-surface-soft);
+		border: 1px solid var(--color-border);
 		border-radius: 6px;
 	}
 	.dataflyt b {
@@ -434,7 +451,7 @@
 	}
 	.forbindelse {
 		flex: 1;
-		border-top: 1px dashed #9eb8a4;
+		border-top: 1px dashed var(--color-border-strong);
 		position: relative;
 	}
 	.forbindelse i {
@@ -452,12 +469,12 @@
 		right: -10px;
 		top: 15px;
 		font-size: 11px;
-		background: #e8b878;
-		color: #5b4527;
+		background: var(--color-warning-soft);
+		color: var(--color-warning);
 		padding: 10px 15px;
 		border-radius: 5px;
 		transform: rotate(7deg);
-		box-shadow: 0 4px 10px #583d1710;
+		box-shadow: 0 4px 10px var(--color-shadow);
 	}
 	.seksjonstopp {
 		display: flex;
@@ -490,8 +507,8 @@
 		display: flex;
 		flex-direction: column;
 		padding: 25px;
-		background: #fffefb;
-		border: 1px solid #d5e0d1;
+		background: var(--color-surface);
+		border: 1px solid var(--color-border);
 		border-radius: 12px;
 		transition:
 			transform 0.2s,
@@ -500,8 +517,8 @@
 	}
 	.sidekort:hover {
 		transform: translateY(-4px);
-		border-color: #8db49c;
-		box-shadow: 0 14px 30px #234e3010;
+		border-color: var(--color-border-strong);
+		box-shadow: 0 14px 30px var(--color-shadow);
 	}
 	.kortetiketter {
 		display: flex;
@@ -513,8 +530,8 @@
 	.kategori {
 		font-size: 9px;
 		font-weight: 650;
-		background: #edf3e7;
-		color: #47714d;
+		background: var(--color-success-soft);
+		color: var(--color-success);
 		padding: 6px 9px;
 		border-radius: 4px;
 	}
@@ -523,7 +540,7 @@
 		place-items: center;
 		width: 35px;
 		height: 35px;
-		border: 1px solid #d7e5d5;
+		border: 1px solid var(--color-border);
 		border-radius: 9px;
 		font: 23px monospace;
 		color: var(--gronn);
@@ -533,7 +550,7 @@
 		font-size: 9px;
 		text-transform: uppercase;
 		letter-spacing: 1.1px;
-		color: #82927b;
+		color: var(--color-text-subtle);
 	}
 	h3 {
 		font-size: 20px;
@@ -559,12 +576,12 @@
 	.emner li {
 		font: 9px monospace;
 		padding: 5px 7px;
-		border: 1px solid #e2e8dd;
+		border: 1px solid var(--color-border);
 		border-radius: 4px;
-		color: #71846b;
+		color: var(--color-text-muted);
 	}
 	.kortfot {
-		border-top: 1px solid #e2e8dd;
+		border-top: 1px solid var(--color-border);
 		padding-top: 17px;
 		display: flex;
 		justify-content: space-between;
@@ -587,7 +604,7 @@
 		justify-content: center;
 		text-align: center;
 		padding: 35px 20px;
-		border: 1px dashed #cbd9c7;
+		border: 1px dashed var(--color-border-strong);
 		border-radius: 12px;
 		min-height: 270px;
 	}
@@ -596,27 +613,27 @@
 		place-items: center;
 		width: 42px;
 		height: 42px;
-		border: 1px dashed #c3d2bd;
+		border: 1px dashed var(--color-border-strong);
 		border-radius: 50%;
-		color: #819779;
+		color: var(--color-text-subtle);
 		font-size: 23px;
 		margin-bottom: 18px;
 	}
 	.kommer h3 {
 		font-size: 16px;
-		color: #6f8467;
+		color: var(--color-text-muted);
 		margin-bottom: 9px;
 		letter-spacing: -0.3px;
 	}
 	.kommer p {
 		font-size: 12px;
 		line-height: 1.8;
-		color: #87977f;
+		color: var(--color-text-subtle);
 		margin: 0;
 	}
 	.stiplet-linje {
 		width: 35px;
-		border-top: 2px dotted #c0d0b9;
+		border-top: 2px dotted var(--color-border-strong);
 		margin-top: 22px;
 	}
 	.spillseksjon {
@@ -639,20 +656,20 @@
 		flex-direction: column;
 		min-width: 0;
 		padding: 24px;
-		border: 1px solid #c5d4be;
+		border: 1px solid var(--color-border);
 		border-radius: 12px;
-		background: #f0f4e8;
+		background: var(--color-surface-soft);
 		transition:
 			border-color 0.2s,
 			box-shadow 0.2s;
 	}
 	.spillkort.nyvariant {
-		background: linear-gradient(115deg, #e5eed8, #eef4e8);
-		border-color: #acc6a0;
+		background: linear-gradient(115deg, var(--color-success-soft), var(--color-surface-soft));
+		border-color: var(--color-success-border);
 	}
 	.spillkort:hover {
-		border-color: #7da487;
-		box-shadow: 0 10px 24px #234e3010;
+		border-color: var(--color-border-strong);
+		box-shadow: 0 10px 24px var(--color-shadow);
 	}
 	.spillkorttopp {
 		display: flex;
@@ -665,7 +682,7 @@
 	}
 	.spilltype {
 		margin: 0;
-		color: #56764b;
+		color: var(--color-text-muted);
 		font-size: 9px;
 		font-weight: 650;
 		letter-spacing: 0.55px;
@@ -673,7 +690,7 @@
 	}
 	.spilltype > span {
 		margin-inline: 4px;
-		color: #7d946e;
+		color: var(--color-text-subtle);
 	}
 	.nymerke,
 	.variantmerke {
@@ -684,13 +701,13 @@
 		white-space: nowrap;
 	}
 	.nymerke {
-		background: #d1e3bf;
-		color: #385d37;
+		background: var(--color-surface-active);
+		color: var(--color-success);
 		font-weight: 650;
 	}
 	.variantmerke {
-		border: 1px solid #d5dfcc;
-		color: #75856a;
+		border: 1px solid var(--color-border);
+		color: var(--color-text-muted);
 	}
 	.spillkort h3 {
 		font-size: clamp(24px, 2.3vw, 29px);
@@ -702,7 +719,7 @@
 		margin: 0 0 22px;
 		font-size: 13px;
 		line-height: 1.8;
-		color: #5b7355;
+		color: var(--color-text-muted);
 	}
 	.spillmotiv {
 		display: flex;
@@ -785,7 +802,7 @@
 		justify-content: space-between;
 		gap: 15px;
 		margin-top: 23px;
-		color: #1d5147;
+		color: var(--color-accent);
 		font-size: 12px;
 		font-weight: 650;
 	}
@@ -805,7 +822,7 @@
 		border-top: 1px solid var(--kant);
 		margin-top: 65px;
 		padding: 25px 0 35px;
-		color: #85957c;
+		color: var(--color-text-subtle);
 	}
 	footer > span {
 		font-size: 12px;
@@ -883,7 +900,7 @@
 			width: calc(100% - 40px);
 		}
 		header {
-			height: 76px;
+			min-height: 76px;
 		}
 		.logo {
 			font-size: 17px;

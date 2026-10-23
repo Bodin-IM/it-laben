@@ -877,10 +877,10 @@
 	}
 	.fallback-explanation {
 		padding: 14px 18px;
-		border: 1px solid #b0caa8;
+		border: 1px solid var(--color-border-strong);
 		border-radius: 8px;
-		background: #f5f9ed;
-		color: #21473d;
+		background: var(--color-surface-raised);
+		color: var(--color-text);
 		margin-top: 10px;
 	}
 	.fallback-explanation h3 {
@@ -895,7 +895,7 @@
 	.fallback-explanation button {
 		background: transparent;
 		border: 0;
-		color: #256c57;
+		color: var(--color-accent);
 		padding: 8px 0 0;
 		font-size: 11px;
 	}

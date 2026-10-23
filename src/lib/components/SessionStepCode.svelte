@@ -248,11 +248,11 @@
 <style>
 	.trinnkode {
 		min-width: 0;
-		border: 1px solid #d3dfcf;
+		border: 1px solid var(--color-border);
 		border-radius: 9px;
-		background: #f8faf3;
+		background: var(--color-surface);
 		padding: 19px;
-		color: var(--ink, #193c3b);
+		color: var(--color-text);
 	}
 	.trinnkode,
 	.trinnkode * {
@@ -266,7 +266,7 @@
 	}
 	.overlinje {
 		margin: 0 0 6px;
-		color: var(--teal, #087f79);
+		color: var(--color-accent);
 		font-size: 9px;
 		font-weight: 700;
 		letter-spacing: 1.2px;
@@ -281,9 +281,9 @@
 		display: flex;
 		gap: 4px;
 		padding: 3px;
-		border: 1px solid #d3dfcc;
+		border: 1px solid var(--color-border);
 		border-radius: 7px;
-		background: #eaf0e2;
+		background: var(--color-surface-soft);
 	}
 	button {
 		font: inherit;
@@ -292,27 +292,27 @@
 		padding: 8px 12px;
 		border-radius: 5px;
 		border: 1px solid transparent;
-		color: #55705b;
+		color: var(--color-text-muted);
 		background: transparent;
 		cursor: pointer;
 	}
 	button:hover {
-		background: #e0ebd8;
+		background: var(--color-surface-hover);
 	}
 	button.valgt {
-		background: #fffefa;
-		border-color: #b7cfaa;
-		color: #126e60;
-		box-shadow: 0 1px 3px #2f4e2410;
+		background: var(--color-surface-raised);
+		border-color: var(--color-border-strong);
+		color: var(--color-accent);
+		box-shadow: 0 1px 3px var(--color-shadow);
 	}
 	button:focus-visible {
-		outline: 3px solid #b8753a;
+		outline: 3px solid var(--color-focus);
 		outline-offset: 3px;
 	}
 	.kontekst {
 		font-size: 12px;
 		line-height: 1.65;
-		color: #58705f;
+		color: var(--color-text-muted);
 		margin: 13px 0 16px;
 		max-width: 900px;
 	}
@@ -403,19 +403,19 @@
 		margin: 0 0 9px;
 		font-size: 12px;
 		line-height: 1.65;
-		color: #55705d;
+		color: var(--color-text-muted);
 	}
 	.kodefot .markeringsforklaring {
 		font-size: 11px;
 		font-weight: 650;
-		color: #386b4c;
+		color: var(--color-accent);
 		margin-bottom: 6px;
 	}
 	.kodefot small {
 		display: block;
 		font-size: 10px;
 		line-height: 1.6;
-		color: #6e8266;
+		color: var(--color-text-subtle);
 	}
 	@media (max-width: 650px) {
 		.trinnkode {

@@ -1,4 +1,5 @@
 <script>
+	import ThemeToggle from '#lib/components/ThemeToggle.svelte';
 	import SessionStepCode from '#lib/components/SessionStepCode.svelte';
 
 	// En lokal undervisningsmodell. Ingen cookies, innlogging eller nettverkskall opprettes.
@@ -426,6 +427,7 @@
 		<a class="tilbake" href="/"><span aria-hidden="true">←</span> IT-laben</a>
 		<div class="headerhoyre">
 			<a href="/backend/">Frontend møter backend <span aria-hidden="true">↗</span></a>
+			<ThemeToggle />
 		</div>
 	</header>
 	<main class="ramme">
@@ -778,13 +780,13 @@
 <style>
 	:global(body) {
 		margin: 0;
-		background: #f4f5ef;
+		background: var(--color-page);
 	}
 	.side {
-		--ink: #193c3b;
-		--teal: #087f79;
-		--muted: #5e7469;
-		--border: #d4dfd1;
+		--ink: var(--color-text);
+		--teal: var(--color-accent);
+		--muted: var(--color-text-muted);
+		--border: var(--color-border);
 		min-height: 100vh;
 		color: var(--ink);
 		font-family:
@@ -794,7 +796,7 @@
 			BlinkMacSystemFont,
 			'Segoe UI',
 			sans-serif;
-		background: radial-gradient(ellipse at 90% 0, #e2edde, transparent 30%);
+		background: radial-gradient(ellipse at 90% 0, var(--color-page-glow), transparent 30%);
 	}
 	.side,
 	.side * {
@@ -805,6 +807,8 @@
 		margin-inline: auto;
 	}
 	header {
+		flex-wrap: wrap;
+		row-gap: 12px;
 		min-height: 76px;
 		display: flex;
 		align-items: center;
@@ -828,6 +832,9 @@
 		margin-right: 7px;
 	}
 	.headerhoyre {
+		flex-wrap: wrap;
+		justify-content: flex-end;
+		margin-left: auto;
 		display: flex;
 		align-items: center;
 		gap: 20px;
@@ -852,7 +859,7 @@
 	button {
 		cursor: pointer;
 		color: var(--ink);
-		background: #fffdf8;
+		background: var(--color-surface-raised);
 		border: 1px solid var(--border);
 		border-radius: 7px;
 		padding: 10px 14px;
@@ -863,14 +870,14 @@
 			border-color 0.15s;
 	}
 	button:hover {
-		background: #eaf1e4;
-		border-color: #9bbb9b;
+		background: var(--color-surface-hover);
+		border-color: var(--color-border);
 	}
 	a:focus-visible,
 	button:focus-visible,
 	input:focus-visible,
 	summary:focus-visible {
-		outline: 3px solid #b8753a;
+		outline: 3px solid var(--color-focus);
 		outline-offset: 4px;
 	}
 	code,
@@ -879,7 +886,7 @@
 	}
 	p code {
 		font-size: 0.92em;
-		color: #096c65;
+		color: var(--color-accent);
 		overflow-wrap: anywhere;
 	}
 	.intro {
@@ -914,14 +921,14 @@
 		align-items: center;
 		color: var(--teal);
 		font: 15px monospace;
-		background: #e6efdf;
-		border: 1px solid #d0dfc8;
+		background: var(--color-surface-soft);
+		border: 1px solid var(--color-border);
 		border-radius: 8px;
 		padding: 20px;
 		white-space: nowrap;
 	}
 	.intromerke > span {
-		color: #8aab7d;
+		color: var(--color-text-subtle);
 	}
 	.hovedvalg {
 		display: grid;
@@ -935,23 +942,23 @@
 		gap: 12px;
 		padding: 15px 17px;
 		text-align: left;
-		background: #edf1e7;
+		background: var(--color-surface);
 		border-color: transparent;
 	}
 	.hovedvalg button > span {
 		font: 11px monospace;
-		color: #809776;
+		color: var(--color-text-subtle);
 	}
 	.hovedvalg button.valgt {
-		color: #086d65;
-		border-color: #adc8a8;
-		background: #fffdf8;
-		box-shadow: inset 0 -3px #468d78;
+		color: var(--color-accent);
+		border-color: var(--color-border-strong);
+		background: var(--color-surface-active);
+		box-shadow: inset 0 -3px var(--color-accent);
 	}
 	.oving,
 	.kodehjelp {
 		padding: 25px;
-		background: #fffefa;
+		background: var(--color-surface-raised);
 		border: 1px solid var(--border);
 		border-radius: 12px;
 	}
@@ -969,7 +976,7 @@
 	.lokalmerke {
 		font: 9px monospace;
 		letter-spacing: 1px;
-		color: #74876d;
+		color: var(--color-text-muted);
 		white-space: nowrap;
 	}
 	.demomerknad {
@@ -988,27 +995,27 @@
 		align-items: center;
 		gap: 10px;
 		text-align: left;
-		background: #f5f7ee;
+		background: var(--color-surface);
 	}
 	.trinnvalg button > span {
 		display: grid;
 		place-items: center;
 		border-radius: 50%;
-		background: #e3eadc;
-		color: #7b9270;
+		background: var(--color-surface-soft);
+		color: var(--color-text-muted);
 		width: 25px;
 		height: 25px;
 		font: 12px monospace;
 		flex-shrink: 0;
 	}
 	button.aktiv {
-		border-color: #6ca68d;
-		background: #e5f1e5;
-		color: #09685d;
+		border-color: var(--color-border-strong);
+		background: var(--color-surface-active);
+		color: var(--color-accent);
 	}
 	.trinnvalg button.aktiv > span {
-		background: #287e69;
-		color: white;
+		background: var(--color-action);
+		color: var(--color-on-action);
 	}
 	.forsokvalg,
 	.kodevalg {
@@ -1023,8 +1030,8 @@
 	}
 	.oppgave {
 		padding: 20px;
-		border: 1px solid #d8e3d2;
-		background: #f3f7ed;
+		border: 1px solid var(--color-border);
+		background: var(--color-surface);
 		border-radius: 9px;
 	}
 	.sporsmal .overlinje {
@@ -1044,7 +1051,7 @@
 	}
 	.utgangspunkt > b {
 		font-weight: 600;
-		color: #466452;
+		color: var(--color-text-muted);
 	}
 	.handling {
 		display: flex;
@@ -1057,14 +1064,14 @@
 		align-items: center;
 		gap: 26px;
 		padding: 12px 16px;
-		border-color: var(--teal);
-		background: var(--teal);
-		color: white;
+		border-color: var(--color-action);
+		background: var(--color-action);
+		color: var(--color-on-action);
 		white-space: nowrap;
 	}
 	.primaer:hover {
-		background: #066560;
-		border-color: #066560;
+		background: var(--color-action-hover);
+		border-color: var(--color-action-hover);
 	}
 	.handling > p {
 		font-size: 12px;
@@ -1078,7 +1085,7 @@
 		gap: 13px;
 		padding: 15px 0 0;
 		margin-top: 16px;
-		border-top: 1px solid #d8e2cf;
+		border-top: 1px solid var(--color-border);
 	}
 	.resultat h4 {
 		font-size: 14px;
@@ -1087,33 +1094,33 @@
 	}
 	.resultat p {
 		font-size: 13px;
-		color: #536f5d;
+		color: var(--color-text-muted);
 		margin-bottom: 0;
 	}
 	.resultat:not(.harresultat) p {
 		font-size: 12px;
-		color: #6d8363;
+		color: var(--color-text-muted);
 	}
 	.statuskode {
 		font: 13px monospace;
-		color: #126b50;
-		background: #d8ebd7;
+		color: var(--color-success);
+		background: var(--color-success-soft);
 		padding: 7px 8px;
 		border-radius: 5px;
 		flex-shrink: 0;
 	}
 	.statuskode.avvist {
-		color: #935d2d;
-		background: #efe2cb;
+		color: var(--color-warning);
+		background: var(--color-warning-soft);
 	}
 	.venter {
 		font-size: 18px;
-		color: #94ac83;
+		color: var(--color-text-subtle);
 		line-height: 1.2;
 	}
 	.ekstrakontroll {
 		padding: 13px 0 16px;
-		border-top: 1px solid #d8e2cf;
+		border-top: 1px solid var(--color-border);
 	}
 	.ekstrakontroll p {
 		font-size: 12px;
@@ -1144,7 +1151,7 @@
 	}
 	.bryter code {
 		font-size: 11px;
-		color: #69805e;
+		color: var(--color-text-muted);
 		font-weight: 400;
 		overflow-wrap: anywhere;
 	}
@@ -1157,14 +1164,14 @@
 	}
 	.modell article {
 		min-width: 0;
-		border: 1px solid #d4dfcf;
+		border: 1px solid var(--color-border);
 		border-radius: 9px;
 		padding: 17px;
-		background: #f7f9f1;
+		background: var(--color-surface-raised);
 	}
 	.modell .server {
-		background: #faf7ee;
-		border-color: #e0dac8;
+		background: var(--color-warning-soft);
+		border-color: var(--color-warning-border);
 	}
 	.modellhode {
 		display: flex;
@@ -1181,10 +1188,10 @@
 	.modellhode > span {
 		font: 8px monospace;
 		letter-spacing: 0.7px;
-		color: #79906e;
+		color: var(--color-text-muted);
 	}
 	.server .modellhode > span {
-		color: #978565;
+		color: var(--color-warning);
 	}
 	.feltetikett {
 		color: var(--muted);
@@ -1193,9 +1200,9 @@
 	}
 	.idverdi {
 		display: inline-block;
-		background: #e2eed9;
-		color: #12695c;
-		border: 1px solid #c8dcc1;
+		background: var(--color-surface-active);
+		color: var(--color-accent);
+		border: 1px solid var(--color-border-strong);
 		border-radius: 5px;
 		padding: 6px 11px;
 		font-size: 17px;
@@ -1211,11 +1218,11 @@
 		align-items: center;
 		gap: 14px;
 		min-height: 70px;
-		color: #7f9276;
+		color: var(--color-text-subtle);
 	}
 	.tomt > span {
 		font: 24px monospace;
-		color: #a7b59d;
+		color: var(--color-text-subtle);
 	}
 	.tomt p {
 		font-size: 13px;
@@ -1227,7 +1234,7 @@
 		justify-content: center;
 		flex-direction: column;
 		gap: 7px;
-		color: #83a27a;
+		color: var(--color-text-subtle);
 	}
 	.mellom > span {
 		font-size: 28px;
@@ -1242,15 +1249,15 @@
 	.sessionrad {
 		display: grid;
 		grid-template-columns: 1.2fr 1fr;
-		border: 1px solid #dedecb;
+		border: 1px solid var(--color-border);
 		border-radius: 6px;
 		padding: 9px 11px;
 		gap: 14px;
-		background: #fffdf7;
+		background: var(--color-surface-raised);
 	}
 	.sessionrad.samme {
-		border-color: #b5ceaa;
-		background: #edf4e4;
+		border-color: var(--color-border-strong);
+		background: var(--color-surface-active);
 	}
 	.sessionrad > div {
 		display: flex;
@@ -1263,7 +1270,7 @@
 	}
 	.sessionrad code {
 		font-size: 15px;
-		color: #12695c;
+		color: var(--color-accent);
 	}
 	.sessionrad b {
 		font-size: 15px;
@@ -1298,7 +1305,7 @@
 	summary small {
 		font-size: 11px;
 		font-weight: 400;
-		color: #7c8d72;
+		color: var(--color-text-muted);
 		margin-left: 9px;
 	}
 	.pluss {
@@ -1326,15 +1333,15 @@
 	.httpgrid > div,
 	.reqsession {
 		min-width: 0;
-		border: 1px solid #dbe3d5;
+		border: 1px solid var(--color-border);
 		border-radius: 7px;
-		background: #f6f8f0;
+		background: var(--color-surface);
 		padding: 14px;
 	}
 	.httpgrid h4,
 	.reqsession h4 {
 		font-size: 11px;
-		color: #58745b;
+		color: var(--color-text-muted);
 		margin-bottom: 13px;
 	}
 	.spor pre {
@@ -1342,7 +1349,7 @@
 		overflow-wrap: anywhere;
 		font-size: 11px;
 		line-height: 1.7;
-		color: #4f6f5b;
+		color: var(--color-text-muted);
 		margin: 0;
 	}
 	.reqsession {
@@ -1367,12 +1374,12 @@
 		gap: 10px 20px;
 		border-radius: 7px;
 		padding: 13px 15px;
-		background: #eaf1e1;
+		background: var(--color-surface);
 		margin-bottom: 20px;
 	}
 	.installasjon > span {
 		font-size: 11px;
-		color: #6d8360;
+		color: var(--color-text-muted);
 	}
 	.installasjon > code {
 		font-size: 12px;
@@ -1435,13 +1442,13 @@
 	}
 	.kodeforklaring {
 		margin: 18px 0 22px;
-		border-left: 3px solid #abc49c;
+		border-left: 3px solid var(--color-border);
 		padding-left: 14px;
 	}
 	.kodenotat {
 		padding: 17px;
-		background: #f1f5e8;
-		border: 1px solid #d7e2ca;
+		background: var(--color-surface);
+		border: 1px solid var(--color-border);
 		border-radius: 8px;
 	}
 	.kodenotat h4 {
@@ -1463,9 +1470,9 @@
 		overflow-wrap: anywhere;
 		padding: 12px;
 		margin: 0 0 12px;
-		background: #e4edd9;
+		background: var(--color-surface-soft);
 		border-radius: 5px;
-		color: #42613e;
+		color: var(--color-text-muted);
 	}
 	.kilder {
 		display: flex;
@@ -1492,7 +1499,7 @@
 		font-size: 11px;
 	}
 	footer > span {
-		color: #798b71;
+		color: var(--color-text-muted);
 	}
 	@media (min-width: 1100px) {
 		.arbeidsflate {
@@ -1747,6 +1754,14 @@
 	@media (prefers-reduced-motion: reduce) {
 		button {
 			transition: none;
+		}
+	}
+	@media (max-width: 700px) {
+		header {
+			padding-block: 14px;
+		}
+		.headerhoyre {
+			gap: 10px 14px;
 		}
 	}
 </style>

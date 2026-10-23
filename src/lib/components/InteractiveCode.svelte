@@ -460,7 +460,7 @@
 		margin-top: 96px;
 		max-width: 254px;
 		padding: 5px 10px;
-		color: #6b7c69;
+		color: var(--color-text-muted);
 	}
 	.forklaringshint.skjult {
 		visibility: hidden;
@@ -469,7 +469,7 @@
 		display: block;
 		font-size: 30px;
 		line-height: 1;
-		color: #5e7c68;
+		color: var(--color-accent);
 		margin-bottom: 14px;
 	}
 	.forklaringshint p {
@@ -479,7 +479,7 @@
 	}
 	.forklaringshint strong {
 		display: block;
-		color: #365c49;
+		color: var(--color-text);
 		font-size: 14px;
 		font-weight: 650;
 		margin-bottom: 5px;
@@ -489,7 +489,7 @@
 		margin-top: 15px;
 		font-size: 11px;
 		line-height: 1.6;
-		color: #697a68;
+		color: var(--color-text-muted);
 	}
 	.inlineforklaring {
 		position: sticky;

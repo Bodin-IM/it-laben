@@ -1,0 +1,97 @@
+/* Shared UI roles. Pages keep their own layout and use these colors in both themes. */
+:root {
+	color-scheme: light;
+	--color-page: #f4f5ef;
+	--color-surface: #fffdf8;
+	--color-surface-raised: #ffffff;
+	--color-surface-soft: #edf2e6;
+	--color-surface-hover: #e3ebda;
+	--color-surface-active: #dceacb;
+	--color-text: #193c3b;
+	--color-text-muted: #526c60;
+	--color-text-subtle: #566f5e;
+	--color-border: #d4dfcf;
+	--color-border-strong: #92ae94;
+	--color-accent: #08796f;
+	--color-accent-soft: #e0eee4;
+	--color-action: #176557;
+	--color-action-hover: #104f45;
+	--color-on-action: #f6f9f0;
+	--color-success: #42672c;
+	--color-success-soft: #e5efd6;
+	--color-success-border: #a9c18f;
+	--color-warning: #80551d;
+	--color-warning-soft: #f6ecd6;
+	--color-warning-border: #cbb784;
+	--color-danger: #a04435;
+	--color-danger-soft: #fae8e1;
+	--color-danger-border: #dfb2a4;
+	--color-info: #235f80;
+	--color-info-soft: #e3eef2;
+	--color-info-border: #a8c5d1;
+	--color-violet: #6c4d87;
+	--color-violet-soft: #ede5f1;
+	--color-brand: #193c3b;
+	--color-on-brand: #f2f7ec;
+	--color-focus: #08796f;
+	--color-page-glow: #dfeee1;
+	--color-shadow: rgb(25 60 59 / 13%);
+	/* Code examples retain a dark editor palette in both themes. */
+	--color-code-bg: #132f2c;
+	--color-code-text: #e0eae0;
+	--color-code-border: #345b4c;
+}
+
+:root[data-theme='dark'] {
+	color-scheme: dark;
+	--color-page: #101a18;
+	--color-surface: #192923;
+	--color-surface-raised: #263b31;
+	--color-surface-soft: #203129;
+	--color-surface-hover: #2a4135;
+	--color-surface-active: #314b39;
+	--color-text: #e6ede2;
+	--color-text-muted: #b3c4b5;
+	--color-text-subtle: #a5bba9;
+	--color-border: #385044;
+	--color-border-strong: #5b7564;
+	--color-accent: #8ad8bf;
+	--color-accent-soft: #213d31;
+	--color-action: #8acdb2;
+	--color-action-hover: #a4dec6;
+	--color-on-action: #102b24;
+	--color-success: #acd88e;
+	--color-success-soft: #283d27;
+	--color-success-border: #526f41;
+	--color-warning: #edca82;
+	--color-warning-soft: #3a3120;
+	--color-warning-border: #776444;
+	--color-danger: #f4b4a1;
+	--color-danger-soft: #3d2925;
+	--color-danger-border: #895f52;
+	--color-info: #a6d5e5;
+	--color-info-soft: #203743;
+	--color-info-border: #4a6c7e;
+	--color-violet: #d1b8ec;
+	--color-violet-soft: #312b40;
+	--color-brand: #8acdb2;
+	--color-on-brand: #102b24;
+	--color-focus: #b7e889;
+	--color-page-glow: #233d2e;
+	--color-shadow: rgb(0 0 0 / 32%);
+}
+
+html,
+body {
+	background-color: var(--color-page);
+	color: var(--color-text);
+}
+
+body {
+	margin: 0;
+}
+
+::selection {
+	background: var(--color-accent);
+	color: var(--color-page);
+}
