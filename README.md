@@ -18,6 +18,29 @@ Innholdet handler foreløpig om webutvikling. Laben skal også kunne romme drift
 
 De nyeste frontend/backend- og sessions-visningene er hovedversjonene på de vanlige adressene. Forsiden har én inngang til hvert tema.
 
+### Backend · øving 5–10
+
+[Se forhåndsvisning av oversikten](docs/oving-5-10-preview.jpg).
+
+Forsiden har en egen serie basert på de oppdaterte øvingsarkene. Hver side har valgbare forsøk, Forrige/Neste, klikkbare kodelinjer med forklaring, snapshots av data og tre oppgaver med skjulte forklaringer.
+
+| Øving | Adresse      | Innhold                                                                                                          |
+| ----- | ------------ | ---------------------------------------------------------------------------------------------------------------- |
+| 5     | `/oving-5/`  | Ny liste, midlertidig fil, lagring før minneoppdatering, skrivefeil og oppstart med manglende eller ødelagt fil. |
+| 6     | `/oving-6/`  | PATCH og DELETE med stabile ID-er, lagring og GET for å oppdatere frontend.                                      |
+| 7     | `/oving-7/`  | JSON-parser, grense på 10 kB, tekstvalidering, HTTP-feil og nettverksfeil.                                       |
+| 8     | `/oving-8/`  | Registrering, symbolsk passordhash, session, cookie, /meg, utlogging og omstart.                                 |
+| 9     | `/oving-9/`  | Innlogging, eierskap, 401/403/404 og forsøk på å forfalske avsender.                                             |
+| 10    | `/oving-10/` | Frontendbygg, publisering, localhost, systemd, omstart og backup.                                                |
+
+Den opprinnelige `/fillagring/` er fortsatt en enkel innføring. Øving 5 viser den nyere fremgangsmåten: lagre en ny liste før minnet oppdateres. `/sessions/` forklarer fortsatt grunnprinsippet; øving 8 følger øvingsarkets brukerregistrering og `req.session.brukerId`.
+
+Forsøkene er lokale og deterministiske. De bruker ingen ekte filoperasjoner, cookies, innlogging eller passordhashing. Hvert nytt forsøk starter med egne eksempeldata, og Forrige/Neste leser snapshots uten å gjenta endringer. Tilgangsreglene vurderes før data endres. Kodepanelene er merket som utdrag og erstatter ikke oppsettskoden i øvingsarkene.
+
+Øving 10 skiller mellom vanlig Svelte/Vite (`dist/`) og SvelteKit med konfigurert statisk adapter (`build/`). Den viser elevappens Express-publisering, mens IT-labens egen Nginx-publisering fortsatt følger `docs/serverdrift.md`.
+
+Innhold og oppgaver ligger i `src/lib/ovingene.js`, rene simuleringsmodeller i `src/lib/ovingModel.js`, og felles grensesnitt i `src/lib/components/ExerciseLab.svelte`. Modelltestene kjøres med `npm test` og kontrollerer blant annet lagringsrekkefølge, uendrede data ved feil, eierskap og oppførsel ved omstart.
+
 På chatrom-siden følger eleven tre avgrensede kodeforsøk: filtrering per rom, avsender fra `req.session.bruker` og sletting med kontroll av `avsenderId` på backend. Etter en vellykket sending eller sletting hentes rommet på nytt med GET. Data, feilforsøk og alternativet med en meldingsliste inne i hvert rom åpnes ved behov.
 
 ### Spill og utfordringer
@@ -107,6 +130,7 @@ npm run dev
 Kjør disse før du publiserer endringer:
 
 ```bash
+npm test
 npm run check
 npm run build
 ```

@@ -1,5 +1,6 @@
 <script>
 	import ThemeToggle from '#lib/components/ThemeToggle.svelte';
+	import { lessons } from '#lib/ovingene.js';
 
 	// Legg til flere sider ved å kopiere objektet nedenfor inn i listen.
 	// «href» er adressen til siden, f.eks. /backend for src/routes/backend/+page.svelte.
@@ -78,6 +79,7 @@
 				<div class="introvalg">
 					<a class="snarvei" href="#utforsk">Finn en forklaring <span aria-hidden="true">↓</span></a
 					>
+					<a class="spillsnarvei" href="#ovingene">Øving 5–10 <span aria-hidden="true">↘</span></a>
 					<a class="spillsnarvei" href="#spill">Prøv et spill <span aria-hidden="true">↘</span></a>
 				</div>
 			</div>
@@ -136,6 +138,37 @@
 					</p>
 					<span class="stiplet-linje" aria-hidden="true"></span>
 				</aside>
+			</div>
+		</section>
+
+		<section id="ovingene" class="spillseksjon" aria-labelledby="ovingsoversikt">
+			<div class="seksjonstopp">
+				<div>
+					<p class="overlinje">FRA DATA PÅ DISK TIL KJØRENDE TJENESTE</p>
+					<h2 id="ovingsoversikt">Backend · øving 5–10</h2>
+				</div>
+				<span class="antall">6 interaktive øvinger</span>
+			</div>
+			<p class="spillintroduksjon">
+				Følg øvingsarkene steg for steg. Prøv en handling, undersøk koden og se hva som skjer med
+				dataene.
+			</p>
+			<div class="kortliste">
+				{#each lessons as lesson}
+					<a class="sidekort" href={`/oving-${lesson.number}/`}>
+						<div class="kortetiketter">
+							<span class="kategori">{lesson.category}</span><span class="symbol" aria-hidden="true"
+								>{String(lesson.number).padStart(2, '0')}</span
+							>
+						</div>
+						<p class="sidetype">Øving {lesson.number} · interaktiv kodelab</p>
+						<h3>{lesson.title}</h3>
+						<p class="beskrivelse">{lesson.intro}</p>
+						<div class="kortfot">
+							<span>Åpne øvingen</span><span class="pil" aria-hidden="true">↗</span>
+						</div>
+					</a>
+				{/each}
 			</div>
 		</section>
 

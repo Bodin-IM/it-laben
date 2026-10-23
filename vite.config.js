@@ -3,6 +3,8 @@ import { sveltekit } from '@sveltejs/kit/vite';
 import { defineConfig } from 'vite';
 
 export default defineConfig({
+	// Exact host used by the managed development preview; does not affect static hosting.
+	server: { allowedHosts: ['terminal.local'] },
 	plugins: [
 		sveltekit({
 			compilerOptions: {

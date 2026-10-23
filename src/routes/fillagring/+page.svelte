@@ -256,6 +256,11 @@
 				<p class="overlinje">FILLAGRING · KODEN I FOKUS</p>
 				<h1 id="tittel">Hva overlever en omstart?</h1>
 				<p class="ingress">Endre en melding, følg koden og se hva som blir lagret.</p>
+				<p class="ovingslenke">
+					Dette er den enkle innføringen. <a href="/oving-5/"
+						>Øving 5: trygg lagring med ny liste, midlertidig fil og feilhåndtering →</a
+					>
+				</p>
 			</div>
 			<p class="grunnlag">Fra hjelpearket<br /><strong>Enkel lagring i JSON fil</strong></p>
 		</section>
@@ -585,6 +590,14 @@
 </div>
 
 <style>
+	.ovingslenke {
+		max-width: 65ch;
+		font-size: var(--font-small);
+	}
+	.ovingslenke a {
+		color: var(--color-action);
+		text-underline-offset: 3px;
+	}
 	:global(body) {
 		margin: 0;
 		background: var(--color-page);
