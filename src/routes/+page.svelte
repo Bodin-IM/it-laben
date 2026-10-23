@@ -140,16 +140,35 @@
 					<p class="overlinje">BYGG. TEST. PRØV IGJEN.</p>
 					<h2 id="spilloversikt">Spill og utfordringer</h2>
 				</div>
-				<span class="antall">2 spill</span>
+				<span class="antall">3 spill</span>
 			</div>
 			<p class="spillintroduksjon">
-				Prøv begge: reparer serverkoden, eller styr hva nettleserne gjør.
+				Tre måter å utforske chatten: feilsøk, reparer koden eller styr nettleserne.
 			</p>
 			<div class="spillkortliste">
-				<a class="spillkort nyvariant" href="/spill/redd-chatten/">
+				<a class="spillkort nyvariant" href="/spill/meldingsdetektiven/">
+					<div class="spillkorttopp">
+						<p class="spilltype">Feilsøk chatten <span aria-hidden="true">·</span> 4 saker</p>
+						<span class="nymerke">Ny variant</span>
+					</div>
+					<h3>Meldingsdetektiven</h3>
+					<p class="spillbeskrivelse">
+						Følg sporene i kode, requests, svar og serverdata. Finn feilen, rett koden og test om
+						chatten fungerer.
+					</p>
+					<div class="spillmotiv servermotiv" aria-hidden="true">
+						<span class="motivlupe"></span>
+						<div class="testtyper">
+							<span>Kode</span><span>Request</span><span>Svar</span><span>Data</span>
+						</div>
+					</div>
+					<div class="spillkortfot">
+						<span>Prøv Meldingsdetektiven</span><span class="spillpil" aria-hidden="true">→</span>
+					</div>
+				</a>
+				<a class="spillkort" href="/spill/redd-chatten/">
 					<div class="spillkorttopp">
 						<p class="spilltype">Reparer backend <span aria-hidden="true">·</span> 3 oppdrag</p>
-						<span class="nymerke">Ny variant</span>
 					</div>
 					<h3>Redd chatten</h3>
 					<p class="spillbeskrivelse">
@@ -612,14 +631,14 @@
 	}
 	.spillkortliste {
 		display: grid;
-		grid-template-columns: repeat(2, minmax(0, 1fr));
-		gap: 22px;
+		grid-template-columns: repeat(3, minmax(0, 1fr));
+		gap: 18px;
 	}
 	.spillkort {
 		display: flex;
 		flex-direction: column;
 		min-width: 0;
-		padding: 28px;
+		padding: 24px;
 		border: 1px solid #c5d4be;
 		border-radius: 12px;
 		background: #f0f4e8;
@@ -641,6 +660,7 @@
 		justify-content: space-between;
 		flex-wrap: wrap;
 		gap: 9px;
+		min-height: 22px;
 		margin-bottom: 20px;
 	}
 	.spilltype {
@@ -702,6 +722,26 @@
 		flex: 0 0 auto;
 		color: #b6ce92;
 		font: 25px/1 monospace;
+	}
+	.motivlupe {
+		position: relative;
+		flex: 0 0 21px;
+		width: 21px;
+		height: 21px;
+		margin: 0 5px 5px 0;
+		border: 2px solid #b6ce92;
+		border-radius: 50%;
+	}
+	.motivlupe::after {
+		content: '';
+		position: absolute;
+		width: 10px;
+		height: 2px;
+		background: #b6ce92;
+		right: -8px;
+		bottom: -4px;
+		transform: rotate(45deg);
+		border-radius: 2px;
 	}
 	.testtyper {
 		display: flex;
@@ -793,6 +833,9 @@
 		}
 	}
 	@media (max-width: 950px) {
+		.spillkortliste {
+			grid-template-columns: repeat(2, minmax(0, 1fr));
+		}
 		.spillkort {
 			padding: 23px;
 		}

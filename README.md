@@ -22,12 +22,15 @@ På chatrom-siden følger eleven tre avgrensede kodeforsøk: filtrering per rom,
 
 ### Spill og utfordringer
 
-Spillene har en egen seksjon på forsiden. Begge variantene er tilgjengelige, slik at elevene kan prøve dem og sammenligne hvordan de hjelper dem å forstå chatten.
+Spillene har en egen seksjon på forsiden. Alle tre er tilgjengelige, slik at elevene kan prøve ulike måter å utforske og forstå chatten på.
 
-| Spill                                                        | Adresse på nettstedet  | Oppdrag                                                                                   |
-| ------------------------------------------------------------ | ---------------------- | ----------------------------------------------------------------------------------------- |
-| [Redd chatten](src/routes/spill/redd-chatten/+page.svelte)   | `/spill/redd-chatten/` | Reparer backend-koden, og få serveren til å håndtere både vanlige requests og feilforsøk. |
-| [To nettlesere, én chat](src/routes/spill/chat/+page.svelte) | `/spill/chat/`         | Bygg en handlingsrekke som får riktig melding fram til Noah.                              |
+| Spill                                                                  | Adresse på nettstedet        | Oppdrag                                                                                   |
+| ---------------------------------------------------------------------- | ---------------------------- | ----------------------------------------------------------------------------------------- |
+| [Meldingsdetektiven](src/routes/spill/meldingsdetektiven/+page.svelte) | `/spill/meldingsdetektiven/` | Følg sporene, rett feil i frontend og backend, og test om chatten fungerer.               |
+| [Redd chatten](src/routes/spill/redd-chatten/+page.svelte)             | `/spill/redd-chatten/`       | Reparer backend-koden, og få serveren til å håndtere både vanlige requests og feilforsøk. |
+| [To nettlesere, én chat](src/routes/spill/chat/+page.svelte)           | `/spill/chat/`               | Bygg en handlingsrekke som får riktig melding fram til Noah.                              |
+
+**Meldingsdetektiven** har fire saker med ulike feil på tvers av frontend og backend. Koden står i fokus mens eleven undersøker spor i requests, svar og serverdata, retter feil og tester hva endringen gjør. Feilsøkingen simuleres lokalt i nettleseren.
 
 **Redd chatten** bruker koden som spillebrett. Eleven legger til, bytter og flytter kodeblokker i en feilaktig Express-rute. Tre oppdrag handler om validering før lagring, avsender fra session og kontroll av eierskap før sletting. Virtuelle brukere prøver ulike situasjoner. Vurderingen ser både på svaret og hva som faktisk ble lagret eller slettet, så det er ikke nok å sende riktig HTTP-status. Flere korrekte løsninger kan godtas.
 
@@ -93,6 +96,7 @@ npm run preview
 | `src/lib/chatromLab.js`          | Rene simuleringssteg og kodeutdrag for chatrom, session-avsender og sletting. |
 | `src/lib/chatSpill.js`           | Oppdrag, handlingskort, kjøreplaner og målsjekker for det første chatspillet. |
 | `src/lib/reddChatten.js`         | Backend-blokker, requests og vurdering av svar og data i Redd chatten.        |
+| `src/lib/meldingsdetektiven.js`  | Saker, kode, spor og simulerte feilforsøk i Meldingsdetektiven.               |
 | `docs/serverdrift.md`            | Publisering, kontroll av serveren og feilsøking.                              |
 
 ### Legge til en ny undervisningsside
