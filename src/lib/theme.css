@@ -1,6 +1,14 @@
 /* Shared UI roles. Pages keep their own layout and use these colors in both themes. */
 :root {
 	color-scheme: light;
+	/* Shared reading sizes. Keep these in rem so browser text preferences also apply. */
+	--font-body: 1rem;
+	--font-small: 0.875rem;
+	--font-meta: 0.8125rem;
+	--font-code: 0.9375rem;
+	--font-code-small: 0.875rem;
+	--leading-body: 1.6;
+	--leading-code: 1.65;
 	--color-page: #f4f5ef;
 	--color-surface: #fffdf8;
 	--color-surface-raised: #ffffff;
@@ -89,6 +97,8 @@ body {
 
 body {
 	margin: 0;
+	font-size: var(--font-body);
+	line-height: var(--leading-body);
 }
 
 ::selection {

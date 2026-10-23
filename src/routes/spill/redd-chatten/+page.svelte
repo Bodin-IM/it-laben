@@ -1,7 +1,8 @@
 <script>
 	import ThemeToggle from '#lib/components/ThemeToggle.svelte';
-	import { onMount, onDestroy } from 'svelte';
+	import { onMount, onDestroy, tick } from 'svelte';
 	import BackendRouteEditor from '#lib/components/BackendRouteEditor.svelte';
+	import RequestWalkthrough from '#lib/components/RequestWalkthrough.svelte';
 	import {
 		MISSIONS,
 		blocksFor,
@@ -10,12 +11,14 @@
 		casesFor,
 		evaluateProgram,
 		evaluateCase,
+		walkthroughCase,
 		programCode
 	} from '#lib/reddChatten.js';
 
 	/** @typedef {import('#lib/reddChatten.js').Run} Run */
 	/** @typedef {import('#lib/reddChatten.js').CaseResult} CaseResult */
 	/** @typedef {import('#lib/reddChatten.js').Message} Message */
+	/** @typedef {import('#lib/reddChatten.js').Walkthrough} Walkthrough */
 	/** @typedef {{caseIndex:number, traceIndex:number, phase:'arrive'|'step'|'verdict'}} Frame */
 	/** @typedef {{caseId:string, programKey:string, result:CaseResult}} Sample */
 
@@ -48,6 +51,9 @@
 	let dataOpen = $state(false);
 	let announcement = $state('');
 	let executionError = $state('');
+	/** @type {Walkthrough|null} */
+	let walkthrough = $state(null);
+	let walkthroughIndex = $state(0);
 	let narrow = $state(false);
 	let reducedMotion = $state(false);
 	/** @type {ReturnType<typeof setTimeout>|null} */
@@ -70,6 +76,19 @@
 	let frame = $derived(frameIndex >= 0 ? playback[frameIndex] : null);
 	let currentCaseIndex = $derived(running && frame ? frame.caseIndex : selectedCaseIndex);
 	let scenario = $derived(cases[currentCaseIndex]);
+	let walkthroughFrame = $derived.by(() => walkthrough?.frames[walkthroughIndex] ?? null);
+	let previousWalkthroughFrame = $derived.by(
+		() => walkthrough?.frames[walkthroughIndex - 1] ?? null
+	);
+	let activeLineIds = $derived(walkthroughFrame?.lineIds ?? []);
+	let walkthroughSource = $derived.by(() =>
+		activeLineIds.flatMap((id) => {
+			if (id.startsWith('opening-')) return [frameCode.opening[Number(id.split('-')[1]) - 1]];
+			if (id.startsWith('closing-')) return [frameCode.closing[Number(id.split('-')[1]) - 1]];
+			const line = blocks.flatMap((block) => block.lines).find((line) => line.id === id);
+			return line ? [line.text] : [];
+		})
+	);
 	let usingSample = $derived.by(
 		() => !running && sample?.caseId === scenario.id && sample.programKey === programKey
 	);
@@ -118,15 +137,19 @@
 				: (currentResult?.trace ?? [])
 	);
 	let executedBlockIds = $derived(
-		shownTrace.filter((step) => step.executed).map((step) => step.blockId)
+		walkthroughFrame?.executedBlockIds ??
+			shownTrace.filter((step) => step.executed).map((step) => step.blockId)
 	);
 	let skippedBlockIds = $derived(
-		shownTrace.filter((step) => !step.executed).map((step) => step.blockId)
+		walkthroughFrame?.skippedBlockIds ??
+			shownTrace.filter((step) => !step.executed).map((step) => step.blockId)
 	);
 	let activeBlockId = $derived(
-		resultIsCurrent && !previewingStart
-			? (currentStep?.blockId ?? (verdictVisible ? (currentResult?.faultBlockId ?? null) : null))
-			: null
+		walkthroughFrame
+			? walkthroughFrame.blockId
+			: resultIsCurrent && !previewingStart
+				? (currentStep?.blockId ?? (verdictVisible ? (currentResult?.faultBlockId ?? null) : null))
+				: null
 	);
 	let visiblePassed = $derived.by(() =>
 		running && pendingRun
@@ -167,7 +190,49 @@
 	function closeInspection() {
 		inspectedTraceIndex = -1;
 		traceOpen = false;
+		walkthrough = null;
+		walkthroughIndex = 0;
 		revision += 1;
+	}
+	function startWalkthrough() {
+		if (running || mission.id !== 'tekst') return;
+		try {
+			const next = walkthroughCase(mission.id, program, cases[selectedCaseIndex].id);
+			closeInspection();
+			walkthrough = next;
+			executionError = '';
+			announcement = 'Gjennomgangen er klar. Velg Neste for å utføre ett steg av gangen.';
+			void tick().then(() => {
+				testPanel?.querySelector('select')?.focus({ preventScroll: true });
+				if (narrow)
+					testPanel?.scrollIntoView({
+						behavior: reducedMotion ? 'auto' : 'smooth',
+						block: 'start'
+					});
+			});
+		} catch (error) {
+			executionError = error instanceof Error ? error.message : 'Gjennomgangen kunne ikke startes.';
+		}
+	}
+	/** @param {number} index */
+	function walkTo(index) {
+		if (!walkthrough || index < 0 || index >= walkthrough.frames.length) return;
+		walkthroughIndex = index;
+		revision += 1;
+	}
+	/** @param {number} index */
+	function chooseWalkthroughCase(index) {
+		if (index < 0 || index >= cases.length) return;
+		selectedCaseIndex = index;
+		startWalkthrough();
+	}
+	function endWalkthrough() {
+		closeInspection();
+		announcement = 'Gjennomgangen er avsluttet. Du kan endre koden eller teste alle situasjonene.';
+		void tick().then(() => {
+			const launch = testPanel?.querySelector('button.walkthrough-launch');
+			if (launch instanceof HTMLElement) launch.focus({ preventScroll: true });
+		});
 	}
 	/** @param {string[]} next @param {string} message */
 	function changeProgram(next, message) {
@@ -406,6 +471,9 @@
 				<h2 id="mission-title" tabindex="-1" bind:this={missionHeading}>{mission.title}</h2>
 				<p>{mission.brief}</p>
 				<strong>{mission.goal}</strong>
+				<ul class="mission-requirements" aria-label="De viktigste kravene">
+					{#each mission.requirements as requirement}<li>{requirement}</li>{/each}
+				</ul>
 			</div>
 			<div class="mission-tools">
 				<button
@@ -418,7 +486,7 @@
 					<span aria-hidden="true">?</span></button
 				>
 				<details class="contract">
-					<summary>Hva må serveren klare?</summary>
+					<summary>Se alle krav og detaljer</summary>
 					<ul>
 						{#each mission.contract as rule}<li>{rule}</li>{/each}
 					</ul>
@@ -452,6 +520,7 @@
 					onprogramchange={changeProgram}
 					onexplain={pauseForCode}
 					{activeBlockId}
+					{activeLineIds}
 					{executedBlockIds}
 					{skippedBlockIds}
 					explanationBoundary={explanationBoundary ?? null}
@@ -462,297 +531,340 @@
 						>{program.length}/{mission.maxBlocks} blokker</span
 					>
 				</div>
-				{#if stale && !running}<p class="dirty-note">
+				{#if stale && !running && !walkthrough}<p class="dirty-note">
 						<span aria-hidden="true">●</span> Koden er endret. Resultatene til høyre gjelder forrige prøverunde.
 					</p>{/if}
 			</section>
 
-			<aside class="test-column" bind:this={explanationBoundary} aria-labelledby="test-title">
+			<aside
+				class="test-column"
+				bind:this={explanationBoundary}
+				aria-label="Prøv og undersøk serverkoden"
+			>
 				<div class="test-panel" bind:this={testPanel}>
-					<div class="section-heading">
-						<div>
-							<p class="eyebrow">02 / PRØV DET</p>
-							<h2 id="test-title">Tåler den brukerne?</h2>
-						</div>
-						<span
-							class="server-led"
-							class:good={currentPassed && !running}
-							class:working={running && !paused}
-							aria-label={running
-								? 'Prøver kode'
-								: currentPassed
-									? 'Alle prøver bestått'
-									: 'Serveren trenger en reparasjon'}
-						></span>
-					</div>
-					<div class="run-controls">
-						<button type="button" class="launch" disabled={running} onclick={testAll}
-							><span aria-hidden="true">▶</span>{running
-								? paused
-									? 'Prøverunden er pauset'
-									: 'Brukerne prøver koden …'
-								: attempts[missionIndex]
-									? 'Test hele chatten igjen'
-									: 'Slipp inn brukerne'}<span class="launch-count">{cases.length}</span></button
-						>
-						<div class="play-controls">
-							{#if running}<button type="button" class="pill-button" onclick={togglePause}
-									>{paused ? 'Fortsett' : 'Pause'}</button
-								><button type="button" class="text-button" onclick={finishNow}
-									>Vis alle resultater</button
-								><button
-									type="button"
-									class="icon-button"
-									onclick={cancelRun}
-									aria-label="Avbryt prøverunden">×</button
-								>{:else}<span
-									>{attempts[missionIndex]
-										? `Prøverunde ${attempts[missionIndex]}`
-										: 'Både vanlige meldinger og feilforsøk'}</span
-								><label class="speed-label"
-									><span class="sr-only">Tempo på prøverunden</span><select bind:value={speed}
-										><option value={1}>Vanlig</option><option value={0.5}>Rask</option><option
-											value={2.4}>Rolig</option
-										></select
-									></label
-								>{/if}
-						</div>
-					</div>
-					{#if executionError}<p role="alert" class="execution-error">{executionError}</p>{/if}
-					<div
-						class="score"
-						class:all-good={currentPassed && !running}
-						class:stale={stale && !running}
-						data-testid="rescue-score"
-						data-success={currentPassed && !running}
-						data-stale={stale && !running}
-					>
-						<div>
-							<strong
-								>{showScore ? `${visiblePassed}/${cases.length}` : '– / ' + cases.length}</strong
-							><span
-								>{running
-									? `${revealedCount} av ${cases.length} prøvd${paused ? ' · pause' : ''}`
-									: stale
-										? 'Forrige runde · kode endret'
-										: run
-											? 'situasjoner håndtert riktig'
-											: 'situasjoner venter'}</span
-							>
-						</div>
-						<div class="score-track" aria-hidden="true">
-							<span style:width={`${(visiblePassed / cases.length) * 100}%`}></span>
-						</div>
-						{#if improvement !== null && !running && !stale}<small
-								>{improvement > 0
-									? `+${improvement} flere enn forrige runde`
-									: improvement < 0
-										? `${Math.abs(improvement)} færre enn forrige runde. Undersøk hva som endret seg.`
-										: 'Samme antall som forrige runde.'}</small
-							>{/if}
-					</div>
-					<div class="case-queue" role="group" aria-label="Velg en situasjon å undersøke">
-						{#each cases as item, index}{@const outcome = queueResult(index)}<button
-								type="button"
-								class:active={currentCaseIndex === index}
-								class:passed={outcome?.passed}
-								class:failed={outcome && !outcome.passed}
-								disabled={running}
-								aria-pressed={currentCaseIndex === index}
-								aria-label={`${item.name}${outcome ? (outcome.passed ? ' · riktig håndtert' : ' · må rettes') : ''}`}
-								onclick={() => chooseCase(index)}
-								data-case-id={item.id}
-								><span class="case-person" aria-hidden="true"
-									>{outcome
-										? outcome.passed
-											? '✓'
-											: '×'
-										: String(index + 1).padStart(2, '0')}</span
-								><span>{item.name}</span></button
-							>{/each}
-					</div>
-					<section
-						class="request-card"
-						aria-labelledby="request-title"
-						class:arriving={running && frame?.phase === 'arrive'}
-						data-testid="rescue-request"
-						data-case-id={scenario.id}
-						data-phase={running ? frame?.phase : 'inspect'}
-					>
-						<div class="request-heading">
-							<span class="avatar" aria-hidden="true">{scenario.actor.slice(0, 1)}</span>
+					{#if walkthrough && walkthroughFrame}
+						<RequestWalkthrough
+							frame={walkthroughFrame}
+							previous={previousWalkthroughFrame}
+							index={walkthroughIndex}
+							total={walkthrough.frames.length}
+							{cases}
+							caseIndex={selectedCaseIndex}
+							source={walkthroughSource}
+							result={walkthroughFrame.phase === 'done' ? walkthrough.result : null}
+							onstep={walkTo}
+							oncase={chooseWalkthroughCase}
+							onclose={endWalkthrough}
+							ontestall={testAll}
+						/>
+					{:else}
+						<div class="section-heading">
 							<div>
-								<h3 id="request-title">{scenario.name}</h3>
-								<span
-									>{scenario.actor} <b>·</b>
-									{scenario.kind === 'normal'
-										? 'Vanlig bruk'
-										: scenario.kind === 'edge'
-											? 'Et grensetilfelle'
-											: 'Et forsøk som utfordrer reglene'}</span
-								>
+								<p class="eyebrow">02 / PRØV DET</p>
+								<h2 id="test-title">Tåler den brukerne?</h2>
 							</div>
 							<span
-								class="http-status"
-								class:bad={displayedStatus !== null && displayedStatus >= 400}
-								>{displayedStatus ?? (verdictVisible ? 'Ingen svar' : 'HTTP')}</span
-							>
+								class="server-led"
+								class:good={currentPassed && !running}
+								class:working={running && !paused}
+								aria-label={running
+									? 'Prøver kode'
+									: currentPassed
+										? 'Alle prøver bestått'
+										: 'Serveren trenger en reparasjon'}
+							></span>
 						</div>
-						<p class="request-brief">{scenario.brief}</p>
-						<dl class="request-data">
-							<div>
-								<dt>Request</dt>
-								<dd>
-									<code
-										>{mission.method}
-										{mission.path.replace(':id', scenario.request.params.id ?? '')}</code
-									>
-								</dd>
-							</div>
-							<div>
-								<dt>Session</dt>
-								<dd>{scenario.request.session.bruker?.navn ?? 'Ikke innlogget'}</dd>
-							</div>
-							{#if mission.method === 'POST'}<div>
-									<dt>Tekst i body</dt>
-									<dd>
-										<code class="quoted-input">{inlineValue(scenario.request.body.tekst)}</code>
-									</dd>
-								</div>{/if}{#if mission.id !== 'tekst'}<div>
-									<dt>Avsender i body</dt>
-									<dd>
-										<code
-											>{scenario.request.body.avsender ??
-												scenario.request.body.avsenderId ??
-												'(ikke oppgitt)'}</code
-										>
-									</dd>
-								</div>{/if}
-						</dl>
-						{#if currentStep}<p class="step-now" data-testid="rescue-current-step">
-								<span
-									>{running ? 'KJØRER NÅ' : 'TILBAKEBLIKK'} · {currentStep.executed
-										? 'blokk ' + (currentStep.index + 1)
-										: 'hoppet over'}</span
-								>{currentStep.explanation}
-							</p>{:else if running && frame?.phase === 'arrive'}<p class="step-now">
-								<span>INNKOMMENDE REQUEST</span>En ny situasjon begynner med sine egne startdata.
-							</p>{/if}
-						{#if verdictVisible && currentResult}<div
-								class="case-feedback"
-								class:passed={currentResult.passed}
-								class:failed={!currentResult.passed}
-								class:old={!resultIsCurrent}
-								data-testid="rescue-feedback"
-								data-passed={currentResult.passed}
+						<div class="run-controls">
+							<button type="button" class="launch" disabled={running} onclick={testAll}
+								><span aria-hidden="true">▶</span>{running
+									? paused
+										? 'Prøverunden er pauset'
+										: 'Brukerne prøver koden …'
+									: attempts[missionIndex]
+										? 'Test hele chatten igjen'
+										: 'Slipp inn brukerne'}<span class="launch-count">{cases.length}</span></button
 							>
+							<div class="play-controls">
+								{#if running}<button type="button" class="pill-button" onclick={togglePause}
+										>{paused ? 'Fortsett' : 'Pause'}</button
+									><button type="button" class="text-button" onclick={finishNow}
+										>Vis alle resultater</button
+									><button
+										type="button"
+										class="icon-button"
+										onclick={cancelRun}
+										aria-label="Avbryt prøverunden">×</button
+									>{:else}<span
+										>{attempts[missionIndex]
+											? `Prøverunde ${attempts[missionIndex]}`
+											: 'Både vanlige meldinger og feilforsøk'}</span
+									><label class="speed-label"
+										><span class="sr-only">Tempo på prøverunden</span><select bind:value={speed}
+											><option value={1}>Vanlig</option><option value={0.5}>Rask</option><option
+												value={2.4}>Rolig</option
+											></select
+										></label
+									>{/if}
+							</div>
+						</div>
+						{#if mission.id === 'tekst'}
+							<button
+								type="button"
+								class="walkthrough-launch"
+								disabled={running}
+								onclick={startWalkthrough}
+							>
+								<span aria-hidden="true">↳</span> Følg requesten steg for steg
+							</button>
+						{/if}
+						{#if executionError}<p role="alert" class="execution-error">{executionError}</p>{/if}
+						<div
+							class="score"
+							class:all-good={currentPassed && !running}
+							class:stale={stale && !running}
+							data-testid="rescue-score"
+							data-success={currentPassed && !running}
+							data-stale={stale && !running}
+						>
+							<div>
+								<strong
+									>{showScore ? `${visiblePassed}/${cases.length}` : '– / ' + cases.length}</strong
+								><span
+									>{running
+										? `${revealedCount} av ${cases.length} prøvd${paused ? ' · pause' : ''}`
+										: stale
+											? 'Forrige runde · kode endret'
+											: run
+												? 'situasjoner håndtert riktig'
+												: 'situasjoner venter'}</span
+								>
+							</div>
+							<div class="score-track" aria-hidden="true">
+								<span style:width={`${(visiblePassed / cases.length) * 100}%`}></span>
+							</div>
+							{#if improvement !== null && !running && !stale}<small
+									>{improvement > 0
+										? `+${improvement} flere enn forrige runde`
+										: improvement < 0
+											? `${Math.abs(improvement)} færre enn forrige runde. Undersøk hva som endret seg.`
+											: 'Samme antall som forrige runde.'}</small
+								>{/if}
+						</div>
+						{#if currentPassed && !running}
+							<section class="mission-win" data-testid="rescue-win" aria-labelledby="win-title">
+								<p class="eyebrow">✓ REPARASJON {mission.number} GODKJENT</p>
+								<h3 id="win-title">Dette fikk du til</h3>
+								<dl class="takeaway">
+									<div>
+										<dt>Dette gjør løsningen din</dt>
+										<dd>{mission.takeaway.does}</dd>
+									</div>
+									<div>
+										<dt>Derfor fungerer det</dt>
+										<dd>{mission.takeaway.why}</dd>
+									</div>
+									<div>
+										<dt>Ta med deg videre</dt>
+										<dd>{mission.takeaway.transfer}</dd>
+									</div>
+								</dl>
+								{#if missionIndex < MISSIONS.length - 1}
+									<button
+										type="button"
+										class="next-mission"
+										onclick={() => changeMission(missionIndex + 1)}
+										>Neste reparasjon <span aria-hidden="true">→</span></button
+									>
+								{:else}<a class="next-mission" href="/spill/chat/">Sammenlign med første spill ↗</a
+									>{/if}
+							</section>
+						{/if}
+						<div class="case-queue" role="group" aria-label="Velg en situasjon å undersøke">
+							{#each cases as item, index}{@const outcome = queueResult(index)}<button
+									type="button"
+									class:active={currentCaseIndex === index}
+									class:passed={outcome?.passed}
+									class:failed={outcome && !outcome.passed}
+									disabled={running}
+									aria-pressed={currentCaseIndex === index}
+									aria-label={`${item.name}${outcome ? (outcome.passed ? ' · riktig håndtert' : ' · må rettes') : ''}`}
+									onclick={() => chooseCase(index)}
+									data-case-id={item.id}
+									><span class="case-person" aria-hidden="true"
+										>{outcome
+											? outcome.passed
+												? '✓'
+												: '×'
+											: String(index + 1).padStart(2, '0')}</span
+									><span>{item.name}</span></button
+								>{/each}
+						</div>
+						<section
+							class="request-card"
+							aria-labelledby="request-title"
+							class:arriving={running && frame?.phase === 'arrive'}
+							data-testid="rescue-request"
+							data-case-id={scenario.id}
+							data-phase={running ? frame?.phase : 'inspect'}
+						>
+							<div class="request-heading">
+								<span class="avatar" aria-hidden="true">{scenario.actor.slice(0, 1)}</span>
 								<div>
-									<span aria-hidden="true">{currentResult.passed ? '✓' : '!'}</span><strong
-										>{!resultIsCurrent
-											? 'Fra forrige prøverunde'
-											: usingSample
-												? 'Enkeltprøve'
-												: currentResult.passed
-													? 'Riktig håndtert'
-													: 'Her må noe repareres'}</strong
+									<h3 id="request-title">{scenario.name}</h3>
+									<span
+										>{scenario.actor} <b>·</b>
+										{scenario.kind === 'normal'
+											? 'Vanlig bruk'
+											: scenario.kind === 'edge'
+												? 'Et grensetilfelle'
+												: 'Et forsøk som utfordrer reglene'}</span
 									>
 								</div>
-								<p>{currentResult.feedback}</p>
-								{#if usingSample}<small>Test alle brukerne for å få reparasjonen godkjent.</small
-									>{/if}
-							</div>{:else if !running}<p class="start-prompt">
-								Test startkoden først, eller gjør en endring du tror vil hjelpe.
-							</p>{/if}
-						{#if !running}<button type="button" class="single-test" onclick={testOne}
-								>Prøv bare denne requesten <span aria-hidden="true">↗</span></button
-							>{/if}
-					</section>
-					{#if currentResult && !running}<details class="trace-detail" bind:open={traceOpen}>
-							<summary>Følg requesten gjennom koden <span aria-hidden="true">+</span></summary
-							>{#if !resultIsCurrent}<p class="stale-trace">
-									Koden er endret. Kjør requesten på nytt for å følge den nye koden.
-								</p>{:else}<p class="trace-intro">
-									Velg en blokk. Koden og dataene viser det tidspunktet.
-								</p>
-								<ol>
-									{#each currentResult.trace as step, index}<li>
-											<button
-												type="button"
-												class:selected={inspectedTraceIndex === index}
-												class:skipped={!step.executed}
-												aria-pressed={inspectedTraceIndex === index}
-												onclick={() => inspectStep(index)}
-												><span>{step.executed ? (step.stopped ? '■' : '↓') : '–'}</span>
-												<div>
-													<strong>{blockName(step.blockId)}</strong><small
-														>{!step.executed
-															? 'Hoppet over'
-															: step.stopped
-																? 'Ruten stopper her'
-																: 'Utført'}</small
-													>
-												</div></button
+								<span
+									class="http-status"
+									class:bad={displayedStatus !== null && displayedStatus >= 400}
+									>{displayedStatus ?? (verdictVisible ? 'Ingen svar' : 'HTTP')}</span
+								>
+							</div>
+							<p class="request-brief">{scenario.brief}</p>
+							<dl class="request-data">
+								<div>
+									<dt>Request</dt>
+									<dd>
+										<code
+											>{mission.method}
+											{mission.path.replace(':id', scenario.request.params.id ?? '')}</code
+										>
+									</dd>
+								</div>
+								<div>
+									<dt>Session</dt>
+									<dd>{scenario.request.session.bruker?.navn ?? 'Ikke innlogget'}</dd>
+								</div>
+								{#if mission.method === 'POST'}<div>
+										<dt>Tekst i body</dt>
+										<dd>
+											<code class="quoted-input">{inlineValue(scenario.request.body.tekst)}</code>
+										</dd>
+									</div>{/if}{#if mission.id !== 'tekst'}<div>
+										<dt>Avsender i body</dt>
+										<dd>
+											<code
+												>{scenario.request.body.avsender ??
+													scenario.request.body.avsenderId ??
+													'(ikke oppgitt)'}</code
 											>
-										</li>{/each}
-								</ol>
-								{#if currentResult.trace.length === 0}<p class="trace-intro">
-										Ruten har ingen blokker og sender ikke noe svar.
-									</p>{/if}{/if}
-						</details>{/if}
-					<details class="data-detail" bind:open={dataOpen}>
-						<summary>Se request og data <span aria-hidden="true">+</span></summary>
-						<div class="data-content">
-							<h4>Request</h4>
-							<pre><code>{json(scenario.request)}</code></pre>
-							<h4>Serverlisten før denne requesten</h4>
-							<p class="id-list">{messageIds(scenario.initialMessages)}</p>
-							<pre data-testid="rescue-before"><code>{json(scenario.initialMessages)}</code></pre>
-							<h4>
-								{previewingStart
-									? 'Serverlisten ved ankomst'
-									: currentStep
-										? 'Serverlisten ved valgt blokk'
-										: currentResult
-											? 'Serverlisten etter requesten'
-											: 'Serverlisten nå'}
-							</h4>
-							<p class="id-list">{messageIds(displayedMessages)}</p>
-							<pre data-testid="rescue-after"><code>{json(displayedMessages)}</code></pre>
-							{#if currentResult}<h4>{currentStep ? 'Svar ved valgt blokk' : 'Svar fra ruten'}</h4>
-								<pre data-testid="rescue-response"><code
-										>{displayedStatus === null
-											? 'Ruten har ikke svart.'
-											: json(displayedResponse)}</code
-									></pre>
-								<h4>Prøven forventet</h4>
-								<p class="expected">{currentResult.expectedSummary}</p>{/if}
-						</div>
-					</details>
-					<p class="fresh-start">
-						Hver request får sine egne startdata. Feil i én prøve påvirker ikke den neste.
-					</p>
+										</dd>
+									</div>{/if}
+							</dl>
+							{#if currentStep}<p class="step-now" data-testid="rescue-current-step">
+									<span
+										>{running ? 'KJØRER NÅ' : 'TILBAKEBLIKK'} · {currentStep.executed
+											? 'blokk ' + (currentStep.index + 1)
+											: 'hoppet over'}</span
+									>{currentStep.explanation}
+								</p>{:else if running && frame?.phase === 'arrive'}<p class="step-now">
+									<span>INNKOMMENDE REQUEST</span>En ny situasjon begynner med sine egne startdata.
+								</p>{/if}
+							{#if verdictVisible && currentResult}<div
+									class="case-feedback"
+									class:passed={currentResult.passed}
+									class:failed={!currentResult.passed}
+									class:old={!resultIsCurrent}
+									data-testid="rescue-feedback"
+									data-passed={currentResult.passed}
+								>
+									<div>
+										<span aria-hidden="true">{currentResult.passed ? '✓' : '!'}</span><strong
+											>{!resultIsCurrent
+												? 'Fra forrige prøverunde'
+												: usingSample
+													? 'Enkeltprøve'
+													: currentResult.passed
+														? 'Riktig håndtert'
+														: 'Her må noe repareres'}</strong
+										>
+									</div>
+									<p>{currentResult.feedback}</p>
+									{#if usingSample}<small>Test alle brukerne for å få reparasjonen godkjent.</small
+										>{/if}
+								</div>{:else if !running}<p class="start-prompt">
+									Test startkoden først, eller gjør en endring du tror vil hjelpe.
+								</p>{/if}
+							{#if !running}<button type="button" class="single-test" onclick={testOne}
+									>Prøv bare denne requesten <span aria-hidden="true">↗</span></button
+								>{/if}
+						</section>
+						{#if currentResult && !running}<details class="trace-detail" bind:open={traceOpen}>
+								<summary>Se gjennom kjøringen <span aria-hidden="true">+</span></summary
+								>{#if !resultIsCurrent}<p class="stale-trace">
+										Koden er endret. Kjør requesten på nytt for å følge den nye koden.
+									</p>{:else}<p class="trace-intro">
+										Velg en blokk. Koden og dataene viser det tidspunktet.
+									</p>
+									<ol>
+										{#each currentResult.trace as step, index}<li>
+												<button
+													type="button"
+													class:selected={inspectedTraceIndex === index}
+													class:skipped={!step.executed}
+													aria-pressed={inspectedTraceIndex === index}
+													onclick={() => inspectStep(index)}
+													><span>{step.executed ? (step.stopped ? '■' : '↓') : '–'}</span>
+													<div>
+														<strong>{blockName(step.blockId)}</strong><small
+															>{!step.executed
+																? 'Hoppet over'
+																: step.stopped
+																	? 'Ruten stopper her'
+																	: 'Utført'}</small
+														>
+													</div></button
+												>
+											</li>{/each}
+									</ol>
+									{#if currentResult.trace.length === 0}<p class="trace-intro">
+											Ruten har ingen blokker og sender ikke noe svar.
+										</p>{/if}{/if}
+							</details>{/if}
+						<details class="data-detail" bind:open={dataOpen}>
+							<summary>Se request og data <span aria-hidden="true">+</span></summary>
+							<div class="data-content">
+								<h4>Request</h4>
+								<pre><code>{json(scenario.request)}</code></pre>
+								<h4>Serverlisten før denne requesten</h4>
+								<p class="id-list">{messageIds(scenario.initialMessages)}</p>
+								<pre data-testid="rescue-before"><code>{json(scenario.initialMessages)}</code></pre>
+								<h4>
+									{previewingStart
+										? 'Serverlisten ved ankomst'
+										: currentStep
+											? 'Serverlisten ved valgt blokk'
+											: currentResult
+												? 'Serverlisten etter requesten'
+												: 'Serverlisten nå'}
+								</h4>
+								<p class="id-list">{messageIds(displayedMessages)}</p>
+								<pre data-testid="rescue-after"><code>{json(displayedMessages)}</code></pre>
+								{#if currentResult}<h4>
+										{currentStep ? 'Svar ved valgt blokk' : 'Svar fra ruten'}
+									</h4>
+									<pre data-testid="rescue-response"><code
+											>{displayedStatus === null
+												? 'Ruten har ikke svart.'
+												: json(displayedResponse)}</code
+										></pre>
+									<h4>Prøven forventet</h4>
+									<p class="expected">{currentResult.expectedSummary}</p>{/if}
+							</div>
+						</details>
+						<p class="fresh-start">
+							Hver request får sine egne startdata. Feil i én prøve påvirker ikke den neste.
+						</p>
+					{/if}
 				</div>
 			</aside>
 		</div>
-
-		{#if currentPassed && !running}<section class="mission-win" data-testid="rescue-win">
-				<span class="win-badge" aria-hidden="true">✓</span>
-				<div>
-					<p class="eyebrow">REPARASJON {mission.number} GODKJENT</p>
-					<h2>
-						{missionIndex === 2
-							? 'Chatten klarte hele prøverunden.'
-							: 'Denne delen av chatten virker.'}
-					</h2>
-					<p>{mission.lesson}</p>
-				</div>
-				{#if missionIndex < MISSIONS.length - 1}<button
-						type="button"
-						class="next-mission"
-						onclick={() => changeMission(missionIndex + 1)}
-						>Neste reparasjon <span aria-hidden="true">→</span></button
-					>{:else}<a class="next-mission" href="/spill/chat/">Sammenlign med første spill ↗</a>{/if}
-			</section>{/if}
 
 		<details class="learn-more">
 			<summary>Fra spillet til din egen chat <span aria-hidden="true">+</span></summary>
@@ -768,7 +880,7 @@
 				</p>
 				<p>
 					Fremdriften beholdes mens denne spillsiden er åpen. Alle kravene i et oppdrag står under
-					«Hva må serveren klare?».
+					«Se alle krav og detaljer».
 				</p>
 				<details class="full-source">
 					<summary>Se din nåværende rute som samlet kode</summary>
@@ -808,8 +920,8 @@
 			'Segoe UI',
 			sans-serif;
 		color: var(--ink);
-		font-size: 14px;
-		line-height: 1.5;
+		font-size: var(--font-body);
+		line-height: var(--leading-body);
 		min-height: 100vh;
 		background: radial-gradient(ellipse at 85% 0%, var(--color-page-glow), transparent 40%);
 	}
@@ -866,7 +978,7 @@
 		border-radius: 5px;
 		background: var(--color-brand);
 		color: var(--color-on-brand);
-		font-size: 13px;
+		font-size: var(--font-small);
 	}
 	.brand-dot {
 		color: var(--teal);
@@ -875,7 +987,7 @@
 	.topbar nav {
 		display: flex;
 		gap: 22px;
-		font-size: 11px;
+		font-size: var(--font-small);
 		color: var(--muted);
 	}
 	.topbar nav a {
@@ -893,7 +1005,7 @@
 		padding: 25px 0 23px;
 	}
 	.eyebrow {
-		font-size: 9px;
+		font-size: var(--font-meta);
 		font-weight: 750;
 		letter-spacing: 1.4px;
 		color: var(--teal);
@@ -927,12 +1039,12 @@
 	}
 	.intro > div > p:last-child {
 		margin-bottom: 0;
-		font-size: 12px;
+		font-size: var(--font-body);
 		color: var(--muted);
 	}
 	.campaign > span {
 		display: block;
-		font-size: 10px;
+		font-size: var(--font-meta);
 		text-align: right;
 		color: var(--muted);
 		margin-bottom: 9px;
@@ -952,7 +1064,7 @@
 		border-radius: 7px;
 		padding: 10px 13px;
 		color: var(--color-text-muted);
-		font-size: 11px;
+		font-size: var(--font-small);
 		font-weight: 650;
 		min-width: 108px;
 		text-align: left;
@@ -965,7 +1077,7 @@
 		color: var(--color-text-subtle);
 	}
 	.mission-tabs small {
-		font: 7px/1.5 monospace;
+		font: var(--font-meta)/1.5 monospace;
 		letter-spacing: 1px;
 		color: var(--color-text-subtle);
 	}
@@ -984,7 +1096,7 @@
 	}
 	.mission {
 		display: grid;
-		grid-template-columns: auto minmax(0, 1fr) auto;
+		grid-template-columns: auto minmax(0, 1fr);
 		gap: 15px;
 		padding: 19px 22px;
 		border: 1px solid var(--color-warning-border);
@@ -1008,7 +1120,7 @@
 	}
 	.mission .eyebrow {
 		color: var(--color-warning);
-		font-size: 8px;
+		font-size: var(--font-meta);
 		margin-bottom: 4px;
 	}
 	.mission h2 {
@@ -1018,22 +1130,23 @@
 		letter-spacing: -0.3px;
 	}
 	.mission-copy > p:not(.eyebrow) {
-		font-size: 11px;
+		font-size: var(--font-body);
 		color: var(--color-text-muted);
 		margin-bottom: 7px;
 		max-width: 740px;
 	}
 	.mission-copy > strong {
 		display: block;
-		font-size: 11px;
+		font-size: var(--font-body);
 		font-weight: 650;
 		color: var(--color-text-muted);
 	}
 	.mission-tools {
-		width: 205px;
+		grid-column: 2 / -1;
+		width: 100%;
 		max-width: 100%;
 		display: grid;
-		justify-items: end;
+		justify-items: start;
 		gap: 9px;
 	}
 	.quiet,
@@ -1042,7 +1155,7 @@
 		background: transparent;
 		padding: 3px 0;
 		color: var(--color-text-muted);
-		font-size: 10px;
+		font-size: var(--font-small);
 	}
 	.quiet:hover,
 	.text-button:hover {
@@ -1064,10 +1177,10 @@
 		text-decoration: none;
 	}
 	.contract {
-		font-size: 10px;
+		font-size: var(--font-small);
 		width: 100%;
 		color: var(--color-text-muted);
-		text-align: right;
+		text-align: left;
 	}
 	summary {
 		cursor: pointer;
@@ -1090,12 +1203,12 @@
 		padding: 10px 13px;
 		border-left: 3px solid var(--color-warning-border);
 		background: var(--color-warning-soft);
-		font-size: 11px;
+		font-size: var(--font-body);
 		color: var(--color-warning);
 	}
 	.workbench {
 		display: grid;
-		grid-template-columns: minmax(0, 1fr) 346px;
+		grid-template-columns: minmax(0, 1fr) 390px;
 		gap: 25px;
 		align-items: stretch;
 	}
@@ -1111,7 +1224,7 @@
 		margin-bottom: 10px;
 	}
 	.section-heading .eyebrow {
-		font-size: 8px;
+		font-size: var(--font-meta);
 		letter-spacing: 1.1px;
 		margin-bottom: 3px;
 	}
@@ -1123,7 +1236,7 @@
 	}
 	.editor-intro {
 		margin: 0 0 12px;
-		font-size: 11px;
+		font-size: var(--font-body);
 		color: var(--muted);
 	}
 	.code-meta {
@@ -1133,7 +1246,7 @@
 		gap: 12px;
 		margin-top: 9px;
 		color: var(--color-text-subtle);
-		font-size: 9px;
+		font-size: var(--font-meta);
 	}
 	.code-meta > span:first-child {
 		display: flex;
@@ -1155,11 +1268,11 @@
 		border-radius: 6px;
 		padding: 9px 12px;
 		margin: 14px 0 0;
-		font-size: 10px;
+		font-size: var(--font-meta);
 		color: var(--color-text-muted);
 	}
 	.dirty-note span {
-		font-size: 7px;
+		font-size: var(--font-meta);
 	}
 	.test-panel {
 		position: sticky;
@@ -1193,7 +1306,7 @@
 		color: var(--color-on-action);
 		border-radius: 7px;
 		padding: 12px 13px;
-		font-size: 12px;
+		font-size: var(--font-small);
 		font-weight: 650;
 		box-shadow: 0 3px 0 var(--color-shadow);
 	}
@@ -1206,7 +1319,7 @@
 		box-shadow: 0 3px 0 var(--color-shadow);
 	}
 	.launch > span:first-child {
-		font-size: 11px;
+		font-size: var(--font-small);
 	}
 	.launch-count {
 		display: grid;
@@ -1216,7 +1329,7 @@
 		min-width: 21px;
 		height: 21px;
 		border-radius: 5px;
-		font: 10px monospace;
+		font: var(--font-meta) monospace;
 		color: var(--color-on-action);
 	}
 	.play-controls {
@@ -1228,7 +1341,7 @@
 	}
 	.play-controls > span {
 		margin-right: auto;
-		font-size: 9px;
+		font-size: var(--font-meta);
 	}
 	.speed-label {
 		margin-left: auto;
@@ -1236,7 +1349,7 @@
 	.speed-label select {
 		max-width: 78px;
 		padding: 3px 4px;
-		font-size: 9px;
+		font-size: var(--font-small);
 		color: var(--color-text-muted);
 		border: 1px solid var(--line);
 		border-radius: 4px;
@@ -1248,7 +1361,7 @@
 		border-radius: 4px;
 		background: var(--color-surface-soft);
 		color: var(--color-text-muted);
-		font-size: 10px;
+		font-size: var(--font-small);
 	}
 	.icon-button {
 		margin-left: auto;
@@ -1263,7 +1376,7 @@
 		background: var(--color-danger-soft);
 		padding: 9px;
 		color: var(--color-danger);
-		font-size: 11px;
+		font-size: var(--font-small);
 		border-radius: 5px;
 	}
 	.score {
@@ -1285,7 +1398,7 @@
 		line-height: 1.2;
 	}
 	.score span {
-		font-size: 10px;
+		font-size: var(--font-meta);
 		color: var(--color-text-muted);
 	}
 	.score .score-track {
@@ -1314,7 +1427,7 @@
 	.score small {
 		display: block;
 		margin-top: 5px;
-		font-size: 9px;
+		font-size: var(--font-meta);
 		color: var(--color-text-muted);
 	}
 	.case-queue {
@@ -1335,7 +1448,7 @@
 		background: var(--color-surface-raised);
 		color: var(--color-text-muted);
 		padding: 6px 7px;
-		font-size: 9px;
+		font-size: var(--font-small);
 		line-height: 1.35;
 	}
 	.case-queue button > span:last-child {
@@ -1350,7 +1463,7 @@
 		border: 1px solid var(--color-border);
 		border-radius: 5px;
 		color: var(--color-text-subtle);
-		font: 9px monospace;
+		font: var(--font-meta) monospace;
 	}
 	.case-queue .active {
 		border-color: var(--color-accent);
@@ -1406,14 +1519,14 @@
 		min-width: 0;
 	}
 	.request-heading h3 {
-		font-size: 12px;
+		font-size: var(--font-small);
 		margin: 0 0 3px;
 		line-height: 1.25;
 	}
 	.request-heading > div > span {
 		display: block;
 		color: var(--color-text-subtle);
-		font-size: 8px;
+		font-size: var(--font-meta);
 		line-height: 1.35;
 	}
 	.request-heading b {
@@ -1423,7 +1536,7 @@
 	.http-status {
 		align-self: start;
 		margin-left: auto;
-		font: 9px monospace;
+		font: var(--font-meta) monospace;
 		padding: 4px 6px;
 		color: var(--color-text-muted);
 		background: var(--color-surface-soft);
@@ -1436,7 +1549,7 @@
 		background: var(--color-warning-soft);
 	}
 	.request-brief {
-		font-size: 10px;
+		font-size: var(--font-body);
 		color: var(--color-text-muted);
 		line-height: 1.6;
 		margin: 11px 0;
@@ -1456,18 +1569,18 @@
 	}
 	.request-data dt {
 		color: var(--color-text-subtle);
-		font-size: 9px;
+		font-size: var(--font-meta);
 	}
 	.request-data dd {
 		margin: 0;
 		color: var(--color-text-muted);
-		font-size: 10px;
+		font-size: var(--font-meta);
 		min-width: 0;
 		overflow-wrap: anywhere;
 	}
 	.request-data code {
 		font:
-			10px/1.6 Consolas,
+			var(--font-code-small)/var(--leading-code) Consolas,
 			'SFMono-Regular',
 			monospace;
 	}
@@ -1478,7 +1591,7 @@
 		border-radius: 3px;
 	}
 	.step-now {
-		font-size: 10px;
+		font-size: var(--font-body);
 		line-height: 1.65;
 		background: var(--color-surface-soft);
 		padding: 10px;
@@ -1488,7 +1601,7 @@
 	}
 	.step-now > span {
 		display: block;
-		font: 7px/1.5 monospace;
+		font: var(--font-meta)/1.5 monospace;
 		letter-spacing: 0.7px;
 		color: var(--color-text-subtle);
 		margin-bottom: 4px;
@@ -1505,7 +1618,7 @@
 		display: flex;
 		align-items: center;
 		gap: 7px;
-		font-size: 10px;
+		font-size: var(--font-meta);
 	}
 	.case-feedback > div > span {
 		display: grid;
@@ -1515,18 +1628,18 @@
 		border: 1px solid var(--color-warning-border);
 		border-radius: 50%;
 		font:
-			10px Georgia,
+			var(--font-meta) Georgia,
 			serif;
 	}
 	.case-feedback p {
-		font-size: 10px;
+		font-size: var(--font-body);
 		line-height: 1.7;
 		margin: 6px 0 0;
 	}
 	.case-feedback small {
 		display: block;
 		margin-top: 6px;
-		font-size: 9px;
+		font-size: var(--font-meta);
 		opacity: 0.8;
 	}
 	.case-feedback.passed {
@@ -1543,7 +1656,7 @@
 		color: var(--color-text-muted);
 	}
 	.start-prompt {
-		font-size: 10px;
+		font-size: var(--font-body);
 		color: var(--color-text-subtle);
 		margin: 12px 0 0;
 		padding-top: 10px;
@@ -1560,7 +1673,7 @@
 		border-top: 1px solid var(--color-border);
 		background: none;
 		color: var(--color-text-muted);
-		font-size: 10px;
+		font-size: var(--font-small);
 		text-align: left;
 	}
 	.single-test:hover {
@@ -1582,7 +1695,7 @@
 		gap: 12px;
 		padding: 10px 11px;
 		color: var(--color-text-muted);
-		font-size: 10px;
+		font-size: var(--font-small);
 		font-weight: 600;
 		list-style: none;
 	}
@@ -1601,7 +1714,7 @@
 	}
 	.trace-intro,
 	.stale-trace {
-		font-size: 10px;
+		font-size: var(--font-body);
 		color: var(--color-text-subtle);
 		padding: 0 11px;
 		margin: 0 0 8px;
@@ -1627,7 +1740,7 @@
 		padding: 6px 8px;
 	}
 	.trace-detail button > span {
-		font-size: 11px;
+		font-size: var(--font-small);
 		width: 11px;
 		flex: 0 0 11px;
 		text-align: center;
@@ -1635,12 +1748,12 @@
 	}
 	.trace-detail button strong {
 		display: block;
-		font-size: 9px;
+		font-size: var(--font-small);
 		font-weight: 600;
 	}
 	.trace-detail button small {
 		display: block;
-		font-size: 8px;
+		font-size: var(--font-meta);
 		color: var(--color-text-subtle);
 		margin-top: 2px;
 	}
@@ -1656,7 +1769,7 @@
 		padding: 0 10px 11px;
 	}
 	.data-content h4 {
-		font-size: 10px;
+		font-size: var(--font-small);
 		color: var(--color-text-muted);
 		margin: 12px 0 6px;
 	}
@@ -1670,7 +1783,7 @@
 		border-radius: 4px;
 		color: var(--color-text-muted);
 		font:
-			10px/1.65 Consolas,
+			var(--font-code-small)/var(--leading-code) Consolas,
 			'SFMono-Regular',
 			monospace;
 	}
@@ -1679,56 +1792,50 @@
 	}
 	.id-list {
 		color: var(--color-text-subtle);
-		font-size: 9px;
+		font-size: var(--font-meta);
 		margin: 0 0 5px;
 	}
 	.expected {
-		font-size: 10px;
+		font-size: var(--font-body);
 		line-height: 1.7;
 		color: var(--color-text-muted);
 		margin: 0;
 	}
 	.fresh-start {
 		color: var(--color-text-subtle);
-		font-size: 9px;
+		font-size: var(--font-meta);
 		line-height: 1.6;
 		margin: 10px 0 0;
 	}
 	.mission-win {
-		display: flex;
-		align-items: center;
-		gap: 20px;
 		border: 1px solid var(--color-success-border);
 		border-radius: 9px;
 		background: var(--color-success-soft);
-		padding: 22px;
-		margin-top: 24px;
-	}
-	.win-badge {
-		display: grid;
-		place-items: center;
-		width: 44px;
-		height: 48px;
-		flex: 0 0 44px;
-		border: 1px solid var(--color-success-border);
-		background: var(--color-success-soft);
-		color: var(--color-success);
-		font-size: 26px;
-		border-radius: 9px;
+		padding: 20px;
+		margin: 14px 0 20px;
 	}
 	.mission-win .eyebrow {
 		color: var(--color-success);
-		font-size: 8px;
 	}
-	.mission-win h2 {
-		font-size: 18px;
-		line-height: 1.3;
-		margin-bottom: 5px;
+	.mission-win h3 {
+		font-size: 1.25rem;
+		margin-bottom: 14px;
+		line-height: 1.35;
 	}
-	.mission-win p:last-child {
-		color: var(--color-success);
-		font-size: 11px;
+	.takeaway {
+		display: grid;
+		gap: 16px;
+		margin: 0 0 18px;
+	}
+	.takeaway dt {
+		font-weight: 700;
+		font-size: var(--font-body);
+		margin-bottom: 4px;
+	}
+	.takeaway dd {
 		margin: 0;
+		color: var(--color-text-muted);
+		font-size: var(--font-body);
 	}
 	.next-mission {
 		display: inline-flex;
@@ -1736,13 +1843,13 @@
 		justify-content: center;
 		gap: 17px;
 		flex-shrink: 0;
-		margin-left: auto;
+		margin-left: 0;
 		border: 1px solid var(--color-action);
 		background: var(--color-action);
 		color: var(--color-on-action);
 		border-radius: 6px;
 		padding: 11px 14px;
-		font-size: 11px;
+		font-size: var(--font-small);
 		font-weight: 600;
 		text-decoration: none;
 	}
@@ -1760,7 +1867,7 @@
 		display: flex;
 		align-items: center;
 		justify-content: space-between;
-		font-size: 11px;
+		font-size: var(--font-small);
 		font-weight: 650;
 		list-style: none;
 	}
@@ -1772,7 +1879,7 @@
 	}
 	.learn-more > div {
 		padding: 0 16px 16px;
-		font-size: 11px;
+		font-size: var(--font-body);
 		line-height: 1.8;
 		color: var(--color-text-muted);
 	}
@@ -1785,10 +1892,10 @@
 	}
 	.full-source summary {
 		padding: 7px 0;
-		font-size: 10px;
+		font-size: var(--font-small);
 	}
 	.full-source pre {
-		font-size: 11px;
+		font-size: var(--font-small);
 	}
 	.lesson-links {
 		display: flex;
@@ -1804,7 +1911,7 @@
 		border-top: 1px solid var(--line);
 		margin-top: 25px;
 		padding: 20px 0 30px;
-		font-size: 10px;
+		font-size: var(--font-meta);
 		color: var(--color-text-subtle);
 	}
 	footer a {
@@ -1843,7 +1950,7 @@
 			width: calc(100% - 42px);
 		}
 		.workbench {
-			grid-template-columns: minmax(0, 1fr) 310px;
+			grid-template-columns: minmax(0, 1fr) 350px;
 			gap: 19px;
 		}
 		.mission-tools {
@@ -1905,16 +2012,10 @@
 		}
 		.campaign > span {
 			margin: 0;
-			font-size: 9px;
-		}
-		.mission-win {
-			flex-wrap: wrap;
+			font-size: var(--font-meta);
 		}
 		.next-mission {
-			margin-left: 64px;
-		}
-		.mission-win > div {
-			flex: 1;
+			margin-left: 0;
 		}
 	}
 	@media (max-width: 520px) {
@@ -1927,17 +2028,17 @@
 			gap: 12px;
 		}
 		.brand {
-			font-size: 16px;
+			font-size: var(--font-body);
 			gap: 6px;
 		}
 		.brand > span:first-child {
 			width: 25px;
 			height: 25px;
-			font-size: 11px;
+			font-size: var(--font-small);
 		}
 		.topbar nav {
 			gap: 11px;
-			font-size: 9px;
+			font-size: var(--font-small);
 		}
 		.topbar nav a:first-child {
 			max-width: 86px;
@@ -1951,7 +2052,7 @@
 			font-size: 36px;
 		}
 		.intro > div > p:last-child {
-			font-size: 11px;
+			font-size: var(--font-body);
 		}
 		.campaign {
 			display: block;
@@ -1967,7 +2068,7 @@
 			min-width: 0;
 			flex: 1;
 			padding: 8px;
-			font-size: 10px;
+			font-size: var(--font-small);
 			grid-template-columns: 1fr;
 			gap: 1px;
 		}
@@ -1976,7 +2077,7 @@
 			font-size: 17px;
 		}
 		.mission-tabs small {
-			font-size: 6px;
+			font-size: var(--font-meta);
 			letter-spacing: 0.7px;
 		}
 		.mission {
@@ -1994,50 +2095,50 @@
 		}
 		.mission-copy > p:not(.eyebrow),
 		.mission-copy > strong {
-			font-size: 10px;
+			font-size: var(--font-body);
 		}
 		.mission-tools {
 			grid-column: 1/-1;
 		}
 		.hint {
 			grid-column: 1/-1;
-			font-size: 10px;
+			font-size: var(--font-body);
 		}
 		.section-heading h2 {
 			font-size: 17px;
 		}
 		.section-heading .text-button {
-			font-size: 9px;
+			font-size: var(--font-meta);
 		}
 		.editor-intro {
-			font-size: 10px;
+			font-size: var(--font-body);
 		}
 		.case-queue {
 			grid-template-columns: 1fr 1fr;
 		}
 		.case-queue button {
 			min-height: 40px;
-			font-size: 10px;
+			font-size: var(--font-small);
 		}
 		.request-card {
 			padding: 13px;
 		}
 		.request-heading h3 {
-			font-size: 13px;
+			font-size: var(--font-small);
 		}
 		.request-heading > div > span {
-			font-size: 9px;
+			font-size: var(--font-meta);
 		}
 		.request-brief,
 		.case-feedback p {
-			font-size: 11px;
+			font-size: var(--font-body);
 		}
 		.request-data dt {
-			font-size: 10px;
+			font-size: var(--font-meta);
 		}
 		.request-data dd,
 		.request-data code {
-			font-size: 11px;
+			font-size: var(--font-small);
 		}
 		.request-data > div {
 			grid-template-columns: 92px minmax(0, 1fr);
@@ -2045,34 +2146,25 @@
 		.single-test {
 			padding-top: 10px;
 			padding-bottom: 3px;
-			font-size: 11px;
+			font-size: var(--font-small);
 		}
 		.trace-detail > summary,
 		.data-detail > summary {
 			padding: 12px;
-			font-size: 11px;
+			font-size: var(--font-small);
 		}
 		.trace-detail button strong {
-			font-size: 10px;
+			font-size: var(--font-small);
 		}
 		.mission-win {
 			padding: 17px 14px;
 			gap: 13px;
 		}
-		.win-badge {
-			width: 36px;
-			height: 40px;
-			flex-basis: 36px;
-			font-size: 22px;
-		}
-		.mission-win h2 {
-			font-size: 16px;
-		}
 		.next-mission {
-			margin-left: 49px;
+			margin-left: 0;
 		}
 		.learn-more > summary {
-			font-size: 10px;
+			font-size: var(--font-small);
 			padding: 12px;
 		}
 		.learn-more > div {
@@ -2080,7 +2172,7 @@
 		}
 		footer {
 			align-items: start;
-			font-size: 9px;
+			font-size: var(--font-meta);
 			gap: 15px;
 		}
 		footer > span {
@@ -2123,14 +2215,136 @@
 		flex: 0 0 auto;
 		justify-self: end;
 	}
-	@media (max-width: 380px) {
-		.topbar nav {
-			grid-column: 2;
-			grid-row: 1;
+
+	.mission-requirements {
+		margin: 12px 0 0;
+		padding-left: 20px;
+		font-size: var(--font-body);
+		color: var(--color-text-muted);
+	}
+	.mission-requirements li + li {
+		margin-top: 5px;
+	}
+	.mission-copy {
+		min-width: 0;
+	}
+	.mission-tools {
+		display: flex;
+		flex-wrap: wrap;
+		align-items: baseline;
+		gap: 12px 24px;
+	}
+	.contract {
+		width: auto;
+		text-align: left;
+	}
+	.contract[open] {
+		flex-basis: 100%;
+	}
+	.contract ul {
+		font-size: var(--font-body);
+		max-width: 850px;
+	}
+	.walkthrough-launch {
+		width: 100%;
+		display: flex;
+		align-items: center;
+		gap: 10px;
+		border: 1px solid var(--color-border-strong);
+		background: var(--color-accent-soft);
+		color: var(--color-accent);
+		border-radius: 7px;
+		padding: 11px 13px;
+		font-size: var(--font-small);
+		text-align: left;
+		font-weight: 650;
+		margin-bottom: 14px;
+	}
+	.walkthrough-launch:hover:not(:disabled) {
+		background: var(--color-surface-hover);
+	}
+	.walkthrough-launch:disabled {
+		opacity: 0.5;
+	}
+	.play-controls {
+		flex-wrap: wrap;
+		gap: 8px 12px;
+		padding: 10px 0;
+	}
+	.speed-label select {
+		max-width: 110px;
+		min-height: 34px;
+	}
+	.section-heading {
+		flex-wrap: wrap;
+	}
+	.request-heading {
+		align-items: start;
+	}
+	.request-heading h3 {
+		font-size: var(--font-body);
+	}
+	.request-data dd,
+	.request-data code {
+		font-size: var(--font-code-small);
+	}
+	.case-queue button {
+		min-height: 44px;
+	}
+	.case-person {
+		width: 24px;
+		height: 24px;
+		flex-basis: 24px;
+	}
+	.launch-count {
+		flex-shrink: 0;
+	}
+	.next-mission {
+		width: 100%;
+	}
+	.data-content pre,
+	.full-source pre {
+		font-size: var(--font-code-small);
+		white-space: pre-wrap;
+		overflow-wrap: anywhere;
+	}
+	.code-meta {
+		flex-wrap: wrap;
+	}
+	.mission-tabs button {
+		overflow-wrap: anywhere;
+	}
+	@media (max-width: 520px) {
+		.mission {
+			grid-template-columns: 1fr;
 		}
-		.theme-control {
-			grid-column: 1 / -1;
-			grid-row: 2;
+		.issue-icon {
+			display: none;
+		}
+		.mission-tools,
+		.hint {
+			grid-column: 1;
+		}
+		.request-data > div {
+			grid-template-columns: 1fr;
+			gap: 1px;
+		}
+		.request-data > div + div {
+			margin-top: 6px;
+		}
+		.mission-tabs small {
+			letter-spacing: 0;
+		}
+		footer {
+			flex-wrap: wrap;
+		}
+		footer > span {
+			max-width: none;
+			text-align: left;
+		}
+		.topbar nav a:first-child {
+			max-width: none;
+			text-align: left;
 		}
 	}
 </style>

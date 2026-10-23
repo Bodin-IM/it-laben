@@ -650,7 +650,7 @@
 		height: 30px;
 		background: var(--color-brand);
 		color: var(--color-on-brand);
-		font-size: 13px;
+		font-size: var(--font-small);
 		border-radius: 7px;
 		letter-spacing: -0.5px;
 	}
@@ -659,7 +659,7 @@
 		margin-left: -8px;
 	}
 	.videre {
-		font-size: 12px;
+		font-size: var(--font-small);
 		text-decoration: none;
 		color: var(--color-text-muted);
 	}
@@ -674,7 +674,7 @@
 		align-items: center;
 		gap: 10px;
 		margin: 0 0 12px;
-		font-size: 10px;
+		font-size: var(--font-meta);
 		font-weight: 750;
 		letter-spacing: 1.6px;
 	}
@@ -688,10 +688,11 @@
 	.ingress {
 		margin: 12px 0 0;
 		color: var(--color-text-muted);
-		font-size: 16px;
-		line-height: 1.6;
+		font-size: var(--font-body);
+		line-height: var(--leading-body);
 	}
 	.forsokslinje {
+		flex-wrap: wrap;
 		display: flex;
 		justify-content: space-between;
 		gap: 16px;
@@ -699,6 +700,9 @@
 		margin-bottom: 18px;
 	}
 	.forsoksvalg {
+		min-width: 0;
+		max-width: 100%;
+		flex-wrap: wrap;
 		display: flex;
 		gap: 8px;
 	}
@@ -712,7 +716,7 @@
 		background: var(--color-surface-raised);
 		color: var(--color-text-muted);
 		padding: 8px 13px;
-		font-size: 13px;
+		font-size: var(--font-small);
 		font-weight: 600;
 	}
 	.forsoksvalg button.valgt {
@@ -734,10 +738,10 @@
 		height: 22px;
 		border: 1px solid currentColor;
 		border-radius: 50%;
-		font-size: 11px;
+		font-size: var(--font-meta);
 	}
 	.forsoksvalg code {
-		font-size: 10px;
+		font-size: var(--font-meta);
 		font-weight: 600;
 		opacity: 0.7;
 		margin-left: 5px;
@@ -747,7 +751,7 @@
 		border: 0;
 		color: var(--color-text);
 		background: transparent;
-		font-size: 12px;
+		font-size: var(--font-small);
 		font-weight: 650;
 	}
 	.tekstknapp:hover {
@@ -771,7 +775,7 @@
 	}
 	.proveverdier > p {
 		margin: 0;
-		font-size: 11px;
+		font-size: var(--font-meta);
 		font-weight: 650;
 		flex: 0 0 128px;
 		line-height: 1.6;
@@ -788,7 +792,7 @@
 		min-width: 0;
 	}
 	.proveverdier label code {
-		font-size: 12px;
+		font-size: var(--font-small);
 		color: var(--color-text-muted);
 	}
 	.proveverdier input {
@@ -799,7 +803,7 @@
 		color: var(--color-text);
 		border-radius: 5px;
 		padding: 8px 10px;
-		font-size: 13px;
+		font-size: var(--font-small);
 	}
 	.proveverdier .meldingsfelt {
 		flex: 1;
@@ -811,17 +815,17 @@
 		min-height: 68px;
 	}
 	.getverdier > code {
-		font-size: 12px;
+		font-size: var(--font-small);
 		font-weight: 650;
 	}
 	.getverdier p {
 		margin: 0;
 		color: var(--color-text-muted);
-		font-size: 13px;
+		font-size: var(--font-body);
 	}
 	.arbeidsflate {
 		display: grid;
-		grid-template-columns: minmax(0, 1fr) 292px;
+		grid-template-columns: minmax(0, 1fr) 320px;
 		column-gap: 24px;
 		align-items: stretch;
 	}
@@ -833,6 +837,7 @@
 		overflow: clip;
 	}
 	.editorhode {
+		flex-wrap: wrap;
 		display: flex;
 		align-items: stretch;
 		justify-content: space-between;
@@ -843,10 +848,13 @@
 		gap: 10px;
 	}
 	.sidevalg {
+		max-width: 100%;
+		flex-wrap: wrap;
 		display: flex;
 		gap: 4px;
 	}
 	.sidevalg button {
+		flex-wrap: wrap;
 		border: 0;
 		border-bottom: 2px solid transparent;
 		border-radius: 4px 4px 0 0;
@@ -856,7 +864,7 @@
 		align-items: center;
 		gap: 6px;
 		padding: 13px 10px;
-		font-size: 12px;
+		font-size: var(--font-small);
 		font-weight: 650;
 	}
 	.sidevalg button.aktiv {
@@ -865,7 +873,7 @@
 		background: #2a493c;
 	}
 	.sidevalg small {
-		font-size: 10px;
+		font-size: var(--font-meta);
 		font-weight: 400;
 		color: #a9baa7;
 		margin-left: 4px;
@@ -886,11 +894,12 @@
 	.utdrag {
 		align-self: center;
 		color: #a0b09f;
-		font-size: 9px;
+		font-size: var(--font-meta);
 		letter-spacing: 1px;
 		padding-right: 6px;
 	}
 	.kjorverktoy {
+		flex-wrap: wrap;
 		display: flex;
 		align-items: center;
 		justify-content: space-between;
@@ -898,6 +907,7 @@
 		gap: 12px;
 	}
 	.kjorhandlinger {
+		flex-wrap: wrap;
 		display: flex;
 		gap: 9px;
 		align-items: center;
@@ -906,7 +916,7 @@
 	.sekundaer {
 		border-radius: 5px;
 		padding: 10px 13px;
-		font-size: 12px;
+		font-size: var(--font-small);
 		font-weight: 700;
 		border: 1px solid transparent;
 	}
@@ -932,14 +942,14 @@
 	.stegteller {
 		margin: 0;
 		text-align: right;
-		font-size: 11px;
+		font-size: var(--font-meta);
 		color: #d4e1c6;
 		white-space: nowrap;
 	}
 	.stegteller span {
 		display: block;
 		margin-top: 4px;
-		font-size: 10px;
+		font-size: var(--font-meta);
 		color: #9db59d;
 	}
 	.steginfo {
@@ -951,20 +961,21 @@
 		background: #243f33;
 	}
 	.stegoverskrift {
+		flex-wrap: wrap;
 		display: flex;
 		gap: 8px;
 		align-items: center;
 		justify-content: space-between;
 	}
 	.stegoverskrift strong {
-		font-size: 13px;
+		font-size: var(--font-body);
 		font-weight: 650;
 		color: #e0eacb;
 	}
 	.steginfo p {
 		margin: 5px 0 0;
-		font-size: 12px;
-		line-height: 1.6;
+		font-size: var(--font-body);
+		line-height: var(--leading-body);
 		color: #c5d4b9;
 		max-width: 70ch;
 	}
@@ -982,7 +993,7 @@
 		color: #edf2d7;
 	}
 	.statusverdi code {
-		font-size: 10px;
+		font-size: var(--font-meta);
 		color: #b6c8a7;
 	}
 	.httpstatus {
@@ -991,7 +1002,7 @@
 		border: 1px solid #708459;
 		border-radius: 4px;
 		font:
-			11px 'SFMono-Regular',
+			var(--font-meta)/var(--leading-body) 'SFMono-Regular',
 			Consolas,
 			monospace;
 	}
@@ -1003,29 +1014,30 @@
 		background: none;
 		border: 0;
 		color: #e7deb6;
-		font-size: 11px;
+		font-size: var(--font-small);
 		padding: 8px 0 0;
 		text-decoration: underline;
 		text-underline-offset: 3px;
 	}
 	.kodehjelp {
+		flex-wrap: wrap;
 		display: flex;
 		justify-content: space-between;
 		align-items: center;
 		gap: 8px;
 		border-top: 1px solid #304a3f;
 		padding: 11px 18px 8px;
-		font-size: 10px;
+		font-size: var(--font-meta);
 		color: #b0c0ac;
 	}
 	.kjorelegende {
-		font-size: 9px;
+		font-size: var(--font-meta);
 		white-space: nowrap;
 		color: #bdcea9;
 	}
 	.kjorelegende i {
 		color: #d7e9a7;
-		font-size: 13px;
+		font-size: var(--font-small);
 		font-style: normal;
 		padding-right: 4px;
 	}
@@ -1044,14 +1056,14 @@
 		align-items: center;
 		width: max-content;
 		min-width: 100%;
-		min-height: 27px;
+		min-height: 34px;
 		padding: 2px 16px 2px 0;
 		border: 0;
 		border-left: 3px solid transparent;
 		background: transparent;
 		color: #e3ebd8;
 		text-align: left;
-		line-height: 23px;
+		line-height: var(--leading-code);
 	}
 	.kodelinje:hover {
 		background: #274a3b;
@@ -1068,7 +1080,7 @@
 		text-align: right;
 		color: #829a85;
 		font:
-			10px/23px 'SFMono-Regular',
+			var(--font-meta)/var(--leading-body) 'SFMono-Regular',
 			Consolas,
 			monospace;
 		user-select: none;
@@ -1079,19 +1091,19 @@
 		min-width: 22px;
 		text-align: center;
 		color: #d4e8a1;
-		font-size: 14px;
+		font-size: var(--font-small);
 	}
 	.kodelinje code {
 		white-space: pre;
-		font-size: 13px;
-		line-height: 23px;
+		font-size: var(--font-code);
+		line-height: var(--leading-code);
 		tab-size: 2;
 	}
 	.forklaringsmerke {
 		margin-left: auto;
 		padding-left: 20px;
 		min-width: 32px;
-		font-size: 11px;
+		font-size: var(--font-meta);
 		color: #b4d0b5;
 		opacity: 0;
 	}
@@ -1138,13 +1150,14 @@
 		font-style: italic;
 	}
 	.kodefot {
+		flex-wrap: wrap;
 		display: flex;
 		align-items: center;
 		gap: 7px;
 		border-top: 1px solid #334d40;
 		padding: 10px 18px;
 		color: #b1c3a6;
-		font-size: 10px;
+		font-size: var(--font-meta);
 	}
 	.kodefot b {
 		margin-inline: 5px;
@@ -1156,7 +1169,7 @@
 	}
 	.forklaringshint {
 		margin-top: 255px;
-		max-width: 254px;
+		max-width: 290px;
 		padding: 5px 10px;
 		color: var(--color-text-muted);
 	}
@@ -1172,21 +1185,21 @@
 		margin-bottom: 14px;
 	}
 	.forklaringshint p {
-		font-size: 13px;
-		line-height: 1.7;
+		font-size: var(--font-body);
+		line-height: var(--leading-body);
 		margin: 0;
 	}
 	.forklaringshint strong {
 		display: block;
 		color: var(--color-text-muted);
-		font-size: 14px;
+		font-size: var(--font-body);
 		font-weight: 650;
 		margin-bottom: 5px;
 	}
 	.forklaringshint small {
 		display: block;
 		margin-top: 15px;
-		font-size: 11px;
+		font-size: var(--font-meta);
 		line-height: 1.6;
 		color: var(--color-text-muted);
 	}
@@ -1209,7 +1222,7 @@
 		display: flex;
 		align-items: center;
 		gap: 11px;
-		font-size: 11px;
+		font-size: var(--font-meta);
 		color: var(--color-text-muted);
 	}
 	.tallpar > span:not(.skille) {
@@ -1240,7 +1253,7 @@
 	.tallpar small {
 		margin-left: 4px;
 		color: var(--color-text-muted);
-		font-size: 10px;
+		font-size: var(--font-meta);
 	}
 	.hentneste {
 		margin-left: auto;
@@ -1261,24 +1274,24 @@
 	}
 	.datamerke {
 		margin: 0 0 8px;
-		font-size: 9px;
+		font-size: var(--font-meta);
 		font-weight: 700;
 		letter-spacing: 1.2px;
 		color: var(--color-text-muted);
 	}
 	.dataoversikt h2 {
 		margin: 0 0 12px;
-		font-size: 13px;
+		font-size: var(--font-small);
 		font-weight: 650;
 	}
 	.dataoversikt h2 code {
-		font-size: 12px;
+		font-size: var(--font-small);
 	}
 	.dataoversikt pre,
 	.prosjekt pre {
 		margin: 0;
-		font-size: 11px;
-		line-height: 1.7;
+		font-size: var(--font-code);
+		line-height: var(--leading-code);
 		padding: 14px;
 		background: var(--color-surface);
 		border-radius: 5px;
@@ -1299,8 +1312,8 @@
 	}
 	.tomliste {
 		color: var(--color-text-muted);
-		font-size: 12px;
-		line-height: 1.7;
+		font-size: var(--font-body);
+		line-height: var(--leading-body);
 	}
 	.meldingsliste {
 		max-height: 280px;
@@ -1314,11 +1327,11 @@
 		margin: 0 0 9px;
 		background: var(--color-surface);
 		border-radius: 5px;
-		font-size: 12px;
+		font-size: var(--font-body);
 		overflow-wrap: anywhere;
 	}
 	.meldingsliste strong {
-		font-size: 10px;
+		font-size: var(--font-meta);
 	}
 	.fordypning {
 		margin-top: 22px;
@@ -1329,7 +1342,7 @@
 	}
 	summary {
 		padding: 17px 3px;
-		font-size: 13px;
+		font-size: var(--font-small);
 		font-weight: 650;
 		cursor: pointer;
 	}
@@ -1337,7 +1350,7 @@
 		margin-left: 7px;
 	}
 	summary small {
-		font-size: 11px;
+		font-size: var(--font-small);
 		font-weight: 400;
 		color: var(--color-text-muted);
 		margin-left: 15px;
@@ -1345,14 +1358,14 @@
 	.detaljinnhold {
 		padding: 0 16px 20px 20px;
 		max-width: 850px;
-		font-size: 13px;
-		line-height: 1.8;
+		font-size: var(--font-body);
+		line-height: var(--leading-body);
 	}
 	.detaljinnhold p {
 		margin: 0 0 14px;
 	}
 	.detaljinnhold code {
-		font-size: 11px;
+		font-size: var(--font-code);
 		background: var(--color-surface-soft);
 		padding: 1px 3px;
 		border-radius: 3px;
@@ -1373,7 +1386,7 @@
 	}
 	.detaljinnhold .detaljhint {
 		color: var(--color-text-muted);
-		font-size: 11px;
+		font-size: var(--font-meta);
 		margin-top: 10px;
 	}
 	.detaljinnhold .tenk {
@@ -1390,7 +1403,7 @@
 		max-width: none;
 	}
 	.prosjekt h2 {
-		font-size: 15px;
+		font-size: var(--font-body);
 		margin: 0 0 10px;
 	}
 	.prosjekt > div {
@@ -1408,7 +1421,7 @@
 		flex-wrap: wrap;
 		gap: 16px;
 		grid-column: 1 / -1;
-		font-size: 11px;
+		font-size: var(--font-small);
 	}
 	.kildelenker a {
 		text-underline-offset: 3px;
@@ -1416,8 +1429,8 @@
 	.simuleringsnote {
 		margin: 19px 0 30px;
 		max-width: 95ch;
-		font-size: 11px;
-		line-height: 1.7;
+		font-size: var(--font-body);
+		line-height: var(--leading-body);
 		color: var(--color-text-muted);
 	}
 	footer {
@@ -1427,7 +1440,7 @@
 		gap: 20px;
 		padding-block: 22px 30px;
 		border-top: 1px solid var(--kant);
-		font-size: 11px;
+		font-size: var(--font-meta);
 		color: var(--color-text-muted);
 	}
 	footer a {
@@ -1439,7 +1452,7 @@
 			width: min(1240px, calc(100% - 40px));
 		}
 		.arbeidsflate {
-			grid-template-columns: minmax(0, 1fr) 260px;
+			grid-template-columns: minmax(0, 1fr) 290px;
 			gap: 20px;
 		}
 		.sidevalg small {
@@ -1478,7 +1491,7 @@
 			min-height: 32px;
 		}
 		.kodelinje code {
-			font-size: 12px;
+			font-size: var(--font-code);
 		}
 		.kjorverktoy {
 			position: sticky;
@@ -1500,14 +1513,14 @@
 			font-size: 19px;
 		}
 		.videre {
-			font-size: 10px;
+			font-size: var(--font-small);
 		}
 		.intro {
 			padding-block: 24px 22px;
 		}
 		.overlinje {
 			gap: 8px;
-			font-size: 9px;
+			font-size: var(--font-meta);
 			letter-spacing: 1px;
 		}
 		h1 {
@@ -1515,7 +1528,7 @@
 			letter-spacing: -1.3px;
 		}
 		.ingress {
-			font-size: 13px;
+			font-size: var(--font-body);
 			margin-top: 9px;
 		}
 		.forsokslinje {
@@ -1533,7 +1546,7 @@
 			min-width: 0;
 			padding: 9px 8px;
 			gap: 6px;
-			font-size: 10px;
+			font-size: var(--font-small);
 			white-space: nowrap;
 		}
 		.forsoksvalg code {
@@ -1543,11 +1556,11 @@
 			width: 19px;
 			height: 19px;
 			min-width: 19px;
-			font-size: 9px;
+			font-size: var(--font-meta);
 		}
 		.nullstill {
 			margin-left: auto;
-			font-size: 10px;
+			font-size: var(--font-meta);
 			padding: 2px 0;
 		}
 		.proveverdier {
@@ -1559,7 +1572,7 @@
 		.proveverdier > p {
 			display: flex;
 			justify-content: space-between;
-			font-size: 10px;
+			font-size: var(--font-meta);
 		}
 		.proveverdier label {
 			display: grid;
@@ -1567,12 +1580,12 @@
 			gap: 8px;
 		}
 		.proveverdier label code {
-			font-size: 11px;
+			font-size: var(--font-meta);
 		}
 		.proveverdier input {
 			width: 100%;
 			padding: 7px 9px;
-			font-size: 13px;
+			font-size: var(--font-small);
 		}
 		.getverdier {
 			flex-direction: column;
@@ -1581,7 +1594,7 @@
 			padding: 16px;
 		}
 		.getverdier p {
-			font-size: 12px;
+			font-size: var(--font-body);
 		}
 		.editorhode {
 			padding-inline: 5px;
@@ -1595,7 +1608,7 @@
 		.sidevalg button {
 			flex: 1;
 			padding: 10px;
-			font-size: 11px;
+			font-size: var(--font-small);
 			gap: 6px;
 		}
 		.sidevalg small,
@@ -1611,63 +1624,63 @@
 		}
 		.primaer,
 		.sekundaer {
-			font-size: 11px;
+			font-size: var(--font-small);
 			padding: 9px 10px;
 		}
 		.primaer span {
 			margin-right: 3px;
 		}
 		.stegteller {
-			font-size: 10px;
+			font-size: var(--font-meta);
 		}
 		.stegteller span {
-			font-size: 9px;
+			font-size: var(--font-meta);
 		}
 		.steginfo {
 			margin: 0 12px 10px;
 			padding: 10px 11px;
 		}
 		.stegoverskrift strong {
-			font-size: 12px;
+			font-size: var(--font-body);
 		}
 		.steginfo p {
-			font-size: 11px;
-			line-height: 1.65;
+			font-size: var(--font-body);
+			line-height: var(--leading-body);
 		}
 		.kodehjelp {
 			padding-inline: 12px;
-			font-size: 9px;
+			font-size: var(--font-meta);
 		}
 		.kjorelegende {
-			font-size: 8px;
+			font-size: var(--font-meta);
 		}
 		.linjenummer {
 			min-width: 28px;
 			width: 28px;
 			padding-right: 4px;
-			font-size: 9px;
+			font-size: var(--font-meta);
 		}
 		.kjorepil {
 			min-width: 17px;
 			width: 17px;
-			font-size: 12px;
+			font-size: var(--font-small);
 		}
 		.kodelinje code {
-			font-size: 11px;
+			font-size: var(--font-code);
 		}
 		.kodelinje {
 			padding-right: 12px;
 		}
 		.kodefot {
 			padding-inline: 12px;
-			font-size: 9px;
+			font-size: var(--font-meta);
 		}
 		.resultatlinje {
 			gap: 10px 15px;
 			padding-block: 14px;
 		}
 		.tallpar {
-			font-size: 10px;
+			font-size: var(--font-meta);
 			gap: 8px;
 		}
 		.resultatlinje > .tekstknapp:not(.hentneste) {
@@ -1678,7 +1691,7 @@
 			flex-basis: 100%;
 			margin: 0;
 			text-align: left;
-			font-size: 11px;
+			font-size: var(--font-small);
 		}
 		.dataoversikt,
 		.requestpar,
@@ -1689,25 +1702,25 @@
 			padding: 15px;
 		}
 		summary {
-			font-size: 12px;
+			font-size: var(--font-small);
 		}
 		summary small {
 			display: block;
 			margin: 6px 0 0 21px;
-			font-size: 10px;
+			font-size: var(--font-small);
 		}
 		.detaljinnhold {
-			font-size: 12px;
+			font-size: var(--font-body);
 			padding-inline: 5px;
 		}
 		.feilvalg {
 			padding: 10px;
 		}
 		.simuleringsnote {
-			font-size: 10px;
+			font-size: var(--font-body);
 		}
 		footer {
-			font-size: 10px;
+			font-size: var(--font-meta);
 			align-items: flex-start;
 		}
 		footer span {
@@ -1721,6 +1734,21 @@
 		}
 		.header-actions {
 			gap: 10px 14px;
+		}
+	}
+	@media (max-width: 420px) {
+		.forsoksvalg {
+			flex-direction: column;
+		}
+		.forsoksvalg button {
+			white-space: normal;
+			min-height: 44px;
+		}
+		.proveverdier > p,
+		.kodehjelp,
+		.kodefot,
+		.stegoverskrift {
+			flex-wrap: wrap;
 		}
 	}
 </style>

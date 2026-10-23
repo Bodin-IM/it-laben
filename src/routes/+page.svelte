@@ -291,7 +291,7 @@
 		color: var(--gronn);
 	}
 	.header-note {
-		font: 10px monospace;
+		font: var(--font-meta)/var(--leading-body) monospace;
 		letter-spacing: 1.8px;
 		color: var(--dempa);
 	}
@@ -313,7 +313,7 @@
 	}
 	.overlinje {
 		color: var(--gronn);
-		font-size: 10px;
+		font-size: var(--font-meta);
 		font-weight: 750;
 		letter-spacing: 1.55px;
 		margin: 0 0 21px;
@@ -341,8 +341,8 @@
 	}
 	.ingress {
 		max-width: 460px;
-		font-size: 15px;
-		line-height: 1.8;
+		font-size: var(--font-body);
+		line-height: var(--leading-body);
 		color: var(--dempa);
 		margin: 0 0 26px;
 	}
@@ -352,7 +352,7 @@
 		align-items: center;
 		padding: 12px 0;
 		border-bottom: 1px solid var(--color-border-strong);
-		font-size: 13px;
+		font-size: var(--font-small);
 		font-weight: 650;
 	}
 	.snarvei:hover {
@@ -369,7 +369,7 @@
 		align-items: center;
 		gap: 10px;
 		padding: 12px 0;
-		font-size: 13px;
+		font-size: var(--font-small);
 		font-weight: 600;
 		color: var(--gronn);
 	}
@@ -405,7 +405,7 @@
 		padding: 14px 18px;
 		background: #264447;
 		color: #a0b8a9;
-		font: 9px monospace;
+		font: var(--font-meta)/var(--leading-body) monospace;
 	}
 	.korttopp > span:first-child {
 		letter-spacing: 2px;
@@ -416,7 +416,7 @@
 		display: grid;
 		gap: 11px;
 		font:
-			12px/1.5 Consolas,
+			var(--font-code)/var(--leading-code) Consolas,
 			monospace;
 	}
 	.kodelinjer b {
@@ -436,7 +436,7 @@
 		align-items: center;
 		gap: 12px;
 		margin: 25px 12px 0;
-		font: 9px monospace;
+		font: var(--font-meta)/var(--leading-body) monospace;
 		color: var(--color-text-muted);
 	}
 	.dataflyt > span {
@@ -468,7 +468,7 @@
 		position: absolute;
 		right: -10px;
 		top: 15px;
-		font-size: 11px;
+		font-size: var(--font-meta);
 		background: var(--color-warning-soft);
 		color: var(--color-warning);
 		padding: 10px 15px;
@@ -485,7 +485,7 @@
 	}
 	.seksjonstopp .overlinje {
 		margin-bottom: 8px;
-		font-size: 9px;
+		font-size: var(--font-meta);
 	}
 	h2 {
 		margin: 0;
@@ -494,7 +494,7 @@
 		letter-spacing: -0.8px;
 	}
 	.antall {
-		font-size: 11px;
+		font-size: var(--font-meta);
 		color: var(--dempa);
 		padding-bottom: 3px;
 	}
@@ -528,7 +528,7 @@
 		margin-bottom: 32px;
 	}
 	.kategori {
-		font-size: 9px;
+		font-size: var(--font-meta);
 		font-weight: 650;
 		background: var(--color-success-soft);
 		color: var(--color-success);
@@ -547,7 +547,7 @@
 	}
 	.sidetype {
 		margin: 0 0 9px;
-		font-size: 9px;
+		font-size: var(--font-meta);
 		text-transform: uppercase;
 		letter-spacing: 1.1px;
 		color: var(--color-text-subtle);
@@ -560,8 +560,8 @@
 		margin: 0 0 12px;
 	}
 	.beskrivelse {
-		font-size: 12px;
-		line-height: 1.8;
+		font-size: var(--font-body);
+		line-height: var(--leading-body);
 		color: var(--dempa);
 		margin: 0 0 20px;
 	}
@@ -574,7 +574,7 @@
 		margin: auto 0 24px;
 	}
 	.emner li {
-		font: 9px monospace;
+		font: var(--font-meta)/var(--leading-body) monospace;
 		padding: 5px 7px;
 		border: 1px solid var(--color-border);
 		border-radius: 4px;
@@ -586,7 +586,7 @@
 		display: flex;
 		justify-content: space-between;
 		align-items: center;
-		font-size: 11px;
+		font-size: var(--font-small);
 		font-weight: 650;
 		color: var(--gronn);
 	}
@@ -620,14 +620,14 @@
 		margin-bottom: 18px;
 	}
 	.kommer h3 {
-		font-size: 16px;
+		font-size: var(--font-body);
 		color: var(--color-text-muted);
 		margin-bottom: 9px;
 		letter-spacing: -0.3px;
 	}
 	.kommer p {
-		font-size: 12px;
-		line-height: 1.8;
+		font-size: var(--font-body);
+		line-height: var(--leading-body);
 		color: var(--color-text-subtle);
 		margin: 0;
 	}
@@ -643,8 +643,8 @@
 	.spillintroduksjon {
 		margin: -8px 0 24px;
 		color: var(--dempa);
-		font-size: 13px;
-		line-height: 1.7;
+		font-size: var(--font-body);
+		line-height: var(--leading-body);
 	}
 	.spillkortliste {
 		display: grid;
@@ -683,7 +683,7 @@
 	.spilltype {
 		margin: 0;
 		color: var(--color-text-muted);
-		font-size: 9px;
+		font-size: var(--font-meta);
 		font-weight: 650;
 		letter-spacing: 0.55px;
 		text-transform: uppercase;
@@ -696,7 +696,7 @@
 	.variantmerke {
 		padding: 4px 7px;
 		border-radius: 4px;
-		font-size: 9px;
+		font-size: var(--font-meta);
 		line-height: 1.4;
 		white-space: nowrap;
 	}
@@ -717,8 +717,8 @@
 	}
 	.spillbeskrivelse {
 		margin: 0 0 22px;
-		font-size: 13px;
-		line-height: 1.8;
+		font-size: var(--font-body);
+		line-height: var(--leading-body);
 		color: var(--color-text-muted);
 	}
 	.spillmotiv {
@@ -764,7 +764,7 @@
 		display: flex;
 		flex-wrap: wrap;
 		gap: 6px;
-		font-size: 9px;
+		font-size: var(--font-meta);
 	}
 	.testtyper > span {
 		display: inline-flex;
@@ -777,13 +777,13 @@
 		color: #b9cdb0;
 	}
 	.testtyper b {
-		font: 10px monospace;
+		font: var(--font-meta)/var(--leading-body) monospace;
 		color: #dfd5a3;
 	}
 	.nettlesermotiv {
 		justify-content: center;
 		gap: 17px;
-		font-size: 11px;
+		font-size: var(--font-meta);
 	}
 	.nettlesermotiv b {
 		font-size: 18px;
@@ -803,7 +803,7 @@
 		gap: 15px;
 		margin-top: 23px;
 		color: var(--color-accent);
-		font-size: 12px;
+		font-size: var(--font-small);
 		font-weight: 650;
 	}
 	.spillpil {
@@ -825,11 +825,11 @@
 		color: var(--color-text-subtle);
 	}
 	footer > span {
-		font-size: 12px;
+		font-size: var(--font-small);
 		font-weight: 700;
 	}
 	footer p {
-		font-size: 10px;
+		font-size: var(--font-meta);
 		line-height: 1.7;
 		margin: 0;
 	}
@@ -863,12 +863,12 @@
 			grid-template-columns: repeat(2, minmax(0, 1fr));
 		}
 		.kodelinjer {
-			font-size: 10px;
+			font-size: var(--font-code);
 			padding: 23px 16px;
 		}
 		.dataflyt {
 			gap: 8px;
-			font-size: 8px;
+			font-size: var(--font-meta);
 		}
 		.dataflyt > span {
 			padding: 8px;
@@ -918,11 +918,11 @@
 			letter-spacing: -2.5px;
 		}
 		.overlinje {
-			font-size: 9px;
+			font-size: var(--font-meta);
 			letter-spacing: 1.2px;
 		}
 		.ingress {
-			font-size: 14px;
+			font-size: var(--font-body);
 		}
 		.illustrasjon {
 			max-width: 360px;
@@ -931,7 +931,7 @@
 			padding: 30px 8px;
 		}
 		.kodelinjer {
-			font-size: 12px;
+			font-size: var(--font-code);
 		}
 		.etikett {
 			right: 0;
@@ -945,7 +945,7 @@
 			font-size: 23px;
 		}
 		.antall {
-			font-size: 10px;
+			font-size: var(--font-meta);
 			padding-top: 28px;
 			white-space: nowrap;
 		}

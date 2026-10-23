@@ -605,7 +605,7 @@
 			BlinkMacSystemFont,
 			'Segoe UI',
 			sans-serif;
-		font-size: 14px;
+		font-size: var(--font-body);
 	}
 	.fillab,
 	.fillab * {
@@ -660,7 +660,7 @@
 	}
 	.tilbake {
 		text-decoration: none;
-		font-size: 16px;
+		font-size: var(--font-small);
 		font-weight: 750;
 	}
 	.tilbake span {
@@ -669,7 +669,7 @@
 	.emne {
 		color: var(--color-text-muted);
 		font:
-			10px ui-monospace,
+			var(--font-meta)/var(--leading-body) ui-monospace,
 			monospace;
 		letter-spacing: 1px;
 	}
@@ -686,7 +686,7 @@
 	}
 	.overlinje {
 		color: var(--teal);
-		font-size: 10px;
+		font-size: var(--font-meta);
 		font-weight: 750;
 		letter-spacing: 1.4px;
 		margin: 0 0 9px;
@@ -700,13 +700,13 @@
 	.ingress {
 		color: var(--muted);
 		margin: 12px 0 0;
-		font-size: 15px;
-		line-height: 1.6;
+		font-size: var(--font-body);
+		line-height: var(--leading-body);
 	}
 	.grunnlag {
 		color: var(--color-text-muted);
 		text-align: right;
-		font-size: 11px;
+		font-size: var(--font-meta);
 		line-height: 1.8;
 		white-space: nowrap;
 		margin: 0 0 3px;
@@ -731,7 +731,7 @@
 		flex-wrap: wrap;
 		gap: 8px;
 		margin: 0;
-		font-size: 11px;
+		font-size: var(--font-meta);
 	}
 	.labverktoy b {
 		font-weight: 600;
@@ -760,7 +760,7 @@
 		background: none;
 		border: 0;
 		color: var(--teal);
-		font-size: 11px;
+		font-size: var(--font-small);
 		font-weight: 650;
 		white-space: nowrap;
 	}
@@ -779,7 +779,7 @@
 		align-items: start;
 	}
 	.arbeidsflate.medverdier {
-		grid-template-columns: minmax(0, 1fr) 286px;
+		grid-template-columns: minmax(0, 1fr) 320px;
 	}
 	.editor {
 		min-width: 0;
@@ -805,24 +805,24 @@
 		align-items: center;
 		gap: 9px;
 		font:
-			12px ui-monospace,
+			var(--font-meta)/var(--leading-body) ui-monospace,
 			SFMono-Regular,
 			Consolas,
 			monospace;
 	}
 	.filnavn > span {
 		color: #dfd5a3;
-		font-size: 10px;
+		font-size: var(--font-meta);
 		font-weight: 700;
 	}
 	.filnavn small {
 		color: #91aa93;
-		font-size: 10px;
+		font-size: var(--font-meta);
 		margin-left: 5px;
 	}
 	.linjehjelp {
 		color: #9bb19d;
-		font-size: 10px;
+		font-size: var(--font-meta);
 	}
 	.kjorverktoy {
 		display: flex;
@@ -835,6 +835,8 @@
 	}
 	.handlinger {
 		display: flex;
+		flex-wrap: wrap;
+		max-width: 100%;
 		align-items: center;
 		gap: 8px;
 	}
@@ -843,7 +845,7 @@
 		min-height: 34px;
 		padding: 7px 12px;
 		border-radius: 5px;
-		font-size: 11px;
+		font-size: var(--font-small);
 		font-weight: 650;
 		white-space: nowrap;
 		border: 1px solid transparent;
@@ -872,7 +874,7 @@
 		margin: 0;
 		color: #9eb295;
 		font:
-			10px ui-monospace,
+			var(--font-meta)/var(--leading-body) ui-monospace,
 			monospace;
 		text-align: right;
 	}
@@ -884,7 +886,7 @@
 		display: flex;
 		align-items: center;
 		min-width: max-content;
-		min-height: 27px;
+		min-height: 34px;
 		border-left: 3px solid transparent;
 		border-right: 3px solid transparent;
 		padding-right: 15px;
@@ -900,8 +902,8 @@
 		background: transparent;
 		color: #dce7dc;
 		text-align: left;
-		font-size: 13px;
-		line-height: 21px;
+		font-size: var(--font-code);
+		line-height: var(--leading-code);
 	}
 	.linjeknapp:hover {
 		background: #26483b;
@@ -938,7 +940,7 @@
 		text-align: right;
 		color: #779a7e;
 		font:
-			10px ui-monospace,
+			var(--font-meta)/var(--leading-body) ui-monospace,
 			monospace;
 		user-select: none;
 	}
@@ -947,7 +949,7 @@
 		flex-shrink: 0;
 		color: #daedb4;
 		font:
-			12px ui-monospace,
+			var(--font-meta)/var(--leading-body) ui-monospace,
 			monospace;
 		user-select: none;
 	}
@@ -980,7 +982,7 @@
 		align-items: center;
 		gap: 7px;
 		padding: 0 7px 0 20px;
-		font-size: 10px;
+		font-size: var(--font-small);
 		color: #cbd7bc;
 		cursor: pointer;
 		margin-left: 12px;
@@ -1007,10 +1009,10 @@
 	}
 	.meldingetikett code {
 		color: #d7e8c3;
-		font-size: 11px;
+		font-size: var(--font-meta);
 	}
 	.meldingetikett span {
-		font-size: 10px;
+		font-size: var(--font-meta);
 		color: #a0b398;
 	}
 	.objektfelter {
@@ -1025,7 +1027,7 @@
 		min-width: 0;
 		color: #94baaa;
 		font:
-			11px ui-monospace,
+			var(--font-meta)/var(--leading-body) ui-monospace,
 			monospace;
 	}
 	.objektfelter .tekstfelt {
@@ -1040,7 +1042,7 @@
 		border: 1px solid #557349;
 		border-radius: 4px;
 		font:
-			12px ui-monospace,
+			var(--font-small)/var(--leading-body) ui-monospace,
 			monospace;
 	}
 	.objektfelter .tekstfelt input {
@@ -1051,7 +1053,7 @@
 	}
 	.feltfeil {
 		color: #efd2a2;
-		font-size: 11px;
+		font-size: var(--font-meta);
 		margin: 8px 0 0;
 	}
 	.kodeforklaring {
@@ -1070,25 +1072,25 @@
 	.forklaringstype {
 		margin: 0 0 7px;
 		font:
-			9px ui-monospace,
+			var(--font-meta)/var(--leading-body) ui-monospace,
 			monospace;
 		letter-spacing: 0.9px;
 		color: var(--color-text-muted);
 	}
 	.kodeforklaring h2 {
 		margin: 0 0 6px;
-		font-size: 16px;
+		font-size: var(--font-body);
 		line-height: 1.3;
 		letter-spacing: -0.25px;
 	}
 	.forklaringstekst > p:not(.forklaringstype) {
 		margin: 0;
 		color: var(--color-text-muted);
-		font-size: 12px;
-		line-height: 1.65;
+		font-size: var(--font-body);
+		line-height: var(--leading-body);
 	}
 	.tilkjoring {
-		font-size: 10px;
+		font-size: var(--font-small);
 		font-weight: 600;
 		color: var(--color-accent);
 		padding: 0;
@@ -1106,7 +1108,7 @@
 	}
 	.stegverdi > p {
 		font:
-			9px ui-monospace,
+			var(--font-meta)/var(--leading-body) ui-monospace,
 			monospace;
 		color: var(--color-text-muted);
 		margin: 0 0 6px;
@@ -1116,7 +1118,7 @@
 		max-height: 115px;
 		overflow: auto;
 		font:
-			11px/1.6 ui-monospace,
+			var(--font-code)/var(--leading-code) ui-monospace,
 			SFMono-Regular,
 			Consolas,
 			monospace;
@@ -1133,7 +1135,7 @@
 		gap: 9px 22px;
 		border-top: 1px solid var(--color-border);
 		background: var(--color-surface);
-		font-size: 10px;
+		font-size: var(--font-meta);
 		color: var(--color-text-muted);
 	}
 	.ministatus > span {
@@ -1161,7 +1163,7 @@
 	.ulagret {
 		margin-left: auto;
 		color: var(--color-warning);
-		font-size: 10px;
+		font-size: var(--font-meta);
 		font-weight: 600;
 	}
 	.verdier {
@@ -1176,12 +1178,12 @@
 	}
 	.verdihode h2 {
 		margin: 0 0 5px;
-		font-size: 15px;
+		font-size: var(--font-body);
 	}
 	.verdihode > span {
 		color: var(--color-text-subtle);
 		font:
-			9px ui-monospace,
+			var(--font-meta)/var(--leading-body) ui-monospace,
 			monospace;
 		letter-spacing: 0.8px;
 	}
@@ -1193,14 +1195,14 @@
 	.verdistempel {
 		color: var(--color-text-muted);
 		font:
-			9px ui-monospace,
+			var(--font-meta)/var(--leading-body) ui-monospace,
 			monospace;
 		letter-spacing: 0.55px;
 		margin: 0 0 7px;
 	}
 	.verdikort h3 {
 		font:
-			12px ui-monospace,
+			var(--font-meta)/var(--leading-body) ui-monospace,
 			monospace;
 		margin: 0 0 10px;
 		display: flex;
@@ -1210,7 +1212,7 @@
 	}
 	.verdikort h3 small {
 		color: var(--color-text-subtle);
-		font-size: 9px;
+		font-size: var(--font-meta);
 	}
 	.verdikort pre {
 		margin: 0;
@@ -1221,7 +1223,7 @@
 		max-height: 250px;
 		overflow: auto;
 		font:
-			11px/1.65 ui-monospace,
+			var(--font-code)/var(--leading-code) ui-monospace,
 			monospace;
 		color: var(--color-text-muted);
 	}
@@ -1232,8 +1234,8 @@
 	.verdikort > p:last-child,
 	.sidehint {
 		color: var(--color-text-muted);
-		font-size: 10px;
-		line-height: 1.7;
+		font-size: var(--font-body);
+		line-height: var(--leading-body);
 	}
 	.sidehint {
 		border-top: 1px solid var(--color-border);
@@ -1243,8 +1245,8 @@
 	.simuleringsnotat {
 		margin: 12px 2px 0;
 		color: var(--color-text-subtle);
-		font-size: 10px;
-		line-height: 1.6;
+		font-size: var(--font-body);
+		line-height: var(--leading-body);
 	}
 	.fordypning {
 		margin-top: 27px;
@@ -1273,14 +1275,16 @@
 		gap: 15px;
 	}
 	summary b {
-		font-size: 12px;
+		font-size: var(--font-small);
 		font-weight: 650;
 	}
 	summary small {
-		font-size: 11px;
+		font-size: var(--font-small);
 		color: var(--color-text-subtle);
 	}
 	.pluss {
+		flex-shrink: 0;
+		line-height: 1;
 		font-size: 20px;
 		color: var(--color-accent);
 		font-weight: 300;
@@ -1303,17 +1307,17 @@
 	}
 	.forsoknummer {
 		font:
-			11px ui-monospace,
+			var(--font-meta)/var(--leading-body) ui-monospace,
 			monospace;
 		color: var(--color-text-muted);
 	}
 	.forsok h2 {
-		font-size: 15px;
+		font-size: var(--font-body);
 		margin: 8px 0 9px;
 	}
 	.forsok p {
-		font-size: 12px;
-		line-height: 1.8;
+		font-size: var(--font-body);
+		line-height: var(--leading-body);
 		color: var(--color-text-muted);
 		margin: 0;
 	}
@@ -1322,8 +1326,8 @@
 		padding: 0 0 26px;
 	}
 	.prosjektinnhold p {
-		font-size: 13px;
-		line-height: 1.8;
+		font-size: var(--font-body);
+		line-height: var(--leading-body);
 		color: var(--color-text-muted);
 		margin: 0 0 16px;
 	}
@@ -1338,12 +1342,12 @@
 		color: var(--color-code-text);
 		padding: 18px;
 		font:
-			12px/1.85 ui-monospace,
+			var(--font-code)/var(--leading-code) ui-monospace,
 			monospace;
 		margin: 11px 0 19px;
 	}
 	.prosjektinnhold :not(pre) > code {
-		font-size: 0.9em;
+		font-size: var(--font-code-small);
 		color: var(--color-text-muted);
 		background: var(--color-surface-soft);
 		padding: 2px 4px;
@@ -1357,10 +1361,10 @@
 	}
 	.rammer h3 {
 		margin: 0 0 9px;
-		font-size: 13px;
+		font-size: var(--font-small);
 	}
 	.rammer p {
-		font-size: 12px;
+		font-size: var(--font-body);
 		margin: 0 0 9px;
 	}
 	.rammer p:last-child {
@@ -1368,7 +1372,7 @@
 	}
 	.dokumentasjon {
 		color: var(--color-accent);
-		font-size: 12px;
+		font-size: var(--font-small);
 		text-decoration: none;
 	}
 	footer {
@@ -1377,7 +1381,7 @@
 		display: flex;
 		justify-content: space-between;
 		gap: 15px;
-		font-size: 10px;
+		font-size: var(--font-meta);
 		color: var(--color-text-subtle);
 	}
 
@@ -1388,7 +1392,7 @@
 			width: calc(100% - 42px);
 		}
 		.arbeidsflate.medverdier {
-			grid-template-columns: minmax(0, 1fr) 250px;
+			grid-template-columns: minmax(0, 1fr) 290px;
 		}
 		.medverdier .kodeforklaring {
 			grid-template-columns: minmax(0, 1fr);
@@ -1450,14 +1454,14 @@
 			min-height: 59px;
 		}
 		.emne {
-			font-size: 8px;
+			font-size: var(--font-meta);
 			letter-spacing: 0.5px;
 		}
 		.emne span {
 			margin: 0 4px;
 		}
 		.tilbake {
-			font-size: 14px;
+			font-size: var(--font-small);
 		}
 		.intro {
 			padding: 24px 0 21px;
@@ -1467,11 +1471,11 @@
 			max-width: 350px;
 		}
 		.ingress {
-			font-size: 13px;
+			font-size: var(--font-body);
 			max-width: 300px;
 		}
 		.overlinje {
-			font-size: 9px;
+			font-size: var(--font-meta);
 			letter-spacing: 1px;
 		}
 		.labverktoy {
@@ -1494,7 +1498,7 @@
 			padding: 0 12px;
 		}
 		.linjehjelp {
-			font-size: 8px;
+			font-size: var(--font-meta);
 			max-width: 95px;
 			text-align: right;
 			line-height: 1.5;
@@ -1505,7 +1509,7 @@
 			gap: 8px;
 		}
 		.stegteller {
-			font-size: 9px;
+			font-size: var(--font-meta);
 		}
 		.handlinger {
 			gap: 6px;
@@ -1513,25 +1517,25 @@
 		.primaer,
 		.sekundaer {
 			padding: 7px 9px;
-			font-size: 10px;
+			font-size: var(--font-small);
 			min-height: 34px;
 		}
 		.linjeknapp,
 		.linjeutenknapp {
-			font-size: 11px;
-			line-height: 20px;
+			font-size: var(--font-code);
+			line-height: var(--leading-code);
 		}
 		.kodelinje {
-			min-height: 26px;
+			min-height: 34px;
 		}
 		.linjenummer {
 			width: 25px;
-			font-size: 9px;
+			font-size: var(--font-meta);
 			padding-right: 4px;
 		}
 		.kjorepil {
 			width: 16px;
-			font-size: 11px;
+			font-size: var(--font-meta);
 		}
 		.meldingdata {
 			margin: 13px 12px 14px 41px;
@@ -1545,7 +1549,7 @@
 			margin-bottom: 10px;
 		}
 		.meldingetikett span {
-			font-size: 9px;
+			font-size: var(--font-meta);
 		}
 		.objektfelter,
 		.medverdier .objektfelter {
@@ -1560,11 +1564,11 @@
 		.objektfelter label > span {
 			width: 65px;
 			flex-shrink: 0;
-			font-size: 10px;
+			font-size: var(--font-meta);
 		}
 		.objektfelter input {
 			width: 100%;
-			font-size: 12px;
+			font-size: var(--font-small);
 		}
 		.lagringsbryter {
 			padding-left: 9px;
@@ -1576,52 +1580,53 @@
 			gap: 13px;
 		}
 		.kodeforklaring h2 {
-			font-size: 15px;
+			font-size: var(--font-body);
 		}
 		.forklaringstekst > p:not(.forklaringstype) {
-			font-size: 11px;
+			font-size: var(--font-body);
 		}
 		.stegverdi {
 			padding: 10px;
 		}
 		.stegverdi pre {
-			font-size: 10px;
+			font-size: var(--font-code);
 		}
 		.ministatus {
 			padding: 10px 14px;
 			gap: 8px 14px;
-			font-size: 9px;
+			font-size: var(--font-meta);
 		}
 		.ulagret {
 			width: 100%;
 			margin: 0;
-			font-size: 9px;
+			font-size: var(--font-meta);
 		}
 		.verdier {
 			grid-template-columns: minmax(0, 1fr);
 		}
 		.simuleringsnotat {
-			font-size: 9px;
+			font-size: var(--font-body);
 		}
 		.fordypning {
 			margin-top: 22px;
 		}
 		summary {
-			padding: 16px 0;
+			padding: 16px 6px 16px 0;
 		}
 		summary > span:first-child {
+			min-width: 0;
 			flex-direction: column;
 			gap: 5px;
 		}
 		summary small {
-			font-size: 10px;
+			font-size: var(--font-small);
 		}
 		.forsok {
 			grid-template-columns: 1fr;
 			gap: 12px;
 		}
 		.prosjektinnhold > pre {
-			font-size: 11px;
+			font-size: var(--font-code);
 			padding: 14px;
 		}
 		footer {

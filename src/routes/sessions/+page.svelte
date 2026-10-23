@@ -824,7 +824,7 @@
 		color: var(--teal);
 	}
 	.tilbake {
-		font-size: 16px;
+		font-size: var(--font-small);
 		font-weight: 750;
 		white-space: nowrap;
 	}
@@ -840,7 +840,7 @@
 		gap: 20px;
 	}
 	.headerhoyre > a {
-		font-size: 12px;
+		font-size: var(--font-small);
 	}
 	h1,
 	h2,
@@ -863,7 +863,7 @@
 		border: 1px solid var(--border);
 		border-radius: 7px;
 		padding: 10px 14px;
-		font-size: 13px;
+		font-size: var(--font-small);
 		font-weight: 600;
 		transition:
 			background 0.15s,
@@ -885,7 +885,7 @@
 		font-family: 'SFMono-Regular', Consolas, 'Liberation Mono', monospace;
 	}
 	p code {
-		font-size: 0.92em;
+		font-size: var(--font-code-small);
 		color: var(--color-accent);
 		overflow-wrap: anywhere;
 	}
@@ -898,7 +898,7 @@
 	}
 	.overlinje {
 		color: var(--teal);
-		font-size: 10px;
+		font-size: var(--font-meta);
 		font-weight: 750;
 		letter-spacing: 1.5px;
 		margin-bottom: 10px;
@@ -910,7 +910,7 @@
 		margin-bottom: 13px;
 	}
 	.ingress {
-		font-size: 15px;
+		font-size: var(--font-body);
 		color: var(--muted);
 		max-width: 680px;
 		margin-bottom: 0;
@@ -920,7 +920,7 @@
 		gap: 10px;
 		align-items: center;
 		color: var(--teal);
-		font: 15px monospace;
+		font: var(--font-meta)/var(--leading-body) monospace;
 		background: var(--color-surface-soft);
 		border: 1px solid var(--color-border);
 		border-radius: 8px;
@@ -946,7 +946,7 @@
 		border-color: transparent;
 	}
 	.hovedvalg button > span {
-		font: 11px monospace;
+		font: var(--font-small)/var(--leading-body) monospace;
 		color: var(--color-text-subtle);
 	}
 	.hovedvalg button.valgt {
@@ -974,13 +974,13 @@
 		margin-bottom: 0;
 	}
 	.lokalmerke {
-		font: 9px monospace;
+		font: var(--font-meta)/var(--leading-body) monospace;
 		letter-spacing: 1px;
 		color: var(--color-text-muted);
 		white-space: nowrap;
 	}
 	.demomerknad {
-		font-size: 12px;
+		font-size: var(--font-small);
 		color: var(--muted);
 		margin: 10px 0 20px;
 		max-width: 800px;
@@ -1005,7 +1005,7 @@
 		color: var(--color-text-muted);
 		width: 25px;
 		height: 25px;
-		font: 12px monospace;
+		font: var(--font-small)/var(--leading-body) monospace;
 		flex-shrink: 0;
 	}
 	button.aktiv {
@@ -1024,7 +1024,7 @@
 		gap: 8px;
 	}
 	.navhint {
-		font-size: 11px;
+		font-size: var(--font-meta);
 		color: var(--muted);
 		margin: 10px 0 20px;
 	}
@@ -1035,7 +1035,7 @@
 		border-radius: 9px;
 	}
 	.sporsmal .overlinje {
-		font-size: 9px;
+		font-size: var(--font-meta);
 		margin-bottom: 8px;
 	}
 	.sporsmal h3 {
@@ -1045,7 +1045,7 @@
 		margin-bottom: 10px;
 	}
 	.utgangspunkt {
-		font-size: 13px;
+		font-size: var(--font-body);
 		color: var(--muted);
 		margin-bottom: 16px;
 	}
@@ -1074,7 +1074,7 @@
 		border-color: var(--color-action-hover);
 	}
 	.handling > p {
-		font-size: 12px;
+		font-size: var(--font-body);
 		color: var(--muted);
 		margin: 0;
 		max-width: 475px;
@@ -1088,21 +1088,21 @@
 		border-top: 1px solid var(--color-border);
 	}
 	.resultat h4 {
-		font-size: 14px;
-		line-height: 1.5;
+		font-size: var(--font-body);
+		line-height: var(--leading-body);
 		margin-bottom: 4px;
 	}
 	.resultat p {
-		font-size: 13px;
+		font-size: var(--font-body);
 		color: var(--color-text-muted);
 		margin-bottom: 0;
 	}
 	.resultat:not(.harresultat) p {
-		font-size: 12px;
+		font-size: var(--font-body);
 		color: var(--color-text-muted);
 	}
 	.statuskode {
-		font: 13px monospace;
+		font: var(--font-meta)/var(--leading-body) monospace;
 		color: var(--color-success);
 		background: var(--color-success-soft);
 		padding: 7px 8px;
@@ -1123,7 +1123,7 @@
 		border-top: 1px solid var(--color-border);
 	}
 	.ekstrakontroll p {
-		font-size: 12px;
+		font-size: var(--font-body);
 		margin: 9px 0 0;
 		color: var(--muted);
 	}
@@ -1139,7 +1139,7 @@
 		gap: 9px;
 		align-items: center;
 		flex-wrap: wrap;
-		font-size: 13px;
+		font-size: var(--font-small);
 		font-weight: 600;
 		cursor: pointer;
 	}
@@ -1150,7 +1150,7 @@
 		cursor: pointer;
 	}
 	.bryter code {
-		font-size: 11px;
+		font-size: var(--font-meta);
 		color: var(--color-text-muted);
 		font-weight: 400;
 		overflow-wrap: anywhere;
@@ -1175,18 +1175,19 @@
 	}
 	.modellhode {
 		display: flex;
+		flex-wrap: wrap;
 		align-items: center;
 		justify-content: space-between;
 		gap: 10px;
 		margin-bottom: 16px;
 	}
 	.modellhode h3 {
-		font-size: 16px;
+		font-size: var(--font-body);
 		letter-spacing: -0.25px;
 		margin-bottom: 0;
 	}
 	.modellhode > span {
-		font: 8px monospace;
+		font: var(--font-meta)/var(--leading-body) monospace;
 		letter-spacing: 0.7px;
 		color: var(--color-text-muted);
 	}
@@ -1195,7 +1196,7 @@
 	}
 	.feltetikett {
 		color: var(--muted);
-		font-size: 11px;
+		font-size: var(--font-meta);
 		margin-bottom: 5px;
 	}
 	.idverdi {
@@ -1209,7 +1210,7 @@
 		letter-spacing: 0.5px;
 	}
 	.modelltekst {
-		font-size: 11px;
+		font-size: var(--font-body);
 		color: var(--muted);
 		margin: 10px 0 0;
 	}
@@ -1225,7 +1226,7 @@
 		color: var(--color-text-subtle);
 	}
 	.tomt p {
-		font-size: 13px;
+		font-size: var(--font-body);
 		margin-bottom: 0;
 	}
 	.mellom {
@@ -1240,7 +1241,7 @@
 		font-size: 28px;
 	}
 	.mellom > small {
-		font-size: 8px;
+		font-size: var(--font-meta);
 	}
 	.sessionliste {
 		display: grid;
@@ -1265,19 +1266,19 @@
 		gap: 5px;
 	}
 	.sessionrad span {
-		font-size: 10px;
+		font-size: var(--font-meta);
 		color: var(--muted);
 	}
 	.sessionrad code {
-		font-size: 15px;
+		font-size: var(--font-body);
 		color: var(--color-accent);
 	}
 	.sessionrad b {
-		font-size: 15px;
+		font-size: var(--font-body);
 		font-weight: 650;
 	}
 	.modellfot {
-		font-size: 11px;
+		font-size: var(--font-meta);
 		color: var(--muted);
 		margin: 12px 0 19px;
 	}
@@ -1295,7 +1296,7 @@
 		gap: 15px;
 		cursor: pointer;
 		list-style: none;
-		font-size: 13px;
+		font-size: var(--font-small);
 		font-weight: 650;
 		padding: 16px 0 0;
 	}
@@ -1303,12 +1304,14 @@
 		display: none;
 	}
 	summary small {
-		font-size: 11px;
+		font-size: var(--font-small);
 		font-weight: 400;
 		color: var(--color-text-muted);
 		margin-left: 9px;
 	}
 	.pluss {
+		flex-shrink: 0;
+		line-height: 1;
 		color: var(--teal);
 		font-size: 21px;
 		font-weight: 400;
@@ -1322,7 +1325,7 @@
 		margin-top: 20px;
 	}
 	.spor article > h3 {
-		font-size: 15px;
+		font-size: var(--font-body);
 		margin-bottom: 12px;
 	}
 	.httpgrid {
@@ -1340,15 +1343,15 @@
 	}
 	.httpgrid h4,
 	.reqsession h4 {
-		font-size: 11px;
+		font-size: var(--font-meta);
 		color: var(--color-text-muted);
 		margin-bottom: 13px;
 	}
 	.spor pre {
 		white-space: pre-wrap;
 		overflow-wrap: anywhere;
-		font-size: 11px;
-		line-height: 1.7;
+		font-size: var(--font-code);
+		line-height: var(--leading-code);
 		color: var(--color-text-muted);
 		margin: 0;
 	}
@@ -1357,12 +1360,12 @@
 	}
 	.tekniskmerknad,
 	.tomlogg {
-		font-size: 11px;
+		font-size: var(--font-meta);
 		color: var(--muted);
 		margin: 17px 0 0;
 	}
 	.kodeintro {
-		font-size: 14px;
+		font-size: var(--font-body);
 		color: var(--muted);
 		margin: 14px 0 18px;
 		max-width: 800px;
@@ -1378,11 +1381,11 @@
 		margin-bottom: 20px;
 	}
 	.installasjon > span {
-		font-size: 11px;
+		font-size: var(--font-meta);
 		color: var(--color-text-muted);
 	}
 	.installasjon > code {
-		font-size: 12px;
+		font-size: var(--font-code);
 		overflow-wrap: anywhere;
 	}
 	.kodevalg {
@@ -1391,7 +1394,7 @@
 		border-bottom: 1px solid var(--border);
 	}
 	.kodevalg button {
-		font-size: 12px;
+		font-size: var(--font-small);
 	}
 	.kodeinnhold {
 		max-width: 850px;
@@ -1402,12 +1405,12 @@
 		margin-bottom: 12px;
 	}
 	.kodeinnhold > p {
-		font-size: 13px;
+		font-size: var(--font-body);
 		color: var(--muted);
 	}
 	.kodeinnhold > .overlinje {
 		color: var(--teal);
-		font-size: 10px;
+		font-size: var(--font-meta);
 	}
 	.kodevindu {
 		border: 1px solid #2a5040;
@@ -1423,7 +1426,7 @@
 		background: #244737;
 		color: #9ab892;
 		padding: 11px 16px;
-		font: 9px monospace;
+		font: var(--font-meta)/var(--leading-body) monospace;
 		letter-spacing: 0.6px;
 	}
 	.kodevindu > div > span:first-child {
@@ -1431,8 +1434,8 @@
 		letter-spacing: 4px;
 	}
 	.kodevindu pre {
-		font-size: 12px;
-		line-height: 1.7;
+		font-size: var(--font-code);
+		line-height: var(--leading-code);
 		padding: 19px;
 		margin: 0;
 		background: #193c2f;
@@ -1452,11 +1455,11 @@
 		border-radius: 8px;
 	}
 	.kodenotat h4 {
-		font-size: 14px;
+		font-size: var(--font-small);
 		margin-bottom: 10px;
 	}
 	.kodenotat p {
-		font-size: 12px;
+		font-size: var(--font-body);
 		color: var(--muted);
 		margin-bottom: 12px;
 	}
@@ -1464,8 +1467,8 @@
 		margin-bottom: 0;
 	}
 	.kodenotat pre {
-		font-size: 11px;
-		line-height: 1.7;
+		font-size: var(--font-code);
+		line-height: var(--leading-code);
 		white-space: pre-wrap;
 		overflow-wrap: anywhere;
 		padding: 12px;
@@ -1481,7 +1484,7 @@
 		padding-top: 20px;
 		margin-top: 24px;
 		border-top: 1px solid var(--border);
-		font-size: 12px;
+		font-size: var(--font-small);
 	}
 	.kilder > span {
 		color: var(--muted);
@@ -1496,7 +1499,7 @@
 		justify-content: space-between;
 		gap: 20px;
 		padding: 25px 0 35px;
-		font-size: 11px;
+		font-size: var(--font-meta);
 	}
 	footer > span {
 		color: var(--color-text-muted);
@@ -1504,7 +1507,7 @@
 	@media (min-width: 1100px) {
 		.arbeidsflate {
 			display: grid;
-			grid-template-columns: minmax(0, 1.2fr) minmax(0, 1fr);
+			grid-template-columns: repeat(auto-fit, minmax(min(100%, 28rem), 1fr));
 			gap: 20px;
 			align-items: start;
 			margin-bottom: 20px;
@@ -1532,12 +1535,12 @@
 			display: none;
 		}
 		.hovedvalg button {
-			font-size: 12px;
+			font-size: var(--font-small);
 			gap: 9px;
 			padding: 14px;
 		}
 		.trinnvalg button {
-			font-size: 12px;
+			font-size: var(--font-small);
 			gap: 8px;
 			padding: 10px;
 		}
@@ -1563,10 +1566,10 @@
 			gap: 12px;
 		}
 		.headerhoyre > a {
-			font-size: 11px;
+			font-size: var(--font-small);
 		}
 		.tilbake {
-			font-size: 14px;
+			font-size: var(--font-small);
 		}
 		.intro {
 			padding: 27px 0 23px;
@@ -1577,7 +1580,7 @@
 			letter-spacing: -1.2px;
 		}
 		.ingress {
-			font-size: 14px;
+			font-size: var(--font-body);
 		}
 		.hovedvalg {
 			gap: 6px;
@@ -1587,12 +1590,12 @@
 			flex-direction: column;
 			align-items: flex-start;
 			gap: 7px;
-			font-size: 11px;
+			font-size: var(--font-small);
 			padding: 11px 10px;
 			line-height: 1.4;
 		}
 		.hovedvalg button > span {
-			font-size: 10px;
+			font-size: var(--font-small);
 		}
 		.oving,
 		.kodehjelp {
@@ -1602,11 +1605,11 @@
 			font-size: 21px;
 		}
 		.lokalmerke {
-			font-size: 8px;
+			font-size: var(--font-meta);
 			letter-spacing: 0.3px;
 		}
 		.demomerknad {
-			font-size: 11px;
+			font-size: var(--font-meta);
 			margin-bottom: 17px;
 		}
 		.trinnvalg {
@@ -1617,11 +1620,11 @@
 			gap: 6px;
 		}
 		.forsokvalg button {
-			font-size: 11px;
+			font-size: var(--font-small);
 			padding: 9px 10px;
 		}
 		.navhint {
-			font-size: 10px;
+			font-size: var(--font-meta);
 			margin-bottom: 16px;
 		}
 		.oppgave {
@@ -1631,20 +1634,20 @@
 			font-size: 21px;
 		}
 		.utgangspunkt {
-			font-size: 12px;
+			font-size: var(--font-body);
 		}
 		.handling {
 			flex-direction: column;
 			gap: 10px;
 		}
 		.handling > p {
-			font-size: 11px;
+			font-size: var(--font-body);
 		}
 		.primaer {
 			width: 100%;
 			white-space: normal;
 			text-align: left;
-			font-size: 12px;
+			font-size: var(--font-small);
 		}
 		.resultat {
 			gap: 10px;
@@ -1652,13 +1655,13 @@
 			margin-top: 14px;
 		}
 		.resultat h4 {
-			font-size: 13px;
+			font-size: var(--font-body);
 		}
 		.resultat p {
-			font-size: 12px;
+			font-size: var(--font-body);
 		}
 		.statuskode {
-			font-size: 11px;
+			font-size: var(--font-meta);
 			padding: 6px;
 		}
 		.modell {
@@ -1682,34 +1685,35 @@
 			min-height: 40px;
 		}
 		.modellfot {
-			font-size: 10px;
+			font-size: var(--font-meta);
 			margin-bottom: 15px;
 		}
 		summary {
-			font-size: 12px;
+			padding-right: 6px;
+			font-size: var(--font-small);
 		}
 		summary small {
 			display: block;
 			margin: 5px 0 0;
-			font-size: 10px;
+			font-size: var(--font-small);
 		}
 		.httpgrid {
 			grid-template-columns: 1fr;
 		}
 		.spor pre {
-			font-size: 10px;
+			font-size: var(--font-code);
 		}
 		.tekniskmerknad {
-			font-size: 10px;
+			font-size: var(--font-meta);
 		}
 		.bryter {
-			font-size: 12px;
+			font-size: var(--font-small);
 		}
 		.bryter code {
-			font-size: 10px;
+			font-size: var(--font-meta);
 		}
 		.ekstrakontroll p {
-			font-size: 11px;
+			font-size: var(--font-body);
 		}
 		.kodevalg {
 			display: grid;
@@ -1717,7 +1721,7 @@
 			gap: 7px;
 		}
 		.kodevalg button {
-			font-size: 11px;
+			font-size: var(--font-small);
 			padding: 10px;
 			text-align: left;
 		}
@@ -1726,29 +1730,29 @@
 		}
 		.kodeintro,
 		.kodeinnhold > p {
-			font-size: 12px;
+			font-size: var(--font-body);
 		}
 		.kodevindu pre {
-			font-size: 11px;
+			font-size: var(--font-code);
 			padding: 14px;
 		}
 		.kodevindu > div {
 			padding-inline: 14px;
-			font-size: 8px;
+			font-size: var(--font-meta);
 		}
 		.installasjon > code {
-			font-size: 11px;
+			font-size: var(--font-code);
 		}
 		.kodenotat {
 			padding: 14px;
 		}
 		.kodenotat p {
-			font-size: 11px;
+			font-size: var(--font-body);
 		}
 		footer {
 			flex-direction: column;
 			gap: 10px;
-			font-size: 10px;
+			font-size: var(--font-meta);
 		}
 	}
 	@media (prefers-reduced-motion: reduce) {
@@ -1762,6 +1766,29 @@
 		}
 		.headerhoyre {
 			gap: 10px 14px;
+		}
+	}
+	@media (max-width: 650px) {
+		.hovedvalg {
+			grid-template-columns: 1fr;
+		}
+		.hovedvalg button {
+			flex-direction: row;
+			align-items: center;
+			min-height: 44px;
+		}
+		.trinnvalg button {
+			gap: 6px;
+			padding: 8px;
+		}
+		.trinnvalg button > span {
+			width: 22px;
+			height: 22px;
+			flex: 0 0 22px;
+		}
+		.modellhode {
+			flex-wrap: wrap;
+			gap: 6px;
 		}
 	}
 </style>

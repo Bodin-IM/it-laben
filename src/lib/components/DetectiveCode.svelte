@@ -457,7 +457,7 @@
 		border-radius: 6px;
 		background: transparent;
 		color: #b0c9bf;
-		font-size: 12px;
+		font-size: var(--font-small);
 		font-weight: 650;
 	}
 	.side-tabs button:hover {
@@ -471,7 +471,7 @@
 	.file-name {
 		color: #a6c3b7;
 		font:
-			11px/1.5 'SFMono-Regular',
+			var(--font-small)/1.5 'SFMono-Regular',
 			Consolas,
 			monospace;
 	}
@@ -483,8 +483,9 @@
 		gap: 8px 12px;
 		padding: 9px 13px;
 		color: #afc8bd;
-		font-size: 11px;
-		line-height: 1.5;
+		font-size: var(--font-small);
+		line-height: var(--leading-body);
+		flex-wrap: wrap;
 	}
 	.trace-key {
 		flex-shrink: 0;
@@ -492,7 +493,7 @@
 	}
 	.trace-key > span {
 		margin-right: 4px;
-		font-size: 8px;
+		font-size: var(--font-meta);
 	}
 	.invisible {
 		visibility: hidden;
@@ -540,19 +541,23 @@
 		padding-right: 11px;
 		color: #85a89a;
 		font:
-			10px/25px 'SFMono-Regular',
+			var(--font-meta)/25px 'SFMono-Regular',
 			Consolas,
 			monospace;
 		text-align: right;
 		user-select: none;
+		font-size: var(--font-meta);
+		line-height: calc(var(--font-code) * var(--leading-code));
 	}
 	.code-line code {
 		font:
-			12px/25px 'SFMono-Regular',
+			var(--font-small)/25px 'SFMono-Regular',
 			Consolas,
 			monospace;
 		white-space: pre;
 		tab-size: 2;
+		font-size: var(--font-code);
+		line-height: var(--leading-code);
 	}
 	.line-tools {
 		position: sticky;
@@ -564,18 +569,19 @@
 		flex: 0 0 67px;
 		padding: 2px 7px 2px 4px;
 		background: #102f2e;
+		flex-basis: 88px;
 	}
 	.patch-toggle {
 		display: inline-flex;
 		align-items: center;
 		gap: 5px;
-		min-height: 29px;
+		min-height: 34px;
 		padding: 4px 7px;
 		border: 1px solid #456b5f;
 		border-radius: 5px;
 		background: #1f4239;
 		color: #cfe4d5;
-		font-size: 10px;
+		font-size: var(--font-small);
 		line-height: 1.4;
 	}
 	.patch-toggle:hover:not(:disabled) {
@@ -650,7 +656,7 @@
 	}
 	.editor-footer {
 		border-top: 1px solid #31554b;
-		font-size: 10px;
+		font-size: var(--font-small);
 	}
 	.change-count {
 		flex-shrink: 0;
@@ -676,13 +682,13 @@
 	.patch-location {
 		margin: 0 0 4px;
 		color: #d8bd8c;
-		font-size: 10px;
+		font-size: var(--font-meta);
 		line-height: 1.4;
 	}
 	h3 {
 		margin: 0;
 		color: #e4eddf;
-		font-size: 13px;
+		font-size: var(--font-body);
 		line-height: 1.5;
 		font-weight: 650;
 	}
@@ -732,8 +738,9 @@
 		justify-content: space-between;
 		gap: 10px;
 		margin-bottom: 7px;
-		font-size: 11px;
+		font-size: var(--font-small);
 		line-height: 1.5;
+		flex-wrap: wrap;
 	}
 	.choice-heading strong {
 		font-weight: 600;
@@ -741,18 +748,20 @@
 	.choice-state {
 		flex-shrink: 0;
 		color: #adc6b6;
-		font-size: 10px;
+		font-size: var(--font-meta);
 	}
 	.code-choice code {
 		display: block;
 		color: #d5dcc0;
 		font:
-			11px/1.65 'SFMono-Regular',
+			var(--font-small)/1.65 'SFMono-Regular',
 			Consolas,
 			monospace;
 		white-space: pre-wrap;
 		overflow-wrap: anywhere;
 		tab-size: 2;
+		font-size: var(--font-code-small);
+		line-height: var(--leading-code);
 	}
 	.fallback-explanation {
 		margin-top: 10px;
@@ -764,8 +773,8 @@
 	}
 	.fallback-explanation p {
 		margin: 0;
-		font-size: 13px;
-		line-height: 1.65;
+		font-size: var(--font-body);
+		line-height: var(--leading-body);
 	}
 	@container (max-width: 560px) {
 		.choice-grid {
@@ -774,6 +783,7 @@
 		.editor-guide,
 		.editor-footer {
 			flex-wrap: wrap;
+			font-size: var(--font-small);
 		}
 	}
 	@media (max-width: 600px) {
@@ -791,6 +801,7 @@
 		}
 		.patch-toggle {
 			min-height: 34px;
+			font-size: var(--font-small);
 		}
 		.close-button {
 			flex-basis: 36px;

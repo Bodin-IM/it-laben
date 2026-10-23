@@ -546,7 +546,7 @@
 		background: radial-gradient(ellipse at 88% 0%, var(--color-page-glow), transparent 42%);
 		min-height: 100vh;
 		font:
-			14px/1.55 Inter,
+			var(--font-body)/var(--leading-body) Inter,
 			system-ui,
 			-apple-system,
 			BlinkMacSystemFont,
@@ -606,7 +606,7 @@
 		border-radius: 5px;
 		background: var(--color-brand);
 		color: var(--color-on-brand);
-		font-size: 13px;
+		font-size: var(--font-small);
 	}
 	.brand-dot {
 		color: var(--teal);
@@ -615,7 +615,7 @@
 	.topbar nav {
 		display: flex;
 		gap: 24px;
-		font-size: 12px;
+		font-size: var(--font-small);
 		color: var(--muted);
 	}
 	.topbar nav a {
@@ -635,7 +635,7 @@
 	.eyebrow {
 		margin: 0 0 7px;
 		color: var(--teal);
-		font-size: 10px;
+		font-size: var(--font-meta);
 		letter-spacing: 1.4px;
 		font-weight: 750;
 		line-height: 1.4;
@@ -667,7 +667,7 @@
 	.intro > div > p:last-child {
 		margin: 0;
 		color: var(--muted);
-		font-size: 14px;
+		font-size: var(--font-body);
 	}
 	.case-progress {
 		flex: 0 0 auto;
@@ -699,13 +699,13 @@
 	.case-progress strong span {
 		margin-left: 6px;
 		color: var(--color-text-subtle);
-		font-size: 16px;
+		font-size: var(--font-body);
 		font-weight: 400;
 	}
 	.case-progress div > span {
 		display: block;
 		margin-top: 5px;
-		font-size: 11px;
+		font-size: var(--font-meta);
 		color: var(--muted);
 	}
 	.case-tabs {
@@ -716,6 +716,7 @@
 	}
 	.case-tabs button {
 		display: flex;
+		flex-wrap: wrap;
 		align-items: center;
 		gap: 13px;
 		min-width: 0;
@@ -755,14 +756,17 @@
 		color: var(--color-success);
 	}
 	.case-tab-name {
-		font-size: 13px;
+		max-width: 100%;
+		min-width: 0;
+		overflow-wrap: anywhere;
+		font-size: var(--font-small);
 		font-weight: 650;
 	}
 	.case-tab-name small {
 		display: block;
 		margin-top: 4px;
 		color: var(--color-text-muted);
-		font-size: 8px;
+		font-size: var(--font-meta);
 		letter-spacing: 0.7px;
 		font-weight: 450;
 	}
@@ -794,7 +798,7 @@
 		border-radius: 6px;
 	}
 	.report-copy .eyebrow {
-		font-size: 9px;
+		font-size: var(--font-meta);
 		color: var(--color-warning);
 	}
 	.report-copy h2 {
@@ -807,12 +811,12 @@
 		margin: 0 0 9px;
 		max-width: 840px;
 		color: var(--color-text-muted);
-		font-size: 13px;
-		line-height: 1.6;
+		font-size: var(--font-body);
+		line-height: var(--leading-body);
 	}
 	.report-copy > strong {
 		display: block;
-		font-size: 12px;
+		font-size: var(--font-body);
 		font-weight: 650;
 		color: var(--color-text-muted);
 	}
@@ -824,7 +828,7 @@
 		gap: 12px;
 		align-items: center;
 		color: var(--color-text-muted);
-		font-size: 11px;
+		font-size: var(--font-small);
 		border: 0;
 		background: transparent;
 		padding: 4px 0 11px;
@@ -836,15 +840,15 @@
 		border-radius: 50%;
 		width: 15px;
 		height: 15px;
-		font-size: 10px;
+		font-size: var(--font-small);
 	}
 	.report-tools summary {
 		color: var(--color-text-muted);
-		font-size: 11px;
+		font-size: var(--font-small);
 		cursor: pointer;
 	}
 	.report-tools details p {
-		font-size: 12px;
+		font-size: var(--font-body);
 		text-align: left;
 		color: var(--color-text-muted);
 		margin: 13px 0 0;
@@ -855,7 +859,7 @@
 		padding-top: 13px;
 		border-top: 1px dashed var(--color-warning-border);
 		color: var(--color-warning);
-		font-size: 13px;
+		font-size: var(--font-body);
 	}
 	.investigation {
 		scroll-margin-top: 18px;
@@ -877,13 +881,13 @@
 	.experiment-input label {
 		display: block;
 		margin-bottom: 5px;
-		font-size: 10px;
+		font-size: var(--font-small);
 		font-weight: 650;
 		color: var(--color-text-muted);
 	}
 	.experiment-input select {
 		color: var(--ink);
-		font-size: 12px;
+		font-size: var(--font-small);
 		border: 1px solid var(--color-border-strong);
 		border-radius: 5px;
 		background: var(--color-surface-raised);
@@ -898,13 +902,13 @@
 	}
 	.probe-description strong {
 		display: block;
-		font-size: 12px;
+		font-size: var(--font-body);
 		font-weight: 650;
 	}
 	.probe-description p {
 		margin: 4px 0 0;
-		font-size: 11px;
-		line-height: 1.6;
+		font-size: var(--font-body);
+		line-height: var(--leading-body);
 		color: var(--color-text-muted);
 	}
 	.run-button {
@@ -918,7 +922,7 @@
 		border-radius: 6px;
 		background: var(--color-action);
 		color: var(--color-on-action);
-		font-size: 12px;
+		font-size: var(--font-small);
 		font-weight: 650;
 		padding: 12px 20px;
 	}
@@ -926,7 +930,7 @@
 		background: var(--color-action-hover);
 	}
 	.run-button > span {
-		font-size: 10px;
+		font-size: var(--font-small);
 		color: var(--color-on-action);
 	}
 	.workbench {
@@ -951,7 +955,7 @@
 		min-height: 45px;
 	}
 	.section-heading .eyebrow {
-		font-size: 9px;
+		font-size: var(--font-meta);
 		margin-bottom: 4px;
 	}
 	.section-heading h2 {
@@ -962,7 +966,7 @@
 	}
 	.reset-button {
 		color: var(--color-text-subtle);
-		font-size: 10px;
+		font-size: var(--font-small);
 		padding: 6px 0;
 		background: transparent;
 		border: 0;
@@ -973,7 +977,7 @@
 	}
 	.code-intro {
 		color: var(--color-text-muted);
-		font-size: 11px;
+		font-size: var(--font-body);
 		margin: 0 0 12px;
 	}
 	.code-intro b {
@@ -981,11 +985,11 @@
 		color: var(--color-text-muted);
 	}
 	.attempt-label {
-		font-size: 10px;
+		font-size: var(--font-meta);
 		color: var(--color-text-subtle);
 	}
 	.run-context {
-		font-size: 11px;
+		font-size: var(--font-meta);
 		color: var(--color-text-muted);
 		margin: 0 0 12px;
 	}
@@ -996,7 +1000,7 @@
 		display: block;
 		margin-top: 4px;
 		color: var(--color-warning);
-		font-size: 10px;
+		font-size: var(--font-meta);
 	}
 	.jump-section {
 		display: block;
@@ -1004,7 +1008,7 @@
 		padding: 10px 12px;
 		margin-top: 12px;
 		text-align: center;
-		font-size: 11px;
+		font-size: var(--font-small);
 		color: var(--color-text-muted);
 		border: 1px solid var(--color-border);
 		border-radius: 6px;
@@ -1018,7 +1022,7 @@
 		justify-content: space-between;
 		gap: 12px;
 		color: var(--color-text-subtle);
-		font-size: 10px;
+		font-size: var(--font-meta);
 		margin-top: 10px;
 	}
 	.stale-note {
@@ -1026,16 +1030,16 @@
 		align-items: baseline;
 		gap: 8px;
 		margin: 11px 0 0;
-		font-size: 11px;
+		font-size: var(--font-body);
 		color: var(--color-warning);
 	}
 	.stale-note > span {
-		font-size: 8px;
+		font-size: var(--font-meta);
 	}
 	.fixture-note {
 		color: var(--color-text-subtle);
 		margin: 12px 0 0;
-		font-size: 10px;
+		font-size: var(--font-meta);
 		line-height: 1.7;
 	}
 	.experiment-checks {
@@ -1051,12 +1055,12 @@
 		list-style: none;
 		padding: 13px 15px;
 		cursor: pointer;
-		font-size: 12px;
+		font-size: var(--font-small);
 		font-weight: 650;
 	}
 	.experiment-checks > summary small {
 		margin-left: auto;
-		font-size: 10px;
+		font-size: var(--font-small);
 		color: var(--color-text-subtle);
 		font-weight: 400;
 	}
@@ -1071,7 +1075,7 @@
 	}
 	.experiment-checks > p {
 		padding: 0 15px;
-		font-size: 12px;
+		font-size: var(--font-body);
 		color: var(--color-text-muted);
 		margin: 0 0 13px;
 	}
@@ -1086,7 +1090,7 @@
 		display: flex;
 		gap: 11px;
 		align-items: flex-start;
-		font-size: 11px;
+		font-size: var(--font-meta);
 	}
 	.experiment-checks li > span {
 		display: grid;
@@ -1113,7 +1117,7 @@
 		margin: 4px 0 0;
 	}
 	.experiment-checks .single-note {
-		font-size: 10px;
+		font-size: var(--font-meta);
 		margin: 16px 15px 13px;
 		padding: 11px 0 0;
 		border-top: 1px solid var(--color-border);
@@ -1139,6 +1143,7 @@
 	}
 	.verification-top {
 		display: flex;
+		flex-wrap: wrap;
 		justify-content: space-between;
 		align-items: center;
 		gap: 28px;
@@ -1151,16 +1156,17 @@
 	}
 	.verification .eyebrow {
 		color: var(--color-text-muted);
-		font-size: 9px;
+		font-size: var(--font-meta);
 	}
 	.verification-top p:not(.eyebrow) {
 		margin: 0;
 		color: var(--color-text-muted);
-		font-size: 12px;
+		font-size: var(--font-body);
 		max-width: 770px;
 	}
 	.verify-button {
 		display: inline-flex;
+		max-width: 100%;
 		justify-content: space-between;
 		align-items: center;
 		gap: 23px;
@@ -1171,7 +1177,7 @@
 		border: 1px solid var(--color-border-strong);
 		color: var(--color-text-muted);
 		border-radius: 6px;
-		font-size: 12px;
+		font-size: var(--font-small);
 		font-weight: 650;
 	}
 	.verify-button:hover {
@@ -1193,14 +1199,14 @@
 	}
 	.verification-score > span {
 		color: var(--color-text-muted);
-		font-size: 11px;
+		font-size: var(--font-meta);
 	}
 	.results-toggle {
 		margin-left: auto;
 		padding: 5px 0;
 		background: none;
 		border: 0;
-		font-size: 11px;
+		font-size: var(--font-small);
 		color: var(--color-text-muted);
 		text-decoration: underline;
 		text-underline-offset: 3px;
@@ -1229,14 +1235,14 @@
 	}
 	.verification-results button strong {
 		display: block;
-		font-size: 11px;
+		font-size: var(--font-small);
 		line-height: 1.45;
 		font-weight: 650;
 	}
 	.verification-results button small {
 		display: block;
 		margin-top: 4px;
-		font-size: 9px;
+		font-size: var(--font-small);
 		color: var(--color-warning);
 	}
 	.verification-results button.passed {
@@ -1259,7 +1265,7 @@
 		border: 1px solid var(--color-warning-border);
 		background: var(--color-warning-soft);
 		border-radius: 50%;
-		font-size: 13px;
+		font-size: var(--font-small);
 	}
 	.passed .result-mark {
 		border-color: var(--color-success-border);
@@ -1278,7 +1284,7 @@
 		display: flex;
 		align-items: center;
 		gap: 12px;
-		font-size: 12px;
+		font-size: var(--font-body);
 		color: var(--color-success);
 	}
 	.solved-stamp {
@@ -1302,7 +1308,7 @@
 		border: 1px solid var(--color-action);
 		border-radius: 6px;
 		color: var(--color-on-action);
-		font-size: 12px;
+		font-size: var(--font-small);
 		font-weight: 650;
 		text-decoration: none;
 		padding: 11px 16px;
@@ -1323,7 +1329,7 @@
 		padding: 15px 17px;
 		list-style: none;
 		cursor: pointer;
-		font-size: 12px;
+		font-size: var(--font-small);
 		font-weight: 650;
 	}
 	.learning-note > summary > span:last-child {
@@ -1340,7 +1346,7 @@
 	}
 	.learning-note > div {
 		padding: 0 17px 18px;
-		font-size: 12px;
+		font-size: var(--font-body);
 		color: var(--color-text-muted);
 	}
 	.learning-note p {
@@ -1352,7 +1358,7 @@
 		display: flex;
 		flex-wrap: wrap;
 		gap: 10px 24px;
-		font-size: 11px;
+		font-size: var(--font-small);
 	}
 	footer {
 		display: flex;
@@ -1361,7 +1367,7 @@
 		margin-top: 28px;
 		padding: 22px 0 28px;
 		border-top: 1px solid var(--line);
-		font-size: 11px;
+		font-size: var(--font-meta);
 		color: var(--color-text-subtle);
 	}
 	footer a {
@@ -1396,10 +1402,13 @@
 			gap: 10px;
 		}
 		.case-tab-name {
-			font-size: 12px;
+			max-width: 100%;
+			min-width: 0;
+			overflow-wrap: anywhere;
+			font-size: var(--font-small);
 		}
 		.case-tab-name small {
-			font-size: 7px;
+			font-size: var(--font-meta);
 		}
 		.probe-description {
 			padding-top: 0;
@@ -1472,11 +1481,11 @@
 		.brand > span:first-child {
 			width: 25px;
 			height: 25px;
-			font-size: 11px;
+			font-size: var(--font-meta);
 		}
 		.topbar nav {
 			gap: 13px;
-			font-size: 10px;
+			font-size: var(--font-small);
 		}
 		.topbar nav a:first-child {
 			display: none;
@@ -1496,11 +1505,11 @@
 			margin-bottom: 10px;
 		}
 		.eyebrow {
-			font-size: 8px;
+			font-size: var(--font-meta);
 			letter-spacing: 1.1px;
 		}
 		.intro > div > p:last-child {
-			font-size: 12px;
+			font-size: var(--font-body);
 		}
 		.case-progress {
 			padding: 0;
@@ -1521,11 +1530,11 @@
 			font-size: 17px;
 		}
 		.case-progress strong span {
-			font-size: 12px;
+			font-size: var(--font-small);
 			margin-left: 4px;
 		}
 		.case-progress div > span {
-			font-size: 10px;
+			font-size: var(--font-meta);
 			margin-top: 0;
 		}
 		.case-tabs {
@@ -1539,13 +1548,16 @@
 			gap: 11px;
 		}
 		.case-number {
-			font-size: 16px;
+			font-size: var(--font-body);
 		}
 		.case-tab-name {
-			font-size: 11px;
+			max-width: 100%;
+			min-width: 0;
+			overflow-wrap: anywhere;
+			font-size: var(--font-small);
 		}
 		.case-tab-name small {
-			font-size: 6px;
+			font-size: var(--font-meta);
 			margin-top: 2px;
 		}
 		.case-report {
@@ -1560,18 +1572,18 @@
 			font-size: 19px;
 		}
 		.report-copy .eyebrow {
-			font-size: 7px;
+			font-size: var(--font-meta);
 			letter-spacing: 1px;
 		}
 		.report-copy h2 {
 			font-size: 21px;
 		}
 		.report-copy > p:not(.eyebrow) {
-			font-size: 12px;
+			font-size: var(--font-body);
 			margin-top: 7px;
 		}
 		.report-copy > strong {
-			font-size: 11px;
+			font-size: var(--font-body);
 		}
 		.report-tools {
 			grid-column: 2;
@@ -1583,19 +1595,19 @@
 			margin-top: 11px;
 		}
 		.hint-button {
-			font-size: 10px;
+			font-size: var(--font-small);
 			gap: 7px;
 			padding: 0;
 		}
 		.report-tools summary {
-			font-size: 10px;
+			font-size: var(--font-small);
 		}
 		.report-tools details p {
-			font-size: 11px;
+			font-size: var(--font-body);
 		}
 		.case-hint {
 			grid-column: 1/-1;
-			font-size: 12px;
+			font-size: var(--font-body);
 		}
 		.experiment-bar {
 			flex-wrap: wrap;
@@ -1607,16 +1619,16 @@
 			flex: 1 1 100%;
 		}
 		.experiment-input label {
-			font-size: 10px;
+			font-size: var(--font-small);
 		}
 		.experiment-input select {
-			font-size: 12px;
+			font-size: var(--font-small);
 			min-height: 40px;
 		}
 		.run-button {
 			width: 100%;
 			min-height: 43px;
-			font-size: 12px;
+			font-size: var(--font-small);
 			padding: 10px 14px;
 			justify-content: flex-start;
 		}
@@ -1631,35 +1643,35 @@
 			margin-bottom: 10px;
 		}
 		.section-heading .eyebrow {
-			font-size: 8px;
+			font-size: var(--font-meta);
 		}
 		.section-heading h2 {
 			font-size: 20px;
 		}
 		.reset-button {
-			font-size: 9px;
+			font-size: var(--font-small);
 		}
 		.code-intro {
-			font-size: 10px;
+			font-size: var(--font-body);
 		}
 		.attempt-label {
-			font-size: 9px;
+			font-size: var(--font-meta);
 		}
 		.code-meta,
 		.fixture-note,
 		.stale-note {
-			font-size: 9px;
+			font-size: var(--font-meta);
 		}
 		.experiment-checks > summary {
 			gap: 9px;
-			font-size: 11px;
+			font-size: var(--font-small);
 			padding: 12px;
 		}
 		.experiment-checks > summary small {
-			font-size: 8px;
+			font-size: var(--font-small);
 		}
 		.experiment-checks > p {
-			font-size: 11px;
+			font-size: var(--font-body);
 			padding-inline: 12px;
 		}
 		.experiment-checks ul {
@@ -1678,15 +1690,15 @@
 			font-size: 21px;
 		}
 		.verification .eyebrow {
-			font-size: 8px;
+			font-size: var(--font-meta);
 		}
 		.verification-top p:not(.eyebrow) {
-			font-size: 11px;
-			line-height: 1.7;
+			font-size: var(--font-body);
+			line-height: var(--leading-body);
 		}
 		.verify-button {
 			justify-content: center;
-			font-size: 11px;
+			font-size: var(--font-small);
 			min-height: 42px;
 			padding: 10px 12px;
 		}
@@ -1699,11 +1711,11 @@
 			font-size: 23px;
 		}
 		.verification-score > span {
-			font-size: 10px;
+			font-size: var(--font-meta);
 			flex: 1;
 		}
 		.results-toggle {
-			font-size: 10px;
+			font-size: var(--font-small);
 			flex: 1 1 100%;
 			text-align: left;
 		}
@@ -1719,28 +1731,28 @@
 			gap: 14px;
 		}
 		.case-solved > div {
-			font-size: 11px;
+			font-size: var(--font-body);
 		}
 		.next-case {
 			justify-content: center;
-			font-size: 11px;
+			font-size: var(--font-small);
 		}
 		.learning-note > summary {
-			font-size: 11px;
+			font-size: var(--font-small);
 			padding: 14px;
 		}
 		.learning-note > div {
-			font-size: 11px;
+			font-size: var(--font-body);
 			padding: 0 14px 15px;
 		}
 		.learning-note nav {
-			font-size: 10px;
+			font-size: var(--font-small);
 			gap: 9px 17px;
 		}
 		footer {
 			flex-direction: column;
 			gap: 7px;
-			font-size: 10px;
+			font-size: var(--font-meta);
 			margin-top: 23px;
 			padding: 19px 0 24px;
 		}
@@ -1781,6 +1793,9 @@
 		justify-self: end;
 	}
 	@media (max-width: 380px) {
+		.brand {
+			white-space: nowrap;
+		}
 		.topbar nav {
 			grid-column: 2;
 			grid-row: 1;
@@ -1788,6 +1803,16 @@
 		.theme-control {
 			grid-column: 1 / -1;
 			grid-row: 2;
+		}
+	}
+	@media (max-width: 900px) {
+		.case-tabs {
+			grid-template-columns: repeat(2, minmax(0, 1fr));
+		}
+	}
+	@media (max-width: 480px) {
+		.case-tabs {
+			grid-template-columns: 1fr;
 		}
 	}
 </style>

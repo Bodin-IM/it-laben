@@ -14,13 +14,17 @@
 /** @typedef {{body:Body,session:{bruker?:User},params:{id?:string}}} Request */
 /** @typedef {{id:string,text:string,title:string,explanation:string}} CodeLine */
 /** @typedef {{id:string,group:string,title:string,category:Category,lines:CodeLine[],explanation:string}} Block */
-/** @typedef {{id:MissionId,number:number,title:string,brief:string,goal:string,contract:string[],hint:string,method:'POST'|'DELETE',path:string,maxBlocks:number,startProgram:string[],available:string[],lesson:string}} Mission */
+/** @typedef {{does:string,why:string,transfer:string}} Takeaway */
+/** @typedef {{id:MissionId,number:number,title:string,brief:string,goal:string,requirements:string[],contract:string[],hint:string,method:'POST'|'DELETE',path:string,maxBlocks:number,startProgram:string[],available:string[],lesson:string,takeaway:Takeaway}} Mission */
 /** @typedef {{status:number,response:unknown,messages:Message[]}} Expected */
 /** @typedef {{id:string,name:string,actor:string,kind:'normal'|'edge'|'misuse',brief:string,request:Request,expected:Expected,initialMessages:Message[]}} Case */
 /** @typedef {{blockId:string,index:number,executed:boolean,stopped:boolean,explanation:string,status:number|null,response:unknown,messages:Message[],variables:Record<string,unknown>}} ExecutionStep */
 /** @typedef {{caseId:string,passed:boolean,status:number|null,response:unknown,before:Message[],after:Message[],trace:ExecutionStep[],feedback:string,expectedSummary:string,actualSummary:string,faultBlockId:string|null,error:string|null}} CaseResult */
 /** @typedef {{results:CaseResult[],passed:number,total:number,success:boolean}} Run */
 /** @typedef {{messages:Message[],nextId:number,tekst:unknown,lagret:Message|undefined,melding:Message|undefined,id:number,status:number|null,response:unknown,finished:boolean,error:string|null}} Runtime */
+/** @typedef {{lineIds:string[],title:string,explanation:string}} Checkpoint */
+/** @typedef {{id:string,phase:'arrive'|'step'|'skip'|'done',blockId:string|null,lineIds:string[],title:string,explanation:string,variables:Record<string,unknown>,messages:Message[],status:number|null,response:unknown,finished:boolean,executedBlockIds:string[],skippedBlockIds:string[]}} WalkthroughFrame */
+/** @typedef {{caseId:string,request:Request,frames:WalkthroughFrame[],result:CaseResult}} Walkthrough */
 
 /** @template T @param {T} value @returns {T} */
 function copy(value) {
@@ -224,6 +228,11 @@ export const MISSIONS = Object.freeze([
 		title: 'Stopp tomme meldinger',
 		brief: 'Chatten fylles med tomme bobler. Ruten lagrer før den undersøker hva som ble sendt.',
 		goal: 'Slipp inn ordentlige meldinger, og stopp tom tekst uten å lagre noe.',
+		requirements: [
+			'Gyldig tekst lagres én gang, ryddes for mellomrom foran og bak, og får 201.',
+			'Tom tekst, bare mellomrom, manglende tekst og tall får 400.',
+			'En avvist request skal ikke endre serverlisten.'
+		],
 		contract: [
 			'Gyldig tekst lagres én gang, uten mellomrom foran eller bak, og returneres med 201.',
 			'Tom tekst, bare mellomrom, manglende tekst og tall gir 400 uten å endre serverlisten.',
@@ -244,7 +253,13 @@ export const MISSIONS = Object.freeze([
 			'reject-all'
 		],
 		lesson:
-			'Rydd teksten, vurder den, og la bare gyldige data nå lagringen. En feilkode ruller ikke tilbake det som allerede er lagret.'
+			'Rydd teksten, vurder den, og la bare gyldige data nå lagringen. En feilkode ruller ikke tilbake det som allerede er lagret.',
+		takeaway: {
+			does: 'I prøvene lagrer ruten gyldig tekst én gang og svarer 201. Ugyldig tekst får 400, og serverlisten er uendret.',
+			why: 'Teksten blir ryddet og kontrollert før lagring. Ved ugyldig tekst stopper return kjøringen før meldinger.push(lagret).',
+			transfer:
+				'Kontroller data før du endrer noe. Et feilsvar gjør ikke en lagring som allerede har skjedd, ugjort.'
+		}
 	}),
 	Object.freeze({
 		id: 'avsender',
@@ -252,6 +267,11 @@ export const MISSIONS = Object.freeze([
 		title: 'Hvem skrev egentlig dette?',
 		brief: 'Teksten er under kontroll. Nå påstår enkelte nettlesere at de er en annen bruker.',
 		goal: 'La innloggede brukere sende som seg selv, og avvis gjester før data endres.',
+		requirements: [
+			'Gyldige meldinger fra innloggede brukere får 201 med avsenderen fra sessionen.',
+			'Avsenderen i body skal ikke bestemme hvem meldingen lagres som.',
+			'Gjester får 401. Ugyldig tekst fra innloggede får 400. Ingen avvisning lagrer data.'
+		],
 		contract: [
 			'En innlogget bruker med gyldig tekst får 201 og én lagret melding med identiteten fra sessionen.',
 			'Avsenderfeltene i body kan være falske eller mangle. De skal ikke bestemme avsenderen.',
@@ -274,7 +294,13 @@ export const MISSIONS = Object.freeze([
 			'reject-all'
 		],
 		lesson:
-			'Nettleseren foreslår innholdet. Backend bruker en etablert session til å bestemme hvem som sender, og sjekker tilgang før data endres.'
+			'Nettleseren foreslår innholdet. Backend bruker en etablert session til å bestemme hvem som sender, og sjekker tilgang før data endres.',
+		takeaway: {
+			does: 'I prøvene lagres meldinger med brukeren fra sessionen, også når body påstår noe annet. Gjester avvises uten at serverlisten endres.',
+			why: 'Innlogging og tekst kontrolleres før lagring. Avsenderen hentes fra sessionen som serveren opprettet ved innlogging.',
+			transfer:
+				'La nettleseren sende innhold, og bruk sessionen på serveren til å fastslå hvem som handler.'
+		}
 	}),
 	Object.freeze({
 		id: 'sletting',
@@ -283,6 +309,11 @@ export const MISSIONS = Object.freeze([
 		brief:
 			'En bruker får beskjed om at sletting er nektet. Likevel er meldingen borte fra chatten.',
 		goal: 'Tillat sletting av egen melding, og beskytt alle andre meldinger.',
+		requirements: [
+			'En innlogget eier kan slette sin melding med ID og få 200 som bekreftelse.',
+			'Gjester får 401, ukjent ID gir 404, og andres meldinger gir 403.',
+			'En avvisning skal la alle meldinger være i fred, selv om body påstår en annen identitet.'
+		],
 		contract: [
 			'En innlogget eier kan slette akkurat sin melding. Svar med 200 og { slettet: id }.',
 			'Gjester får 401, ukjente ID-er gir 404, og andres meldinger gir 403. Ingen av disse skal endre data.',
@@ -305,7 +336,13 @@ export const MISSIONS = Object.freeze([
 			'reply-deleted'
 		],
 		lesson:
-			'Finn ressursen og kontroller tilgang før den endres. Et riktig HTTP-svar er ikke nok dersom serveren allerede har slettet feil data.'
+			'Finn ressursen og kontroller tilgang før den endres. Et riktig HTTP-svar er ikke nok dersom serveren allerede har slettet feil data.',
+		takeaway: {
+			does: 'I prøvene kan en innlogget eier slette akkurat sin melding. Gjester, ukjente ID-er og forsøk på å slette andres meldinger lar serverlisten være uendret.',
+			why: 'Ruten bruker ID til å finne meldingen og sessionen til å kontrollere eierskap. Kontrollene skjer før sletting.',
+			transfer:
+				'Sjekk både svaret og hva som skjedde med dataene. 403 beskytter bare meldingen dersom slettingen ikke allerede har skjedd.'
+		}
 	})
 ]);
 
@@ -727,8 +764,13 @@ function respond(runtime, status, body) {
 	runtime.finished = true;
 }
 
-/** @param {string} id @param {Runtime} runtime @param {Request} req @returns {string} */
-function execute(id, runtime, req) {
+/**
+ * The optional checkpoint observes a real intermediate state, without changing execution.
+ * @param {string} id @param {Runtime} runtime @param {Request} req
+ * @param {(checkpoint:Checkpoint)=>void} [oncheckpoint]
+ * @returns {string}
+ */
+function execute(id, runtime, req, oncheckpoint) {
 	switch (id) {
 		case 'normalize-text': {
 			runtime.tekst = typeof runtime.tekst === 'string' ? runtime.tekst.trim() : '';
@@ -773,6 +815,11 @@ function execute(id, runtime, req) {
 				avsenderId: id === 'save-session' ? user?.id : req.body.avsenderId,
 				avsender: id === 'save-session' ? user?.navn : req.body.avsender
 			};
+			oncheckpoint?.({
+				lineIds: [`${id}-1`, `${id}-2`],
+				title: 'Bygg meldingsobjektet',
+				explanation: `lagret viser nå et nytt objekt med ID ${nextId}. Objektet har teksten slik den er akkurat nå. Det er ikke lagt i serverlisten ennå.`
+			});
 			runtime.messages.push(runtime.lagret);
 			return `Melding ${nextId} er nå lagret${runtime.lagret.avsender ? ' som ' + runtime.lagret.avsender : ' uten avsendernavn'}. En senere avvisning gjør ikke dette ugjort.`;
 		}
@@ -844,6 +891,22 @@ function execute(id, runtime, req) {
 		default:
 			throw new RangeError('Ukjent kodeblokk: ' + id);
 	}
+}
+
+/** @param {Case} testCase @param {Request} req @returns {Runtime} */
+function initialRuntime(testCase, req) {
+	return {
+		messages: copy(testCase.initialMessages),
+		nextId: Math.max(0, ...testCase.initialMessages.map((item) => item.id)) + 1,
+		tekst: req.body.tekst,
+		lagret: undefined,
+		melding: undefined,
+		id: Number(req.params.id),
+		status: null,
+		response: null,
+		finished: false,
+		error: null
+	};
 }
 
 /** @param {unknown} a @param {unknown} b */
@@ -933,19 +996,7 @@ export function evaluateCase(missionId, program, caseId) {
 	const testCase = casesFor(missionId).find((item) => item.id === caseId);
 	if (!testCase) throw new RangeError('Ukjent prøverequest: ' + caseId);
 	const req = copy(testCase.request);
-	/** @type {Runtime} */
-	const runtime = {
-		messages: copy(testCase.initialMessages),
-		nextId: Math.max(0, ...testCase.initialMessages.map((item) => item.id)) + 1,
-		tekst: req.body.tekst,
-		lagret: undefined,
-		melding: undefined,
-		id: Number(req.params.id),
-		status: null,
-		response: null,
-		finished: false,
-		error: null
-	};
+	const runtime = initialRuntime(testCase, req);
 	/** @type {ExecutionStep[]} */
 	const trace = [];
 	/** @type {string|null} */
@@ -1009,6 +1060,141 @@ export function evaluateCase(missionId, program, caseId) {
 		faultBlockId,
 		error: runtime.error
 	};
+}
+
+/**
+ * A learner-controlled walkthrough for the text mission. A frame is one meaningful
+ * operation, which may span two source lines (object construction), rather than an
+ * animation timer. Snapshots only contain values reached at that point in execution.
+ * Existing evaluation and the walkthrough use the same execute() implementation.
+ * @param {string} missionId @param {string[]} program @param {string} caseId
+ * @returns {Walkthrough}
+ */
+export function walkthroughCase(missionId, program, caseId) {
+	if (missionId !== 'tekst')
+		throw new RangeError('Stegvis gjennomgang er tilgjengelig i det første oppdraget.');
+	const blocks = validateProgram(missionId, program);
+	const testCase = casesFor(missionId).find((item) => item.id === caseId);
+	if (!testCase) throw new RangeError('Ukjent prøverequest: ' + caseId);
+	const req = copy(testCase.request);
+	const runtime = initialRuntime(testCase, req);
+	/** @type {WalkthroughFrame[]} */
+	const frames = [];
+	/** @type {string[]} */
+	const executedBlockIds = [];
+	/** @type {string[]} */
+	const skippedBlockIds = [];
+	let textDeclared = false;
+	let savedDeclared = false;
+
+	/**
+	 * @param {string} id @param {WalkthroughFrame['phase']} phase
+	 * @param {string|null} blockId @param {string[]} lineIds
+	 * @param {string} title @param {string} explanation
+	 */
+	function snapshot(id, phase, blockId, lineIds, title, explanation) {
+		/** @type {Record<string,unknown>} */
+		const variables = {};
+		if (textDeclared) variables.tekst = runtime.tekst;
+		if (savedDeclared) variables.lagret = runtime.lagret;
+		frames.push({
+			id: `${caseId}:${id}`,
+			phase,
+			blockId,
+			lineIds: [...lineIds],
+			title,
+			explanation,
+			variables: copy(variables),
+			messages: copy(runtime.messages),
+			status: runtime.status,
+			response: copy(runtime.response),
+			finished: runtime.finished,
+			executedBlockIds: [...executedBlockIds],
+			skippedBlockIds: [...skippedBlockIds]
+		});
+	}
+
+	snapshot(
+		'arrive',
+		'arrive',
+		null,
+		['opening-1'],
+		'Requesten kommer inn',
+		'POST-requesten treffer /meldinger. Se hva nettleseren har sendt i req.body.tekst. Koden inne i ruten har ikke kjørt ennå.'
+	);
+	textDeclared = true;
+	snapshot(
+		'read-text',
+		'step',
+		null,
+		['opening-2'],
+		'Les teksten fra body',
+		req.body.tekst === undefined
+			? 'Body har ikke noe tekst-felt. Variabelen tekst opprettes med verdien undefined.'
+			: 'Variabelen tekst får verdien fra req.body.tekst, akkurat slik nettleseren sendte den. Ingen rydding eller kontroll har skjedd ennå.'
+	);
+	savedDeclared = true;
+	snapshot(
+		'declare-saved',
+		'step',
+		null,
+		['opening-3'],
+		'Opprett variabelen lagret',
+		'let lagret oppretter en variabel uten å gi den en melding. Verdien er undefined. Serverlisten er fortsatt uendret.'
+	);
+
+	for (const entry of blocks) {
+		if (runtime.finished) {
+			skippedBlockIds.push(entry.id);
+			snapshot(
+				`${entry.id}:skip`,
+				'skip',
+				entry.id,
+				entry.lines.map((line) => line.id),
+				'Ikke kjørt: ' + entry.title,
+				'En tidligere return har avsluttet ruten. Denne blokken hoppes over, og verdiene blir ikke endret.'
+			);
+			continue;
+		}
+		executedBlockIds.push(entry.id);
+		let explanation;
+		try {
+			explanation = execute(entry.id, runtime, req, (checkpoint) => {
+				snapshot(
+					`${entry.id}:construct`,
+					'step',
+					entry.id,
+					checkpoint.lineIds,
+					checkpoint.title,
+					checkpoint.explanation
+				);
+			});
+		} catch (error) {
+			runtime.error = error instanceof Error ? error.message : 'En verdi kunne ikke leses.';
+			runtime.status = 500;
+			runtime.response = null;
+			runtime.finished = true;
+			explanation = 'Kodefeil: ' + runtime.error;
+		}
+		snapshot(
+			`${entry.id}:execute`,
+			'step',
+			entry.id,
+			entry.id === 'save-body' ? ['save-body-3'] : entry.lines.map((line) => line.id),
+			entry.id === 'save-body' ? 'Legg objektet i serverlisten' : entry.title,
+			explanation
+		);
+	}
+	const result = evaluateCase(missionId, program, caseId);
+	snapshot(
+		'done',
+		'done',
+		null,
+		runtime.status === null ? ['closing-1'] : [],
+		runtime.status === null ? 'Ruten nådde slutten uten svar' : 'Requesten er ferdig behandlet',
+		result.feedback
+	);
+	return { caseId, request: copy(req), frames, result };
 }
 
 /** @param {string} missionId @param {string[]} program @returns {Run} */

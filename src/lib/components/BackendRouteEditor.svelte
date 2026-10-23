@@ -9,7 +9,7 @@
 	 * @typedef {{
 	 * blocks:Block[], program:string[], opening:string[], closing:string[], maxBlocks:number,
 	 * disabled?:boolean, onprogramchange:(program:string[], message:string)=>void,
-	 * onexplain?:()=>void, activeBlockId?:string|null, executedBlockIds?:string[],
+	 * onexplain?:()=>void, activeBlockId?:string|null, activeLineIds?:string[], executedBlockIds?:string[],
 	 * skippedBlockIds?:string[], resetKey?:string, explanationBoundary?:HTMLElement|null
 	 * }} Props
 	 */
@@ -24,6 +24,7 @@
 		onprogramchange,
 		onexplain,
 		activeBlockId = null,
+		activeLineIds = [],
 		executedBlockIds = [],
 		skippedBlockIds = [],
 		resetKey = '',
@@ -244,7 +245,12 @@
 			>
 		</div>
 		<div class="code-scroll" role="group" aria-label="Redigerbar Express-rute">
-			{#each opening as source, index}<div class="fixed-line">
+			{#each opening as source, index}<div
+					class="fixed-line"
+					data-line-id={`opening-${index + 1}`}
+					data-active-line={activeLineIds.includes(`opening-${index + 1}`)}
+					aria-current={activeLineIds.includes(`opening-${index + 1}`) ? 'step' : undefined}
+				>
 					<span class="line-number" aria-hidden="true">{index + 1}</span><code
 						>{#each highlight(source) as token}<span class={token.type}>{token.text}</span
 							>{/each}</code
@@ -279,7 +285,8 @@
 								></span><strong>{block.title}</strong>
 							</div>
 							<div class="block-tools">
-								{#if active}<span class="execution active-label">← Se her</span
+								{#if active}<span class="execution active-label"
+										>{skipped ? '↷ Hoppet over' : '← Se her'}</span
 									>{:else if skipped}<span class="execution">Hoppet over</span
 									>{:else if executed}<span class="execution executed-label">✓ Kjørt</span>{/if}
 								<button
@@ -308,13 +315,19 @@
 						</div>
 						{#each block.lines as line, index (line.id)}{@const key = `${block.id}:${line.id}`}{@const selected =
 								selectedKey === key}
-							<div class="line-row" class:selected data-line-id={line.id}>
+							<div
+								class="line-row"
+								class:selected
+								data-line-id={line.id}
+								data-active-line={activeLineIds.includes(line.id)}
+							>
 								<button
 									type="button"
 									class="code-line"
 									data-explanation-for={explanationId}
-									aria-label={`Forklar linje ${entry.firstLine + index}: ${line.text}`}
+									aria-label={`Forklar linje ${entry.firstLine + index}: ${line.text}${skipped ? ' · Ikke kjørt' : ''}`}
 									aria-expanded={selected}
+									aria-current={activeLineIds.includes(line.id) ? 'step' : undefined}
 									aria-controls={selected ? explanationId : undefined}
 									aria-describedby={selected ? explanationId + '-body' : undefined}
 									onclick={(event) => explain(key, event)}
@@ -345,7 +358,12 @@
 			{#if program.length === 0}<p class="empty-program">
 					Ruten er tom. Åpne «Legg til / bytt kode» nedenfor.
 				</p>{/if}
-			{#each closing as source, index}<div class="fixed-line">
+			{#each closing as source, index}<div
+					class="fixed-line"
+					data-line-id={`closing-${index + 1}`}
+					data-active-line={activeLineIds.includes(`closing-${index + 1}`)}
+					aria-current={activeLineIds.includes(`closing-${index + 1}`) ? 'step' : undefined}
+				>
 					<span class="line-number" aria-hidden="true">{closingLine + index}</span><code
 						>{#each highlight(source) as token}<span class={token.type}>{token.text}</span
 							>{/each}</code
@@ -474,6 +492,7 @@
 		border-radius: 11px 11px 0 0;
 		border-bottom: 1px solid #31584f;
 		background: #173b36;
+		flex-wrap: wrap;
 	}
 	.editor-header > div {
 		display: flex;
@@ -488,18 +507,18 @@
 	}
 	.editor-header strong {
 		font:
-			600 12px/1.4 'SFMono-Regular',
+			600 var(--font-small)/1.4 'SFMono-Regular',
 			Consolas,
 			monospace;
 	}
 	.file-note {
 		color: #9fbcb0;
-		font-size: 10px;
+		font-size: var(--font-meta);
 		padding-left: 5px;
 	}
 	.block-count {
 		font:
-			10px/1.4 'SFMono-Regular',
+			var(--font-meta)/1.4 'SFMono-Regular',
 			Consolas,
 			monospace;
 		color: #b3cebc;
@@ -511,9 +530,10 @@
 		align-items: center;
 		gap: 10px;
 		padding: 10px 15px 8px;
-		font-size: 10px;
+		font-size: var(--font-small);
 		line-height: 1.5;
 		color: #a9c3b8;
+		flex-wrap: wrap;
 	}
 	.order-note {
 		color: #c7d8a5;
@@ -569,6 +589,8 @@
 		min-height: 32px;
 		padding: 2px 8px 2px 10px;
 		max-width: 100%;
+		flex-wrap: wrap;
+		padding-block: 5px;
 	}
 	.block-name {
 		display: flex;
@@ -576,14 +598,17 @@
 		min-width: 0;
 		gap: 7px;
 		color: #a9c3b3;
+		flex: 1 1 14rem;
 	}
 	.block-name strong {
-		font-size: 10px;
+		font-size: var(--font-small);
 		line-height: 1.4;
 		font-weight: 550;
-		overflow: hidden;
-		white-space: nowrap;
-		text-overflow: ellipsis;
+		overflow: visible;
+		white-space: normal;
+		text-overflow: clip;
+		overflow-wrap: anywhere;
+		max-width: none;
 	}
 	.drag-handle {
 		font-size: 15px;
@@ -611,16 +636,17 @@
 		align-items: center;
 		gap: 2px;
 		flex: 0 0 auto;
+		margin-left: auto;
 	}
 	.block-tools button {
-		width: 28px;
-		min-height: 28px;
+		width: 34px;
+		min-height: 34px;
 		padding: 0;
 		border: 0;
 		border-radius: 5px;
 		background: #23493d;
 		color: #c3dfc4;
-		font-size: 15px;
+		font-size: 1rem;
 	}
 	.block-tools button:hover:not(:disabled) {
 		background: #38624e;
@@ -636,7 +662,7 @@
 	}
 	.execution {
 		padding-right: 5px;
-		font-size: 9px;
+		font-size: var(--font-meta);
 		white-space: nowrap;
 		color: #9aada6;
 	}
@@ -656,7 +682,7 @@
 		align-items: baseline;
 		min-width: 100%;
 		width: max-content;
-		min-height: 25px;
+		min-height: 32px;
 		padding: 1px 12px 1px 0;
 		border: 0;
 		border-left: 2px solid transparent;
@@ -669,25 +695,31 @@
 	}
 	.line-number {
 		display: inline-block;
-		flex: 0 0 34px;
-		width: 34px;
-		padding-right: 10px;
+		flex: 0 0 3rem;
+		width: 3rem;
+		padding-right: 0.625rem;
 		color: #7fa394;
 		text-align: right;
 		font:
-			10px/23px 'SFMono-Regular',
+			var(--font-meta)/23px 'SFMono-Regular',
 			Consolas,
 			monospace;
 		user-select: none;
+		font-size: var(--font-meta);
+		line-height: calc(var(--font-code) * var(--leading-code));
+		position: relative;
+		padding-left: 1rem;
 	}
 	.code-line code,
 	.fixed-line code {
 		font:
-			12px/23px 'SFMono-Regular',
+			var(--font-small)/23px 'SFMono-Regular',
 			Consolas,
 			monospace;
 		white-space: pre;
 		tab-size: 2;
+		font-size: var(--font-code);
+		line-height: var(--leading-code);
 	}
 	.fixed-line {
 		color: #bed4c8;
@@ -709,7 +741,7 @@
 		margin-left: auto;
 		padding-left: 10px;
 		color: #9edcc1;
-		font-size: 11px;
+		font-size: var(--font-small);
 	}
 	.keyword {
 		color: #8edacb;
@@ -729,8 +761,8 @@
 	}
 	.empty-program {
 		color: #a4beaf;
-		font-size: 12px;
-		line-height: 1.6;
+		font-size: var(--font-body);
+		line-height: var(--leading-body);
 		margin: 15px 16px;
 		padding: 13px 15px;
 		border: 1px dashed #507564;
@@ -745,8 +777,8 @@
 		padding: 8px 14px;
 		border-top: 1px solid #2b5146;
 		color: #a1bdae;
-		font-size: 10px;
-		line-height: 1.5;
+		font-size: var(--font-small);
+		line-height: var(--leading-body);
 	}
 	.editor-footer.drop-target {
 		background: #2e5c49;
@@ -754,7 +786,7 @@
 	}
 	.editor-footer > span:last-child {
 		color: #85ab96;
-		font: 13px monospace;
+		font: var(--font-small) monospace;
 	}
 	.catalog {
 		border-top: 1px solid #395e4f;
@@ -769,9 +801,10 @@
 		gap: 12px;
 		padding: 12px 15px;
 		color: #b9e4c6;
-		font-size: 12px;
+		font-size: var(--font-body);
 		font-weight: 650;
 		list-style: none;
+		flex-wrap: wrap;
 	}
 	.catalog summary::-webkit-details-marker {
 		display: none;
@@ -792,7 +825,7 @@
 	}
 	.catalog summary small {
 		color: #a0b7a8;
-		font-size: 9px;
+		font-size: var(--font-meta);
 		font-weight: 400;
 	}
 	.catalog-content {
@@ -800,8 +833,8 @@
 	}
 	.catalog-content > p {
 		margin: 0 2px 10px;
-		font-size: 10px;
-		line-height: 1.6;
+		font-size: var(--font-body);
+		line-height: var(--leading-body);
 		color: #abc2b1;
 	}
 	.catalog-grid {
@@ -838,8 +871,9 @@
 		align-items: center;
 		justify-content: space-between;
 		gap: 8px;
-		font-size: 8px;
+		font-size: var(--font-meta);
 		line-height: 1.4;
+		flex-wrap: wrap;
 	}
 	.choice-category {
 		color: #9bbb9f;
@@ -851,19 +885,22 @@
 		font-weight: 650;
 	}
 	.catalog-choice > strong {
-		font-size: 11px;
-		line-height: 1.35;
+		font-size: var(--font-small);
+		line-height: 1.5;
 	}
 	.catalog-choice > code {
 		color: #afc7b5;
 		font:
-			10px/1.55 'SFMono-Regular',
+			var(--font-meta)/1.55 'SFMono-Regular',
 			Consolas,
 			monospace;
-		white-space: pre;
-		overflow: hidden;
-		text-overflow: ellipsis;
+		white-space: pre-wrap;
+		overflow: visible;
+		text-overflow: clip;
 		max-width: 100%;
+		font-size: var(--font-code-small);
+		line-height: var(--leading-code);
+		overflow-wrap: anywhere;
 	}
 	.catalog-content > .capacity-note {
 		margin: 10px 2px 0;
@@ -885,19 +922,19 @@
 	}
 	.fallback-explanation h3 {
 		margin: 0 0 7px;
-		font-size: 14px;
+		font-size: var(--font-body);
 	}
 	.fallback-explanation p {
 		margin: 0;
-		font-size: 12px;
-		line-height: 1.7;
+		font-size: var(--font-body);
+		line-height: var(--leading-body);
 	}
 	.fallback-explanation button {
 		background: transparent;
 		border: 0;
 		color: var(--color-accent);
 		padding: 8px 0 0;
-		font-size: 11px;
+		font-size: var(--font-small);
 	}
 	@media (max-width: 900px) {
 		.block-list {
@@ -917,26 +954,31 @@
 		}
 		.code-line code,
 		.fixed-line code {
-			font-size: 11px;
+			font-size: var(--font-small);
 		}
 		.block-tools button {
-			min-height: 32px;
-			width: 32px;
+			min-height: 34px;
+			width: 34px;
+			font-size: 1rem;
 		}
 		.block-header {
 			min-height: 36px;
+			flex-wrap: wrap;
+			padding-block: 5px;
 		}
 	}
 	@media (max-width: 520px) {
 		.editor-header {
 			padding: 12px;
+			flex-wrap: wrap;
 		}
 		.file-note {
 			display: none;
 		}
 		.editor-guide {
 			padding-inline: 12px;
-			font-size: 9px;
+			font-size: var(--font-small);
+			flex-wrap: wrap;
 		}
 		.order-note {
 			display: none;
@@ -946,34 +988,35 @@
 			padding-left: 6px;
 			padding-right: 4px;
 			flex-wrap: wrap;
+			padding-block: 5px;
 		}
 		.block-name {
-			flex: 1 1 auto;
+			flex: 1 1 14rem;
 			gap: 5px;
 		}
 		.block-name strong {
-			font-size: 9px;
-			max-width: 155px;
+			font-size: var(--font-small);
+			max-width: none;
+			white-space: normal;
+			overflow: visible;
+			text-overflow: clip;
+			overflow-wrap: anywhere;
 		}
 		.block-tools {
 			margin-left: auto;
 		}
 		.execution {
-			font-size: 8px;
-		}
-		.line-number {
-			flex-basis: 28px;
-			width: 28px;
-			padding-right: 7px;
-			font-size: 9px;
+			font-size: var(--font-meta);
 		}
 		.editor-footer {
 			padding-inline: 10px;
-			font-size: 9px;
+			font-size: var(--font-small);
+			line-height: var(--leading-body);
 		}
 		.catalog summary {
 			padding: 12px;
-			font-size: 11px;
+			font-size: var(--font-body);
+			flex-wrap: wrap;
 		}
 		.catalog summary small {
 			display: none;
@@ -982,7 +1025,53 @@
 			grid-template-columns: 1fr;
 		}
 		.catalog-choice > code {
-			font-size: 10px;
+			font-size: var(--font-code-small);
+			line-height: var(--leading-code);
+			white-space: pre-wrap;
+			overflow-wrap: anywhere;
+			overflow: visible;
+			text-overflow: clip;
+		}
+	}
+
+	/* The execution arrow shares a reserved gutter with the line number. */
+	.fixed-line[data-active-line='true'],
+	.line-row[data-active-line='true'] > .code-line {
+		background: #3b552e;
+		border-left-color: #d3ee99;
+		box-shadow:
+			inset 0 1px #6e8a4f,
+			inset 0 -1px #6e8a4f;
+	}
+	[data-active-line='true'] .line-number::before {
+		content: '▶';
+		position: absolute;
+		left: 0.125rem;
+		color: #e0f5ad;
+		font-size: var(--font-meta);
+	}
+	.code-block.active.skipped {
+		border-block-color: #647e75;
+		border-left-color: #90a89d;
+		border-left-style: dashed;
+		background: #203b34;
+	}
+	.skipped .execution.active-label {
+		color: #c5d6ca;
+	}
+	.skipped .line-row[data-active-line='true'] > .code-line {
+		background: #294137;
+		border-left-color: #a1b7aa;
+		border-left-style: dashed;
+		box-shadow: none;
+	}
+	.skipped [data-active-line='true'] .line-number::before {
+		content: '↷';
+		color: #c5d6ca;
+	}
+	@container (max-width: 560px) {
+		.catalog-grid {
+			grid-template-columns: minmax(0, 1fr);
 		}
 	}
 	@media (prefers-reduced-motion: reduce) {

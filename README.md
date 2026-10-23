@@ -34,6 +34,8 @@ Spillene har en egen seksjon på forsiden. Alle tre er tilgjengelige, slik at el
 
 **Redd chatten** bruker koden som spillebrett. Eleven legger til, bytter og flytter kodeblokker i en feilaktig Express-rute. Tre oppdrag handler om validering før lagring, avsender fra session og kontroll av eierskap før sletting. Virtuelle brukere prøver ulike situasjoner. Vurderingen ser både på svaret og hva som faktisk ble lagret eller slettet, så det er ikke nok å sende riktig HTTP-status. Flere korrekte løsninger kan godtas.
 
+De viktigste kravene står synlig ved hvert oppdrag. Etter en bestått prøverunde får eleven en kort forklaring på hva løsningen gjør, hvorfor den virker, og hva som kan brukes videre. I første oppdrag kan eleven også velge **«Følg requesten steg for steg»**. Forrige og Neste viser kodelinjene, variablene `tekst` og `lagret`, serverlisten og svaret ved hvert tidspunkt. Objektet opprettes før det legges i listen, og kode etter `return` vises som hoppet over. Gjennomgangen bruker elevens nåværende kode; en kodeendring avslutter den slik at gamle verdier ikke knyttes til ny kode. En enkelt gjennomgang gir ikke godkjenning av hele oppdraget.
+
 **To nettlesere, én chat** er den første varianten. Den har tre starttilstander: meldingen er ikke sendt, meldingen ligger allerede på backend, eller meldingen ligger i et annet rom enn Noah viser. Eleven velger handlinger for Ada og Noah, tester rekkefølgen og undersøker resultatet.
 
 Spillene bruker faste startdata for å gjøre forsøkene sammenlignbare. Nettleserne, brukerne og backend er lokale simuleringer; spillene sender ingen ekte chatmeldinger mellom brukere.
@@ -69,6 +71,21 @@ Fargene er samlet i [theme.css](src/lib/theme.css). Nye sider bruker variabler s
 
 <ThemeToggle />
 ```
+
+### Felles lesbarhet
+
+Skriftstørrelser og linjehøyder ligger også i `src/lib/theme.css`. Sidene og de felles komponentene bruker disse variablene, slik at videre justeringer kan gjøres samlet:
+
+| CSS-variabel                        | Standard       | Bruk                                                       |
+| ----------------------------------- | -------------- | ---------------------------------------------------------- |
+| `--font-body`                       | `1rem`         | Forklaringer, oppgavekrav og annen tekst eleven skal lese. |
+| `--font-small`                      | `0.875rem`     | Knapper og kompakte støttetekster.                         |
+| `--font-meta`                       | `0.8125rem`    | Korte merkelapper og sekundær informasjon.                 |
+| `--font-code`                       | `0.9375rem`    | Kode i de større panelene.                                 |
+| `--font-code-small`                 | `0.875rem`     | Kompakte kodeutdrag og verdier.                            |
+| `--leading-body` / `--leading-code` | `1.6` / `1.65` | Linjehøyde for tekst og kode.                              |
+
+Størrelsene bruker `rem` og følger nettleserens grunnstørrelse. På små skjermer tilpasses oppsettet, og tekst og kontroller får bryte over flere linjer i stedet for at teksten krympes. Kodepaneler kan ha egen vannrett rulling når hele kodelinjen må beholdes. Nye sider bør bruke de samme variablene og kontrolleres både med liten skjermbredde og forstørret tekst.
 
 ## Kjøre prosjektet lokalt
 

@@ -263,11 +263,12 @@
 		align-items: center;
 		justify-content: space-between;
 		gap: 18px;
+		flex-wrap: wrap;
 	}
 	.overlinje {
 		margin: 0 0 6px;
 		color: var(--color-accent);
-		font-size: 9px;
+		font-size: var(--font-meta);
 		font-weight: 700;
 		letter-spacing: 1.2px;
 	}
@@ -287,7 +288,7 @@
 	}
 	button {
 		font: inherit;
-		font-size: 12px;
+		font-size: var(--font-small);
 		font-weight: 600;
 		padding: 8px 12px;
 		border-radius: 5px;
@@ -295,6 +296,7 @@
 		color: var(--color-text-muted);
 		background: transparent;
 		cursor: pointer;
+		min-height: 40px;
 	}
 	button:hover {
 		background: var(--color-surface-hover);
@@ -310,8 +312,8 @@
 		outline-offset: 3px;
 	}
 	.kontekst {
-		font-size: 12px;
-		line-height: 1.65;
+		font-size: var(--font-body);
+		line-height: var(--leading-body);
 		color: var(--color-text-muted);
 		margin: 13px 0 16px;
 		max-width: 900px;
@@ -337,12 +339,13 @@
 		background: #244837;
 		border-bottom: 1px solid #355844;
 		color: #c2d9ad;
-		font-size: 11px;
+		font-size: var(--font-small);
 		line-height: 1.5;
+		flex-wrap: wrap;
 	}
 	.blokktittel small {
 		color: #a1bb93;
-		font: 8px monospace;
+		font: var(--font-meta) monospace;
 		letter-spacing: 0.8px;
 		flex-shrink: 0;
 	}
@@ -351,8 +354,8 @@
 		margin: 0;
 		padding: 11px 0;
 		color: #e0edcf;
-		font-size: 12px;
-		line-height: 1.8;
+		font-size: var(--font-code);
+		line-height: var(--leading-code);
 		tab-size: 2;
 	}
 	pre,
@@ -365,21 +368,21 @@
 	}
 	.kodelinje {
 		display: grid;
-		grid-template-columns: 28px 19px minmax(0, 1fr);
+		grid-template-columns: 32px 20px minmax(0, 1fr);
 		align-items: baseline;
 		padding: 1px 15px 1px 6px;
 		border-left: 3px solid transparent;
 	}
 	.linjenummer {
 		color: #8aa67f;
-		font-size: 10px;
+		font-size: var(--font-meta);
 		text-align: right;
 		user-select: none;
 		padding-right: 7px;
 	}
 	.linjemarkor {
 		color: transparent;
-		font-size: 13px;
+		font-size: var(--font-small);
 		user-select: none;
 	}
 	.linjetekst {
@@ -401,20 +404,20 @@
 	}
 	.kodefot p {
 		margin: 0 0 9px;
-		font-size: 12px;
-		line-height: 1.65;
+		font-size: var(--font-body);
+		line-height: var(--leading-body);
 		color: var(--color-text-muted);
 	}
 	.kodefot .markeringsforklaring {
-		font-size: 11px;
+		font-size: var(--font-small);
 		font-weight: 650;
 		color: var(--color-accent);
 		margin-bottom: 6px;
 	}
 	.kodefot small {
 		display: block;
-		font-size: 10px;
-		line-height: 1.6;
+		font-size: var(--font-small);
+		line-height: var(--leading-body);
 		color: var(--color-text-subtle);
 	}
 	@media (max-width: 650px) {
@@ -436,28 +439,32 @@
 			padding: 8px 10px;
 		}
 		.kontekst {
-			font-size: 11px;
+			font-size: var(--font-body);
+			line-height: var(--leading-body);
 		}
 		.blokktittel {
-			font-size: 10px;
+			font-size: var(--font-small);
 			padding: 9px 11px;
+			flex-wrap: wrap;
 		}
 		.blokktittel small {
 			display: none;
 		}
 		pre {
-			font-size: 11px;
+			font-size: var(--font-code);
+			line-height: var(--leading-code);
 		}
 		.kodelinje {
-			grid-template-columns: 22px 17px minmax(0, 1fr);
+			grid-template-columns: 32px 20px minmax(0, 1fr);
 			padding-left: 3px;
 			padding-right: 12px;
 		}
 		.linjenummer {
-			font-size: 9px;
+			font-size: var(--font-meta);
 		}
 		.kodefot p {
-			font-size: 11px;
+			font-size: var(--font-body);
+			line-height: var(--leading-body);
 		}
 	}
 </style>

@@ -345,7 +345,7 @@
 	.label {
 		margin: 0 0 7px;
 		color: var(--color-accent);
-		font-size: 11px;
+		font-size: var(--font-small);
 		font-weight: 650;
 		line-height: 1.45;
 		overflow-wrap: anywhere;
@@ -362,8 +362,8 @@
 		display: grid;
 		place-items: center;
 		flex-shrink: 0;
-		width: 32px;
-		height: 32px;
+		width: 36px;
+		height: 36px;
 		margin: -4px -4px 0 0;
 		padding: 0;
 		border: 1px solid transparent;
@@ -391,8 +391,8 @@
 	}
 	.explanation-body p {
 		margin: 0;
-		font-size: 13px;
-		line-height: 1.7;
+		font-size: var(--font-body);
+		line-height: var(--leading-body);
 		overflow-wrap: anywhere;
 		white-space: pre-line;
 	}

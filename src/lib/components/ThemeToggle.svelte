@@ -65,14 +65,14 @@
 		align-items: center;
 		justify-content: center;
 		gap: 6px;
-		min-height: 36px;
+		min-height: 40px;
 		padding: 7px 11px;
 		border: 0;
 		border-radius: 999px;
 		background: transparent;
 		color: var(--color-text-muted);
 		font-family: inherit;
-		font-size: 12px;
+		font-size: var(--font-small);
 		font-weight: 600;
 		line-height: 1.2;
 		white-space: nowrap;

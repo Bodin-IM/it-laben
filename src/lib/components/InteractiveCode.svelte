@@ -262,10 +262,13 @@
 		padding-inline: 12px;
 		min-height: 54px;
 		gap: 10px;
+		flex-wrap: wrap;
 	}
 	.sidevalg {
 		display: flex;
 		gap: 4px;
+		min-width: 0;
+		flex-wrap: wrap;
 	}
 	.sidevalg button {
 		border: 0;
@@ -277,7 +280,7 @@
 		align-items: center;
 		gap: 6px;
 		padding: 13px 10px;
-		font-size: 12px;
+		font-size: var(--font-small);
 		font-weight: 650;
 	}
 	.sidevalg button.aktiv {
@@ -286,7 +289,7 @@
 		background: #2a493c;
 	}
 	.sidevalg small {
-		font-size: 10px;
+		font-size: var(--font-meta);
 		font-weight: 400;
 		color: #a9baa7;
 		margin-left: 4px;
@@ -307,7 +310,7 @@
 	.utdrag {
 		align-self: center;
 		color: #a0b09f;
-		font-size: 9px;
+		font-size: var(--font-meta);
 		letter-spacing: 1px;
 		padding-right: 6px;
 	}
@@ -317,17 +320,18 @@
 		align-items: center;
 		gap: 8px;
 		padding: 11px 18px 8px;
-		font-size: 10px;
+		font-size: var(--font-small);
 		color: #b0c0ac;
+		flex-wrap: wrap;
 	}
 	.kjorelegende {
-		font-size: 9px;
+		font-size: var(--font-meta);
 		white-space: nowrap;
 		color: #bdcea9;
 	}
 	.kjorelegende i {
 		color: #d7e9a7;
-		font-size: 13px;
+		font-size: var(--font-small);
 		font-style: normal;
 		padding-right: 4px;
 	}
@@ -346,14 +350,14 @@
 		align-items: center;
 		width: max-content;
 		min-width: 100%;
-		min-height: 27px;
+		min-height: 34px;
 		padding: 2px 16px 2px 0;
 		border: 0;
 		border-left: 3px solid transparent;
 		background: transparent;
 		color: #e3ebd8;
 		text-align: left;
-		line-height: 23px;
+		line-height: var(--leading-code);
 	}
 	.kodelinje:hover {
 		background: #274a3b;
@@ -366,10 +370,12 @@
 		text-align: right;
 		color: #829a85;
 		font:
-			10px/23px 'SFMono-Regular',
+			var(--font-meta)/23px 'SFMono-Regular',
 			Consolas,
 			monospace;
 		user-select: none;
+		font-size: var(--font-meta);
+		line-height: calc(var(--font-code) * var(--leading-code));
 	}
 	.kjorepil {
 		display: inline-block;
@@ -377,21 +383,23 @@
 		min-width: 22px;
 		text-align: center;
 		color: #d4e8a1;
-		font-size: 14px;
+		font-size: var(--font-small);
 	}
 	.kodelinje code {
 		white-space: pre;
 		font:
-			13px/23px 'SFMono-Regular',
+			var(--font-small)/23px 'SFMono-Regular',
 			Consolas,
 			monospace;
 		tab-size: 2;
+		font-size: var(--font-code);
+		line-height: var(--leading-code);
 	}
 	.forklaringsmerke {
 		margin-left: auto;
 		padding-left: 20px;
 		min-width: 32px;
-		font-size: 11px;
+		font-size: var(--font-small);
 		color: #b4d0b5;
 		opacity: 0;
 	}
@@ -444,9 +452,10 @@
 		border-top: 1px solid #334d40;
 		padding: 10px 18px;
 		color: #b1c3a6;
-		font-size: 10px;
-		line-height: 1.6;
+		font-size: var(--font-small);
+		line-height: var(--leading-body);
 		overflow-wrap: anywhere;
+		flex-wrap: wrap;
 	}
 	.kodefot b {
 		margin-inline: 5px;
@@ -473,22 +482,22 @@
 		margin-bottom: 14px;
 	}
 	.forklaringshint p {
-		font-size: 13px;
-		line-height: 1.7;
+		font-size: var(--font-body);
+		line-height: var(--leading-body);
 		margin: 0;
 	}
 	.forklaringshint strong {
 		display: block;
 		color: var(--color-text);
-		font-size: 14px;
+		font-size: var(--font-body);
 		font-weight: 650;
 		margin-bottom: 5px;
 	}
 	.forklaringshint small {
 		display: block;
 		margin-top: 15px;
-		font-size: 11px;
-		line-height: 1.6;
+		font-size: var(--font-small);
+		line-height: var(--leading-body);
 		color: var(--color-text-muted);
 	}
 	.inlineforklaring {
@@ -520,10 +529,12 @@
 			display: inline;
 		}
 		.kodelinje {
-			min-height: 32px;
+			min-height: 34px;
+			line-height: var(--leading-code);
 		}
 		.kodelinje code {
-			font-size: 11px;
+			font-size: var(--font-code);
+			line-height: var(--leading-code);
 		}
 	}
 	@media (max-width: 620px) {
@@ -531,15 +542,18 @@
 			padding-inline: 5px;
 			min-height: 48px;
 			gap: 0;
+			flex-wrap: wrap;
 		}
 		.sidevalg {
 			flex: 1;
 			gap: 0;
+			min-width: 0;
+			flex-wrap: wrap;
 		}
 		.sidevalg button {
 			flex: 1;
 			padding: 10px;
-			font-size: 11px;
+			font-size: var(--font-small);
 		}
 		.sidevalg small,
 		.utdrag {
@@ -547,28 +561,34 @@
 		}
 		.kodehjelp {
 			padding-inline: 12px;
-			font-size: 9px;
+			font-size: var(--font-small);
+			flex-wrap: wrap;
 		}
 		.kjorelegende {
-			font-size: 8px;
+			font-size: var(--font-meta);
 		}
 		.linjenummer {
 			min-width: 28px;
 			width: 28px;
 			padding-right: 4px;
-			font-size: 9px;
+			font-size: var(--font-meta);
+			line-height: calc(var(--font-code) * var(--leading-code));
 		}
 		.kjorepil {
 			min-width: 17px;
 			width: 17px;
-			font-size: 12px;
+			font-size: var(--font-small);
 		}
 		.kodelinje {
 			padding-right: 12px;
+			min-height: 34px;
+			line-height: var(--leading-code);
 		}
 		.kodefot {
 			padding-inline: 12px;
-			font-size: 9px;
+			font-size: var(--font-small);
+			line-height: var(--leading-body);
+			flex-wrap: wrap;
 		}
 	}
 </style>
