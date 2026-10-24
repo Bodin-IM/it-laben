@@ -77,6 +77,10 @@ Når vi lager og videreutvikler sider, legger vi vekt på å:
 - La eleven undersøke én kodelinje om gangen, med en forklaring tett på linjen.
 - Dele opp informasjonen og gjøre flere detaljer tilgjengelige når eleven trenger dem.
 
+## Min lab og backend
+
+Branchen `backend` har en førsteversjon med brukerprofiler, nøkkelfil, varig progresjon, XP og achievements. Se [backendveiledningen](docs/backend.md) for lokal kjøring, API, sikkerhetsmodell, HTTPS-oppsett og backup. Undervisningssimuleringene er fremdeles separate fra ekte innlogging.
+
 ## Teknisk oppsett
 
 Prosjektet er bygget med **Svelte 5, SvelteKit 3 og Vite**. Demonstrasjonene simulerer handlinger i nettleseren, så selve IT-laben kan kjøres uten en egen Express-backend eller database. Express-koden på undervisningssidene er eksempler til elevenes egne prosjekter.

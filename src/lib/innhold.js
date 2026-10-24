@@ -8,6 +8,7 @@ export const fag = [
 
 /**
  * @typedef {Object} Aktivitet
+ * @property {string} id
  * @property {string} tittel
  * @property {string} beskrivelse
  * @property {string} href
@@ -32,6 +33,7 @@ const ovingsEmner = {
 /** @type {Aktivitet[]} */
 export const aktiviteter = [
 	{
+		id: 'frontend-backend',
 		tittel: 'Frontend møter backend',
 		beskrivelse: 'Send en melding, hent den tilbake og følg koden mellom nettleser og server.',
 		href: '/backend/',
@@ -43,6 +45,7 @@ export const aktiviteter = [
 		symbol: '↔'
 	},
 	{
+		id: 'chatrom',
 		tittel: 'Bygg videre på chatten',
 		beskrivelse:
 			'Hent riktig chatrom, bruk session som avsender og kontroller hvem som får slette.',
@@ -55,6 +58,7 @@ export const aktiviteter = [
 		symbol: '#'
 	},
 	{
+		id: 'fillagring',
 		tittel: 'Lagring i JSON-fil',
 		beskrivelse: 'Følg data fra minne til fil og undersøk hva som overlever en omstart.',
 		href: '/fillagring/',
@@ -66,6 +70,7 @@ export const aktiviteter = [
 		symbol: '{}'
 	},
 	{
+		id: 'sessions',
 		tittel: 'Sessions og pålogging',
 		beskrivelse: 'Følg en innlogging steg for steg og utforsk samspillet mellom cookie og session.',
 		href: '/sessions/',
@@ -77,6 +82,7 @@ export const aktiviteter = [
 		symbol: 'ID'
 	},
 	{
+		id: 'meldingsdetektiven',
 		tittel: 'Meldingsdetektiven',
 		beskrivelse: 'Finn spor i kode, requests og serverdata. Rett feilen og test løsningen.',
 		href: '/spill/meldingsdetektiven/',
@@ -88,6 +94,7 @@ export const aktiviteter = [
 		symbol: '?'
 	},
 	{
+		id: 'redd-chatten',
 		tittel: 'Redd chatten',
 		beskrivelse: 'Reparer serverkoden og test om chatten tåler både meldinger og feilforsøk.',
 		href: '/spill/redd-chatten/',
@@ -99,6 +106,7 @@ export const aktiviteter = [
 		symbol: '{}'
 	},
 	{
+		id: 'chat',
 		tittel: 'To nettlesere, én chat',
 		beskrivelse: 'Velg handlingene som får meldingen fra Ada fram til Noah, via serveren.',
 		href: '/spill/chat/',
@@ -112,6 +120,7 @@ export const aktiviteter = [
 	...lessons.map(
 		/** @returns {Aktivitet} */
 		(lesson) => ({
+			id: `oving-${lesson.number}`,
 			tittel: `Øving ${lesson.number}: ${lesson.title}`,
 			beskrivelse: lesson.question,
 			href: `/oving-${lesson.number}/`,

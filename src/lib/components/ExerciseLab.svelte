@@ -1,5 +1,6 @@
 <script>
 	import ThemeToggle from '#lib/components/ThemeToggle.svelte';
+	import AccountLink from '#lib/components/AccountLink.svelte';
 	import { lessons } from '#lib/ovingene.js';
 	import { buildTrace } from '#lib/ovingModel.js';
 
@@ -65,7 +66,9 @@
 	<a class="skip" href="#forsok">Hopp til forsøket</a>
 	<header>
 		<a class="brand" href="/"><span aria-hidden="true">IT</span> IT-laben.</a>
-		<div class="header-right"><a href="/#ovingene">Alle øvingene</a><ThemeToggle /></div>
+		<div class="header-right">
+			<a href="/#ovingene">Alle øvingene</a><AccountLink /><ThemeToggle />
+		</div>
 	</header>
 	<main>
 		<nav class="course" aria-label="Backend · øving 5 til 10">
@@ -102,8 +105,8 @@
 			<h1 id="title">{lesson.title}</h1>
 			<p class="lead">{lesson.intro}</p>
 			<p class="simulation">
-				<span aria-hidden="true">◉</span> Lokal simulering · ingen ekte server eller konto · nye eksempeldata
-				ved hvert forsøk
+				<span aria-hidden="true">◉</span> Lokal undervisningssimulering · brukere og innlogging i forsøket
+				er eksempler · nye eksempeldata ved hvert forsøk
 			</p>
 		</section>
 
@@ -371,6 +374,7 @@
 		display: flex;
 		align-items: center;
 		justify-content: space-between;
+		flex-wrap: wrap;
 		gap: 1rem;
 		border-bottom: 1px solid var(--color-border);
 	}
@@ -394,6 +398,9 @@
 	}
 	.header-right {
 		display: flex;
+		flex-wrap: wrap;
+		max-width: 100%;
+		margin-left: auto;
 		align-items: center;
 		gap: 1.25rem;
 	}
