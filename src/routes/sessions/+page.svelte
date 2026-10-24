@@ -439,6 +439,9 @@
 					Hvordan husker serveren deg? Nettleseren har en ID. Serveren bruker den til å finne
 					brukeren. Prøv sammenhengen, ett spørsmål om gangen.
 				</p>
+				<p class="ovingslenke">
+					<a href="/oving-8/">Øving 8: registrering, passordhash og innlogging fra øvingsarket →</a>
+				</p>
 			</div>
 			<span class="intromerke" aria-hidden="true">ID <span>↔</span> bruker</span>
 		</section>
@@ -778,6 +781,14 @@
 </div>
 
 <style>
+	.ovingslenke {
+		max-width: 65ch;
+		font-size: var(--font-small);
+	}
+	.ovingslenke a {
+		color: var(--color-action);
+		text-underline-offset: 3px;
+	}
 	:global(body) {
 		margin: 0;
 		background: var(--color-page);
