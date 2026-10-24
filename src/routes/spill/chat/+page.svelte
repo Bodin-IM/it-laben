@@ -1,5 +1,7 @@
 <script>
 	import ThemeToggle from '#lib/components/ThemeToggle.svelte';
+	import AccountLink from '#lib/components/AccountLink.svelte';
+	import { lab as account, saveAttempt } from '#lib/lab.js';
 	import { onMount, onDestroy } from 'svelte';
 	import InteractiveCode from '#lib/components/InteractiveCode.svelte';
 	import ChatGameBoard from '#lib/components/ChatGameBoard.svelte';
@@ -85,6 +87,43 @@
 		return () => media.removeEventListener('change', update);
 	});
 	onDestroy(clearTimer);
+	let restoredUser = $state('');
+	const savedProgress = $derived($account.summary?.progress.find((item) => item.id === 'chat'));
+	$effect(() => {
+		const userId = $account.user?.id;
+		if (!userId) {
+			restoredUser = '';
+			return;
+		}
+		if (savedProgress && restoredUser !== userId) {
+			restoredUser = userId;
+			resetAttempt();
+			completed = LEVELS.map((item) =>
+				Boolean(savedProgress.objectives.find((objective) => objective.id === item.id)?.completedAt)
+			);
+			unlocked = Math.min(
+				LEVELS.length - 1,
+				Math.max(0, ...completed.map((value, index) => (value ? index + 1 : 0)))
+			);
+			const requested = LEVELS.findIndex(
+				(item) => item.id === new URL(window.location.href).searchParams.get('oppdrag')
+			);
+			levelIndex =
+				requested >= 0 && requested <= unlocked
+					? requested
+					: Math.max(
+							0,
+							completed.findIndex((value) => !value)
+						);
+			const solution = savedProgress.objectives[levelIndex]?.solution;
+			program = Array.isArray(solution)
+				? solution.map((value) => ({
+						uid: nextUid++,
+						actionId: /** @type {ActionId} */ (value)
+					}))
+				: [];
+		}
+	});
 
 	function clearTimer() {
 		if (timer !== null) clearTimeout(timer);
@@ -211,6 +250,11 @@
 		running = false;
 		paused = false;
 		result = pendingResult;
+		saveAttempt(
+			'chat',
+			level.id,
+			program.map((item) => item.actionId)
+		);
 		if (result?.success) {
 			completed[levelIndex] = true;
 			unlocked = Math.max(unlocked, Math.min(levelIndex + 1, LEVELS.length - 1));
@@ -271,7 +315,13 @@
 		if (running || index < 0 || index > unlocked || index >= LEVELS.length) return;
 		resetAttempt();
 		levelIndex = index;
-		program = [];
+		const savedSolution = savedProgress?.objectives[index]?.solution;
+		program = Array.isArray(savedSolution)
+			? savedSolution.map((value) => ({
+					uid: nextUid++,
+					actionId: /** @type {ActionId} */ (value)
+				}))
+			: [];
 		selectedUid = null;
 		previewActionId = 'ada-post';
 		side = 'frontend';
@@ -283,8 +333,13 @@
 
 	function restartGame() {
 		if (running) return;
-		completed = [false, false, false];
-		unlocked = 0;
+		completed = LEVELS.map(
+			(_, index) => completed[index] || Boolean(savedProgress?.objectives[index]?.completedAt)
+		);
+		unlocked = Math.min(
+			LEVELS.length - 1,
+			Math.max(0, ...completed.map((value, index) => (value ? index + 1 : 0)))
+		);
 		changeLevel(0);
 	}
 
@@ -360,7 +415,7 @@
 			><span class="logoikon" aria-hidden="true">IT</span>IT-laben<span class="punkt">.</span></a
 		>
 		<a class="tilbake" href="/#spill">← Spill og utfordringer</a>
-		<div class="theme-control"><ThemeToggle /></div>
+		<div class="theme-control"><AccountLink /><ThemeToggle /></div>
 	</header>
 	<main>
 		<div class="spillintro">
@@ -2216,6 +2271,23 @@
 		.theme-control {
 			grid-column: 1 / -1;
 			grid-row: 2;
+		}
+	}
+
+	.theme-control {
+		display: flex;
+		align-items: center;
+		justify-content: flex-end;
+		flex-wrap: wrap;
+		gap: 8px;
+		min-width: 0;
+		max-width: 100%;
+	}
+	@media (max-width: 620px) {
+		.theme-control {
+			grid-column: 1 / -1;
+			grid-row: auto;
+			justify-self: stretch;
 		}
 	}
 </style>

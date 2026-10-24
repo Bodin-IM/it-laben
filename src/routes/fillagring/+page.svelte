@@ -1,5 +1,6 @@
 <script>
 	import ThemeToggle from '#lib/components/ThemeToggle.svelte';
+	import AccountLink from '#lib/components/AccountLink.svelte';
 	import { createState, planRun, advance } from '#lib/fillagring.js';
 
 	/** @typedef {{ title: string, text: string, label: string, value: string }} Info */
@@ -246,7 +247,7 @@
 		<a class="tilbake" href="/"><span aria-hidden="true">←</span> IT-laben</a>
 		<div class="header-actions">
 			<span class="emne">UTVIKLING <span aria-hidden="true">/</span> NODE & JSON</span>
-			<ThemeToggle />
+			<AccountLink /><ThemeToggle />
 		</div>
 	</header>
 

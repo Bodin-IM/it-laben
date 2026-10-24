@@ -1,0 +1,22 @@
+[Unit]
+Description=IT-laben API
+After=network.target
+
+[Service]
+Type=simple
+User=itlab
+Group=itlab
+WorkingDirectory=/srv/it-laben-backend/current
+EnvironmentFile=/etc/it-laben-api.env
+ExecStart=/usr/bin/node server/index.js
+Restart=on-failure
+RestartSec=3
+UMask=0077
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=true
+ReadWritePaths=/var/lib/it-laben
+
+[Install]
+WantedBy=multi-user.target

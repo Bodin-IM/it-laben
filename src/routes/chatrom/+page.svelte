@@ -1,5 +1,6 @@
 <script>
 	import ThemeToggle from '#lib/components/ThemeToggle.svelte';
+	import AccountLink from '#lib/components/AccountLink.svelte';
 	import InteractiveCode from '#lib/components/InteractiveCode.svelte';
 	import { initState, codeLines, planRun, USERS, ROOMS, DEFAULT_OPTIONS } from '#lib/chatromLab.js';
 
@@ -246,7 +247,7 @@
 					href="/sessions/">Sessions <span aria-hidden="true">↗</span></a
 				>
 			</nav>
-			<ThemeToggle />
+			<AccountLink /><ThemeToggle />
 		</div>
 	</header>
 

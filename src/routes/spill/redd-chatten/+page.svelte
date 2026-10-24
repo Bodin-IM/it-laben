@@ -1,5 +1,7 @@
 <script>
 	import ThemeToggle from '#lib/components/ThemeToggle.svelte';
+	import AccountLink from '#lib/components/AccountLink.svelte';
+	import { lab as account, saveAttempt } from '#lib/lab.js';
 	import { onMount, onDestroy, tick } from 'svelte';
 	import BackendRouteEditor from '#lib/components/BackendRouteEditor.svelte';
 	import RequestWalkthrough from '#lib/components/RequestWalkthrough.svelte';
@@ -182,6 +184,50 @@
 		};
 	});
 	onDestroy(clearTimer);
+	let restoredUser = $state('');
+	const savedProgress = $derived(
+		$account.summary?.progress.find((item) => item.id === 'redd-chatten')
+	);
+	$effect(() => {
+		const userId = $account.user?.id;
+		if (!userId) {
+			restoredUser = '';
+			return;
+		}
+		if (savedProgress && restoredUser !== userId) {
+			restoredUser = userId;
+			clearTimer();
+			running = false;
+			paused = false;
+			pendingRun = null;
+			playback = [];
+			runs = MISSIONS.map(() => null);
+			runKeys = MISSIONS.map(() => '');
+			completed = MISSIONS.map((item) =>
+				Boolean(savedProgress.objectives.find((objective) => objective.id === item.id)?.completedAt)
+			);
+			programs = MISSIONS.map((item) => {
+				const solution = savedProgress.objectives.find(
+					(objective) => objective.id === item.id
+				)?.solution;
+				return Array.isArray(solution) ? [...solution] : initialProgram(item.id);
+			});
+			unlocked = Math.min(
+				MISSIONS.length - 1,
+				Math.max(0, ...completed.map((value, index) => (value ? index + 1 : 0)))
+			);
+			const requested = MISSIONS.findIndex(
+				(item) => item.id === new URL(window.location.href).searchParams.get('oppdrag')
+			);
+			missionIndex =
+				requested >= 0 && requested <= unlocked
+					? requested
+					: Math.max(
+							0,
+							completed.findIndex((value) => !value)
+						);
+		}
+	});
 
 	function clearTimer() {
 		if (timer !== null) clearTimeout(timer);
@@ -239,7 +285,9 @@
 		if (running) return;
 		programs[missionIndex] = [...next];
 		completed[missionIndex] =
-			runs[missionIndex]?.success === true && runKeys[missionIndex] === next.join('|');
+			Boolean(savedProgress?.objectives[missionIndex]?.completedAt) ||
+			completed[missionIndex] ||
+			(runs[missionIndex]?.success === true && runKeys[missionIndex] === next.join('|'));
 		sample = null;
 		closeInspection();
 		executionError = '';
@@ -252,7 +300,8 @@
 		runKeys[missionIndex] = '';
 		previousScores[missionIndex] = null;
 		attempts[missionIndex] = 0;
-		completed[missionIndex] = false;
+		completed[missionIndex] =
+			completed[missionIndex] || Boolean(savedProgress?.objectives[missionIndex]?.completedAt);
 		sample = null;
 		selectedCaseIndex = 0;
 		closeInspection();
@@ -352,7 +401,8 @@
 		revealedCount = pendingRun.total;
 		running = false;
 		paused = false;
-		completed[missionIndex] = pendingRun.success;
+		completed[missionIndex] = completed[missionIndex] || pendingRun.success;
+		saveAttempt('redd-chatten', mission.id, [...program]);
 		if (pendingRun.success)
 			unlocked = Math.max(unlocked, Math.min(missionIndex + 1, MISSIONS.length - 1));
 		const firstFailure = pendingRun.results.findIndex((item) => !item.passed);
@@ -432,7 +482,7 @@
 		<nav aria-label="Spillnavigasjon">
 			<a href="/spill/chat/">Prøv første variant ↗</a><a href="/#spill">Alle spill</a>
 		</nav>
-		<div class="theme-control"><ThemeToggle /></div>
+		<div class="theme-control"><AccountLink /><ThemeToggle /></div>
 	</header>
 	<main>
 		<div class="intro">
@@ -2345,6 +2395,23 @@
 		.topbar nav a:first-child {
 			max-width: none;
 			text-align: left;
+		}
+	}
+
+	.theme-control {
+		display: flex;
+		align-items: center;
+		justify-content: flex-end;
+		flex-wrap: wrap;
+		gap: 8px;
+		min-width: 0;
+		max-width: 100%;
+	}
+	@media (max-width: 620px) {
+		.theme-control {
+			grid-column: 1 / -1;
+			grid-row: auto;
+			justify-self: stretch;
 		}
 	}
 </style>

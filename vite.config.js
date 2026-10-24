@@ -4,7 +4,11 @@ import { defineConfig } from 'vite';
 
 export default defineConfig({
 	// Exact host used by the managed development preview; does not affect static hosting.
-	server: { allowedHosts: ['terminal.local'] },
+	server: {
+		allowedHosts: ['terminal.local'],
+		proxy: { '/api': { target: 'http://127.0.0.1:3001', changeOrigin: false } }
+	},
+	preview: { proxy: { '/api': { target: 'http://127.0.0.1:3001', changeOrigin: false } } },
 	plugins: [
 		sveltekit({
 			compilerOptions: {

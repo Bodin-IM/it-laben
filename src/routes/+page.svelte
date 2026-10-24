@@ -2,7 +2,9 @@
 	import { onMount } from 'svelte';
 	import { replaceState } from '$app/navigation';
 	import ThemeToggle from '#lib/components/ThemeToggle.svelte';
+	import AccountLink from '#lib/components/AccountLink.svelte';
 	import { aktiviteter, fag } from '#lib/innhold.js';
+	import { lab as account } from '#lib/lab.js';
 
 	let valgtFag = $state('alle');
 	let valgtFormat = $state('alle');
@@ -120,7 +122,7 @@
 		</a>
 		<div class="header-actions">
 			<span class="header-note">SE. PRØV. FORSTÅ.</span>
-			<ThemeToggle />
+			<AccountLink /><ThemeToggle />
 		</div>
 	</header>
 
@@ -250,6 +252,13 @@
 											<span class="symbol" aria-hidden="true">{aktivitet.symbol}</span>
 										</div>
 										<h3>{aktivitet.tittel}</h3>
+										{#if $account.summary?.progress.find((item) => item.id === aktivitet.id)?.status === 'reviewed'}<span
+												class="saved-status">✓ Gjennomgått</span
+											>{:else if $account.summary?.progress.find((item) => item.id === aktivitet.id)?.status === 'passed'}<span
+												class="saved-status">✓ Bestått</span
+											>{:else if $account.summary?.progress.find((item) => item.id === aktivitet.id)?.status === 'started'}<span
+												class="saved-status started">Påbegynt</span
+											>{/if}
 										<p class="beskrivelse">{aktivitet.beskrivelse}</p>
 										<ul class="emner" aria-label="Temaer">
 											{#each aktivitet.emner as emne}<li>{emne}</li>{/each}
@@ -302,6 +311,15 @@
 </div>
 
 <style>
+	.saved-status {
+		font-size: var(--font-meta);
+		color: var(--color-success);
+		margin-bottom: 7px;
+		font-weight: 650;
+	}
+	.saved-status.started {
+		color: var(--color-text-muted);
+	}
 	.forside {
 		min-height: 100vh;
 		font-family:
