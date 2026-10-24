@@ -18,11 +18,15 @@ Innholdet handler foreløpig om webutvikling. Laben skal også kunne romme drift
 
 De nyeste frontend/backend- og sessions-visningene er hovedversjonene på de vanlige adressene. Forsiden har én inngang til hvert tema.
 
+På forsiden spør vi **«Hva jobber du med i dag?»**. Alt innhold er synlig fra start. Fagvalgene **Utvikling** og **Driftsstøtte** filtrerer den samme oversikten, og **Alle fag** viser begge igjen. Leksjoner og spill har kompakte kort, gruppert per fag, med søk og et eget valg av aktivitetstype. Fag uten publisert innhold viser en kommer-melding.
+
+Søket bruker titler, beskrivelser, emner og ekstra søkeord, slik at for eksempel «innlogging» også finner sessions. Valgt fag, aktivitetstype og søk følger nettadressen, for eksempel `/?fag=utvikling&type=spill&q=session`, og gjenopprettes ved oppfrisking eller retur fra en aktivitet. Vanlige besøk på `/` starter med alle fag. Eldre lenker til `/#spill` åpner spillfilteret, og `/#ovingene` viser øving 5–10 samlet.
+
 ### Backend · øving 5–10
 
 [Se forhåndsvisning av oversikten](docs/oving-5-10-preview.jpg).
 
-Forsiden har en egen serie basert på de oppdaterte øvingsarkene. Hver side har valgbare forsøk, Forrige/Neste, klikkbare kodelinjer med forklaring, snapshots av data og tre oppgaver med skjulte forklaringer.
+Øvingene ligger i den felles innholdsoversikten og kan åpnes samlet via `/#ovingene`. Serien er basert på de oppdaterte øvingsarkene. Hver side har valgbare forsøk, Forrige/Neste, klikkbare kodelinjer med forklaring, snapshots av data og tre oppgaver med skjulte forklaringer.
 
 | Øving | Adresse      | Innhold                                                                                                          |
 | ----- | ------------ | ---------------------------------------------------------------------------------------------------------------- |
@@ -45,7 +49,7 @@ På chatrom-siden følger eleven tre avgrensede kodeforsøk: filtrering per rom,
 
 ### Spill og utfordringer
 
-Spillene har en egen seksjon på forsiden. Alle tre er tilgjengelige, slik at elevene kan prøve ulike måter å utforske og forstå chatten på.
+Spillene vises sammen med leksjonene på forsiden og kan også vises alene med **Spill og utfordringer**. Alle tre er tilgjengelige, slik at elevene kan prøve ulike måter å utforske og forstå chatten på.
 
 | Spill                                                                  | Adresse på nettstedet        | Oppdrag                                                                                   |
 | ---------------------------------------------------------------------- | ---------------------------- | ----------------------------------------------------------------------------------------- |
@@ -147,7 +151,8 @@ npm run preview
 
 | Fil eller mappe                  | Bruk                                                                          |
 | -------------------------------- | ----------------------------------------------------------------------------- |
-| `src/routes/+page.svelte`        | Forsiden. Listen `sider` bestemmer hvilke kort som vises.                     |
+| `src/routes/+page.svelte`        | Forsiden med fagvalg, søk, aktivitetstype og kortvisning.                    |
+| `src/lib/innhold.js`             | Felles fag- og innholdsoversikt for alle leksjoner og spill på forsiden.     |
 | `src/routes/<tema>/+page.svelte` | En undervisningsside med egen adresse.                                        |
 | `src/lib/components/`            | Felles kodevisninger og forklaringer ved klikk på kodelinjer.                 |
 | `src/lib/chatromLab.js`          | Rene simuleringssteg og kodeutdrag for chatrom, session-avsender og sletting. |
@@ -160,7 +165,7 @@ npm run preview
 
 1. Opprett `src/routes/<tema>/+page.svelte`, for eksempel `src/routes/nettverk/+page.svelte` for adressen `/nettverk/`.
 2. Lag innholdet med et tydelig mål og en konkret handling eleven kan prøve.
-3. Legg et nytt objekt i listen `sider` i `src/routes/+page.svelte`. Fyll inn `tittel`, `beskrivelse`, `href`, `kategori`, `type`, `emner` og `symbol`.
+3. Legg et nytt objekt i listen `aktiviteter` i `src/lib/innhold.js`. Fyll inn `tittel`, en kort `beskrivelse`, `href`, `fag` (`utvikling` eller `drift`), `format` (`leksjon` eller `spill`), `type`, `emner`, `sokeord` og `symbol`. Kortet og antall aktiviteter oppdateres automatisk. Ekstra søkeord kan inneholde synonymer som «innlogging» for sessions.
 4. Kjør `npm run check` og `npm run build`. Prøv både lenken fra forsiden og den nye siden direkte, og kontroller visningen på stor og liten skjerm.
 
 ## Publisering og serverdrift
