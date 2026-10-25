@@ -2,6 +2,7 @@
 	import ThemeToggle from '#lib/components/ThemeToggle.svelte';
 	import AccountLink from '#lib/components/AccountLink.svelte';
 	import { activityLab as account, learningContext, saveAttempt } from '#lib/lab.js';
+	import { avatarFeedback } from '#lib/avatarFeedback.js';
 	import { onMount, onDestroy } from 'svelte';
 	import InteractiveCode from '#lib/components/InteractiveCode.svelte';
 	import ChatGameBoard from '#lib/components/ChatGameBoard.svelte';
@@ -255,6 +256,14 @@
 		running = false;
 		paused = false;
 		result = pendingResult;
+		if (result)
+			avatarFeedback(
+				'chat',
+				result.success ? 'success' : 'retry',
+				result.success
+					? 'Det virker! Se hvordan meldingene nå kommer frem.'
+					: 'Se hvor meldingen stopper. Du kan endre ett steg og prøve igjen.'
+			);
 		saveAttempt(
 			'chat',
 			level.id,
@@ -277,6 +286,7 @@
 		trace = attempt.steps;
 		pendingResult = attempt.result;
 		running = true;
+		avatarFeedback('chat', 'working', 'Vi følger meldingens reise gjennom koden.');
 		announcement = 'Forsøket starter fra brettets opprinnelige data.';
 		advance();
 		boardSection?.scrollIntoView({ behavior: reducedMotion ? 'auto' : 'smooth', block: 'start' });

@@ -28,6 +28,7 @@ import {
 } from '../src/lib/teaching.js';
 import { teachingGuides, validateTeachingGuides } from '../server/teaching.js';
 import { catalog, buildCatalog } from '../server/catalog.js';
+import { avatars } from '../src/lib/avatars.js';
 
 const namePattern = /^[\p{L}]+ [\p{L}]+ [1-9][0-9]{3}$/u;
 
@@ -141,6 +142,121 @@ test('brukernavn: serveren tildeler navn, ignorerer klientnavn og sperrer selvva
 		(await student.request('/api/me')).result.user.nickname,
 		response.result.user.nickname
 	);
+});
+
+test('avatar: kun forhåndslagde figurer, varig profilvalg, riktig toppliste og ingen ekstra XP', async (t) => {
+	const f = await fixture(t),
+		a = f.client(),
+		b = f.client();
+	const created = await a.create();
+	await b.create();
+	assert.equal(created.result.summary.lab.avatarId, 'robot');
+	for (const item of avatars) {
+		const changed = await a.request('/api/me/lab', {
+			accountId: a.user.id,
+			colorId: 'forest',
+			featuredAchievementId: null,
+			avatarId: item.id
+		});
+		assert.equal(changed.status, 200);
+		assert.equal(changed.result.summary.lab.avatarId, item.id);
+		assert.equal(changed.result.summary.xp, 0);
+		const board = await f.client().request('/api/leaderboard');
+		assert.equal(
+			board.result.entries.find((row) => row.nickname === a.user.nickname).avatarId,
+			item.id
+		);
+	}
+	assert.equal(
+		(
+			await a.request('/api/me/lab', {
+				colorId: 'forest',
+				featuredAchievementId: null,
+				avatarId: 'https://example.test/image.svg'
+			})
+		).status,
+		400
+	);
+	assert.equal(
+		(
+			await a.request('/api/me/lab', {
+				accountId: b.user.id,
+				colorId: 'forest',
+				featuredAchievementId: null,
+				avatarId: 'fox'
+			})
+		).status,
+		409
+	);
+	assert.equal((await b.request('/api/me')).result.summary.lab.avatarId, 'robot');
+	const c = f.client();
+	assert.equal(
+		(await c.request('/api/auth/key', { key: a.key.key })).result.summary.lab.avatarId,
+		'frog'
+	);
+	// Older clients may save only color/badge; they must preserve the chosen avatar.
+	assert.equal(
+		(await c.request('/api/me/lab', { colorId: 'forest', featuredAchievementId: null })).result
+			.summary.lab.avatarId,
+		'frog'
+	);
+	const backup = join(f.directory, 'avatar-backup.sqlite');
+	backupDatabase(f.filename, backup);
+	const restored = openDatabase(backup);
+	try {
+		assert.equal(
+			restored.prepare('SELECT avatar_id FROM lab_profiles WHERE user_id=?').get(a.user.id)
+				.avatar_id,
+			'frog'
+		);
+	} finally {
+		restored.close();
+	}
+});
+
+test('avatar: oppgradering fra v7 bevarer eksisterende labkort, nøkkel og poeng', async (t) => {
+	const id = randomUUID(),
+		key = `itlab_${randomBytes(32).toString('base64url')}`;
+	const f = await fixture(t, (filename) => {
+		const db = new DatabaseSync(filename),
+			directory = new URL('../server/migrations/', import.meta.url);
+		db.exec(
+			'PRAGMA foreign_keys=ON; CREATE TABLE migrations(name TEXT PRIMARY KEY,hash TEXT NOT NULL,applied_at INTEGER NOT NULL)'
+		);
+		for (const name of readdirSync(directory)
+			.filter((item) => item.endsWith('.sql'))
+			.sort()
+			.slice(0, 7)) {
+			const sql = readFileSync(new URL(name, directory), 'utf8');
+			db.exec(sql);
+			db.prepare('INSERT INTO migrations VALUES (?,?,?)').run(
+				name,
+				createHash('sha256').update(sql).digest('hex'),
+				1
+			);
+		}
+		db.prepare(
+			'INSERT INTO users(id,nickname,created_at,name_assigned,leaderboard_visible) VALUES (?,?,1,1,1)'
+		).run(id, 'Lur Oter 3456');
+		db.prepare('INSERT INTO lab_profiles VALUES (?,?,?)').run(id, 'ocean', null);
+		db.prepare('INSERT INTO recovery_keys VALUES (?,?,1)').run(
+			createHash('sha256').update(key).digest('hex'),
+			id
+		);
+		db.prepare('INSERT INTO rewards VALUES (?,?,?,25,?,1)').run(
+			randomUUID(),
+			id,
+			'legacy',
+			'Behold XP'
+		);
+		db.close();
+	});
+	const result = await f.client().request('/api/auth/key', { key });
+	assert.equal(result.status, 200);
+	assert.equal(result.result.summary.xp, 25);
+	assert.equal(result.result.summary.lab.colorId, 'ocean');
+	assert.equal(result.result.summary.lab.avatarId, 'robot');
+	assert.equal((await f.client().request('/api/leaderboard')).result.entries[0].avatarId, 'robot');
 });
 
 test('navnegenerator: 9,2 millioner kombinasjoner, kollisjonsforsøk og unik databasebegrensning', async (t) => {
@@ -451,7 +567,7 @@ test('toppliste: på som standard, bare aktive elever, korrekt delt rangering og
 	for (const entry of publicResult.result.entries)
 		assert.deepEqual(
 			Object.keys(entry).sort(),
-			['rank', 'nickname', 'xp', 'level', 'colorId', 'badge'].sort()
+			['rank', 'nickname', 'xp', 'level', 'colorId', 'avatarId', 'badge'].sort()
 		);
 	const own = await students[12].request('/api/leaderboard');
 	assert.equal(own.result.self.rank, 13);

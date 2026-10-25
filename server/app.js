@@ -35,6 +35,7 @@ import {
 } from './students.js';
 import { leaderboard } from './leaderboard.js';
 import { teachingLibrary } from './teaching.js';
+import { avatars } from '../src/lib/avatars.js';
 
 const DAY = 86400000;
 const hash = (value) => createHash('sha256').update(value).digest('hex');
@@ -271,16 +272,83 @@ export function createApp({ db, config, clock = Date.now, limits = true }) {
 		res.clearCookie(config.cookieName, cookieOptions);
 		res.json({ ok: true });
 	});
-	app.post('/api/auth/rotate-key', authenticated, (req, res) => {
+	app.post('/api/auth/prepare-key', authenticated, (req, res) => {
+		if (req.body.accountId !== req.labUser.id)
+			return fail(res, 409, 'ACCOUNT_CHANGED', 'En annen profil er pålogget.');
 		const result = transaction(db, () => {
-			db.prepare('DELETE FROM recovery_keys WHERE user_id=?').run(req.labUser.id);
-			db.prepare('DELETE FROM sessions WHERE user_id=?').run(req.labUser.id);
-			const recoveryKey = keyFile(req.labUser.id),
-				session = newSession(req.labUser.id, req.labSession.remembered === 1);
-			return { payload: { ...me(req.labUser, session), recoveryKey }, session };
+			const now = clock(),
+				key = `itlab_${token()}`,
+				expiresAt = now + 30 * 60000;
+			db.prepare('DELETE FROM pending_recovery_keys WHERE expires_at<=?').run(now);
+			// Bound abandoned preparations without touching any currently valid credential.
+			db.prepare(
+				'DELETE FROM pending_recovery_keys WHERE user_id=? AND hash NOT IN (SELECT hash FROM pending_recovery_keys WHERE user_id=? ORDER BY created_at DESC,rowid DESC LIMIT 4)'
+			).run(req.labUser.id, req.labUser.id);
+			db.prepare('INSERT INTO pending_recovery_keys VALUES (?,?,?,?)').run(
+				hash(key),
+				req.labUser.id,
+				now,
+				expiresAt
+			);
+			return {
+				recoveryKey: {
+					format: 'it-laben-key',
+					version: 1,
+					key,
+					createdAt: new Date(now).toISOString(),
+					site: config.origin
+				},
+				expiresAt
+			};
 		});
-		setSessionCookie(res, result.session);
-		res.json(result.payload);
+		res.json(result);
+	});
+	app.post('/api/auth/rotate-key', authenticated, (req, res) => {
+		if (req.body.accountId !== req.labUser.id)
+			return fail(
+				res,
+				409,
+				'ACCOUNT_CHANGED',
+				'Påloggingen eller nøkkelbyttet er endret. Oppdater siden.'
+			);
+		if (
+			req.body.confirmed !== true ||
+			typeof req.body.key !== 'string' ||
+			!/^itlab_[A-Za-z0-9_-]{43}$/.test(req.body.key)
+		)
+			return fail(
+				res,
+				400,
+				'KEY_PREPARATION_REQUIRED',
+				'Last ned den nye nøkkelfilen og bekreft at du har lagret den før du bytter.'
+			);
+		transaction(db, () => {
+			const keyHash = hash(req.body.key);
+			// A retry after a lost response proves possession of the already activated key.
+			if (
+				db
+					.prepare('SELECT hash FROM recovery_keys WHERE hash=? AND user_id=?')
+					.get(keyHash, req.labUser.id)
+			)
+				return;
+			const pending = db
+				.prepare('SELECT * FROM pending_recovery_keys WHERE hash=? AND user_id=? AND expires_at>?')
+				.get(keyHash, req.labUser.id, clock());
+			if (!pending)
+				throw new TypeError(
+					'Denne nøkkelfilen er utløpt eller erstattet. Lag en ny fil og prøv igjen.'
+				);
+			db.prepare('DELETE FROM recovery_keys WHERE user_id=?').run(req.labUser.id);
+			db.prepare('INSERT INTO recovery_keys VALUES (?,?,?)').run(keyHash, req.labUser.id, clock());
+			db.prepare('DELETE FROM pending_recovery_keys WHERE user_id=?').run(req.labUser.id);
+			// Keep this session: even losing both response body and headers cannot lock the
+			// user out. They also already possess the newly active, downloaded key.
+			db.prepare('DELETE FROM sessions WHERE user_id=? AND hash<>?').run(
+				req.labUser.id,
+				req.labSession.hash
+			);
+		});
+		res.json(me(req.labUser, req.labSession));
 	});
 	app.post('/api/me/nickname', authenticated, (req, res) => {
 		return fail(
@@ -306,7 +374,12 @@ export function createApp({ db, config, clock = Date.now, limits = true }) {
 		res.json(me({ ...req.labUser, leaderboardVisible: req.body.visible ? 1 : 0 }, req.labSession));
 	});
 	app.post('/api/me/lab', authenticated, (req, res) => {
+		if (req.body.accountId !== undefined && req.body.accountId !== req.labUser.id)
+			return fail(res, 409, 'ACCOUNT_CHANGED', 'En annen profil er pålogget.');
 		const current = summary(db, req.labUser.id, clock());
+		const avatarId = req.body.avatarId ?? current.lab.avatarId;
+		if (!avatars.some((item) => item.id === avatarId))
+			return fail(res, 400, 'INVALID_AVATAR', 'Velg en av avatarene fra IT-laben.');
 		const color = labColors.find((item) => item.id === req.body.colorId);
 		if (
 			!color ||
@@ -321,9 +394,9 @@ export function createApp({ db, config, clock = Date.now, limits = true }) {
 		)
 			return fail(res, 400, 'LOCKED_ACHIEVEMENT', 'Velg et merke du har oppnådd.');
 		db.prepare(
-			`INSERT INTO lab_profiles (user_id,color_id,featured_achievement_id) VALUES (?,?,?)
-			ON CONFLICT(user_id) DO UPDATE SET color_id=excluded.color_id, featured_achievement_id=excluded.featured_achievement_id`
-		).run(req.labUser.id, color.id, featured);
+			`INSERT INTO lab_profiles (user_id,color_id,featured_achievement_id,avatar_id) VALUES (?,?,?,?)
+			ON CONFLICT(user_id) DO UPDATE SET color_id=excluded.color_id, featured_achievement_id=excluded.featured_achievement_id, avatar_id=excluded.avatar_id`
+		).run(req.labUser.id, color.id, featured, avatarId);
 		res.json(me(req.labUser, req.labSession));
 	});
 	app.post('/api/me/delete', authenticated, (req, res) => {

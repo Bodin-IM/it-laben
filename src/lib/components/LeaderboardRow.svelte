@@ -1,6 +1,7 @@
 <script>
 	import BadgeIcon from '#lib/components/BadgeIcon.svelte';
 	import { labColors } from '#lib/progression.js';
+	import Avatar from '#lib/components/Avatar.svelte';
 	/** @type {{entry:import('#lib/school.js').LeaderboardEntry,own?:boolean}} */
 	let { entry, own = false } = $props();
 	const color = $derived(labColors.find((item) => item.id === entry.colorId) ?? labColors[0]);
@@ -14,9 +15,7 @@
 >
 	<span class="rank" aria-label={`Plass ${entry.rank}`}>{entry.rank.toLocaleString('nb-NO')}</span>
 	<div class="identity">
-		<span class="avatar" aria-hidden="true"
-			>{entry.nickname.split(' ')[1]?.slice(0, 2).toUpperCase() ?? 'IT'}</span
-		>
+		<span class="avatar"><Avatar id={entry.avatarId} size={44} animate={false} /></span>
 		<div>
 			<strong>{entry.nickname}</strong><span class="level"
 				>Nivå {entry.level}{own ? ' · Din profil' : ''}</span
@@ -119,9 +118,20 @@
 		}
 	}
 	@media (max-width: 430px) {
-		.avatar,
 		.badge {
 			display: none;
+		}
+		.identity {
+			gap: 8px;
+		}
+		.avatar {
+			width: 36px;
+			height: 36px;
+			border: 0;
+		}
+		.avatar :global(svg) {
+			width: 36px;
+			height: 36px;
 		}
 		.points {
 			font-size: 20px;

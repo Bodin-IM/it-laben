@@ -2,7 +2,7 @@
 
 Backend utvikles på branchen `backend` og publiseres via `main` etter sammenslåing. [Engangsoppsettet for Ubuntu](installasjon-main.md) klargjør HTTPS uten offentlig domene, API, databasebackup og den eksisterende oppdateringstimeren. Serveren henter fortsatt bare `main`. Klargjør serveren før sammenslåingen, siden en push til `main` kan utløse publisering med en gang.
 
-Neste versjon utvikles isolert på `dev`: [elevadministrasjon, tildelte brukernavn og toppliste med mulighet til å skjule seg](elevadministrasjon.md). Bruk en egen database til lokal utprøving. Migrasjonene 006–007 og de nye funksjonene blir ikke publisert på skoleserveren før en senere merge til `main`.
+Neste versjon utvikles isolert på `dev`: [elevadministrasjon, tildelte brukernavn og toppliste med mulighet til å skjule seg](elevadministrasjon.md). Bruk en egen database til lokal utprøving. Migrasjonene 006–008 og de nye funksjonene blir ikke publisert på skoleserveren før en senere merge til `main`.
 
 GitHub Actions er konfigurert for tester, Svelte-kontroll og statisk bygg ved push og pull requests. Workflowen publiserer ikke til skolens server.
 
@@ -15,18 +15,18 @@ Fagspor, ni merker, fagsjekker med døgnsgrense, labkort og lydeffekter er beskr
 - Profil med server-tildelt unikt brukernavn, uten e-post eller passord. På `dev` kan eleven ikke velge eller endre navnet selv.
 - Husket pålogging på egen skole-PC, og kortere økt på delte maskiner.
 - Nedlastbar nøkkelfil. Samme fil kan brukes på flere enheter fram til den erstattes.
-- Ny nøkkel sperrer den gamle og logger ut andre enheter. Nåværende enhet får en ny økt.
-- Min lab med XP, nivåer, achievements, fagfilter og fortsett-lenker.
+- Trygt nøkkelbytte i to trinn: last ned og bekreft ny fil før den gamle sperres. Andre enheter logges ut, mens nåværende økt beholdes.
+- Min lab med XP, nivåer, achievements, fagfilter, fortsett-lenker og seks valgbare avatarer.
 - Alle dagens leksjoner kan markeres som gjennomgått. De 15 XP frigjøres først ved bestått fagsjekk, som gir 10 XP ekstra. Gjennomgangen er egenrapportert.
 - De tre ordinære spillene kontrolleres på serveren med de eksisterende simuleringsmodellene. Hvert oppdrag gir 25 XP og et ferdig spill gir 25 ekstra, frigjort etter at alle oppdragene og spillets fagsjekk er bestått. Ingen fri elevkode kjøres.
 - 13 fagsjekker med to varierte spørsmål, begge riktige for å bestå. Ett innsendt forsøk per fagsjekk per 24 timer, håndhevet på serveren per konto. Oppdatering og ny pålogging nullstiller ikke grensen.
 - [Nattevakten](nattvakt.md): åtte minutter, fire reparasjoner, ett forsøk per 24 timer, serverstyrt frist, lagrede utkast, hendelsesrapport og 50 XP første gang.
 - Lærerpanel med «Test selv», egne øvingsforsøk uten XP og tidsbegrensede åpninger for alle. Undervisningsåpninger gir ett ekstra kontrollert forsøk uten å doble allerede opptjent XP.
 - Progresjon og innsendte spillvalg gjenopprettes. Et bestått oppdrag beholdes selv om neste forsøk feiler.
-- Innsendinger som venter på nett lagres lokalt per konto, med et tak på 100. Nøkler og påloggingshemmeligheter lagres aldri i localStorage. Dersom lokal lagring er sperret, må fanen holdes åpen til synkronisering er ferdig.
+- Innsendinger som venter på nett lagres lokalt per hendelse og konto, med et tak på 100. Flere faner kan lagre og synkronisere uten å overskrive hverandres kø. Nøkler og påloggingshemmeligheter lagres aldri i localStorage. Dersom lokal lagring er sperret, må fanen holdes åpen til synkronisering er ferdig.
 - Sletting av konto fjerner også økter, nøkler, poeng og progresjon fra aktiv database. Eldre sikkerhetskopier følger serverens sletterutine/retensjon.
 
-[Lærerpanelet](laererpanel.md) lar lærere teste innhold og åpne aktiviteter for alle. Lærerrollen gis én gang fra serveren med eksisterende profil-ID. Passkeys, skolepålogging, klasseadministrasjon og offentlig poengtavle er ikke med i denne versjonen.
+[Lærerpanelet](laererpanel.md) lar lærere teste innhold og åpne aktiviteter for alle. Lærerrollen gis én gang fra serveren med eksisterende profil-ID. På `dev` finnes offentlig toppliste. Passkeys, skolepålogging og klasseadministrasjon er senere utvidelser.
 
 ## Kjør lokalt
 
@@ -65,9 +65,10 @@ API-et bruker samme origin som nettstedet, under `/api/`:
 | `POST /api/auth/create`      | Opprett profil og returner nøkkelfilen én gang                       |
 | `POST /api/auth/key`         | Logg inn med nøkkelfilens hemmelighet                                |
 | `POST /api/auth/logout`      | Avslutt gjeldende økt                                                |
-| `POST /api/auth/rotate-key`  | Erstatt nøkkelfil og andre pålogginger                               |
+| `POST /api/auth/prepare-key` | Klargjør en ny fil uten å endre eksisterende tilgang                 |
+| `POST /api/auth/rotate-key`  | Bekreft lagret fil, erstatt nøkkel og avslutt andre pålogginger      |
 | `POST /api/me/nickname`      | Avviser selvvalgte navneendringer på `dev`                           |
-| `POST /api/me/lab`           | Lagre labfarge og et opptjent merke på labkortet                     |
+| `POST /api/me/lab`           | Lagre avatar, labfarge og et opptjent merke på labkortet             |
 | `POST /api/me/delete`        | Slett konto med eksplisitt bekreftelse                               |
 | `POST /api/checkpoints/open` | Åpne/gjenoppta samme serverutstedte fagsjekkforsøk                   |
 | `POST /api/progress`         | Gjennomgang, fagsjekk eller kontroll av en spill-/aktivitetsløsning  |
@@ -130,3 +131,5 @@ Ved gjenoppretting stoppes API-et først, gjeldende database og tilhørende WAL/
 - Kunne ikke kontakte Min lab: undervisningen virker fortsatt. Ventende innsendinger er knyttet til kontoen og synkroniseres når den samme brukeren er pålogget og tilkoblingen er tilbake.
 
 [Undervisningsmodus](undervisning.md) gir egne læreropplegg og storskjermvisning. Lærernotater hentes fra et lærerbeskyttet API, mens elevkatalogen og vurderingsreglene beholdes.
+
+[Avatarer og tryggere lagring](avatarer-og-trygg-lagring.md) beskriver figurvalg, reaksjoner, nøkkelbytte og synkronisering mellom faner.

@@ -79,7 +79,7 @@ Når vi lager og videreutvikler sider, legger vi vekt på å:
 
 ## Min lab og backend
 
-Videreutviklingen på `dev` har elevoversikt, administratorverktøy, tildelte unike brukernavn og offentlig toppliste med mulighet til å skjule seg. Se [oppsettet for elevadministrasjon](docs/elevadministrasjon.md) for lokal utprøving med egen database. Serverens automatiske publisering bruker fortsatt `main`.
+Videreutviklingen på `dev` har elevoversikt, administratorverktøy, tildelte unike brukernavn og offentlig toppliste med mulighet til å skjule seg. [Avatarer og tryggere lagring](docs/avatarer-og-trygg-lagring.md) legger til seks figurer med reaksjoner, nøkkelbytte i to trinn og sikker lagringskø mellom faner. Se [oppsettet for elevadministrasjon](docs/elevadministrasjon.md) for lokal utprøving med egen database. Serverens automatiske publisering bruker fortsatt `main`.
 
 Branchen `backend` har en førsteversjon med brukerprofiler, nøkkelfil, varig progresjon, XP og achievements. Se [backendveiledningen](docs/backend.md) for lokal kjøring, API, sikkerhetsmodell, HTTPS-oppsett og backup. Undervisningssimuleringene er fremdeles separate fra ekte innlogging.
 

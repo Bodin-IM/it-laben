@@ -18,6 +18,16 @@
 			<label class="toggle"
 				><input
 					type="checkbox"
+					checked={$labPreferences.companion}
+					onchange={(event) => setLabPreferences({ companion: event.currentTarget.checked })}
+				/>Vis labpartneren under oppgaver</label
+			>
+			<p>Avataren følger arbeidet ditt med små reaksjoner.</p>
+		</div>
+		<div>
+			<label class="toggle"
+				><input
+					type="checkbox"
 					checked={$labPreferences.sound}
 					onchange={(event) => setLabPreferences({ sound: event.currentTarget.checked })}
 				/>Korte lyder ved fullføring</label

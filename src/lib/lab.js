@@ -1,5 +1,7 @@
 import { writable, get, derived } from 'svelte/store';
 import { buildCelebration } from '#lib/celebrations.js';
+import { createProgressQueue } from '#lib/progressQueue.js';
+import { avatarFeedback } from '#lib/avatarFeedback.js';
 
 /** @typedef {{id:string,nickname:string,createdAt:number,role:'student'|'teacher'|'admin',leaderboardVisible:boolean}} User */
 /** @typedef {import('#lib/progression.js').ObjectiveProgress} Objective */
@@ -8,7 +10,7 @@ import { buildCelebration } from '#lib/celebrations.js';
 /** @typedef {{id:string,points:number,title:string,createdAt:number}} Reward */
 /** @typedef {{id:string,title:string,total:number,completed:number,checksTotal:number,checksCompleted:number}} SubjectProgress */
 /** @typedef {{id:string,title:string,color:string,background:string,requires:string|null,unlocked:boolean}} LabColor */
-/** @typedef {{colorId:string,featuredAchievementId:string|null,colors:LabColor[]}} LabProfile */
+/** @typedef {{colorId:string,featuredAchievementId:string|null,avatarId:string,colors:LabColor[]}} LabProfile */
 /** @typedef {{version:number,xp:number,level:number,nextLevelAt:number,xpPerLevel:number,maximumXp:number,progress:Progress[],achievements:Achievement[],tracks:import('#lib/progression.js').TrackState[],subjects:SubjectProgress[],lab:LabProfile,recentRewards:Reward[]}} Summary */
 /** @typedef {{format:string,version:number,key:string,createdAt:string,site:string}} RecoveryKey */
 /** @typedef {{ready:boolean,available:boolean,user:User|null,csrfToken:string|null,summary:Summary|null,development:boolean,error:string,pending:number,pendingReviews:string[],pendingObjectives:string[],syncing:boolean,storageWarning:boolean,openings:import('./learning.js').ActivityOpening[]}} LabState */
@@ -128,11 +130,14 @@ export async function schoolRequest(path, body) {
 
 /** @type {import('svelte/store').Writable<import('#lib/celebrations.js').Celebration|null>} */
 export const rewardNotice = writable(null);
-/** @type {Map<string,Event[]>} */
-const memory = new Map();
+const queue = createProgressQueue({
+	onWarning: () => {
+		if (!get(state).storageWarning) state.update((value) => ({ ...value, storageWarning: true }));
+	}
+});
 let flushing = false;
 let sessionRevision = 0;
-const prefix = 'it-laben-pending-v1-';
+let lastEventAt = 0;
 // Event IDs are not credentials. getRandomValues also supports local HTTP previews.
 export function randomId() {
 	if (typeof crypto.randomUUID === 'function') return crypto.randomUUID();
@@ -192,31 +197,11 @@ async function api(path, body) {
 }
 /** @param {string} userId */
 function readQueue(userId) {
-	if (memory.has(userId)) return memory.get(userId) ?? [];
-	try {
-		const saved = JSON.parse(localStorage.getItem(prefix + userId) || '[]');
-		const valid = Array.isArray(saved)
-			? saved
-					.filter((item) => item.accountId === userId && typeof item.eventId === 'string')
-					.slice(0, 100)
-					.map((item) => ({ ...item, client: { at: item.client?.at ?? 0, deferred: true } }))
-			: [];
-		memory.set(userId, valid);
-		return valid;
-	} catch {
-		memory.set(userId, []);
-		state.update((value) => ({ ...value, storageWarning: true }));
-		return [];
-	}
+	return queue.list(userId);
 }
-/** @param {string} userId @param {Event[]} events */
-function storeQueue(userId, events) {
-	memory.set(userId, events);
-	try {
-		localStorage.setItem(prefix + userId, JSON.stringify(events));
-	} catch {
-		state.update((value) => ({ ...value, storageWarning: true }));
-	}
+/** @param {string} userId */
+function publishQueue(userId) {
+	const events = readQueue(userId);
 	if (get(state).user?.id === userId)
 		state.update((value) => ({
 			...value,
@@ -274,9 +259,16 @@ export function initializeLab() {
 	const reconnect = () => {
 		void refreshLab();
 	};
+	let queueRefresh = 0;
 	/** @param {StorageEvent} event */
 	const changed = (event) => {
 		if (event.key === 'it-laben-account-changed') reconnect();
+		const userId = get(state).user?.id;
+		if (userId && queue.isChange(event.key, userId)) {
+			publishQueue(userId);
+			clearTimeout(queueRefresh);
+			queueRefresh = window.setTimeout(reconnect, 200);
+		}
 	};
 	window.addEventListener('online', reconnect);
 	window.addEventListener('focus', reconnect);
@@ -285,6 +277,7 @@ export function initializeLab() {
 		if (document.visibilityState === 'visible') reconnect();
 	}, 30000);
 	return () => {
+		clearTimeout(queueRefresh);
 		clearInterval(openingPoll);
 		window.removeEventListener('online', reconnect);
 		window.removeEventListener('focus', reconnect);
@@ -319,12 +312,19 @@ export async function logoutProfile() {
 	rewardNotice.set(null);
 	broadcast();
 }
-/** @returns {Promise<RecoveryKey>} */
-export async function rotateRecoveryKey() {
-	const result = await api('/auth/rotate-key', {});
-	acceptSession(result);
-	broadcast();
-	return result.recoveryKey;
+/** @returns {Promise<{recoveryKey:RecoveryKey,expiresAt:number}>} */
+export async function prepareRecoveryKey() {
+	return schoolRequest('/auth/prepare-key', {});
+}
+/** Confirm possession of the file already downloaded. No credential is lost with the response.
+ * @param {RecoveryKey} file */
+export async function rotateRecoveryKey(file) {
+	const userId = get(state).user?.id;
+	const result = await schoolRequest('/auth/rotate-key', { key: file.key, confirmed: true });
+	if (get(state).user?.id === userId) {
+		acceptSession(result);
+		broadcast();
+	}
 }
 /** @param {boolean} visible */
 export async function changeLeaderboardVisibility(visible) {
@@ -335,10 +335,10 @@ export async function changeLeaderboardVisibility(visible) {
 		broadcast();
 	}
 }
-/** @param {string} colorId @param {string|null} featuredAchievementId */
-export async function changeLabProfile(colorId, featuredAchievementId) {
+/** @param {string} colorId @param {string|null} featuredAchievementId @param {string} avatarId */
+export async function changeLabProfile(colorId, featuredAchievementId, avatarId) {
 	const userId = get(state).user?.id;
-	const result = await api('/me/lab', { colorId, featuredAchievementId });
+	const result = await schoolRequest('/me/lab', { colorId, featuredAchievementId, avatarId });
 	if (get(state).user?.id === userId) {
 		acceptSession(result);
 		broadcast();
@@ -348,12 +348,7 @@ export async function deleteProfile() {
 	const userId = get(state).user?.id;
 	await api('/me/delete', { confirm: 'SLETT' });
 	if (userId) {
-		memory.delete(userId);
-		try {
-			localStorage.removeItem(prefix + userId);
-		} catch {
-			/* No stored queue. */
-		}
+		queue.clear(userId);
 	}
 	sessionRevision += 1;
 	state.set({ ...initial, ready: true, available: true });
@@ -378,26 +373,25 @@ function enqueue(event) {
 	if (!current.user) return;
 	const context = get(learningContext);
 	const mode = context.activityId === event.activityId ? context.mode : 'normal';
-	const queue = readQueue(current.user.id);
-	if (queue.length >= 100) {
+	const pending = readQueue(current.user.id);
+	if (pending.length >= 100) {
 		state.update((value) => ({
 			...value,
 			error: 'Mange forsøk venter på lagring. Koble til og synkroniser før du sender flere.'
 		}));
 		return;
 	}
-	storeQueue(current.user.id, [
-		...queue,
-		{
-			...event,
-			mode,
-			openingId: mode === 'teaching' ? context.openingId : null,
-			eventId: randomId(),
-			accountId: current.user.id,
-			client: { at: Date.now(), deferred: !navigator.onLine },
-			version: current.summary?.version ?? 2
-		}
-	]);
+	lastEventAt = Math.max(Date.now(), lastEventAt + 0.01);
+	queue.add({
+		...event,
+		mode,
+		openingId: mode === 'teaching' ? context.openingId : null,
+		eventId: randomId(),
+		accountId: current.user.id,
+		client: { at: lastEventAt, deferred: !navigator.onLine },
+		version: current.summary?.version ?? 2
+	});
+	publishQueue(current.user.id);
 	void flushProgress();
 }
 /** @param {string} activityId */
@@ -513,10 +507,8 @@ export async function flushProgress() {
 						: '/progress',
 					submission
 				);
-				storeQueue(
-					userId,
-					readQueue(userId).filter((item) => item.eventId !== event.eventId)
-				);
+				queue.remove(userId, event.eventId);
+				publishQueue(userId);
 				if (get(state).user?.id === userId) {
 					sessionRevision += 1;
 					state.update((value) => ({
@@ -526,6 +518,26 @@ export async function flushProgress() {
 						error: ''
 					}));
 					if (event.mode !== 'practice') confirmations.push(result);
+					if (
+						!result.duplicate &&
+						client &&
+						!client.deferred &&
+						Date.now() - client.at < 15000 &&
+						contextKey === learningKey() &&
+						(event.mode ?? 'normal') === get(learningContext).mode &&
+						(event.openingId ?? null) === get(learningContext).openingId &&
+						event.kind !== 'start'
+					)
+						avatarFeedback(
+							event.activityId,
+							result.passed ? (result.newAchievements?.length ? 'celebrate' : 'success') : 'retry',
+							result.passed
+								? event.kind === 'review'
+									? 'Gjennomgangen er lagret. Klar for fagsjekken?'
+									: 'Godt jobbet! Løsningen din er lagret.'
+								: 'Et nytt spor! Se tilbakemeldingen og prøv en annen løsning.',
+							userId
+						);
 					if (
 						contextKey === learningKey() &&
 						event.activityId === get(learningContext).activityId
@@ -561,10 +573,8 @@ export async function flushProgress() {
 					problem.code.startsWith('TEACHER_') ||
 					problem.code === 'CONTENT_VERSION'
 				) {
-					storeQueue(
-						userId,
-						readQueue(userId).filter((item) => item.eventId !== event.eventId)
-					);
+					queue.remove(userId, event.eventId);
+					publishQueue(userId);
 					// A rejected assessment must not block unrelated progress in the outbox.
 					void refreshLab();
 					void refreshLearningActivity();
@@ -576,19 +586,11 @@ export async function flushProgress() {
 					problem.status === 0 ||
 					problem.status >= 500
 				) {
-					storeQueue(
-						userId,
-						readQueue(userId).map((item) => ({
-							...item,
-							client: { at: item.client?.at ?? 0, deferred: true }
-						}))
-					);
+					queue.defer(userId);
 					break;
 				}
-				storeQueue(
-					userId,
-					readQueue(userId).filter((item) => item.eventId !== event.eventId)
-				);
+				queue.remove(userId, event.eventId);
+				publishQueue(userId);
 			}
 		}
 	} finally {

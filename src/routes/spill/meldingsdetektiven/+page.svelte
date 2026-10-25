@@ -2,6 +2,7 @@
 	import ThemeToggle from '#lib/components/ThemeToggle.svelte';
 	import AccountLink from '#lib/components/AccountLink.svelte';
 	import { activityLab as account, learningContext, saveAttempt } from '#lib/lab.js';
+	import { avatarFeedback } from '#lib/avatarFeedback.js';
 	import { onMount } from 'svelte';
 	import DetectiveCode from '#lib/components/DetectiveCode.svelte';
 	import DetectiveEvidence from '#lib/components/DetectiveEvidence.svelte';
@@ -182,6 +183,11 @@
 		revision += 1;
 	}
 	function runExperiment() {
+		avatarFeedback(
+			'meldingsdetektiven',
+			'thinking',
+			'Hva forteller forsøket deg? Sammenlign svaret med koden.'
+		);
 		try {
 			const result = runProbe(currentCase.id, currentSettings, selectedProbe.id);
 			inspectRun(result);
@@ -204,6 +210,13 @@
 	function checkCase() {
 		try {
 			const result = verifyCase(currentCase.id, currentSettings);
+			avatarFeedback(
+				'meldingsdetektiven',
+				result.success ? 'success' : 'retry',
+				result.success
+					? 'Sporene stemmer. Du fant løsningen!'
+					: 'Et nytt spor! Se hvilken kontroll som feilet.'
+			);
 			verifications[caseIndex] = result;
 			earned[caseIndex] = earned[caseIndex] || result.success;
 			saveAttempt('meldingsdetektiven', currentCase.id, { ...currentSettings });

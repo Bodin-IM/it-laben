@@ -1,8 +1,8 @@
 import { writable, get } from 'svelte/store';
 
-/** @typedef {{sound:boolean,volume:number,reduceMotion:boolean}} Preferences */
+/** @typedef {{sound:boolean,volume:number,reduceMotion:boolean,companion:boolean}} Preferences */
 /** @type {Preferences} */
-const defaults = { sound: false, volume: 0.25, reduceMotion: false };
+const defaults = { sound: false, volume: 0.25, reduceMotion: false, companion: true };
 const state = writable(defaults);
 export const labPreferences = { subscribe: state.subscribe };
 export const reducedMotion = writable(false);
@@ -17,6 +17,7 @@ let lastSound = -Infinity;
 function sanitize(value) {
 	const item = /** @type {Partial<Preferences>|null} */ (value);
 	return {
+		companion: item?.companion !== false,
 		sound: item?.sound === true,
 		volume:
 			typeof item?.volume === 'number' && Number.isFinite(item.volume)

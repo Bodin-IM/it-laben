@@ -1,4 +1,5 @@
 <script>
+	import { avatarFeedback } from '#lib/avatarFeedback.js';
 	import {
 		activityLab as lab,
 		learningContext,
@@ -58,6 +59,12 @@
 			if ($lab.user?.id !== accountId) return;
 			if (next?.id !== assessment?.id) answers = {};
 			assessment = next;
+			if (next)
+				avatarFeedback(
+					question.activityId,
+					'thinking',
+					'Ta deg tid. Bruk det du har sett i leksjonen eller spillet.'
+				);
 		} catch (problem) {
 			if ($lab.user?.id === accountId) {
 				error = problem instanceof Error ? problem.message : 'Kunne ikke åpne fagsjekken.';

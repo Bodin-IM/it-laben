@@ -1,4 +1,5 @@
 <script>
+	import { avatarFeedback } from '#lib/avatarFeedback.js';
 	import ThemeToggle from '#lib/components/ThemeToggle.svelte';
 	import AccountLink from '#lib/components/AccountLink.svelte';
 	import { lessons } from '#lib/ovingene.js';
@@ -30,12 +31,22 @@
 		selectedLine = 0;
 	}
 	function run() {
+		avatarFeedback(
+			`oving-${lesson.number}`,
+			'working',
+			'Prøv forsøket og følg hva som skjer, steg for steg.'
+		);
 		trace = buildTrace(lesson.number, values);
 		index = 0;
 		selectedLine = 0;
 	}
 	/** @param {number} delta */
 	function move(delta) {
+		avatarFeedback(
+			`oving-${lesson.number}`,
+			'thinking',
+			'Hva endret seg i dette steget? Se på dataene og koden.'
+		);
 		index = Math.max(0, Math.min(trace.length - 1, index + delta));
 		selectedLine = 0;
 	}

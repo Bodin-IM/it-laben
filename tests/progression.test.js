@@ -14,6 +14,30 @@ import {
 	trackDefinitions
 } from '../src/lib/progression.js';
 import { buildCelebration } from '../src/lib/celebrations.js';
+import { get } from 'svelte/store';
+import {
+	avatarReaction,
+	setAvatarContext,
+	avatarFeedback,
+	clearAvatarFeedback
+} from '../src/lib/avatarFeedback.js';
+
+test('avatarreaksjoner følger konto og aktivitet og lar ikke et gammelt resultat eller tidsur overstyre nytt arbeid', () => {
+	setAvatarContext('a', 'chat', 'normal');
+	avatarFeedback('chat', 'success', 'Riktig', 'a');
+	const first = get(avatarReaction);
+	avatarFeedback('sessions', 'retry', 'Feil aktivitet', 'a');
+	assert.equal(get(avatarReaction).serial, first.serial);
+	avatarFeedback('chat', 'working', 'Nytt forsøk', 'a');
+	clearAvatarFeedback(first.serial);
+	assert.equal(get(avatarReaction).mood, 'working');
+	setAvatarContext('b', 'chat', 'normal');
+	avatarFeedback('chat', 'success', 'Gammelt svar', 'a');
+	assert.equal(get(avatarReaction).mood, 'idle');
+	avatarFeedback('chat', 'retry', 'Nytt spor', 'b');
+	setAvatarContext('b', 'chat', 'practice');
+	assert.equal(get(avatarReaction).mood, 'idle');
+});
 
 function snapshot(completed = [], source = catalog) {
 	return source.map((activity) => {

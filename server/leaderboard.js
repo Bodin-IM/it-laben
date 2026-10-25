@@ -1,9 +1,10 @@
 import { labColors, achievementDefinitions, rewardPolicy } from '../src/lib/progression.js';
+import { avatarDefinition } from '../src/lib/avatars.js';
 
 const ranking = `WITH points AS (
  SELECT user_id,SUM(points) AS xp FROM rewards GROUP BY user_id
 ), eligible AS (
- SELECT u.id,u.nickname,COALESCE(p.xp,0) AS xp,l.color_id,l.featured_achievement_id,
+ SELECT u.id,u.nickname,COALESCE(p.xp,0) AS xp,l.color_id,l.featured_achievement_id,l.avatar_id,
  a.achievement_id AS earned_feature
  FROM users u LEFT JOIN points p ON p.user_id=u.id LEFT JOIN lab_profiles l ON l.user_id=u.id
  LEFT JOIN achievements a ON a.user_id=u.id AND a.achievement_id=l.featured_achievement_id
@@ -23,6 +24,7 @@ function entry(row) {
 		xp: Number(row.xp),
 		level: Math.floor(Number(row.xp) / rewardPolicy.xpPerLevel) + 1,
 		colorId: color.id,
+		avatarId: avatarDefinition(row.avatar_id).id,
 		badge: badge ? { title: badge.title, symbol: badge.symbol } : null
 	};
 }

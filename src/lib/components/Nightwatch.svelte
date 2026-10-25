@@ -14,6 +14,7 @@
 	import { labPreferences, setLabPreferences } from '#lib/labPreferences.js';
 	import { timedChallenges, shiftClock, taskAnswered } from '#lib/timedChallenges.js';
 	import { createNightwatchAudio } from '#lib/nightwatchAudio.js';
+	import { avatarFeedback } from '#lib/avatarFeedback.js';
 
 	const definition = (() => {
 		const match = timedChallenges.find((item) => item.id === 'nattvakt');
@@ -59,6 +60,14 @@
 	);
 	const untimed = $derived(!!active && active.deadlineAt === null);
 	const urgent = $derived(!!active && remaining <= 60000);
+	$effect(() => {
+		if (urgent)
+			avatarFeedback(
+				'nattvakt',
+				'thinking',
+				'Siste minutt. Prioriter én feil av gangen og husk å levere.'
+			);
+	});
 	const phase = $derived(
 		untimed
 			? 'TEST UTEN TIDSFRIST'
@@ -960,7 +969,7 @@
 	}
 	.shift-hud {
 		position: sticky;
-		top: 0;
+		top: var(--lab-companion-space, 0px);
 		z-index: 20;
 		display: flex;
 		align-items: center;
@@ -1211,7 +1220,7 @@
 	}
 	.incident-nav {
 		position: sticky;
-		top: 84px;
+		top: calc(84px + var(--lab-companion-space, 0px));
 		border: 1px solid var(--line);
 		border-radius: 9px;
 		background: #101e19;

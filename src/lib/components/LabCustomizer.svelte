@@ -1,6 +1,11 @@
 <script>
 	import { lab, changeLabProfile } from '#lib/lab.js';
 	import AnimatedNumber from '#lib/components/AnimatedNumber.svelte';
+	import Avatar from '#lib/components/Avatar.svelte';
+	import { avatars } from '#lib/avatars.js';
+	/** @type {import('#lib/avatarFeedback.js').AvatarMood} */
+	let previewMood = $state('idle');
+	let chosenAvatar = $state('robot');
 	let chosenColor = $state('forest');
 	let chosenBadge = $state('');
 	let busy = $state(false);
@@ -15,11 +20,12 @@
 	const badge = $derived(earned.find((item) => item.id === chosenBadge));
 	$effect(() => {
 		const profile = $lab.summary?.lab;
-		const key = `${$lab.user?.id}:${profile?.colorId}:${profile?.featuredAchievementId}`;
+		const key = `${$lab.user?.id}:${profile?.colorId}:${profile?.featuredAchievementId}:${profile?.avatarId}`;
 		if (key !== restored) {
 			restored = key;
 			chosenColor = profile?.colorId ?? 'forest';
 			chosenBadge = profile?.featuredAchievementId ?? '';
+			chosenAvatar = profile?.avatarId ?? 'robot';
 			message = '';
 		}
 	});
@@ -27,7 +33,7 @@
 		busy = true;
 		message = '';
 		try {
-			await changeLabProfile(chosenColor, chosenBadge || null);
+			await changeLabProfile(chosenColor, chosenBadge || null, chosenAvatar);
 			message = 'Labkortet ditt er lagret.';
 		} catch (error) {
 			message = error instanceof Error ? error.message : 'Kunne ikke lagre labkortet.';
@@ -49,20 +55,7 @@
 					<p>{badge?.title ?? 'Se. Prøv. Forstå.'}</p>
 					<strong><AnimatedNumber value={$lab.summary.xp} /> <small>XP</small></strong>
 				</div>
-				<svg class="rack" viewBox="0 0 110 130" fill="none" aria-hidden="true">
-					<path class="frame" d="M17 8h76v108H17zM10 122h90" />
-					{#each [0, 1, 2, 3] as row}<g
-							><rect x="25" y={17 + row * 23} width="60" height="17" rx="3" /><path
-								d={`M34 ${25 + row * 23}h18`}
-							/><circle
-								class:lit={row < Math.min(4, earned.length)}
-								cx="76"
-								cy={25 + row * 23}
-								r="2.5"
-							/></g
-						>{/each}
-					<path class="wire" d="M55 116v6h28" />
-				</svg>
+				<div class="card-avatar"><Avatar id={chosenAvatar} mood={previewMood} size={112} /></div>
 			</div>
 			<div class="card-bottom">
 				{#if badge}<span class="featured">{badge.symbol} · Valgt merke</span>{:else}<span
@@ -73,7 +66,7 @@
 		<div class="customize-controls">
 			<span class="eyebrow">GJØR LABEN TIL DIN</span>
 			<h3>Et lite sted som viser fremgangen din.</h3>
-			<p>Velg en farge og vis frem et merke. Du beholder alle poengene dine.</p>
+			<p>Velg en avatar, en farge og et merke. Du beholder alle poengene dine.</p>
 			<details>
 				<summary>Tilpass labkortet</summary>
 				<form
@@ -82,6 +75,33 @@
 						void save();
 					}}
 				>
+					<fieldset disabled={busy}>
+						<legend>Din avatar</legend>
+						<div class="avatars">
+							{#each avatars as option (option.id)}<button
+									type="button"
+									class:chosen={chosenAvatar === option.id}
+									aria-pressed={chosenAvatar === option.id}
+									onclick={() => {
+										chosenAvatar = option.id;
+										previewMood = 'success';
+										message = '';
+									}}
+									><Avatar id={option.id} size={52} animate={false} decorative /><span
+										>{option.title}</span
+									></button
+								>{/each}
+						</div>
+						<label class="badge-label" for="avatar-reaction">Prøv en reaksjon</label><select
+							id="avatar-reaction"
+							bind:value={previewMood}
+							><option value="idle">Klar</option><option value="working">Jobber</option><option
+								value="thinking">Tenker</option
+							><option value="retry">Prøver igjen</option><option value="success"
+								>Riktig løsning</option
+							><option value="celebrate">Feirer</option></select
+						>
+					</fieldset>
 					<fieldset disabled={busy}>
 						<legend>Labfarge</legend>
 						<div class="colors">
@@ -201,31 +221,28 @@
 		color: var(--lab-ink);
 		font-weight: 500;
 	}
-	.rack {
-		width: 110px;
-		flex: 0 0 110px;
-		height: 130px;
-		color: var(--lab-ink);
-		opacity: 0.85;
+	.card-avatar {
+		flex: 0 0 112px;
 	}
-	.rack path,
-	.rack rect {
-		stroke: currentColor;
-		stroke-width: 1.3;
+	.avatars {
+		display: grid;
+		grid-template-columns: repeat(3, minmax(0, 1fr));
+		gap: 8px;
+		margin-bottom: 16px;
 	}
-	.rack rect {
-		fill: color-mix(in srgb, var(--lab-ink) 6%, transparent);
+	.avatars button {
+		display: flex;
+		flex-direction: column;
+		gap: 5px;
+		align-items: center;
+		justify-content: center;
+		min-width: 0;
 	}
-	.rack circle {
-		stroke: currentColor;
-		stroke-width: 1;
+	.avatars .chosen {
+		border-color: var(--color-accent);
+		background: var(--color-accent-soft);
 	}
-	.rack .lit {
-		fill: currentColor;
-	}
-	.wire {
-		opacity: 0.6;
-	}
+
 	.card-bottom {
 		padding-top: 15px;
 		border-top: 1px solid color-mix(in srgb, var(--lab-ink) 20%, transparent);
@@ -340,9 +357,12 @@
 		.lab-card {
 			padding: 20px;
 		}
-		.rack {
-			width: 80px;
+		.card-avatar {
 			flex-basis: 80px;
+		}
+		.card-avatar :global(svg) {
+			width: 80px;
+			height: 80px;
 		}
 		.card-body {
 			gap: 10px;

@@ -1,4 +1,5 @@
 <script>
+	import { avatarFeedback } from '#lib/avatarFeedback.js';
 	import ThemeToggle from '#lib/components/ThemeToggle.svelte';
 	import AccountLink from '#lib/components/AccountLink.svelte';
 	import SessionStepCode from '#lib/components/SessionStepCode.svelte';
@@ -260,6 +261,11 @@
 		};
 	}
 	function kjor() {
+		avatarFeedback(
+			'sessions',
+			'working',
+			'Følg cookien og sessionen. Hvem kjenner serveren igjen?'
+		);
 		// Gjenta grunntrinnet fra det oppgitte utgangspunktet, uten skjulte forespørsler.
 		if (del === 'grunnlag') {
 			const aapneDetaljer = visDetaljer;

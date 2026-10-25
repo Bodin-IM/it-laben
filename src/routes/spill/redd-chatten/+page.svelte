@@ -2,6 +2,7 @@
 	import ThemeToggle from '#lib/components/ThemeToggle.svelte';
 	import AccountLink from '#lib/components/AccountLink.svelte';
 	import { activityLab as account, learningContext, saveAttempt } from '#lib/lab.js';
+	import { avatarFeedback } from '#lib/avatarFeedback.js';
 	import { onMount, onDestroy, tick } from 'svelte';
 	import BackendRouteEditor from '#lib/components/BackendRouteEditor.svelte';
 	import RequestWalkthrough from '#lib/components/RequestWalkthrough.svelte';
@@ -387,6 +388,11 @@
 			frameIndex = -1;
 			revealedCount = 0;
 			running = true;
+			avatarFeedback(
+				'redd-chatten',
+				'working',
+				'Koden prøves med flere situasjoner. Følg med på sporene.'
+			);
 			paused = false;
 			executionError = '';
 			closeInspection();
@@ -407,6 +413,13 @@
 		running = false;
 		paused = false;
 		completed[missionIndex] = completed[missionIndex] || pendingRun.success;
+		avatarFeedback(
+			'redd-chatten',
+			pendingRun.success ? 'success' : 'retry',
+			pendingRun.success
+				? 'Alle situasjonene virker! Fin reparasjon.'
+				: 'Nå har du et spor. Undersøk en situasjon som feilet.'
+		);
 		saveAttempt('redd-chatten', mission.id, [...program]);
 		if (pendingRun.success)
 			unlocked = Math.max(unlocked, Math.min(missionIndex + 1, MISSIONS.length - 1));
@@ -1331,7 +1344,7 @@
 	}
 	.test-panel {
 		position: sticky;
-		top: 16px;
+		top: max(16px, var(--lab-companion-space, 0px));
 		scroll-margin-top: 18px;
 	}
 	.server-led {

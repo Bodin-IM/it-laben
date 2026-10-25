@@ -16,6 +16,7 @@
 		createProfile,
 		loginWithKey,
 		logoutProfile,
+		prepareRecoveryKey,
 		rotateRecoveryKey,
 		downloadKey,
 		deleteProfile,
@@ -24,10 +25,17 @@
 	let remember = $state(true);
 	let busy = $state(false);
 	let message = $state('');
+	let messageSuccess = $state(false);
 	let filter = $state('alle');
 	let downloaded = $state(false);
 	let keyOwner = $state('');
 	let deleteConfirmation = $state('');
+	/** @type {{recoveryKey:import('#lib/lab.js').RecoveryKey,expiresAt:number}|null} */
+	let preparedKey = $state(null);
+	let preparedOwner = $state(''),
+		rotationDownloaded = $state(false),
+		rotationConfirmed = $state(false),
+		rotationError = $state('');
 	/** @type {import('#lib/lab.js').RecoveryKey|null} */
 	let recoveryKey = $state(null);
 	/** @type {HTMLDialogElement|undefined} */
@@ -47,12 +55,61 @@
 			recoveryKey = null;
 			downloaded = false;
 		}
+		if (!$lab.user || (preparedKey && preparedOwner !== $lab.user.id)) {
+			preparedKey = null;
+			rotationDownloaded = false;
+			rotationConfirmed = false;
+			rotationDialog?.close();
+		}
 	});
+	async function prepareRotation() {
+		if (busy) return;
+		const owner = $lab.user?.id;
+		busy = true;
+		rotationError = '';
+		try {
+			const result = await prepareRecoveryKey();
+			if ($lab.user?.id !== owner) return;
+			preparedKey = result;
+			preparedOwner = owner ?? '';
+			rotationDownloaded = false;
+			rotationConfirmed = false;
+		} catch (error) {
+			rotationError = error instanceof Error ? error.message : 'Kunne ikke lage filen.';
+		} finally {
+			busy = false;
+		}
+	}
+	async function confirmRotation() {
+		if (busy || !preparedKey || !rotationDownloaded || !rotationConfirmed) return;
+		const file = preparedKey.recoveryKey,
+			owner = preparedOwner;
+		busy = true;
+		rotationError = '';
+		try {
+			await rotateRecoveryKey(file);
+			if ($lab.user?.id !== owner) return;
+			recoveryKey = file;
+			keyOwner = owner;
+			downloaded = true;
+			preparedKey = null;
+			message = 'Nøkkelen er byttet. Bruk filen du nettopp lagret neste gang du skal logge inn.';
+			messageSuccess = true;
+			rotationDialog?.close();
+		} catch (error) {
+			rotationError =
+				(error instanceof Error ? error.message : 'Kunne ikke bekrefte byttet.') +
+				' Behold filen du lastet ned. Du kan prøve å bekrefte igjen.';
+		} finally {
+			busy = false;
+		}
+	}
 	/** @param {() => Promise<unknown>} action */
 	async function perform(action) {
 		if (busy) return;
 		busy = true;
 		message = '';
+		messageSuccess = false;
 		try {
 			await action();
 		} catch (error) {
@@ -316,14 +373,17 @@
 					<div>
 						<h3>Trenger du en ny nøkkelfil?</h3>
 						<p>
-							En ny nøkkel erstatter den gamle og logger ut alle andre enheter. Progresjonen
-							beholdes.
+							Last ned den nye filen først. Den gamle virker til du bekrefter byttet. Deretter
+							logges andre enheter ut. Progresjonen beholdes.
 						</p>
 						<button
 							class="secondary"
 							type="button"
 							disabled={busy}
-							onclick={() => rotationDialog?.showModal()}>Lag ny nøkkelfil</button
+							onclick={() => {
+								rotationError = '';
+								rotationDialog?.showModal();
+							}}>Lag ny nøkkelfil</button
 						>
 					</div>
 					<details class="delete-account">
@@ -346,30 +406,74 @@
 				</div>
 			</details>
 		{/if}
-		{#if message}<p class="error" role="alert">{message}</p>{/if}
+		{#if message}<p
+				class:error={!messageSuccess}
+				class:notice={messageSuccess}
+				role={messageSuccess ? 'status' : 'alert'}
+			>
+				{message}
+			</p>{/if}
 		<ExperienceSettings />
 		<footer><a href="/">← Til IT-laben</a><span>Se. Prøv. Forstå.</span></footer>
 	</main>
-	<dialog bind:this={rotationDialog}>
-		<h2>Erstatt nøkkelen din?</h2>
-		<p>
-			Den gamle filen slutter å virke, og andre enheter logges ut. Last ned den nye filen etterpå.
-		</p>
-		<div class="inline">
-			<button class="secondary" type="button" onclick={() => rotationDialog?.close()}>Avbryt</button
-			><button
+	<dialog bind:this={rotationDialog} aria-labelledby="rotation-title">
+		<h2 id="rotation-title">Bytt nøkkelfil trygt</h2>
+		{#if !preparedKey}
+			<p>
+				Vi lager en ny fil som du lagrer først. Den gamle nøkkelen og påloggingene dine virker frem
+				til du bekrefter byttet.
+			</p>
+			<div class="inline">
+				<button
+					class="secondary"
+					type="button"
+					disabled={busy}
+					onclick={() => rotationDialog?.close()}>Avbryt</button
+				><button class="primary" type="button" disabled={busy} onclick={prepareRotation}
+					>{busy ? 'Lager fil …' : 'Lag den nye filen'}</button
+				>
+			</div>
+		{:else}
+			<p>
+				1. Last ned og ta vare på den nye filen. Gi den gjerne et navn du kjenner igjen. Du har 30
+				minutter til å bekrefte byttet.
+			</p>
+			<button
 				class="primary"
 				type="button"
 				disabled={busy}
-				onclick={() =>
-					perform(async () => {
-						recoveryKey = await rotateRecoveryKey();
-						keyOwner = $lab.user?.id ?? '';
-						downloaded = false;
-						rotationDialog?.close();
-					})}>Lag ny nøkkel</button
+				onclick={() => {
+					if (preparedKey) {
+						downloadKey(preparedKey.recoveryKey);
+						rotationDownloaded = true;
+					}
+				}}>Last ned ny nøkkelfil</button
 			>
-		</div>
+			<label class="remember"
+				><input
+					type="checkbox"
+					disabled={!rotationDownloaded || busy}
+					bind:checked={rotationConfirmed}
+				/>Jeg har lagret den nye nøkkelfilen.</label
+			>
+			<p>2. Bekreft byttet. Da slutter den gamle filen å virke, og andre enheter logges ut.</p>
+			<div class="inline">
+				<button
+					class="secondary"
+					type="button"
+					disabled={busy}
+					onclick={() => rotationDialog?.close()}>Avbryt</button
+				><button
+					class="primary"
+					type="button"
+					disabled={busy || !rotationDownloaded || !rotationConfirmed}
+					onclick={confirmRotation}>{busy ? 'Bekrefter …' : 'Bekreft nøkkelbyttet'}</button
+				><button class="secondary" type="button" disabled={busy} onclick={prepareRotation}
+					>Lag en annen fil</button
+				>
+			</div>
+		{/if}
+		{#if rotationError}<p class="error" role="alert">{rotationError}</p>{/if}
 	</dialog>
 </div>
 

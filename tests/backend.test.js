@@ -266,14 +266,148 @@ test('ny nøkkel sperrer gammel fil og andre økter, men beholder fremgangen', a
 	const oldKey = a.key.key,
 		b = f.client();
 	await b.request('/api/auth/key', { key: oldKey });
-	const rotated = await a.request('/api/auth/rotate-key', {});
+	const prepared = await a.request('/api/auth/prepare-key', { accountId: a.user.id });
+	const rotated = await a.request('/api/auth/rotate-key', {
+		accountId: a.user.id,
+		key: prepared.result.recoveryKey.key,
+		confirmed: true
+	});
 	assert.equal(rotated.status, 200);
 	assert.equal((await b.request('/api/me')).result.user, null);
 	const c = f.client();
 	assert.equal((await c.request('/api/auth/key', { key: oldKey })).status, 401);
-	const restored = await c.request('/api/auth/key', { key: rotated.result.recoveryKey.key });
+	const restored = await c.request('/api/auth/key', { key: prepared.result.recoveryKey.key });
 	assert.equal(restored.result.summary.xp, 25);
 	assert.equal((await a.request('/api/me')).result.user.id, c.user.id);
+});
+
+test('trygt nøkkelbytte: tapt klargjøringssvar og avbrutt nedlasting endrer ikke eksisterende tilgang', async (t) => {
+	const f = await fixture(t),
+		a = f.client(),
+		b = f.client();
+	await a.create();
+	const oldKey = a.key.key,
+		oldCookie = a.cookie;
+	const prepared = await a.request('/api/auth/prepare-key', { accountId: a.user.id });
+	assert.equal(prepared.status, 200);
+	assert.equal(prepared.result.expiresAt > Date.now(), true);
+	assert.equal(a.cookie, oldCookie);
+	assert.equal((await a.request('/api/me')).result.user.id, a.user.id);
+	assert.equal((await b.request('/api/auth/key', { key: oldKey })).status, 200);
+	const guest = f.client();
+	assert.equal(
+		(await guest.request('/api/auth/key', { key: prepared.result.recoveryKey.key })).status,
+		401
+	);
+	const pending = f.db.prepare('SELECT * FROM pending_recovery_keys').get();
+	assert.equal(
+		pending.hash,
+		createHash('sha256').update(prepared.result.recoveryKey.key).digest('hex')
+	);
+	assert.ok(!JSON.stringify(pending).includes(prepared.result.recoveryKey.key));
+	assert.equal((await a.request('/api/auth/rotate-key', {})).status, 409);
+	assert.equal(
+		(
+			await a.request('/api/auth/rotate-key', {
+				accountId: a.user.id,
+				key: prepared.result.recoveryKey.key
+			})
+		).status,
+		400
+	);
+	assert.equal((await b.request('/api/me')).result.user.id, a.user.id);
+	f.advance(31 * 60000);
+	assert.equal(
+		(
+			await a.request('/api/auth/rotate-key', {
+				accountId: a.user.id,
+				key: prepared.result.recoveryKey.key,
+				confirmed: true
+			})
+		).status,
+		400
+	);
+	assert.equal((await f.client().request('/api/auth/key', { key: oldKey })).status, 200);
+});
+
+test('trygt nøkkelbytte: tapt bekreftelsessvar beholder økten, ny fil virker og retry avslutter ikke nye økter', async (t) => {
+	const f = await fixture(t),
+		a = f.client(),
+		b = f.client();
+	await a.create();
+	await a.event(review);
+	await passQuiz(f, a);
+	const oldKey = a.key.key,
+		oldCookie = a.cookie,
+		oldCsrf = a.csrf;
+	await b.request('/api/auth/key', { key: oldKey });
+	const prepared = await a.request('/api/auth/prepare-key', { accountId: a.user.id });
+	const body = { accountId: a.user.id, key: prepared.result.recoveryKey.key, confirmed: true };
+	// Apply the change but deliberately discard both response body and headers.
+	const response = await fetch(f.base + '/api/auth/rotate-key', {
+		method: 'POST',
+		headers: {
+			Origin: f.config.origin,
+			'Content-Type': 'application/json',
+			'X-CSRF-Token': oldCsrf,
+			Cookie: oldCookie
+		},
+		body: JSON.stringify(body)
+	});
+	assert.equal(response.status, 200);
+	assert.equal(response.headers.getSetCookie().length, 0);
+	await response.arrayBuffer();
+	assert.equal((await a.request('/api/me')).result.summary.xp, 25);
+	assert.equal(a.cookie, oldCookie);
+	assert.equal(a.csrf, oldCsrf);
+	assert.equal((await b.request('/api/me')).result.user, null);
+	const c = f.client();
+	assert.equal((await c.request('/api/auth/key', { key: body.key })).status, 200);
+	assert.equal((await a.request('/api/auth/rotate-key', body)).status, 200);
+	assert.ok((await c.request('/api/me')).result.user);
+	assert.equal((await f.client().request('/api/auth/key', { key: oldKey })).status, 401);
+	assert.equal(f.db.prepare('SELECT COUNT(*) AS n FROM pending_recovery_keys').get().n, 0);
+});
+
+test('trygt nøkkelbytte: konto, CSRF og klargjort fil kontrolleres, og samtidige klargjøringer kan ikke angre et bytte', async (t) => {
+	const f = await fixture(t),
+		a = f.client(),
+		b = f.client();
+	await a.create();
+	await b.create();
+	assert.equal(
+		(await a.request('/api/auth/prepare-key', { accountId: a.user.id }, { csrf: false })).status,
+		403
+	);
+	assert.equal((await a.request('/api/auth/prepare-key', { accountId: b.user.id })).status, 409);
+	const first = await a.request('/api/auth/prepare-key', { accountId: a.user.id });
+	const second = await a.request('/api/auth/prepare-key', { accountId: a.user.id });
+	const firstBody = { accountId: a.user.id, key: first.result.recoveryKey.key, confirmed: true };
+	assert.equal(
+		(await b.request('/api/auth/rotate-key', { ...firstBody, accountId: b.user.id })).status,
+		400
+	);
+	assert.equal((await a.request('/api/auth/rotate-key', firstBody, { csrf: false })).status, 403);
+	assert.equal((await a.request('/api/auth/rotate-key', firstBody)).status, 200);
+	assert.equal(
+		(await a.request('/api/auth/rotate-key', { ...firstBody, key: second.result.recoveryKey.key }))
+			.status,
+		400
+	);
+	assert.equal((await f.client().request('/api/auth/key', { key: firstBody.key })).status, 200);
+});
+
+test('trygt nøkkelbytte: avbrutte klargjøringer begrenses uten å sperre aktiv nøkkel og slettes med kontoen', async (t) => {
+	const f = await fixture(t),
+		a = f.client();
+	await a.create();
+	const key = a.key.key;
+	for (let i = 0; i < 8; i++)
+		assert.equal((await a.request('/api/auth/prepare-key', { accountId: a.user.id })).status, 200);
+	assert.equal(f.db.prepare('SELECT COUNT(*) AS n FROM pending_recovery_keys').get().n, 5);
+	assert.equal((await f.client().request('/api/auth/key', { key })).status, 200);
+	await a.request('/api/me/delete', { confirm: 'SLETT' });
+	assert.equal(f.db.prepare('SELECT COUNT(*) AS n FROM pending_recovery_keys').get().n, 0);
 });
 
 test('serveren kontrollerer alle tre spill, bonus og achievements; nullstilling tar ikke bort poeng', async (t) => {
@@ -382,7 +516,7 @@ test('backup av aktiv database bevarer konto, økt, poeng og progresjon', async 
 		restored.close();
 	}
 	const restarted = openDatabase(f.filename);
-	assert.equal(restarted.prepare('SELECT count(*) AS n FROM migrations').get().n, 7);
+	assert.equal(restarted.prepare('SELECT count(*) AS n FROM migrations').get().n, 8);
 	restarted.close();
 });
 
@@ -592,7 +726,7 @@ test('oppgradering: nye merker etterregistreres for tidligere fullførte oppdrag
 	try {
 		assert.equal(summary(upgraded, a.user.id).xp, 0);
 		assert.equal(summary(upgraded, a.user.id).lab.colorId, 'forest');
-		assert.equal(upgraded.prepare('SELECT count(*) AS n FROM migrations').get().n, 7);
+		assert.equal(upgraded.prepare('SELECT count(*) AS n FROM migrations').get().n, 8);
 	} finally {
 		upgraded.close();
 	}
@@ -1858,7 +1992,7 @@ test('lærerdata: migrasjon fra versjon 4 bevarer vanlige forsøk, og øvingsdat
 			upgraded.prepare('SELECT opening_id FROM checkpoint_attempts').get().opening_id,
 			null
 		);
-		assert.equal(upgraded.prepare('SELECT count(*) AS n FROM migrations').get().n, 7);
+		assert.equal(upgraded.prepare('SELECT count(*) AS n FROM migrations').get().n, 8);
 	} finally {
 		upgraded.close();
 	}

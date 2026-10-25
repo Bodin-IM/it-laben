@@ -12,6 +12,7 @@ import { evaluateGoal, labColors } from '../src/lib/progression.js';
 import { fag } from '../src/lib/innhold.js';
 import { checkpointState } from './checkpoints.js';
 import { timedChallenges } from '../src/lib/timedChallenges.js';
+import { avatarDefinition } from '../src/lib/avatars.js';
 
 export function progressSnapshot(db, userId, now = Date.now()) {
 	const rows = db.prepare('SELECT * FROM progress WHERE user_id=?').all(userId);
@@ -176,6 +177,7 @@ export function summary(db, userId, now = Date.now()) {
 			};
 		}),
 		lab: {
+			avatarId: avatarDefinition(profile?.avatar_id).id,
 			colorId: profile?.color_id ?? 'forest',
 			featuredAchievementId: profile?.featured_achievement_id ?? null,
 			colors: labColors.map((item) => ({

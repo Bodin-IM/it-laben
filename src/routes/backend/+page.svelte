@@ -1,4 +1,5 @@
 <script>
+	import { avatarFeedback } from '#lib/avatarFeedback.js';
 	import ThemeToggle from '#lib/components/ThemeToggle.svelte';
 	import AccountLink from '#lib/components/AccountLink.svelte';
 	import { onMount } from 'svelte';
@@ -104,6 +105,11 @@
 	}
 
 	function start() {
+		avatarFeedback(
+			'frontend-backend',
+			'working',
+			'Følg forespørselen fra nettleseren til serveren.'
+		);
 		if (underveis) return;
 		lukkForklaring();
 		plan = makeRun(handling, { avsender, tekst }, serverMeldinger, klientMeldinger, feilNokkel);
@@ -1498,7 +1504,7 @@
 		}
 		.kjorverktoy {
 			position: sticky;
-			top: 0;
+			top: var(--lab-companion-space, 0px);
 			z-index: 4;
 			background: #132f2c;
 			box-shadow: 0 3px 8px #10251b22;

@@ -1,4 +1,5 @@
 <script>
+	import { avatarFeedback } from '#lib/avatarFeedback.js';
 	import ThemeToggle from '#lib/components/ThemeToggle.svelte';
 	import AccountLink from '#lib/components/AccountLink.svelte';
 	import InteractiveCode from '#lib/components/InteractiveCode.svelte';
@@ -142,6 +143,11 @@
 	}
 
 	function start() {
+		avatarFeedback(
+			'chatrom',
+			'working',
+			'Følg meldingen og legg merke til hvilket rom den havner i.'
+		);
 		if (busy) return;
 		plan = planRun(lab, kind, { ...options });
 		step = 0;

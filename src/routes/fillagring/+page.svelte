@@ -1,4 +1,5 @@
 <script>
+	import { avatarFeedback } from '#lib/avatarFeedback.js';
 	import ThemeToggle from '#lib/components/ThemeToggle.svelte';
 	import AccountLink from '#lib/components/AccountLink.svelte';
 	import { createState, planRun, advance } from '#lib/fillagring.js';
@@ -125,6 +126,11 @@
 
 	/** @param {'start' | 'post' | 'restart'} action */
 	function start(action) {
+		avatarFeedback(
+			'fillagring',
+			'working',
+			'Se hva som finnes i minnet, og hva som faktisk lagres.'
+		);
 		if (underveis || (action === 'post' && !gyldigMelding)) return;
 		forberedt = false;
 		handling = action;

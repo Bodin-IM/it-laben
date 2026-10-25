@@ -11,6 +11,7 @@
 	import ActivityProgress from '#lib/components/ActivityProgress.svelte';
 	import RewardToast from '#lib/components/RewardToast.svelte';
 	import LearningAccess from '#lib/components/LearningAccess.svelte';
+	import AvatarCompanion from '#lib/components/AvatarCompanion.svelte';
 	import '#lib/theme.css';
 
 	/** @type {{children: import('svelte').Snippet}} */
@@ -47,6 +48,7 @@
 <div class:presentation={presenting}>
 	{#if presenting && activity}<TeachingPresentation {activity} {plan} />{:else}<LearningAccess
 		/>{/if}
+	{#if !presentationRequested || ($lab.ready && !presenting)}<AvatarCompanion />{/if}
 	{@render children()}
 	{#if !presentationRequested || ($lab.ready && !presenting)}<ActivityProgress /><RewardToast
 		/>{/if}
