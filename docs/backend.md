@@ -2,6 +2,8 @@
 
 Backend utvikles på branchen `backend` og publiseres via `main` etter sammenslåing. [Engangsoppsettet for Ubuntu](installasjon-main.md) klargjør HTTPS uten offentlig domene, API, databasebackup og den eksisterende oppdateringstimeren. Serveren henter fortsatt bare `main`. Klargjør serveren før sammenslåingen, siden en push til `main` kan utløse publisering med en gang.
 
+Neste versjon utvikles isolert på `dev`: [elevadministrasjon, tildelte brukernavn og frivillig toppliste](elevadministrasjon.md). Bruk en egen database til lokal utprøving. Migrasjon 006 og de nye funksjonene blir ikke publisert på skoleserveren før en senere merge til `main`.
+
 GitHub Actions er konfigurert for tester, Svelte-kontroll og statisk bygg ved push og pull requests. Workflowen publiserer ikke til skolens server.
 
 [Se forhåndsvisning av Min lab med en eksempelprofil](backend-preview.png).
@@ -10,7 +12,7 @@ Fagspor, ni merker, fagsjekker med døgnsgrense, labkort og lydeffekter er beskr
 
 ## Dette er med
 
-- Profil med valgfritt kallenavn, uten e-post eller passord.
+- Profil med server-tildelt unikt brukernavn, uten e-post eller passord. På `dev` kan eleven ikke velge eller endre navnet selv.
 - Husket pålogging på egen skole-PC, og kortere økt på delte maskiner.
 - Nedlastbar nøkkelfil. Samme fil kan brukes på flere enheter fram til den erstattes.
 - Ny nøkkel sperrer den gamle og logger ut andre enheter. Nåværende enhet får en ny økt.
@@ -64,7 +66,7 @@ API-et bruker samme origin som nettstedet, under `/api/`:
 | `POST /api/auth/key`         | Logg inn med nøkkelfilens hemmelighet                                |
 | `POST /api/auth/logout`      | Avslutt gjeldende økt                                                |
 | `POST /api/auth/rotate-key`  | Erstatt nøkkelfil og andre pålogginger                               |
-| `POST /api/me/nickname`      | Endre kallenavn                                                      |
+| `POST /api/me/nickname`      | Avviser selvvalgte navneendringer på `dev`                           |
 | `POST /api/me/lab`           | Lagre labfarge og et opptjent merke på labkortet                     |
 | `POST /api/me/delete`        | Slett konto med eksplisitt bekreftelse                               |
 | `POST /api/checkpoints/open` | Åpne/gjenoppta samme serverutstedte fagsjekkforsøk                   |

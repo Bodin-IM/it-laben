@@ -4,7 +4,14 @@ export function learningError(code, message, status = 409) {
 	return Object.assign(new Error(message), { code, status });
 }
 export function isTeacher(db, userId) {
-	return !!db.prepare("SELECT 1 FROM user_roles WHERE user_id=? AND role='teacher'").get(userId);
+	return ['teacher', 'admin'].includes(userRole(db, userId));
+}
+export function userRole(db, userId) {
+	return db.prepare('SELECT role FROM user_roles WHERE user_id=?').get(userId)?.role ?? 'student';
+}
+export function requireAdmin(db, userId) {
+	if (userRole(db, userId) !== 'admin')
+		throw learningError('ADMIN_REQUIRED', 'Denne handlingen krever administratorrollen.', 403);
 }
 export function requireTeacher(db, userId) {
 	if (!isTeacher(db, userId))
@@ -115,14 +122,43 @@ export function closeOpening(db, userId, openingId, now = Date.now()) {
 	});
 }
 export function setTeacherRole(db, userId, grant, now = Date.now()) {
-	if (!db.prepare('SELECT id FROM users WHERE id=?').get(userId))
-		throw new TypeError('Profil-ID finnes ikke i denne databasen.');
+	const user = db.prepare('SELECT id,disabled_at FROM users WHERE id=?').get(userId);
+	if (!user) throw new TypeError('Profil-ID finnes ikke i denne databasen.');
+	if (grant && user.disabled_at !== null)
+		throw new TypeError('Aktiver profilen før den får en stabsrolle.');
 	return transaction(db, () => {
+		if (userRole(db, userId) === 'admin')
+			throw new TypeError(
+				'Profilen er administrator. Bruk administratorkommandoen for å endre rollen.'
+			);
 		if (grant)
 			db.prepare("INSERT OR IGNORE INTO user_roles VALUES (?,'teacher',?)").run(userId, now);
 		else db.prepare('DELETE FROM user_roles WHERE user_id=?').run(userId);
 		db.prepare(
 			'INSERT INTO teacher_actions(actor_id,action,target_id,created_at) VALUES (NULL,?,?,?)'
 		).run(grant ? 'grant-teacher' : 'revoke-teacher', userId, now);
+	});
+}
+
+export function setAdminRole(db, userId, grant, now = Date.now()) {
+	const user = db.prepare('SELECT disabled_at FROM users WHERE id=?').get(userId);
+	if (!user) throw new TypeError('Profil-ID finnes ikke i denne databasen.');
+	if (user.disabled_at !== null) throw new TypeError('Aktiver profilen før den får en stabsrolle.');
+	return transaction(db, () => {
+		if (!grant && userRole(db, userId) !== 'admin')
+			throw new TypeError('Profilen er ikke administrator.');
+		if (
+			!grant &&
+			db.prepare("SELECT COUNT(*) AS n FROM user_roles WHERE role='admin'").get().n <= 1
+		)
+			throw new TypeError(
+				'Gi en annen profil administratorrollen før den siste administratoren fjernes.'
+			);
+		db.prepare(
+			'INSERT INTO user_roles VALUES (?,?,?) ON CONFLICT(user_id) DO UPDATE SET role=excluded.role,granted_at=excluded.granted_at'
+		).run(userId, grant ? 'admin' : 'teacher', now);
+		db.prepare(
+			'INSERT INTO teacher_actions(actor_id,action,target_id,created_at) VALUES (NULL,?,?,?)'
+		).run(grant ? 'grant-admin' : 'revoke-admin', userId, now);
 	});
 }

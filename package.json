@@ -16,6 +16,7 @@
 		"api": "node --env-file-if-exists=.env server/index.js",
 		"backup": "node --env-file-if-exists=.env server/backup.js",
 		"teacher": "node --env-file-if-exists=.env server/teacher.js",
+		"admin": "node --env-file-if-exists=.env server/admin.js",
 		"dev:full": "node server/dev.js"
 	},
 	"devDependencies": {

@@ -382,7 +382,7 @@ test('backup av aktiv database bevarer konto, økt, poeng og progresjon', async 
 		restored.close();
 	}
 	const restarted = openDatabase(f.filename);
-	assert.equal(restarted.prepare('SELECT count(*) AS n FROM migrations').get().n, 5);
+	assert.equal(restarted.prepare('SELECT count(*) AS n FROM migrations').get().n, 6);
 	restarted.close();
 });
 
@@ -580,7 +580,8 @@ test('oppgradering: nye merker etterregistreres for tidligere fullførte oppdrag
 	const old = historicalDatabase(legacyPath, 1);
 	for (const table of ['users', 'progress', 'rewards', 'achievements']) {
 		for (const row of f.db.prepare(`SELECT * FROM ${table}`).all()) {
-			const values = Object.values(row);
+			const values =
+				table === 'users' ? [row.id, row.nickname, row.created_at] : Object.values(row);
 			old
 				.prepare(`INSERT INTO ${table} VALUES (${values.map(() => '?').join(',')})`)
 				.run(...values);
@@ -591,7 +592,7 @@ test('oppgradering: nye merker etterregistreres for tidligere fullførte oppdrag
 	try {
 		assert.equal(summary(upgraded, a.user.id).xp, 0);
 		assert.equal(summary(upgraded, a.user.id).lab.colorId, 'forest');
-		assert.equal(upgraded.prepare('SELECT count(*) AS n FROM migrations').get().n, 5);
+		assert.equal(upgraded.prepare('SELECT count(*) AS n FROM migrations').get().n, 6);
 	} finally {
 		upgraded.close();
 	}
@@ -1857,7 +1858,7 @@ test('lærerdata: migrasjon fra versjon 4 bevarer vanlige forsøk, og øvingsdat
 			upgraded.prepare('SELECT opening_id FROM checkpoint_attempts').get().opening_id,
 			null
 		);
-		assert.equal(upgraded.prepare('SELECT count(*) AS n FROM migrations').get().n, 5);
+		assert.equal(upgraded.prepare('SELECT count(*) AS n FROM migrations').get().n, 6);
 	} finally {
 		upgraded.close();
 	}

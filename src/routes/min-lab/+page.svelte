@@ -7,6 +7,8 @@
 	import AchievementGallery from '#lib/components/AchievementGallery.svelte';
 	import ExperienceSettings from '#lib/components/ExperienceSettings.svelte';
 	import AnimatedNumber from '#lib/components/AnimatedNumber.svelte';
+	import LeaderboardPreference from '#lib/components/LeaderboardPreference.svelte';
+	import { hasTeacherRole } from '#lib/learning.js';
 	import { fag, innholdsformat } from '#lib/innhold.js';
 	import { rewardPolicy } from '#lib/progression.js';
 	import {
@@ -16,11 +18,9 @@
 		logoutProfile,
 		rotateRecoveryKey,
 		downloadKey,
-		changeNickname,
 		deleteProfile,
 		refreshLab
 	} from '#lib/lab.js';
-	let nickname = $state('');
 	let remember = $state(true);
 	let busy = $state(false);
 	let message = $state('');
@@ -118,9 +118,9 @@
 	<header>
 		<a class="brand" href="/"><span aria-hidden="true">IT</span>IT-laben.</a>
 		<div class="header-actions">
-			{#if $lab.user?.role === 'teacher'}<a href="/laerer/">Lærerpanel →</a>{/if}<a href="/"
-				>Utforsk laben</a
-			><ThemeToggle />
+			{#if hasTeacherRole($lab.user?.role)}<a href="/laerer/">Lærerpanel →</a>{/if}<a
+				href="/toppliste/">Toppliste →</a
+			><a href="/">Utforsk laben</a><ThemeToggle />
 		</div>
 	</header>
 	<main>
@@ -144,25 +144,20 @@
 				<section class="panel">
 					<span class="panel-icon" aria-hidden="true">✦</span>
 					<h2>Start min lab</h2>
-					<p>Lag en profil med ett klikk. Vi trenger verken navn, e-postadresse eller passord.</p>
+					<p>
+						Lag en profil med ett klikk. Du får et unikt brukernavn fra IT-laben. Vi trenger verken
+						navn, e-postadresse eller passord.
+					</p>
 					<form
 						onsubmit={(event) => {
 							event.preventDefault();
 							void perform(async () => {
-								recoveryKey = await createProfile(nickname, remember);
+								recoveryKey = await createProfile(remember);
 								keyOwner = $lab.user?.id ?? '';
 								downloaded = false;
 							});
 						}}
 					>
-						<label for="nickname">Kallenavn <span>(valgfritt)</span></label><input
-							id="nickname"
-							bind:value={nickname}
-							maxlength="24"
-							minlength="2"
-							placeholder="Vi kan finne på et for deg"
-							autocomplete="off"
-						/>
 						<button class="primary" type="submit" disabled={busy || !$lab.available}
 							>{busy ? 'Et lite øyeblikk …' : 'Opprett profilen min →'}</button
 						>
@@ -309,24 +304,12 @@
 				<summary>Profil og nøkkelfil</summary>
 				<div class="settings-content">
 					<p>Din profil-ID: <code style="overflow-wrap:anywhere">{$lab.user.id}</code></p>
-					{#if $lab.user.role === 'teacher'}<p><a href="/laerer/">Åpne lærerpanel →</a></p>{/if}
-					<form
-						onsubmit={(event) => {
-							event.preventDefault();
-							void perform(() => changeNickname(nickname || $lab.user?.nickname || ''));
-						}}
-					>
-						<label for="edit-nickname">Bytt kallenavn</label>
-						<div class="inline">
-							<input
-								id="edit-nickname"
-								bind:value={nickname}
-								placeholder={$lab.user.nickname}
-								minlength="2"
-								maxlength="24"
-							/><button class="secondary" type="submit" disabled={busy}>Lagre</button>
-						</div>
-					</form>
+					{#if hasTeacherRole($lab.user.role)}<p><a href="/laerer/">Åpne lærerpanel →</a></p>{/if}
+					<p>
+						Brukernavnet er tildelt av IT-laben. Be læreren om hjelp hvis det må endres. Nøkkelfilen
+						gir tilgang til profilen uavhengig av navnet.
+					</p>
+					<LeaderboardPreference />
 					<div>
 						<h3>Trenger du en ny nøkkelfil?</h3>
 						<p>
@@ -538,16 +521,6 @@
 		background: var(--color-accent-soft);
 		color: var(--color-accent);
 		font-size: 24px;
-	}
-	form label {
-		display: block;
-		font-size: var(--font-small);
-		font-weight: 650;
-		margin: 0 0 8px;
-	}
-	form label span {
-		font-weight: 400;
-		color: var(--color-text-muted);
 	}
 	input:not([type='checkbox']):not([type='file']) {
 		width: 100%;
@@ -797,9 +770,6 @@
 		align-items: flex-start;
 		flex-wrap: wrap;
 		gap: 10px;
-	}
-	.inline input {
-		flex: 1 1 200px;
 	}
 	.delete-account {
 		border-top: 1px solid var(--color-border);

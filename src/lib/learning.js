@@ -3,6 +3,11 @@
 /** @typedef {{id:string,activityId:string,mode:'practice'|'teaching',createdAt:number,closesAt:number,closedAt?:number|null}} ActivityOpening */
 /** @typedef {{serverNow:number,activities:{id:string,title:string,href:string,subject:string,format:string}[],openings:ActivityOpening[]}} TeacherView */
 
+/** @param {string|undefined} role */
+export function hasTeacherRole(role) {
+	return role === 'teacher' || role === 'admin';
+}
+
 /** @param {string} href @param {LearningMode} mode @param {string|null} [openingId] @param {boolean} [untimed] */
 export function learningLink(href, mode, openingId = null, untimed = false) {
 	const url = new URL(href, 'https://itlab.invalid');

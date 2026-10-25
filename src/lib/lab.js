@@ -1,7 +1,7 @@
 import { writable, get, derived } from 'svelte/store';
 import { buildCelebration } from '#lib/celebrations.js';
 
-/** @typedef {{id:string,nickname:string,createdAt:number,role:'student'|'teacher'}} User */
+/** @typedef {{id:string,nickname:string,createdAt:number,role:'student'|'teacher'|'admin',leaderboardVisible:boolean}} User */
 /** @typedef {import('#lib/progression.js').ObjectiveProgress} Objective */
 /** @typedef {import('#lib/progression.js').ActivityProgress} Progress */
 /** @typedef {import('#lib/progression.js').AchievementState} Achievement */
@@ -113,11 +113,13 @@ export async function refreshLearningActivity() {
 }
 /** @param {string} [path] @param {Record<string,unknown>} [body] @returns {Promise<import('./learning.js').TeacherView>} */
 export async function teacherRequest(path = '', body) {
+	return schoolRequest(`/teacher${path}`, body);
+}
+
+/** @param {string} path @param {Record<string,unknown>} [body] */
+export async function schoolRequest(path, body) {
 	const userId = get(state).user?.id;
-	const result = await api(
-		`/teacher${path}`,
-		body === undefined ? undefined : { ...body, accountId: userId }
-	);
+	const result = await api(path, body === undefined ? undefined : { ...body, accountId: userId });
 	if (userId !== get(state).user?.id)
 		throw new ApiError('En annen profil er pålogget.', 409, 'ACCOUNT_CHANGED');
 	if (body !== undefined) void refreshLab();
@@ -289,9 +291,9 @@ export function initializeLab() {
 		window.removeEventListener('storage', changed);
 	};
 }
-/** @param {string} nickname @param {boolean} remember @returns {Promise<RecoveryKey>} */
-export async function createProfile(nickname, remember) {
-	const result = await api('/auth/create', { nickname, remember });
+/** @param {boolean} remember @returns {Promise<RecoveryKey>} */
+export async function createProfile(remember) {
+	const result = await api('/auth/create', { remember });
 	acceptSession(result);
 	broadcast();
 	return result.recoveryKey;
@@ -324,9 +326,14 @@ export async function rotateRecoveryKey() {
 	broadcast();
 	return result.recoveryKey;
 }
-/** @param {string} nickname */
-export async function changeNickname(nickname) {
-	acceptSession(await api('/me/nickname', { nickname }));
+/** @param {boolean} visible */
+export async function changeLeaderboardVisibility(visible) {
+	const userId = get(state).user?.id;
+	const result = await schoolRequest('/me/leaderboard', { visible });
+	if (get(state).user?.id === userId) {
+		acceptSession(result);
+		broadcast();
+	}
 }
 /** @param {string} colorId @param {string|null} featuredAchievementId */
 export async function changeLabProfile(colorId, featuredAchievementId) {

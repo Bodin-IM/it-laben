@@ -1,9 +1,9 @@
 name: Backend og nettsted
 on:
   push:
-    branches: [backend, main]
+    branches: [backend, main, dev]
   pull_request:
-    branches: [main, backend]
+    branches: [main, backend, dev]
 permissions:
   contents: read
 concurrency:

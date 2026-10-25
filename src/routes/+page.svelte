@@ -122,7 +122,7 @@
 		</a>
 		<div class="header-actions">
 			<span class="header-note">SE. PRØV. FORSTÅ.</span>
-			<AccountLink /><ThemeToggle />
+			<a href="/toppliste/">Toppliste</a><AccountLink /><ThemeToggle />
 		</div>
 	</header>
 

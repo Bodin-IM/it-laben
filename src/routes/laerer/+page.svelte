@@ -1,518 +1,213 @@
 <script>
-	import { page } from '$app/state';
 	import { onMount } from 'svelte';
-	const browser = typeof window !== 'undefined';
-	import { lab, teacherRequest, randomId, refreshLab } from '#lib/lab.js';
-	import { learningLink } from '#lib/learning.js';
-	import { timedChallenges } from '#lib/timedChallenges.js';
-	import ThemeToggle from '#lib/components/ThemeToggle.svelte';
-	/** @type {import('#lib/learning.js').TeacherView|null} */
-	let view = $state(null);
-	let loadedFor = $state('');
-	let activityId = $state(browser ? (page.url.searchParams.get('aktivitet') ?? '') : '');
-	let mode = $state('practice');
-	let minutes = $state(30);
-	let withoutTime = $state(false);
-	let search = $state('');
-	let busy = $state(false);
-	let message = $state('');
+	import { goto } from '$app/navigation';
+	import { lab, schoolRequest } from '#lib/lab.js';
+	import { hasTeacherRole } from '#lib/learning.js';
+	import { fag } from '#lib/innhold.js';
+	import TeacherShell from '#lib/components/TeacherShell.svelte';
+	/** @type {import('#lib/school.js').Overview|null} */
+	let overview = $state(null);
+	let owner = $state('');
 	let error = $state('');
-	let retryId = '';
-	let retryForm = '';
-	const activities = $derived.by(() => view?.activities ?? []);
-	const visible = $derived(
-		activities.filter((item) =>
-			item.title.toLocaleLowerCase('nb-NO').includes(search.toLocaleLowerCase('nb-NO'))
-		)
-	);
-	const openings = $derived.by(
-		() =>
-			view?.openings.filter(
-				(item) => item.closedAt === null && item.closesAt > (view?.serverNow ?? 0)
-			) ?? []
+	let subject = $state('alle');
+	let loading = $state(false);
+	let revision = 0;
+	const activities = $derived.by(() =>
+		(overview?.activities ?? []).filter((item) => subject === 'alle' || item.subject === subject)
 	);
 	async function load() {
-		const userId = $lab.user?.id;
+		const userId = $lab.user?.id,
+			request = ++revision;
+		loading = true;
 		try {
-			const result = await teacherRequest();
-			if ($lab.user?.id !== userId || $lab.user?.role !== 'teacher') return;
-			view = result;
+			const result = await schoolRequest('/teacher/overview');
+			if ($lab.user?.id !== userId || request !== revision || !hasTeacherRole($lab.user?.role))
+				return;
+			overview = result;
 			error = '';
-			if (!result.activities.some((item) => item.id === activityId))
-				activityId = result.activities[0]?.id ?? '';
 		} catch (problem) {
-			if ($lab.user?.id === userId)
-				error = problem instanceof Error ? problem.message : 'Kunne ikke hente lærerpanel.';
+			if (request === revision)
+				error = problem instanceof Error ? problem.message : 'Kunne ikke hente oversikten.';
+		} finally {
+			if (request === revision) loading = false;
 		}
 	}
 	$effect(() => {
-		const userId = $lab.user?.role === 'teacher' ? $lab.user.id : '';
-		if (loadedFor === userId) return;
-		loadedFor = userId;
-		view = null;
+		const key = hasTeacherRole($lab.user?.role) ? `${$lab.user?.id}:${$lab.user?.role}` : '';
+		if (owner === key) return;
+		owner = key;
+		overview = null;
 		error = '';
-		message = '';
-		if (userId) void load();
+		revision++;
+		if (key) void load();
 	});
 	onMount(() => {
+		const activity = new URL(window.location.href).searchParams.get('aktivitet');
+		if (activity)
+			void goto(`/laerer/aktiviteter/?aktivitet=${encodeURIComponent(activity)}`, {
+				replaceState: true
+			});
 		const poll = setInterval(() => {
-			if ($lab.user?.role === 'teacher' && !busy && document.visibilityState === 'visible')
+			if (hasTeacherRole($lab.user?.role) && !loading && document.visibilityState === 'visible')
 				void load();
 		}, 30000);
 		return () => clearInterval(poll);
 	});
-	async function openForAll() {
-		const userId = $lab.user?.id;
-		if (busy || !userId) return;
-		busy = true;
-		error = '';
-		message = '';
-		const form = JSON.stringify([activityId, mode, minutes]);
-		if (!retryId || form !== retryForm) {
-			retryId = randomId();
-			retryForm = form;
-		}
-		try {
-			const result = await teacherRequest('/openings', {
-				id: retryId,
-				activityId,
-				mode,
-				minutes: Number(minutes)
-			});
-			if ($lab.user?.id !== userId) return;
-			view = result;
-			retryId = '';
-			message = `${activities.find((item) => item.id === activityId)?.title ?? 'Aktiviteten'} er åpnet for alle i ${minutes} minutter.`;
-		} catch (problem) {
-			if ($lab.user?.id === userId)
-				error = problem instanceof Error ? problem.message : 'Kunne ikke åpne aktiviteten.';
-		} finally {
-			if ($lab.user?.id === userId) busy = false;
-		}
-	}
-	/** @param {string} id */
-	async function close(id) {
-		const userId = $lab.user?.id;
-		if (busy) return;
-		busy = true;
-		error = '';
-		message = '';
-		try {
-			const result = await teacherRequest(`/openings/${encodeURIComponent(id)}/close`, {});
-			if ($lab.user?.id === userId) {
-				view = result;
-				message = 'Åpningen er stengt for nye forsøk. Påbegynte forsøk kan fullføres.';
-			}
-		} catch (problem) {
-			if ($lab.user?.id === userId)
-				error = problem instanceof Error ? problem.message : 'Kunne ikke stenge åpningen.';
-		} finally {
-			if ($lab.user?.id === userId) busy = false;
-		}
-	}
-	/** @param {number} timestamp */
-	function time(timestamp) {
-		return new Intl.DateTimeFormat('nb-NO', { hour: '2-digit', minute: '2-digit' }).format(
-			timestamp
-		);
-	}
 </script>
 
-<svelte:head
-	><title>Lærerpanel | IT-laben</title><meta name="robots" content="noindex" /></svelte:head
->
-<div class="teacher-page">
-	<header>
-		<a class="brand" href="/">IT-laben.</a>
-		<nav><a href="/min-lab/">Min lab →</a><ThemeToggle /></nav>
-	</header>
-	<main>
-		<p class="eyebrow">UNDERVISNING OG UTPRØVING</p>
-		<h1>Lærerpanel<span>.</span></h1>
-		{#if !$lab.ready}<p role="status">Henter profilen din …</p>
-		{:else if $lab.user?.role !== 'teacher'}<section class="panel">
-				<h2>Aktiver lærertilgang på profilen din</h2>
-				<p>
-					Lærertilgang gis én gang fra serveren. Deretter bruker du samme profil og nøkkelfil som
-					før.
-				</p>
-				{#if $lab.user}<p>Din profil-ID:</p>
-					<code class="profile-id">{$lab.user.id}</code><button
-						type="button"
-						onclick={() => refreshLab()}>Oppdater tilgangen min</button
-					>{:else}<a href="/min-lab/">Logg inn i Min lab →</a>{/if}
-			</section>
-		{:else}
-			<p class="intro">
-				Prøv innhold uten å bruke ordinære forsøk, eller åpne en aktivitet for hele klassen.
-			</p>
-			{#if error}<p class="notice error" role="alert">{error}</p>{/if}
-			{#if message}<p class="notice" role="status">{message}</p>{/if}
-			<div class="control-grid">
-				<section class="panel" aria-labelledby="open-title">
-					<p class="eyebrow">ÅPNE FOR ALLE</p>
-					<h2 id="open-title">En felles aktivitet, akkurat nå.</h2>
-					<form
-						onsubmit={(event) => {
-							event.preventDefault();
-							void openForAll();
-						}}
-					>
-						<label for="teacher-activity">Aktivitet</label><select
-							id="teacher-activity"
-							bind:value={activityId}
-							>{#each activities as item}<option value={item.id}>{item.title}</option
-								>{/each}</select
-						><label for="opening-mode">Type åpning</label><select
-							id="opening-mode"
-							bind:value={mode}
-							><option value="practice">Åpen øving · uten XP</option><option value="teaching"
-								>Undervisningsforsøk · vanlig XP ved bestått</option
-							></select
-						>
-						<p class="explanation">
-							{mode === 'practice'
-								? 'Alle innloggede elever kan øve fritt uten forkunnskapskrav, XP eller bruk av ordinære forsøk.'
-								: 'Alle innloggede elever får ett ekstra forsøk uten forkunnskapskrav. Vanlig XP gis ved bestått, én gang per mål.'}
-						</p>
-						<label for="opening-duration">Varighet</label><select
-							id="opening-duration"
-							bind:value={minutes}
-							><option value={30}>30 minutter</option><option value={60}>60 minutter</option
-							></select
-						>
-						<p class="small">
-							En ny åpning erstatter den forrige for denne aktiviteten. Påbegynte forsøk får
-							fullføre.
-						</p>
-						<button type="submit" disabled={busy || !activityId}
-							>{busy ? 'Lagrer …' : `Åpne for alle i ${minutes} min →`}</button
-						>
-					</form>
-				</section>
-				<section class="panel" aria-labelledby="active-title">
-					<p class="eyebrow">FELLES ÅPNINGER</p>
-					<h2 id="active-title">Åpent nå</h2>
-					{#if !view}<p role="status">Henter åpninger …</p>{:else if !openings.length}<p>
-							Ingen aktiviteter er åpnet for alle akkurat nå.
-						</p>{:else}<div class="opening-list">
-							{#each openings as item (item.id)}{@const content = activities.find(
-									(value) => value.id === item.activityId
-								)}
-								<article>
-									<strong>{content?.title ?? item.activityId}</strong>
-									<p>
-										{item.mode === 'practice'
-											? 'Åpen øving uten XP'
-											: 'Ett ekstra undervisningsforsøk'} · til {time(item.closesAt)}
-									</p>
-									<div>
-										<a href={learningLink(content?.href ?? '/', item.mode, item.id)}
-											>Åpne aktiviteten →</a
-										><button
-											class="secondary"
-											type="button"
-											disabled={busy}
-											onclick={() => close(item.id)}>Steng åpningen</button
-										>
-									</div>
-								</article>{/each}
-						</div>{/if}<button type="button" class="secondary" disabled={busy} onclick={load}
-						>Oppdater listen</button
-					>
-					<p class="small">
-						Åpningene vises på forsiden og ved den aktuelle aktiviteten. De stenger automatisk når
-						tiden er ute.
-					</p>
-				</section>
+<TeacherShell title="Oversikt" intro="Følg læringen, finn elevene og velg neste felles aktivitet.">
+	{#if error}<p class="notice error" role="alert">{error}</p>{/if}
+	{#if !overview}<p role="status">
+			{loading ? 'Henter læringsoversikten …' : 'Oversikten er ikke tilgjengelig.'}
+		</p>
+		<button type="button" disabled={loading} onclick={load}>Prøv igjen</button>
+	{:else}
+		<div class="metrics">
+			<a class="metric" href="/laerer/elever/"
+				><span>Aktive elevprofiler</span><strong>{overview.enabled}</strong><small
+					>{overview.disabled} deaktivert · {overview.students} totalt</small
+				></a
+			>
+			<div class="metric">
+				<span>Jobbet siste 7 dager</span><strong>{overview.activeWeek}</strong><small
+					>Basert på faglige handlinger</small
+				>
 			</div>
-			<section class="panel activities" aria-labelledby="test-title">
-				<div class="section-top">
-					<div>
-						<p class="eyebrow">TEST SELV</p>
-						<h2 id="test-title">Utforsk hele laben.</h2>
-						<p>
-							Du får egen øvingsprogresjon uten XP, merker eller døgnsgrense. Alle spilloppdrag er
-							tilgjengelige.
-						</p>
-					</div>
-					<label class="untimed"
-						><input type="checkbox" bind:checked={withoutTime} />Test Nattevakten uten tidsfrist</label
+			<div class="metric">
+				<span>Fullførte aktiviteter</span><strong>{overview.completed}</strong><small
+					>Gjennomgåtte leksjoner og beståtte spill</small
+				>
+			</div>
+			<div class="metric">
+				<span>Beståtte fagsjekker</span><strong>{overview.checksCompleted}</strong><small
+					>Ordinær progresjon, inkludert undervisningsforsøk</small
+				>
+			</div>
+		</div>
+		<div class="quick-links">
+			<a class="button-link" href="/laerer/elever/">Se elevene →</a><a
+				class="button-link secondary"
+				href="/laerer/aktiviteter/">Åpne en felles aktivitet →</a
+			><button class="secondary" type="button" disabled={loading} onclick={load}
+				>Oppdater oversikten</button
+			>
+		</div>
+		<section class="panel">
+			<div class="section-heading">
+				<div>
+					<p class="eyebrow">HVOR ER ELEVENE?</p>
+					<h2>Læring per aktivitet</h2>
+				</div>
+				<div>
+					<label for="overview-subject">Fag</label><select
+						id="overview-subject"
+						bind:value={subject}
+						><option value="alle">Alle fag</option>{#each fag as item}<option value={item.id}
+								>{item.navn}</option
+							>{/each}</select
 					>
 				</div>
-				<label for="teacher-search">Finn aktivitet</label><input
-					id="teacher-search"
-					type="search"
-					bind:value={search}
-					placeholder="Søk etter en leksjon eller et spill …"
-				/>
-				<div class="activity-list">
-					{#each visible as item}<article>
-							<div>
-								<span class="small"
-									>{item.subject === 'drift' ? 'Driftsstøtte' : 'Utvikling'} · {item.format}</span
-								>
-								<h3>{item.title}</h3>
-							</div>
-							<div class="row-actions">
-								<a href={item.href}>Vanlig aktivitet</a><a
-									class="button-link"
-									href={learningLink(
-										item.href,
-										'practice',
-										null,
-										withoutTime && timedChallenges.some((timed) => timed.id === item.id)
-									)}>Test selv →</a
-								>
-							</div>
-						</article>{/each}
-				</div>
-			</section>
-		{/if}
-	</main>
-</div>
+			</div>
+			<p class="small">
+				Gjennomgått viser at eleven har jobbet gjennom leksjonen. Beståtte fagsjekker vises separat.
+				Lærerprofiler, deaktiverte elever og øvingsresultater inngår ikke i progresjonstallene.
+			</p>
+			{#if !activities.length}<p>Ingen publiserte aktiviteter i dette faget ennå.</p>{:else}<div
+					class="table-scroll"
+				>
+					<table>
+						<caption class="sr-only">Elevenes ordinære progresjon per aktivitet</caption><thead
+							><tr
+								><th>Aktivitet</th><th>Påbegynt eller ferdig</th><th>Gjennomgått / bestått</th><th
+									>Beståtte fagsjekker</th
+								></tr
+							></thead
+						><tbody
+							>{#each activities as item}<tr
+									><td
+										><a href={item.href}>{item.title}</a><small class="activity-kind"
+											>{item.format === 'spill' ? 'Spill' : 'Leksjon'}</small
+										></td
+									><td>{item.started}</td><td>{item.completed}</td><td>{item.checksCompleted}</td
+									></tr
+								>{/each}</tbody
+						>
+					</table>
+				</div>{/if}
+		</section>
+	{/if}
+</TeacherShell>
 
 <style>
-	.teacher-page {
-		min-height: 100vh;
-		background: var(--color-page);
-		color: var(--color-text);
-		font:
-			15px/1.6 system-ui,
-			sans-serif;
-		padding: 0 24px 48px;
-		overflow-wrap: anywhere;
-	}
-	header,
-	main {
-		max-width: 1120px;
-		margin: auto;
-	}
-	header {
-		display: flex;
-		justify-content: space-between;
-		align-items: center;
-		gap: 18px;
-		flex-wrap: wrap;
-		padding: 24px 0;
-		border-bottom: 1px solid var(--color-border);
-		margin-bottom: 36px;
-	}
-	.brand {
-		font-weight: 800;
-		font-size: 21px;
-		text-decoration: none;
-	}
-	nav {
-		display: flex;
-		align-items: center;
-		gap: 20px;
-		flex-wrap: wrap;
-	}
-	a {
-		color: var(--color-accent);
-	}
-	.eyebrow {
-		font-size: 10px;
-		letter-spacing: 1.8px;
-		font-weight: 750;
-		color: var(--color-accent);
-		margin: 0 0 8px;
-	}
-	h1 {
-		font-size: clamp(2.4rem, 6vw, 4.3rem);
-		letter-spacing: -2px;
-		margin: 0 0 10px;
-		line-height: 1.1;
-	}
-	h1 > span {
-		color: var(--color-accent);
-	}
-	.intro {
-		color: var(--color-text-muted);
-		margin: 12px 0 30px;
-	}
-	h2 {
-		font-size: 22px;
-		letter-spacing: -0.5px;
-		line-height: 1.4;
-		margin: 0 0 14px;
-	}
-	h3 {
-		font-size: 15px;
-		margin: 3px 0 0;
-	}
-	.control-grid {
+	.metrics {
 		display: grid;
-		grid-template-columns: 1fr 1fr;
-		gap: 20px;
-		margin-bottom: 24px;
+		grid-template-columns: repeat(4, minmax(0, 1fr));
+		gap: 14px;
+		margin: 26px 0 20px;
 	}
-	.panel {
-		padding: 26px;
+	.metric {
+		padding: 22px;
 		background: var(--color-surface);
 		border: 1px solid var(--color-border);
-		border-radius: 12px;
-		min-width: 0;
-	}
-	.panel p {
-		color: var(--color-text-muted);
-		font-size: 14px;
-	}
-	label {
-		display: block;
-		margin: 16px 0 6px;
-		font-size: 13px;
-		font-weight: 600;
-	}
-	input:not([type='checkbox']),
-	select {
-		box-sizing: border-box;
-		width: 100%;
-		min-height: 44px;
-		padding: 10px 12px;
-		border: 1px solid var(--color-border-strong);
-		border-radius: 6px;
-		background: var(--color-surface);
-		color: var(--color-text);
-		font: inherit;
-		max-width: 100%;
-	}
-	button,
-	.button-link {
-		min-height: 44px;
-		padding: 10px 15px;
-		box-sizing: border-box;
-		border: 1px solid var(--color-action);
-		border-radius: 6px;
-		background: var(--color-action);
-		color: var(--color-on-action);
-		cursor: pointer;
-		font:
-			650 13px/1.5 system-ui,
-			sans-serif;
-		display: inline-flex;
-		justify-content: center;
-		align-items: center;
+		border-radius: 10px;
+		display: flex;
+		flex-direction: column;
+		gap: 6px;
 		text-decoration: none;
-		max-width: 100%;
-	}
-	button:disabled {
-		opacity: 0.6;
-		cursor: default;
-	}
-	.secondary {
-		background: var(--color-surface-soft);
-		border-color: var(--color-border-strong);
 		color: var(--color-text);
 	}
-	.small,
-	.panel .small {
-		font-size: 12px;
+	.metric span {
+		font-size: 14px;
+		font-weight: 650;
 		color: var(--color-text-muted);
 	}
-	.explanation {
-		background: var(--color-accent-soft);
-		border-radius: 6px;
-		padding: 12px;
+	.metric strong {
+		font-size: 42px;
+		line-height: 1.2;
+		letter-spacing: -0.05em;
+		color: var(--color-accent);
 	}
-	.opening-list article {
-		padding: 14px 0 20px;
-		border-bottom: 1px solid var(--color-border);
-		margin-bottom: 15px;
+	.metric small {
+		color: var(--color-text-muted);
+		line-height: 1.5;
 	}
-	.opening-list article p {
-		margin: 6px 0 12px;
-		font-size: 12px;
-	}
-	.opening-list article > div {
+	.quick-links,
+	.section-heading {
 		display: flex;
-		align-items: center;
-		justify-content: space-between;
 		gap: 12px;
-		flex-wrap: wrap;
-		font-size: 12px;
-	}
-	.section-top {
-		display: flex;
-		align-items: center;
 		justify-content: space-between;
-		gap: 20px;
-		flex-wrap: wrap;
-	}
-	.section-top > div {
-		flex: 1 1 300px;
-	}
-	.untimed {
-		display: flex;
 		align-items: center;
-		gap: 9px;
-		margin: 0;
-		font-size: 12px;
-	}
-	.untimed input {
-		accent-color: var(--color-accent);
-	}
-	.activity-list {
-		margin-top: 22px;
-	}
-	.activity-list article {
-		display: flex;
-		align-items: center;
-		justify-content: space-between;
-		gap: 18px;
 		flex-wrap: wrap;
-		padding: 17px 0;
-		border-top: 1px solid var(--color-border);
+		margin-bottom: 20px;
 	}
-	.row-actions {
-		display: flex;
-		align-items: center;
-		gap: 18px;
-		flex-wrap: wrap;
-		font-size: 12px;
+	.quick-links {
+		justify-content: flex-start;
 	}
-	.notice {
-		padding: 14px 18px;
-		border: 1px solid var(--color-success-border);
-		background: var(--color-success-soft);
-		border-radius: 8px;
-		color: var(--color-success);
-		margin: 20px 0;
-	}
-	.notice.error {
-		background: var(--color-warning-soft);
-		border-color: var(--color-border-strong);
-		color: var(--color-warning);
-	}
-	.profile-id {
+	.activity-kind {
 		display: block;
-		margin: 12px 0 22px;
-		overflow-wrap: anywhere;
-		font-size: 13px;
+		color: var(--color-text-muted);
+		margin-top: 4px;
 	}
-	button:focus-visible,
-	a:focus-visible,
-	input:focus-visible,
-	select:focus-visible {
-		outline: 3px solid var(--color-focus);
-		outline-offset: 3px;
+	.sr-only {
+		position: absolute;
+		width: 1px;
+		height: 1px;
+		padding: 0;
+		overflow: hidden;
+		clip-path: inset(50%);
+		white-space: nowrap;
 	}
-	@media (max-width: 760px) {
-		.control-grid {
-			grid-template-columns: 1fr;
+	@media (max-width: 900px) {
+		.metrics {
+			grid-template-columns: repeat(2, minmax(0, 1fr));
 		}
 	}
-	@media (max-width: 480px) {
-		.teacher-page {
-			padding: 0 16px 30px;
+	@media (max-width: 430px) {
+		.metric {
+			padding: 16px 12px;
 		}
-		.panel {
-			padding: 20px;
-		}
-		.row-actions {
-			width: 100%;
-			justify-content: space-between;
+		.metric strong {
+			font-size: 34px;
 		}
 	}
 </style>

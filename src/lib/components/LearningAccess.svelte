@@ -4,7 +4,7 @@
 	const browser = typeof window !== 'undefined';
 	import { aktiviteter } from '#lib/innhold.js';
 	import { lab, learningContext, setLearningContext, refreshLearningActivity } from '#lib/lab.js';
-	import { learningLink } from '#lib/learning.js';
+	import { learningLink, hasTeacherRole } from '#lib/learning.js';
 	const activity = $derived(aktiviteter.find((item) => item.href === page.url.pathname));
 	const mode = $derived(
 		browser && page.url.searchParams.get('modus') === 'oving'
@@ -15,7 +15,7 @@
 	);
 	const openingId = $derived(browser ? page.url.searchParams.get('apning') : null);
 	const opening = $derived($lab.openings.find((item) => item.activityId === activity?.id));
-	const teacher = $derived($lab.user?.role === 'teacher');
+	const teacher = $derived(hasTeacherRole($lab.user?.role));
 	$effect(() => {
 		$lab.user?.id;
 		setLearningContext({
@@ -73,7 +73,7 @@
 					href={learningLink(activity.href, opening.mode, opening.id)}
 					>{opening.mode === 'practice' ? 'Åpne øvingen' : 'Ta undervisningsforsøket'} →</a
 				>{/if}
-			{#if teacher}<a href={`/laerer/?aktivitet=${activity.id}`}>Lærerpanel →</a>{/if}
+			{#if teacher}<a href={`/laerer/aktiviteter/?aktivitet=${activity.id}`}>Lærerpanel →</a>{/if}
 			{#if !$lab.user && mode !== 'normal'}<a href="/min-lab/">Logg inn i Min lab →</a>{/if}
 		</div>
 	</aside>

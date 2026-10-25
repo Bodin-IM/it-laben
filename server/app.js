@@ -2,7 +2,7 @@ import express from 'express';
 import helmet from 'helmet';
 import cookieParser from 'cookie-parser';
 import { rateLimit } from 'express-rate-limit';
-import { randomBytes, randomUUID, randomInt, createHash, timingSafeEqual } from 'node:crypto';
+import { randomBytes, randomUUID, createHash, timingSafeEqual } from 'node:crypto';
 import { transaction } from './database.js';
 import { summary, submit, reconcileAchievements } from './progress.js';
 import { labColors } from '../src/lib/progression.js';
@@ -10,7 +10,7 @@ import { catalog } from './catalog.js';
 import { openCheckpoint } from './checkpoints.js';
 import { getTimedState, startTimedChallenge, saveTimedDraft } from './timed-challenges.js';
 import {
-	isTeacher,
+	userRole,
 	requireTeacher,
 	activeOpenings,
 	createOpening,
@@ -25,6 +25,15 @@ import {
 	savePracticeTimed,
 	submitPractice
 } from './practice.js';
+import { assignExistingUsernames, generateUsername } from './usernames.js';
+import {
+	teacherOverview,
+	listStudents,
+	studentDetail,
+	manageStudent,
+	deleteUser
+} from './students.js';
+import { leaderboard } from './leaderboard.js';
 
 const DAY = 86400000;
 const hash = (value) => createHash('sha256').update(value).digest('hex');
@@ -37,6 +46,7 @@ const matches = (a, b) =>
 	timingSafeEqual(Buffer.from(a), Buffer.from(b));
 
 export function createApp({ db, config, clock = Date.now, limits = true }) {
+	assignExistingUsernames(db);
 	reconcileAchievements(db, clock());
 	const app = express();
 	app.disable('x-powered-by');
@@ -76,8 +86,19 @@ export function createApp({ db, config, clock = Date.now, limits = true }) {
 				else {
 					req.labSession = session;
 					req.labUser = db
-						.prepare('SELECT id,nickname,created_at AS createdAt FROM users WHERE id=?')
+						.prepare(
+							'SELECT id,nickname,created_at AS createdAt,disabled_at AS disabledAt,leaderboard_visible AS leaderboardVisible FROM users WHERE id=?'
+						)
 						.get(session.user_id);
+					if (req.labUser?.disabledAt != null) {
+						db.prepare('DELETE FROM sessions WHERE user_id=?').run(req.labUser.id);
+						return fail(
+							res,
+							403,
+							'ACCOUNT_DISABLED',
+							'Profilen er deaktivert. Ta kontakt med læreren.'
+						);
+					}
 					if (now - session.last_seen_at > 60000)
 						db.prepare('UPDATE sessions SET last_seen_at=? WHERE hash=?').run(now, session.hash);
 				}
@@ -114,6 +135,7 @@ export function createApp({ db, config, clock = Date.now, limits = true }) {
 		app.use('/api/timed', limit(60000, 3000));
 		app.use('/api/practice', limit(60000, 3000));
 		app.use('/api/teacher', limit(60000, 120));
+		app.use('/api/leaderboard', limit(60000, 120));
 	}
 	const authenticated = (req, res, next) => {
 		if (!req.labUser) return fail(res, 401, 'LOGIN_REQUIRED', 'Logg inn for å lagre fremgangen.');
@@ -164,28 +186,19 @@ export function createApp({ db, config, clock = Date.now, limits = true }) {
 	}
 	function me(user, session) {
 		return {
-			user: { ...user, role: isTeacher(db, user.id) ? 'teacher' : 'student' },
+			user: {
+				id: user.id,
+				nickname: user.nickname,
+				createdAt: user.createdAt,
+				role: userRole(db, user.id),
+				leaderboardVisible: user.leaderboardVisible === 1
+			},
 			openings: activeOpenings(db, clock()),
 			csrfToken: session.csrf,
 			summary: summary(db, user.id, clock()),
 			development: !config.secure
 		};
 	}
-	function nickname(value) {
-		if (value === undefined || value === '') {
-			const animals = ['Oter', 'Rev', 'Ugle', 'Gaupe', 'Panda', 'Hauk'];
-			return `Lur ${animals[randomInt(animals.length)]} ${randomInt(100, 1000)}`;
-		}
-		if (
-			typeof value !== 'string' ||
-			value.trim().length < 2 ||
-			value.trim().length > 24 ||
-			/[\p{Cc}\p{Cf}]/u.test(value)
-		)
-			throw new TypeError('Kallenavnet må ha mellom 2 og 24 tegn.');
-		return value.trim();
-	}
-
 	app.get('/api/me', (req, res) => {
 		if (!req.labUser)
 			return res.json({
@@ -207,10 +220,20 @@ export function createApp({ db, config, clock = Date.now, limits = true }) {
 			);
 		if (req.body.remember !== undefined && typeof req.body.remember !== 'boolean')
 			return fail(res, 400, 'INVALID_INPUT', 'Ugyldig valg av husket pålogging.');
-		const user = { id: randomUUID(), nickname: nickname(req.body.nickname), createdAt: clock() };
 		const result = transaction(db, () => {
+			// Names supplied by older browser tabs are ignored. Only the server assigns names.
+			const user = {
+				id: randomUUID(),
+				nickname: generateUsername(db),
+				createdAt: clock(),
+				leaderboardVisible: 0
+			};
 			db.prepare('DELETE FROM sessions WHERE expires_at<?').run(clock());
-			db.prepare('INSERT INTO users VALUES (?,?,?)').run(user.id, user.nickname, user.createdAt);
+			db.prepare('INSERT INTO users(id,nickname,created_at,name_assigned) VALUES (?,?,?,1)').run(
+				user.id,
+				user.nickname,
+				user.createdAt
+			);
 			const recovery = keyFile(user.id),
 				session = newSession(user.id, req.body.remember !== false);
 			return { payload: { ...me(user, session), recoveryKey: recovery }, session };
@@ -229,8 +252,15 @@ export function createApp({ db, config, clock = Date.now, limits = true }) {
 		if (!credential) return fail(res, 401, 'INVALID_KEY', 'Nøkkelen er ugyldig eller erstattet.');
 		const result = transaction(db, () => {
 			const user = db
-				.prepare('SELECT id,nickname,created_at AS createdAt FROM users WHERE id=?')
+				.prepare(
+					'SELECT id,nickname,created_at AS createdAt,disabled_at AS disabledAt,leaderboard_visible AS leaderboardVisible FROM users WHERE id=?'
+				)
 				.get(credential.user_id);
+			if (user.disabledAt !== null)
+				throw Object.assign(new Error('Profilen er deaktivert. Ta kontakt med læreren.'), {
+					code: 'ACCOUNT_DISABLED',
+					status: 403
+				});
 			const session = newSession(user.id, req.body.remember !== false);
 			return { payload: me(user, session), session };
 		});
@@ -254,9 +284,28 @@ export function createApp({ db, config, clock = Date.now, limits = true }) {
 		res.json(result.payload);
 	});
 	app.post('/api/me/nickname', authenticated, (req, res) => {
-		const name = nickname(req.body.nickname);
-		db.prepare('UPDATE users SET nickname=? WHERE id=?').run(name, req.labUser.id);
-		res.json(me({ ...req.labUser, nickname: name }, req.labSession));
+		return fail(
+			res,
+			403,
+			'NAME_MANAGED',
+			'Brukernavnet tildeles av IT-laben. Be læreren om hjelp hvis det må endres.'
+		);
+	});
+	app.get('/api/leaderboard', (req, res) =>
+		res.json(leaderboard(db, req.labUser?.id, req.query.page ?? 1))
+	);
+	app.post('/api/me/leaderboard', authenticated, (req, res) => {
+		if (req.body.accountId !== req.labUser.id)
+			return fail(res, 409, 'ACCOUNT_CHANGED', 'En annen profil er pålogget.');
+		if (typeof req.body.visible !== 'boolean')
+			throw new TypeError('Velg om du vil vises på topplisten.');
+		if (userRole(db, req.labUser.id) !== 'student')
+			return fail(res, 403, 'STAFF_NOT_RANKED', 'Lærerprofiler deltar ikke på topplisten.');
+		db.prepare('UPDATE users SET leaderboard_visible=? WHERE id=?').run(
+			req.body.visible ? 1 : 0,
+			req.labUser.id
+		);
+		res.json(me({ ...req.labUser, leaderboardVisible: req.body.visible ? 1 : 0 }, req.labSession));
 	});
 	app.post('/api/me/lab', authenticated, (req, res) => {
 		const current = summary(db, req.labUser.id, clock());
@@ -283,10 +332,7 @@ export function createApp({ db, config, clock = Date.now, limits = true }) {
 		if (req.body.confirm !== 'SLETT')
 			return fail(res, 400, 'CONFIRM_DELETE', 'Bekreft sletting av profilen.');
 		transaction(db, () => {
-			db.prepare(
-				"DELETE FROM teacher_actions WHERE action IN ('grant-teacher','revoke-teacher') AND target_id=?"
-			).run(req.labUser.id);
-			db.prepare('DELETE FROM users WHERE id=?').run(req.labUser.id);
+			deleteUser(db, req.labUser.id);
 		});
 		res.clearCookie(config.cookieName, cookieOptions);
 		res.json({ ok: true });
@@ -330,6 +376,18 @@ export function createApp({ db, config, clock = Date.now, limits = true }) {
 		};
 	};
 	app.get('/api/teacher', authenticated, (req, res) => res.json(teacherView(req.labUser.id)));
+	app.get('/api/teacher/overview', authenticated, (req, res) =>
+		res.json(teacherOverview(db, req.labUser.id, clock()))
+	);
+	app.get('/api/teacher/students', authenticated, (req, res) =>
+		res.json(listStudents(db, req.labUser.id, req.query, clock()))
+	);
+	app.get('/api/teacher/students/:id', authenticated, (req, res) =>
+		res.json(studentDetail(db, req.labUser.id, req.params.id, clock()))
+	);
+	app.post('/api/teacher/students/:id/:action', authenticated, accountMatches, (req, res) =>
+		res.json(manageStudent(db, req.labUser.id, req.params.id, req.params.action, req.body, clock()))
+	);
 	app.post('/api/teacher/openings', authenticated, accountMatches, (req, res) => {
 		createOpening(
 			db,
@@ -416,7 +474,10 @@ export function createApp({ db, config, clock = Date.now, limits = true }) {
 			error.code?.startsWith('TIMED_') ||
 			error.code?.startsWith('PRACTICE_') ||
 			error.code?.startsWith('OPENING_') ||
-			error.code?.startsWith('TEACHER_')
+			error.code?.startsWith('TEACHER_') ||
+			error.code?.startsWith('ADMIN_') ||
+			error.code?.startsWith('STUDENT_') ||
+			error.code === 'ACCOUNT_DISABLED'
 		) {
 			if (error.retryAt)
 				res.set('Retry-After', String(Math.max(1, Math.ceil((error.retryAt - clock()) / 1000))));

@@ -2,6 +2,8 @@
 
 Lærerpanelet ligger på `/laerer/` i `backend`-versjonen. Du bruker din eksisterende Min lab-profil og nøkkelfil. Ingen nye passord eller skolepålogging er nødvendig.
 
+På `dev` er panelet utvidet med **Oversikt**, **Elever**, **Aktiviteter** og **Toppliste**. Test- og åpningsverktøyene er flyttet til `/laerer/aktiviteter/`. Se [elevadministrasjon og tildelte brukernavn](elevadministrasjon.md) for ny administratorrolle, lokal utprøving og navneovergangen for eksisterende profiler.
+
 Se eksempelvisning av [lærerpanelet](teacher-panel.png), [test uten tidsfrist](teacher-practice.png) og [et undervisningsforsøk](teacher-opening.png).
 
 ## Aktiver lærerrollen én gang
