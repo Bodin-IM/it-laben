@@ -1,5 +1,7 @@
 <script>
 	import ThemeToggle from '#lib/components/ThemeToggle.svelte';
+	import AccountLink from '#lib/components/AccountLink.svelte';
+	import { activityLab as account, learningContext, saveAttempt } from '#lib/lab.js';
 	import { onMount } from 'svelte';
 	import DetectiveCode from '#lib/components/DetectiveCode.svelte';
 	import DetectiveEvidence from '#lib/components/DetectiveEvidence.svelte';
@@ -19,6 +21,7 @@
 	/** @typedef {'frontend'|'backend'} Side */
 	let caseIndex = $state(0);
 	let unlocked = $state(0);
+	let earned = $state(CASES.map(() => false));
 	let settings = $state(CASES.map((item) => initialSettings(item.id)));
 	let selectedProbes = $state(CASES.map((item) => item.initialProbeId));
 	/** @type {(ProbeRun|null)[]} */
@@ -73,8 +76,9 @@
 	let completed = $derived(
 		CASES.map(
 			(item, index) =>
-				verifications[index]?.success === true &&
-				verificationKeys[index] === settingsKey(item.id, settings[index])
+				earned[index] ||
+				(verifications[index]?.success === true &&
+					verificationKeys[index] === settingsKey(item.id, settings[index]))
 		)
 	);
 	let solvedCount = $derived(completed.filter(Boolean).length);
@@ -100,6 +104,48 @@
 			mobile.removeEventListener('change', update);
 			motion.removeEventListener('change', update);
 		};
+	});
+
+	let restoredUser = $state('');
+	$effect(() => {
+		const userId = $account.user
+			? `${$account.user.id}:${$learningContext.mode}:${$learningContext.openingId}`
+			: '';
+		const saved = $account.summary?.progress.find((item) => item.id === 'meldingsdetektiven');
+		if (!userId) {
+			restoredUser = '';
+			return;
+		}
+		if (saved && restoredUser !== userId) {
+			restoredUser = userId;
+			runs = CASES.map(() => null);
+			verifications = CASES.map(() => null);
+			verificationKeys = CASES.map(() => '');
+			earned = CASES.map((item) =>
+				Boolean(saved.objectives.find((objective) => objective.id === item.id)?.completedAt)
+			);
+			settings = CASES.map((item) => {
+				const solution = saved.objectives.find((objective) => objective.id === item.id)?.solution;
+				return solution && !Array.isArray(solution) ? { ...solution } : initialSettings(item.id);
+			});
+			unlocked =
+				$learningContext.mode !== 'normal'
+					? CASES.length - 1
+					: Math.min(
+							CASES.length - 1,
+							Math.max(0, ...earned.map((value, index) => (value ? index + 1 : 0)))
+						);
+			const requested = CASES.findIndex(
+				(item) => item.id === new URL(window.location.href).searchParams.get('oppdrag')
+			);
+			caseIndex =
+				requested >= 0 && requested <= unlocked
+					? requested
+					: Math.max(
+							0,
+							earned.findIndex((value) => !value)
+						);
+		}
 	});
 
 	/** @param {Side} value */
@@ -159,6 +205,8 @@
 		try {
 			const result = verifyCase(currentCase.id, currentSettings);
 			verifications[caseIndex] = result;
+			earned[caseIndex] = earned[caseIndex] || result.success;
+			saveAttempt('meldingsdetektiven', currentCase.id, { ...currentSettings });
 			verificationKeys[caseIndex] = key;
 			checkAttempts[caseIndex] += 1;
 			if (result.success) unlocked = Math.max(unlocked, Math.min(caseIndex + 1, CASES.length - 1));
@@ -230,7 +278,7 @@
 		<nav aria-label="Spillnavigasjon">
 			<a href="/spill/redd-chatten/">Redd chatten ↗</a><a href="/#spill">Alle spill</a>
 		</nav>
-		<div class="theme-control"><ThemeToggle /></div>
+		<div class="theme-control"><AccountLink /><ThemeToggle /></div>
 	</header>
 	<main>
 		<section class="intro" aria-labelledby="game-title">
@@ -1813,6 +1861,23 @@
 	@media (max-width: 480px) {
 		.case-tabs {
 			grid-template-columns: 1fr;
+		}
+	}
+
+	.theme-control {
+		display: flex;
+		align-items: center;
+		justify-content: flex-end;
+		flex-wrap: wrap;
+		gap: 8px;
+		min-width: 0;
+		max-width: 100%;
+	}
+	@media (max-width: 620px) {
+		.theme-control {
+			grid-column: 1 / -1;
+			grid-row: auto;
+			justify-self: stretch;
 		}
 	}
 </style>

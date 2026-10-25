@@ -12,7 +12,11 @@
 		"check": "svelte-kit sync && svelte-check --tsconfig ./jsconfig.json",
 		"check:watch": "svelte-kit sync && svelte-check --tsconfig ./jsconfig.json --watch",
 		"lint": "prettier --check .",
-		"format": "prettier --write ."
+		"format": "prettier --write .",
+		"api": "node --env-file-if-exists=.env server/index.js",
+		"backup": "node --env-file-if-exists=.env server/backup.js",
+		"teacher": "node --env-file-if-exists=.env server/teacher.js",
+		"dev:full": "node server/dev.js"
 	},
 	"devDependencies": {
 		"@sveltejs/adapter-auto": "^8.0.0",
@@ -29,5 +33,14 @@
 	"imports": {
 		"#lib": "./src/lib/index.js",
 		"#lib/*": "./src/lib/*"
+	},
+	"engines": {
+		"node": ">=24.17.0"
+	},
+	"dependencies": {
+		"cookie-parser": "^1.4.7",
+		"express": "^5.3.0",
+		"express-rate-limit": "^8.7.1",
+		"helmet": "^8.3.0"
 	}
 }

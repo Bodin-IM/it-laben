@@ -1,0 +1,25 @@
+name: Backend og nettsted
+on:
+  push:
+    branches: [backend, main]
+  pull_request:
+    branches: [main, backend]
+permissions:
+  contents: read
+concurrency:
+  group: backend-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+      - run: npm ci
+      - run: shellcheck server/deploy/*.sh
+      - run: npm test
+      - run: npm run check
+      - run: npm run build

@@ -1,5 +1,6 @@
 <script>
 	import ThemeToggle from '#lib/components/ThemeToggle.svelte';
+	import AccountLink from '#lib/components/AccountLink.svelte';
 	import { onMount } from 'svelte';
 	import CodeExplanation from '#lib/components/CodeExplanation.svelte';
 	import { codeLines, makeRun, EXAMPLE_MESSAGE, CODE_CONTEXTS } from '#lib/frontendBackendLab.js';
@@ -190,7 +191,7 @@
 		>
 		<div class="header-actions">
 			<a class="videre" href="/chatrom/">Videre til chatrom <span aria-hidden="true">↗</span></a>
-			<ThemeToggle />
+			<AccountLink /><ThemeToggle />
 		</div>
 	</header>
 	<main>
@@ -766,6 +767,7 @@
 	.proveverdier,
 	.getverdier {
 		display: flex;
+		flex-wrap: wrap;
 		align-items: center;
 		gap: 18px;
 		padding: 14px 18px;
@@ -806,7 +808,7 @@
 		font-size: var(--font-small);
 	}
 	.proveverdier .meldingsfelt {
-		flex: 1;
+		flex: 1 1 240px;
 	}
 	.meldingsfelt input {
 		width: 100%;
@@ -1220,6 +1222,7 @@
 	}
 	.tallpar {
 		display: flex;
+		flex-wrap: wrap;
 		align-items: center;
 		gap: 11px;
 		font-size: var(--font-meta);

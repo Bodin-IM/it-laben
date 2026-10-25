@@ -77,6 +77,12 @@ Når vi lager og videreutvikler sider, legger vi vekt på å:
 - La eleven undersøke én kodelinje om gangen, med en forklaring tett på linjen.
 - Dele opp informasjonen og gjøre flere detaljer tilgjengelige når eleven trenger dem.
 
+## Min lab og backend
+
+Branchen `backend` har en førsteversjon med brukerprofiler, nøkkelfil, varig progresjon, XP og achievements. Se [backendveiledningen](docs/backend.md) for lokal kjøring, API, sikkerhetsmodell, HTTPS-oppsett og backup. Undervisningssimuleringene er fremdeles separate fra ekte innlogging.
+
+På `backend` finnes også personlig fremdrift på forsiden, fire fagspor, ni merker, fagsjekker med ett forsøk per døgn og et eget labkort. [Progresjonsveiledningen](docs/progresjon.md) beskriver utvidelse med nye fag, aktiviteter, kontrollregler, merker og oppgavevarianter. Vanlige leksjoner og spill krever bestått fagsjekk for XP. [Nattevakten](docs/nattvakt.md) er en egen utfordring på åtte minutter med ett forsøk per døgn, økende lydbilde og en samlet kontroll av fire reparasjoner. Lydeffekter er valgfrie og av som standard.
+
 ## Teknisk oppsett
 
 Prosjektet er bygget med **Svelte 5, SvelteKit 3 og Vite**. Demonstrasjonene simulerer handlinger i nettleseren, så selve IT-laben kan kjøres uten en egen Express-backend eller database. Express-koden på undervisningssidene er eksempler til elevenes egne prosjekter.
@@ -151,8 +157,8 @@ npm run preview
 
 | Fil eller mappe                  | Bruk                                                                          |
 | -------------------------------- | ----------------------------------------------------------------------------- |
-| `src/routes/+page.svelte`        | Forsiden med fagvalg, søk, aktivitetstype og kortvisning.                    |
-| `src/lib/innhold.js`             | Felles fag- og innholdsoversikt for alle leksjoner og spill på forsiden.     |
+| `src/routes/+page.svelte`        | Forsiden med fagvalg, søk, aktivitetstype og kortvisning.                     |
+| `src/lib/innhold.js`             | Felles fag- og innholdsoversikt for alle leksjoner og spill på forsiden.      |
 | `src/routes/<tema>/+page.svelte` | En undervisningsside med egen adresse.                                        |
 | `src/lib/components/`            | Felles kodevisninger og forklaringer ved klikk på kodelinjer.                 |
 | `src/lib/chatromLab.js`          | Rene simuleringssteg og kodeutdrag for chatrom, session-avsender og sletting. |
@@ -179,3 +185,7 @@ IT-laben hostes på en egen **Ubuntu-server med Nginx**. Serveren henter selv en
 Gjennomfør kode- og avhengighetsendringer på utviklingsmaskinen. Serverens oppdateringsjobb håndterer installasjon og bygging automatisk.
 
 Se [driftsveiledningen](docs/serverdrift.md) for manuell oppdatering, logger, timerstatus, Nginx, kontroll av publisert commit og feilsøking.
+
+Før backend merges til `main`, klargjøres serveren med [installasjonsskriptene for HTTPS, API og backup](docs/installasjon-main.md). Den eksisterende timeren fortsetter å hente `main`; den nye jobben publiserer API og frontend fra samme commit.
+
+Lærere kan bruke [lærerpanelet](docs/laererpanel.md) til å teste aktiviteter uten XP og åpne øving eller ekstra undervisningsforsøk for alle i 30 eller 60 minutter. Lærertilgang gis én gang til den eksisterende profilen fra serveren.

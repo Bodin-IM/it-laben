@@ -2,7 +2,10 @@
 	import { onMount } from 'svelte';
 	import { replaceState } from '$app/navigation';
 	import ThemeToggle from '#lib/components/ThemeToggle.svelte';
-	import { aktiviteter, fag } from '#lib/innhold.js';
+	import AccountLink from '#lib/components/AccountLink.svelte';
+	import PersonalOverview from '#lib/components/PersonalOverview.svelte';
+	import { aktiviteter, fag, innholdsformat } from '#lib/innhold.js';
+	import { lab as account } from '#lib/lab.js';
 
 	let valgtFag = $state('alle');
 	let valgtFormat = $state('alle');
@@ -11,8 +14,7 @@
 
 	const formater = [
 		{ id: 'alle', navn: 'Alt innhold' },
-		{ id: 'leksjon', navn: 'Leksjoner' },
-		{ id: 'spill', navn: 'Spill og utfordringer' }
+		...Array.from(new Set(aktiviteter.map((item) => item.format))).map(innholdsformat)
 	];
 
 	/** @param {string} tekst */
@@ -35,7 +37,7 @@
 					aktivitet.tittel,
 					aktivitet.beskrivelse,
 					aktivitet.type,
-					aktivitet.format === 'spill' ? 'spill utfordring' : 'leksjon forklaring øvelse',
+					innholdsformat(aktivitet.format).sokeord,
 					...aktivitet.emner,
 					...aktivitet.sokeord
 				].join(' ')
@@ -120,7 +122,7 @@
 		</a>
 		<div class="header-actions">
 			<span class="header-note">SE. PRØV. FORSTÅ.</span>
-			<ThemeToggle />
+			<AccountLink /><ThemeToggle />
 		</div>
 	</header>
 
@@ -169,6 +171,7 @@
 			</div>
 		</section>
 
+		<PersonalOverview subject={valgtFag} />
 		<section id="utforsk" class="oversikt" aria-label="Leksjoner og spill">
 			<div class="verktoylinje">
 				<div class="sokefelt">
@@ -244,12 +247,17 @@
 										href={aktivitet.href}
 									>
 										<div class="korttopp">
-											<span class="formatmerke"
-												>{aktivitet.format === 'spill' ? 'Spill' : 'Leksjon'}</span
-											>
+											<span class="formatmerke">{innholdsformat(aktivitet.format).entall}</span>
 											<span class="symbol" aria-hidden="true">{aktivitet.symbol}</span>
 										</div>
 										<h3>{aktivitet.tittel}</h3>
+										{#if $account.summary?.progress.find((item) => item.id === aktivitet.id)?.status === 'reviewed'}<span
+												class="saved-status">✓ Gjennomgått</span
+											>{:else if $account.summary?.progress.find((item) => item.id === aktivitet.id)?.status === 'passed'}<span
+												class="saved-status">✓ Bestått</span
+											>{:else if $account.summary?.progress.find((item) => item.id === aktivitet.id)?.status === 'started'}<span
+												class="saved-status started">Påbegynt</span
+											>{/if}
 										<p class="beskrivelse">{aktivitet.beskrivelse}</p>
 										<ul class="emner" aria-label="Temaer">
 											{#each aktivitet.emner as emne}<li>{emne}</li>{/each}
@@ -302,6 +310,15 @@
 </div>
 
 <style>
+	.saved-status {
+		font-size: var(--font-meta);
+		color: var(--color-success);
+		margin-bottom: 7px;
+		font-weight: 650;
+	}
+	.saved-status.started {
+		color: var(--color-text-muted);
+	}
 	.forside {
 		min-height: 100vh;
 		font-family:

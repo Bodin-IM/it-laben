@@ -2,6 +2,8 @@
 
 Gjelder Ubuntu-oppsettet som henter `main` fra GitHub, bygger med brukeren `itlab` og viser nettsiden gjennom Nginx på port **8080**.
 
+**Før backend merges til main:** Kjør [engangsoppsettet for HTTPS, API og backup](installasjon-main.md). Det oppgraderer oppdateringsjobben, mens den eksisterende timeren fortsatt henter `main`. Etter oppgraderingen bruker elevene den valgte HTTPS-adressen for Min lab. Port 8080 og kommandoen for publisert commit beholdes. Bygging skjer fortsatt som `itlab`; den nye oppdateringstjenesten har root-tilgang for å bytte releaser og starte systemd-API-et.
+
 ## Huskeliste – kjøres på Ubuntu-serveren
 
 | Hva vil du gjøre?                      | Kommando                                                      |

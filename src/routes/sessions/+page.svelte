@@ -1,5 +1,6 @@
 <script>
 	import ThemeToggle from '#lib/components/ThemeToggle.svelte';
+	import AccountLink from '#lib/components/AccountLink.svelte';
 	import SessionStepCode from '#lib/components/SessionStepCode.svelte';
 
 	// En lokal undervisningsmodell. Ingen cookies, innlogging eller nettverkskall opprettes.
@@ -427,7 +428,7 @@
 		<a class="tilbake" href="/"><span aria-hidden="true">←</span> IT-laben</a>
 		<div class="headerhoyre">
 			<a href="/backend/">Frontend møter backend <span aria-hidden="true">↗</span></a>
-			<ThemeToggle />
+			<AccountLink /><ThemeToggle />
 		</div>
 	</header>
 	<main class="ramme">
