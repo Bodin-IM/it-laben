@@ -4,7 +4,7 @@ Arbeidet ligger på branchen `backend`. Dagens `main` og publiseringstimer er ue
 
 [Se forhåndsvisning av Min lab med en eksempelprofil](backend-preview.png).
 
-Fagspor, åtte merker, fagsjekker med døgnsgrense, labkort og lydeffekter er beskrevet i [veiledningen for progresjon](progresjon.md). Den viser også hvordan nye leksjoner, spill, praktiske aktiviteter og driftsinnhold legges til.
+Fagspor, ni merker, fagsjekker med døgnsgrense, labkort og lydeffekter er beskrevet i [veiledningen for progresjon](progresjon.md). Den viser også hvordan nye leksjoner, spill, praktiske aktiviteter og driftsinnhold legges til.
 
 ## Dette er med
 
@@ -14,8 +14,9 @@ Fagspor, åtte merker, fagsjekker med døgnsgrense, labkort og lydeffekter er be
 - Ny nøkkel sperrer den gamle og logger ut andre enheter. Nåværende enhet får en ny økt.
 - Min lab med XP, nivåer, achievements, fagfilter og fortsett-lenker.
 - Alle dagens leksjoner kan markeres som gjennomgått. De 15 XP frigjøres først ved bestått fagsjekk, som gir 10 XP ekstra. Gjennomgangen er egenrapportert.
-- Alle tre spill kontrolleres på serveren med de eksisterende simuleringsmodellene. Hvert oppdrag gir 25 XP og et ferdig spill gir 25 ekstra, frigjort etter at alle oppdragene og spillets fagsjekk er bestått. Ingen fri elevkode kjøres.
+- De tre ordinære spillene kontrolleres på serveren med de eksisterende simuleringsmodellene. Hvert oppdrag gir 25 XP og et ferdig spill gir 25 ekstra, frigjort etter at alle oppdragene og spillets fagsjekk er bestått. Ingen fri elevkode kjøres.
 - 13 fagsjekker med to varierte spørsmål, begge riktige for å bestå. Ett innsendt forsøk per fagsjekk per 24 timer, håndhevet på serveren per konto. Oppdatering og ny pålogging nullstiller ikke grensen.
+- [Nattvakt](nattvakt.md): åtte minutter, fire reparasjoner, ett forsøk per 24 timer, serverstyrt frist, lagrede utkast, hendelsesrapport og 50 XP første gang.
 - Progresjon og innsendte spillvalg gjenopprettes. Et bestått oppdrag beholdes selv om neste forsøk feiler.
 - Innsendinger som venter på nett lagres lokalt per konto, med et tak på 100. Nøkler og påloggingshemmeligheter lagres aldri i localStorage. Dersom lokal lagring er sperret, må fanen holdes åpen til synkronisering er ferdig.
 - Sletting av konto fjerner også økter, nøkler, poeng og progresjon fra aktiv database. Eldre sikkerhetskopier følger serverens sletterutine/retensjon.

@@ -11,11 +11,19 @@ import {
 import { evaluateGoal, labColors } from '../src/lib/progression.js';
 import { fag } from '../src/lib/innhold.js';
 import { checkpointState } from './checkpoints.js';
+import { timedChallenges } from '../src/lib/timedChallenges.js';
 
 export function progressSnapshot(db, userId, now = Date.now()) {
 	const rows = db.prepare('SELECT * FROM progress WHERE user_id=?').all(userId);
 	const byObjective = new Map(rows.map((row) => [`${row.activity_id}:${row.objective_id}`, row]));
 	const startedActivities = new Set(rows.map((row) => row.activity_id));
+	const timedHistory = new Map();
+	for (const row of db
+		.prepare(
+			'SELECT activity_id,status,started_at,deadline_at FROM timed_attempts WHERE user_id=? ORDER BY started_at DESC,rowid DESC'
+		)
+		.all(userId))
+		if (!timedHistory.has(row.activity_id)) timedHistory.set(row.activity_id, row);
 	const awarded = new Set(
 		db
 			.prepare('SELECT reward_key FROM rewards WHERE user_id=?')
@@ -23,10 +31,24 @@ export function progressSnapshot(db, userId, now = Date.now()) {
 			.map((row) => row.reward_key)
 	);
 	return catalog.map((activity) => {
+		const timed = timedChallenges.find((item) => item.id === activity.id);
+		const lastShift = timedHistory.get(activity.id);
 		const objectives = activity.objectives.map((objective) => {
 			const row = byObjective.get(`${activity.id}:${objective.id}`);
 			return {
 				...objective,
+				...(objective.kind === 'timed'
+					? {
+							available:
+								(!lastShift ||
+									(lastShift.status === 'active' && now < lastShift.deadline_at) ||
+									now >= lastShift.started_at + timed.cooldownMs) &&
+								timed.prerequisites.every(
+									(item) =>
+										byObjective.get(`${item.activityId}:${item.objectiveId}`)?.completed_at != null
+								)
+						}
+					: {}),
 				completedAt: row?.completed_at ?? null,
 				updatedAt: row?.updated_at ?? null,
 				solution: row?.solution_json ? JSON.parse(row.solution_json) : null,
@@ -38,7 +60,10 @@ export function progressSnapshot(db, userId, now = Date.now()) {
 		const required = objectives.filter((value) => value.required);
 		const completed = required.filter((value) => value.completedAt !== null).length;
 		const checks = objectives.filter((value) => value.kind === 'check');
-		const creditEligible = checks.length > 0 && checks.every((value) => value.completedAt !== null);
+		const creditEligible =
+			activity.creditMode === 'validated'
+				? completed === required.length
+				: checks.length > 0 && checks.every((value) => value.completedAt !== null);
 		const pendingXp =
 			objectives
 				.filter(
@@ -182,7 +207,7 @@ export function submit(db, userId, body, now = Date.now()) {
 				summary: summary(db, userId, now)
 			};
 		}
-		const { activity, passed, solution, assessmentResult } = checkSubmission(body, {
+		const { activity, passed, solution, assessmentResult, timedReport } = checkSubmission(body, {
 			db,
 			userId,
 			now
@@ -228,7 +253,8 @@ export function submit(db, userId, body, now = Date.now()) {
 			passed,
 			newRewards,
 			newAchievements,
-			...(assessmentResult ? { assessmentResult } : {})
+			...(assessmentResult ? { assessmentResult } : {}),
+			...(timedReport ? { timedReport } : {})
 		};
 		db.prepare('INSERT INTO receipts VALUES (?,?,?,?,?)').run(
 			userId,

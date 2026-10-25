@@ -91,6 +91,11 @@
 	}
 	/** @param {import('#lib/lab.js').Progress} activity */
 	function statusText(activity) {
+		if (
+			!['reviewed', 'passed'].includes(activity.status) &&
+			activity.objectives.some((item) => item.kind === 'timed' && item.available === false)
+		)
+			return activity.status === 'new' ? 'Krever forberedelser' : 'Venter på neste vakt';
 		return activity.status === 'reviewed'
 			? '✓ Gjennomgått'
 			: activity.status === 'passed'
@@ -240,9 +245,10 @@
 						>publiserte aktiviteter gjennomgått eller bestått</span
 					>
 					<p class="small">
-						{rewardPolicy.reviewed} XP for gjennomgang · {rewardPolicy.passed} XP per spilloppdrag. Poengene
-						frigjøres når aktivitetens fagsjekk er bestått, med {rewardPolicy.checked} XP ekstra. Ett
-						innsendt forsøk per fagsjekk per 24 timer. Du kan lese og øve så mye du vil.
+						Vanlige leksjoner gir {rewardPolicy.reviewed} XP for gjennomgang, spill gir {rewardPolicy.passed}
+						XP per oppdrag. Poengene frigjøres ved bestått fagsjekk, med {rewardPolicy.checked} XP ekstra.
+						Nattvakt gir 50 XP ved første beståtte vakt. Fagsjekker og Nattvakt har ett forsøk per 24
+						timer. Du kan lese og øve i de vanlige spillene så mye du vil.
 					</p>
 				</div>
 			</section>

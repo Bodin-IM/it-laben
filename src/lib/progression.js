@@ -8,7 +8,7 @@ export const rewardPolicy = {
 };
 
 /** @typedef {'reviewed'|'checked'|'passed'} Evidence */
-/** @typedef {{id:string,title:string,kind:string,evidence:Evidence,required:boolean,points:number,completedAt:number|null,updatedAt:number|null,solution:string[]|Record<string,string>|null,assessment?:import('./assessmentPolicy.js').AssessmentState}} ObjectiveProgress */
+/** @typedef {{id:string,title:string,kind:string,evidence:Evidence,required:boolean,points:number,completedAt:number|null,updatedAt:number|null,solution:string[]|Record<string,string>|null,assessment?:import('./assessmentPolicy.js').AssessmentState,available?:boolean}} ObjectiveProgress */
 /** @typedef {{id:string,title:string,href:string,subject:string,format:string,completionEvidence:Evidence,status:string,completed:number,total:number,checksCompleted:number,checksTotal:number,creditEligible:boolean,pendingXp:number,objectives:ObjectiveProgress[]}} ActivityProgress */
 /** @typedef {{type:'activity',activityId:string}|{type:'objective',activityId:string,objectiveId:string}|{type:'count',scope:'activities'|'objectives',target:number,subject?:string,format?:string,evidence?:Evidence}|{type:'all',goals:Goal[]}} Goal */
 /** @typedef {{id:string,title:string,href:string,subject:string,evidence:Evidence,completed:boolean,completedAt:number|null}} Requirement */
@@ -105,6 +105,15 @@ export const achievementDefinitions = [
 				{ type: 'objective', activityId: 'redd-chatten', objectiveId: 'tekst' }
 			]
 		}
+	},
+	{
+		id: 'nattvakt-v1',
+		title: 'Nattvakt',
+		description: 'Gjør alle fire reparasjonene og få produksjonen klar innen åtte minutter.',
+		symbol: '08',
+		subjects: ['utvikling'],
+		optional: true,
+		goal: { type: 'objective', activityId: 'nattvakt', objectiveId: 'shift-v1' }
 	}
 ];
 
@@ -338,7 +347,7 @@ export function nextActivity(progress, subject = 'alle') {
 		);
 	for (const activity of [...started, ...candidates]) {
 		const objective = activity.objectives.find(
-			(item) => item.required && item.completedAt === null
+			(item) => item.required && item.completedAt === null && item.available !== false
 		);
 		if (objective) return requirement(activity, objective);
 	}

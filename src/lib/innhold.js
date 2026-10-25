@@ -31,7 +31,7 @@ export function innholdsformat(id) {
  * @property {string[]} emner
  * @property {string[]} sokeord
  * @property {string} symbol
- * @property {{kind:'review'|'challenge'|'checkpoint',adapter?:string}} tracking
+ * @property {{kind:'review'|'challenge'|'checkpoint'|'timed',adapter?:string}} tracking
  */
 
 /** @type {Record<number, string[]>} */
@@ -98,6 +98,19 @@ export const aktiviteter = [
 		emner: ['Session', 'Cookie', 'credentials'],
 		sokeord: ['innlogging', 'login', 'autentisering', 'bruker', 'backend', 'Express'],
 		symbol: 'ID'
+	},
+	{
+		id: 'nattvakt',
+		tracking: { kind: 'timed', adapter: 'production-v1' },
+		tittel: 'Nattvakt – redd produksjonen',
+		beskrivelse: 'Åtte minutter. Fire feil. Ta vakten, følg sporene og få chatten klar før åpning.',
+		href: '/spill/nattvakt/',
+		fag: 'utvikling',
+		format: 'spill',
+		type: 'Hardcore · 8 minutter',
+		emner: ['Feilsøking', 'Tidspress', 'Produksjon'],
+		sokeord: ['hardcore', 'utfordring', 'nattvakt', 'session', 'fillagring', 'eierskap', 'backend'],
+		symbol: '08'
 	},
 	{
 		id: 'meldingsdetektiven',

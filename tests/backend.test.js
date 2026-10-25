@@ -357,7 +357,7 @@ test('backup av aktiv database bevarer konto, økt, poeng og progresjon', async 
 		restored.close();
 	}
 	const restarted = openDatabase(f.filename);
-	assert.equal(restarted.prepare('SELECT count(*) AS n FROM migrations').get().n, 3);
+	assert.equal(restarted.prepare('SELECT count(*) AS n FROM migrations').get().n, 4);
 	restarted.close();
 });
 
@@ -380,7 +380,8 @@ test('sletting fjerner hele profilen og gjør nøkkelfilen ubrukelig', async (t)
 		'achievements',
 		'receipts',
 		'lab_profiles',
-		'checkpoint_attempts'
+		'checkpoint_attempts',
+		'timed_attempts'
 	])
 		assert.equal(f.db.prepare(`SELECT count(*) AS n FROM ${table}`).get().n, 0);
 	assert.equal((await f.client().request('/api/auth/key', { key })).status, 401);
@@ -553,7 +554,7 @@ test('oppgradering: nye merker etterregistreres for tidligere fullførte oppdrag
 	try {
 		assert.equal(summary(upgraded, a.user.id).xp, 0);
 		assert.equal(summary(upgraded, a.user.id).lab.colorId, 'forest');
-		assert.equal(upgraded.prepare('SELECT count(*) AS n FROM migrations').get().n, 3);
+		assert.equal(upgraded.prepare('SELECT count(*) AS n FROM migrations').get().n, 4);
 	} finally {
 		upgraded.close();
 	}
@@ -776,7 +777,7 @@ test('oppgradering: gamle poeng beholdes, men gamle sjekkformat kan ikke gi nye 
 		.run(a.user.id, review.activityId, 'check-v1', Date.now(), Date.now(), '{"choice":"fetch"}');
 	const old = (await a.request('/api/me')).result.summary;
 	assert.equal(old.xp, 25);
-	assert.equal(old.maximumXp, 615);
+	assert.equal(old.maximumXp, 665);
 	assert.equal(
 		(
 			await a.event({
@@ -803,7 +804,7 @@ test('oppgradering: gamle poeng beholdes, men gamle sjekkformat kan ikke gi nye 
 	const passed = await passQuiz(f, a);
 	assert.equal(passed.result.summary.xp, 35);
 	assert.equal(passed.result.newRewards.length, 1);
-	assert.equal(passed.result.summary.maximumXp, 615);
+	assert.equal(passed.result.summary.maximumXp, 665);
 });
 
 test('fagsjekker: feil før commit ruller tilbake både forsøk, progresjon og XP', async (t) => {
@@ -855,4 +856,439 @@ test('oppgradering: ventende gjennomganger og spillforsøk fra forrige klient la
 	assert.equal(game.result.passed, true);
 	assert.equal(game.result.summary.xp, 0);
 	assert.equal((await passQuiz(f, a)).result.summary.xp, 25);
+});
+
+async function prepareShift(f, client) {
+	for (const activityId of ['frontend-backend', 'sessions', 'fillagring']) {
+		await client.event({ ...review, activityId });
+		await passQuiz(f, client, activityId);
+	}
+}
+async function startShift(f, client, startId = randomUUID()) {
+	const response = await client.request('/api/timed/nattvakt/start', {
+		accountId: client.user.id,
+		startId
+	});
+	assert.equal(response.status, 200, JSON.stringify(response.result));
+	const row = f.db
+		.prepare('SELECT * FROM timed_attempts WHERE id=?')
+		.get(response.result.state.active.id);
+	const snapshot = JSON.parse(row.scenario_json);
+	const expected = {
+		field: snapshot.field,
+		validation: 'content',
+		cookies: 'both',
+		identity: 'session',
+		startup: 'load',
+		write: 'durable'
+	};
+	const sequence = [
+		'guard-login',
+		'find-id',
+		'guard-found',
+		'guard-owner-session',
+		'delete-id',
+		'reply-deleted'
+	];
+	const answers = Object.fromEntries(
+		snapshot.incidents
+			.flatMap((item) => item.tasks)
+			.map((task) => [
+				task.id,
+				task.type === 'order'
+					? sequence.map((action) =>
+							Object.keys(task.values).find((id) => task.values[id] === action)
+						)
+					: Object.keys(task.values).find((id) => task.values[id] === expected[task.key])
+			])
+	);
+	return {
+		response,
+		row,
+		snapshot,
+		answers,
+		body: {
+			kind: 'timed',
+			activityId: 'nattvakt',
+			objectiveId: 'shift-v1',
+			attemptId: row.id,
+			answers
+		}
+	};
+}
+
+test('nattvakt: forberedelser, innlogging, CSRF og konto eier start, utkast og innlevering', async (t) => {
+	const f = await fixture(t);
+	const a = f.client();
+	await a.create();
+	const initial = await a.request('/api/timed/nattvakt');
+	assert.equal(initial.result.state.unlocked, false);
+	assert.equal(initial.result.state.active, null);
+	assert.equal(initial.result.state.attempts, 0);
+	assert.equal(
+		(await a.request('/api/timed/nattvakt/start', { accountId: a.user.id, startId: randomUUID() }))
+			.result.error.code,
+		'TIMED_LOCKED'
+	);
+	assert.equal((await f.client().request('/api/timed/nattvakt')).status, 401);
+	await prepareShift(f, a);
+	assert.equal(
+		(
+			await a.request(
+				'/api/timed/nattvakt/start',
+				{ accountId: a.user.id, startId: randomUUID() },
+				{ csrf: false }
+			)
+		).status,
+		403
+	);
+	const run = await startShift(f, a);
+	const b = f.client();
+	await b.create();
+	assert.equal((await b.event(run.body)).result.error.code, 'TIMED_UNKNOWN');
+	assert.equal(
+		(
+			await b.request('/api/timed/nattvakt/draft', {
+				accountId: b.user.id,
+				attemptId: run.row.id,
+				revision: 0,
+				answers: {}
+			})
+		).result.error.code,
+		'TIMED_UNKNOWN'
+	);
+	assert.equal(
+		(await b.request('/api/timed/nattvakt/start', { accountId: a.user.id, startId: randomUUID() }))
+			.result.error.code,
+		'ACCOUNT_CHANGED'
+	);
+	assert.equal((await a.event({ ...run.body, kind: 'attempt', solution: [] })).status, 400);
+	assert.equal((await a.event({ ...run.body, version: 1 })).status, 409);
+	assert.equal(
+		(await a.event({ ...run.body, attemptId: randomUUID() })).result.error.code,
+		'TIMED_UNKNOWN'
+	);
+});
+
+test('nattvakt: én start på tvers av faner og enheter, uforanderlig frist og ingen fasit før levering', async (t) => {
+	const f = await fixture(t);
+	const a = f.client();
+	await a.create();
+	await prepareShift(f, a);
+	const startId = randomUUID();
+	const runs = await Promise.all(
+		Array.from({ length: 5 }, () =>
+			a.request('/api/timed/nattvakt/start', { accountId: a.user.id, startId })
+		)
+	);
+	assert.ok(runs.every((run) => run.status === 200));
+	const run = runs[0].result.state.active;
+	assert.ok(runs.every((item) => item.result.state.active.id === run.id));
+	assert.equal(run.deadlineAt - run.startedAt, 480000);
+	assert.equal(f.db.prepare('SELECT count(*) AS n FROM timed_attempts').get().n, 1);
+	const publicText = JSON.stringify(run);
+	assert.equal(publicText.includes('"values"'), false);
+	assert.equal(publicText.includes('"expected"'), false);
+	assert.equal(publicText.includes('"solution"'), false);
+	const b = f.client();
+	await b.request('/api/auth/key', { key: a.key.key, remember: true });
+	f.advance(120000);
+	const resumed = (await b.request('/api/timed/nattvakt')).result;
+	assert.equal(resumed.state.active.id, run.id);
+	assert.equal(resumed.state.active.deadlineAt, run.deadlineAt);
+	assert.equal(resumed.serverNow - run.startedAt, 120000);
+	assert.equal(
+		(await b.request('/api/timed/nattvakt/start', { accountId: b.user.id, startId: randomUUID() }))
+			.result.state.active.id,
+		run.id
+	);
+	assert.equal((await a.request('/api/me')).result.summary.xp, 75);
+});
+
+test('nattvakt: utkast gir ingen svarfasit; versjonskontroll og idempotent lagring beskytter andre faner', async (t) => {
+	const f = await fixture(t);
+	const a = f.client();
+	await a.create();
+	await prepareShift(f, a);
+	const run = await startShift(f, a);
+	const firstTask = run.snapshot.incidents[0].tasks[0];
+	const answers = { [firstTask.id]: run.answers[firstTask.id] };
+	const body = { accountId: a.user.id, attemptId: run.row.id, revision: 0, answers };
+	const saved = await a.request('/api/timed/nattvakt/draft', body);
+	assert.equal(saved.status, 200);
+	assert.equal(saved.result.state.active.revision, 1);
+	assert.equal(saved.result.state.report, null);
+	assert.deepEqual(saved.result.state.active.answers, answers);
+	assert.equal(
+		(await a.request('/api/timed/nattvakt/draft', body)).result.state.active.revision,
+		1
+	);
+	assert.equal(
+		(await a.request('/api/timed/nattvakt/draft', { ...body, answers: {} })).result.error.code,
+		'TIMED_DRAFT_CONFLICT'
+	);
+	assert.equal(
+		(
+			await a.request('/api/timed/nattvakt/draft', {
+				...body,
+				revision: 1,
+				answers: { x: 'forged' }
+			})
+		).status,
+		400
+	);
+	assert.equal((await a.event({ ...run.body, answers })).status, 400);
+	assert.equal(f.db.prepare('SELECT status FROM timed_attempts').get().status, 'active');
+	assert.equal((await a.request('/api/me')).result.summary.xp, 75);
+});
+
+test('nattvakt: samlet retting gir 50 XP og merke én gang, uendrede svar kan gjeninnsendes etter nettbrudd', async (t) => {
+	const f = await fixture(t);
+	const a = f.client();
+	await a.create();
+	await prepareShift(f, a);
+	const run = await startShift(f, a);
+	f.advance(90000);
+	const body = { ...run.body, eventId: randomUUID(), points: 99999, passed: true, elapsedMs: 1 };
+	const first = await a.event(body);
+	assert.equal(first.status, 200, JSON.stringify(first.result));
+	assert.equal(first.result.passed, true);
+	assert.equal(first.result.summary.xp, 125);
+	assert.equal(first.result.timedReport.elapsedMs, 90000);
+	assert.equal(first.result.timedReport.score, 4);
+	assert.ok(
+		first.result.timedReport.incidents.every((item) => item.checks.every((check) => check.passed))
+	);
+	assert.equal(first.result.newRewards.length, 1);
+	assert.equal(first.result.newRewards[0].points, 50);
+	assert.ok(first.result.summary.achievements.find((item) => item.id === 'nattvakt-v1').earnedAt);
+	assert.equal((await a.event(body)).result.duplicate, true);
+	const retry = await a.event({ ...body, eventId: randomUUID() });
+	assert.equal(retry.result.summary.xp, 125);
+	assert.equal(retry.result.newRewards.length, 0);
+	const changed = { ...run.answers };
+	const task = run.snapshot.incidents[0].tasks[0];
+	changed[task.id] = task.choices.find((item) => item.id !== changed[task.id]).id;
+	assert.equal(
+		(await a.event({ ...run.body, answers: changed })).result.error.code,
+		'TIMED_SUBMITTED'
+	);
+	const status = (await a.request('/api/timed/nattvakt')).result.state;
+	assert.equal(status.active, null);
+	assert.equal(status.bestMs, 90000);
+	assert.equal(status.nextAttemptAt, run.row.started_at + 86400000);
+	assert.equal(first.result.summary.maximumXp, 655);
+});
+
+test('nattvakt: feil svar avslutter vakten; nye valg og nye hendelses-ID-er gir ikke flere forsøk', async (t) => {
+	const f = await fixture(t);
+	const a = f.client();
+	await a.create();
+	await prepareShift(f, a);
+	const run = await startShift(f, a);
+	const task = run.snapshot.incidents[0].tasks[0];
+	const answers = {
+		...run.answers,
+		[task.id]: task.choices.find((item) => item.id !== run.answers[task.id]).id
+	};
+	const failed = await a.event({ ...run.body, answers, passed: true, points: 99999 });
+	assert.equal(failed.result.passed, false);
+	assert.equal(failed.result.summary.xp, 75);
+	assert.equal(failed.result.timedReport.score, 3);
+	assert.equal(
+		failed.result.summary.progress.find((item) => item.id === 'nattvakt').objectives[0].available,
+		false
+	);
+	assert.equal(failed.result.timedReport.incidents[0].passed, false);
+	assert.ok(failed.result.timedReport.incidents[0].solution.length);
+	assert.equal((await a.event(run.body)).result.error.code, 'TIMED_SUBMITTED');
+	const blocked = await a.request('/api/timed/nattvakt/start', {
+		accountId: a.user.id,
+		startId: randomUUID()
+	});
+	assert.equal(blocked.status, 429);
+	assert.equal(blocked.result.error.code, 'TIMED_COOLDOWN');
+	assert.equal((await a.request('/api/timed/nattvakt')).result.state.bestMs, null);
+});
+
+test('nattvakt: serverfristen avviser sen levering selv med riktige svar og forfalsket klienttid', async (t) => {
+	const f = await fixture(t);
+	const a = f.client();
+	await a.create();
+	await prepareShift(f, a);
+	const run = await startShift(f, a);
+	await a.request('/api/timed/nattvakt/draft', {
+		accountId: a.user.id,
+		attemptId: run.row.id,
+		revision: 0,
+		answers: run.answers
+	});
+	f.advance(480000);
+	const late = await a.event({
+		...run.body,
+		submittedAt: run.row.started_at + 1,
+		deadlineAt: Date.now() + 86400000,
+		passed: true
+	});
+	assert.equal(late.result.passed, false);
+	assert.equal(late.result.summary.xp, 75);
+	assert.equal(late.result.timedReport.reason, 'expired');
+	assert.equal(late.result.timedReport.elapsedMs, 480000);
+	assert.equal(late.result.timedReport.score, 4); // Correct draft, but the deadline was missed.
+	assert.equal((await a.request('/api/timed/nattvakt')).result.state.report.reason, 'expired');
+});
+
+test('nattvakt: utløp ved gjenåpning og nøyaktig 24 timer fra start åpner ny variert vakt uten nye XP', async (t) => {
+	const f = await fixture(t);
+	const a = f.client();
+	await a.create();
+	await prepareShift(f, a);
+	const first = await startShift(f, a);
+	f.advance(1000);
+	await a.event(first.body);
+	f.advance(86400000 - 1001);
+	assert.equal(
+		(await a.request('/api/timed/nattvakt/start', { accountId: a.user.id, startId: randomUUID() }))
+			.status,
+		429
+	);
+	f.advance(1);
+	const second = await startShift(f, a);
+	assert.notEqual(second.snapshot.field, first.snapshot.field);
+	assert.notEqual(second.row.id, first.row.id);
+	f.advance(500);
+	const passed = await a.event(second.body);
+	assert.equal(passed.result.passed, true);
+	assert.equal(passed.result.summary.xp, 125);
+	assert.equal(passed.result.newRewards.length, 0);
+	assert.equal((await a.request('/api/timed/nattvakt')).result.state.bestMs, 500);
+	f.advance(86400000);
+	const third = await startShift(f, a);
+	f.advance(480000);
+	const expired = (await a.request('/api/timed/nattvakt')).result.state;
+	assert.equal(expired.active, null);
+	assert.equal(expired.report.reason, 'expired');
+	assert.equal((await a.event(third.body)).result.summary.xp, 125);
+});
+
+test('nattvakt: teknisk feil ruller tilbake retting, poeng og kvittering; backup beholder frist, utkast og rapport', async (t) => {
+	const f = await fixture(t, { persistent: true });
+	const a = f.client();
+	await a.create();
+	await prepareShift(f, a);
+	const run = await startShift(f, a);
+	await a.request('/api/timed/nattvakt/draft', {
+		accountId: a.user.id,
+		attemptId: run.row.id,
+		revision: 0,
+		answers: run.answers
+	});
+	const backup = join(f.dir, 'active-shift.sqlite');
+	backupDatabase(f.filename, backup);
+	const restored = openDatabase(backup);
+	try {
+		const row = restored.prepare('SELECT * FROM timed_attempts').get();
+		assert.equal(row.deadline_at, run.row.deadline_at);
+		assert.equal(row.status, 'active');
+		assert.deepEqual(JSON.parse(row.draft_json), run.answers);
+	} finally {
+		restored.close();
+	}
+	f.db.exec(
+		"CREATE TRIGGER timed_receipt_failure BEFORE INSERT ON receipts BEGIN SELECT RAISE(ABORT, 'rollback shift'); END"
+	);
+	assert.throws(
+		() =>
+			submit(f.db, a.user.id, {
+				...run.body,
+				eventId: randomUUID(),
+				version: 2,
+				accountId: a.user.id
+			}),
+		/rollback shift/
+	);
+	assert.equal(f.db.prepare('SELECT status FROM timed_attempts').get().status, 'active');
+	assert.equal(summary(f.db, a.user.id).xp, 75);
+	f.db.exec('DROP TRIGGER timed_receipt_failure');
+	assert.equal((await a.event(run.body)).result.summary.xp, 125);
+	const reportBackup = join(f.dir, 'reported-shift.sqlite');
+	backupDatabase(f.filename, reportBackup);
+	const reported = openDatabase(reportBackup);
+	try {
+		assert.equal(
+			JSON.parse(reported.prepare('SELECT report_json FROM timed_attempts').get().report_json)
+				.passed,
+			true
+		);
+	} finally {
+		reported.close();
+	}
+	await a.request('/api/me/delete', { confirm: 'SLETT' });
+	assert.equal(f.db.prepare('SELECT count(*) AS n FROM timed_attempts').get().n, 0);
+});
+
+test('nattvakt: feil i session, blokkorden eller lagring avvises også når de andre rettingene er riktige', async (t) => {
+	const f = await fixture(t);
+	const a = f.client();
+	await a.create();
+	await prepareShift(f, a);
+	const run = await startShift(f, a);
+	const { gradeNightwatch, validateDraft } = await import('../server/nightwatch.js');
+	for (const key of ['cookies', 'identity', 'deletion', 'startup', 'write']) {
+		const task = run.snapshot.incidents
+			.flatMap((item) => item.tasks)
+			.find((item) => item.key === key);
+		const answers = {
+			...run.answers,
+			[task.id]:
+				task.type === 'order'
+					? [...run.answers[task.id]].reverse()
+					: task.choices.find((choice) => choice.id !== run.answers[task.id]).id
+		};
+		const report = gradeNightwatch(run.snapshot, validateDraft(run.snapshot, answers, true));
+		assert.equal(report.filter((item) => !item.passed).length, 1, key);
+	}
+	const order = run.snapshot.incidents[2].tasks[0];
+	const duplicate = [...run.answers[order.id]];
+	duplicate[0] = duplicate[1];
+	assert.throws(
+		() => validateDraft(run.snapshot, { ...run.answers, [order.id]: duplicate }, true),
+		TypeError
+	);
+});
+
+test('nattvakt: en ugyldig framtidig validator kan ikke godkjenne med truthy-verdier eller tomme kontroller', async (t) => {
+	const f = await fixture(t);
+	const a = f.client();
+	await a.create();
+	await prepareShift(f, a);
+	const run = await startShift(f, a);
+	const { timedAdapters } = await import('../server/timed-challenges.js');
+	const adapter = timedAdapters['production-v1'];
+	const original = adapter.grade;
+	try {
+		for (const result of [
+			[],
+			[{ id: 'x', passed: 'false', checks: [{ passed: false }] }],
+			[{ id: 'x', passed: true, checks: [] }],
+			[{ id: 'x', passed: true, checks: [{ passed: false }] }],
+			Promise.resolve([])
+		]) {
+			adapter.grade = () => result;
+			assert.throws(
+				() =>
+					submit(f.db, a.user.id, {
+						...run.body,
+						eventId: randomUUID(),
+						version: 2,
+						accountId: a.user.id
+					}),
+				/tidsvalidator/
+			);
+			assert.equal(f.db.prepare('SELECT status FROM timed_attempts').get().status, 'active');
+			assert.equal(summary(f.db, a.user.id).xp, 75);
+		}
+	} finally {
+		adapter.grade = original;
+	}
 });

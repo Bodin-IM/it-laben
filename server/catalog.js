@@ -5,6 +5,8 @@ import { MISSIONS, evaluateProgram } from '../src/lib/reddChatten.js';
 import { CASES, verifyCase } from '../src/lib/meldingsdetektiven.js';
 import { LEVELS, planAttempt } from '../src/lib/chatSpill.js';
 import { gradeCheckpoint } from './checkpoints.js';
+import { timedChallenges } from '../src/lib/timedChallenges.js';
+import { gradeTimedSubmission, timedAdapters } from './timed-challenges.js';
 
 // Version 2 requires a server-issued assessment before checkpoint submission.
 export const CONTENT_VERSION = 2;
@@ -68,8 +70,15 @@ export function buildCatalog(
 			throw new Error(`Aktivitets-ID er brukt flere ganger: ${activity.id}`);
 		ids.add(activity.id);
 		const tracking = activity.tracking;
-		if (!tracking || !['review', 'challenge', 'checkpoint'].includes(tracking.kind))
+		if (!tracking || !['review', 'challenge', 'checkpoint', 'timed'].includes(tracking.kind))
 			throw new Error(`Aktiviteten ${activity.id} mangler en gyldig tracking-definisjon.`);
+		const timed =
+			tracking.kind === 'timed' ? timedChallenges.find((item) => item.id === activity.id) : null;
+		if (
+			tracking.kind === 'timed' &&
+			(!timed || timed.adapter !== tracking.adapter || !timedAdapters[timed.adapter])
+		)
+			throw new Error(`Aktiviteten ${activity.id} mangler en gyldig tidsutfordring.`);
 		const adapter = tracking.kind === 'challenge' ? adapters[tracking.adapter] : null;
 		if (tracking.kind === 'challenge' && (!adapter || typeof adapter.validate !== 'function'))
 			throw new Error(`Aktiviteten ${activity.id} mangler validator: ${tracking.adapter}`);
@@ -94,7 +103,18 @@ export function buildCatalog(
 							required: true,
 							points: rewardPolicy.passed
 						}))
-					: [];
+					: timed
+						? [
+								{
+									id: timed.objectiveId,
+									title: 'Produksjonen er klar',
+									kind: 'timed',
+									evidence: 'checked',
+									required: true,
+									points: timed.points
+								}
+							]
+						: [];
 		objectives.push(
 			...questions
 				.filter((item) => item.activityId === activity.id)
@@ -118,10 +138,11 @@ export function buildCatalog(
 			completionEvidence:
 				tracking.kind === 'review'
 					? 'reviewed'
-					: tracking.kind === 'checkpoint'
+					: tracking.kind === 'checkpoint' || tracking.kind === 'timed'
 						? 'checked'
 						: 'passed',
 			completionBonus: tracking.kind === 'challenge' ? rewardPolicy.completionBonus : 0,
+			creditMode: tracking.kind === 'timed' ? 'validated' : 'checkpoint',
 			adapter: tracking.adapter ?? null,
 			objectives
 		};
@@ -188,6 +209,15 @@ export function validateProgressionDefinitions(activities, achievements, tracks,
 				if (!knownSubjects.has(subject)) throw new Error(`Ukjent fag i definisjon: ${subject}`);
 		}
 	}
+	for (const definition of timedChallenges.filter((item) =>
+		activities.some((activity) => activity.id === item.id)
+	))
+		for (const prerequisite of definition.prerequisites)
+			checkGoal({
+				type: 'objective',
+				activityId: prerequisite.activityId,
+				objectiveId: prerequisite.objectiveId
+			});
 }
 
 validateProgressionDefinitions(catalog, achievementDefinitions, trackDefinitions);
@@ -230,6 +260,14 @@ export function checkSubmission(body, { db, userId, now }) {
 			passed: graded.passed,
 			solution: null,
 			assessmentResult: graded.result
+		};
+	}
+	if (objective.kind === 'timed') {
+		return {
+			activity,
+			objective,
+			solution: null,
+			...gradeTimedSubmission(db, userId, activity.id, body.attemptId, body.answers, now)
 		};
 	}
 	return {

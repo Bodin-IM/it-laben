@@ -23,7 +23,7 @@
 	const completed = $derived(progress?.status === 'reviewed' || progress?.status === 'passed');
 </script>
 
-{#if activity}
+{#if activity && activity.tracking.kind !== 'timed'}
 	<section class="activity-progress" aria-label="Din fremgang">
 		<div>
 			<p class="eyebrow">DIN FREMDRIFT</p>

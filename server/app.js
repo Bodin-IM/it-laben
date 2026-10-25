@@ -8,6 +8,7 @@ import { summary, submit, reconcileAchievements } from './progress.js';
 import { labColors } from '../src/lib/progression.js';
 import { catalog } from './catalog.js';
 import { openCheckpoint } from './checkpoints.js';
+import { getTimedState, startTimedChallenge, saveTimedDraft } from './timed-challenges.js';
 
 const DAY = 86400000;
 const hash = (value) => createHash('sha256').update(value).digest('hex');
@@ -94,6 +95,7 @@ export function createApp({ db, config, clock = Date.now, limits = true }) {
 		app.use('/api/auth/key', limit(15 * 60000, 120));
 		app.use('/api/progress', limit(60000, 600));
 		app.use('/api/checkpoints', limit(60000, 600));
+		app.use('/api/timed', limit(60000, 3000));
 	}
 	const authenticated = (req, res, next) => {
 		if (!req.labUser) return fail(res, 401, 'LOGIN_REQUIRED', 'Logg inn for å lagre fremgangen.');
@@ -267,6 +269,26 @@ export function createApp({ db, config, clock = Date.now, limits = true }) {
 		const result = openCheckpoint(db, req.labUser.id, activity, req.body.objectiveId, clock());
 		res.json({ ...result, summary: summary(db, req.labUser.id, clock()) });
 	});
+	app.get('/api/timed/:activityId', authenticated, (req, res) => {
+		res.json(getTimedState(db, req.labUser.id, req.params.activityId, clock()));
+	});
+	app.post('/api/timed/:activityId/:action', authenticated, (req, res) => {
+		if (req.body.accountId !== req.labUser.id)
+			return fail(res, 409, 'ACCOUNT_CHANGED', 'En annen profil er pålogget. Oppdater siden.');
+		if (req.params.action === 'start') {
+			const result = startTimedChallenge(
+				db,
+				req.labUser.id,
+				req.params.activityId,
+				req.body.startId,
+				clock()
+			);
+			return res.json({ ...result, summary: summary(db, req.labUser.id, clock()) });
+		}
+		if (req.params.action === 'draft')
+			return res.json(saveTimedDraft(db, req.labUser.id, req.params.activityId, req.body, clock()));
+		return fail(res, 404, 'NOT_FOUND', 'API-adressen finnes ikke.');
+	});
 	app.post('/api/progress', authenticated, (req, res) => {
 		if (req.body.accountId !== req.labUser.id)
 			return fail(res, 409, 'ACCOUNT_CHANGED', 'En annen profil er pålogget. Oppdater siden.');
@@ -280,7 +302,11 @@ export function createApp({ db, config, clock = Date.now, limits = true }) {
 			return fail(res, 400, 'INVALID_JSON', 'Ugyldig JSON.');
 		if (error.code === 'CONTENT_VERSION' || error.code === 'EVENT_CONFLICT')
 			return fail(res, 409, error.code, error.message);
-		if (error.code === 'CHECKPOINT_COOLDOWN' || error.code?.startsWith('ASSESSMENT_')) {
+		if (
+			error.code === 'CHECKPOINT_COOLDOWN' ||
+			error.code?.startsWith('ASSESSMENT_') ||
+			error.code?.startsWith('TIMED_')
+		) {
 			if (error.retryAt)
 				res.set('Retry-After', String(Math.max(1, Math.ceil((error.retryAt - clock()) / 1000))));
 			return res

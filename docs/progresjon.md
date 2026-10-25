@@ -1,12 +1,14 @@
 # Progresjon, fagspor og merker
 
-Denne første utprøvingen ligger på `backend`. Den har åtte merker, fire fagspor, 13 fagsjekker med to spørsmål hver, et personlig område på forsiden og et labkort eleven kan tilpasse. Lyder er av som standard. Publisering til skolens server beskrives i [backendveiledningen](backend.md).
+Denne første utprøvingen ligger på `backend`. Den har ni merker, fire fagspor, 13 fagsjekker med to spørsmål hver, et personlig område på forsiden og et labkort eleven kan tilpasse. Lyder er av som standard. Publisering til skolens server beskrives i [backendveiledningen](backend.md).
 
 Se også den nye fagsjekken: [tilbakemelding og ventetid](fagsjekk-forsok.png) og [mobilvisning av et nytt forsøk](fagsjekk-mobile.png).
 
 Forhåndsvisning med en testprofil: [forsiden](gamification-home.png), [Min lab](backend-preview.png) og [mobil](gamification-mobile.png).
 
-Progresjonen skiller mellom **gjennomgått** (elevens egen bekreftelse), **bestått oppdrag** (en serverkontrollert løsning) og **bestått fagsjekk**. Et bestått forsøk gjelder den konkrete oppgaven; XP og merker er ikke karakterer eller en sertifisering av elevens samlede kompetanse. Lesing og spill kan gjentas fritt. XP krever nå bestått fagsjekk; selve sjekken har ett innsendt forsøk per 24 timer per aktivitet og konto.
+Progresjonen skiller mellom **gjennomgått** (elevens egen bekreftelse), **bestått oppdrag** (en serverkontrollert løsning) og **bestått fagsjekk**. Et bestått forsøk gjelder den konkrete oppgaven; XP og merker er ikke karakterer eller en sertifisering av elevens samlede kompetanse. Vanlige leksjoner og spill kan øves fritt. Der krever XP bestått fagsjekk; selve sjekken har ett innsendt forsøk per 24 timer per aktivitet og konto.
+
+[Nattvakt](nattvakt.md) er en egen utfordring på åtte minutter, med ett forsøk per 24 timer, fire reparasjoner, hendelsesrapport og valgfri ambience. Den bruker en felles tidsmotor som kan utvides med driftsoppdrag.
 
 ## Hvor definisjonene ligger
 
@@ -136,7 +138,7 @@ Et opptjent merke blir stående. Ved vesentlig endring i et merkekrav opprettes 
 
 ## Poeng, labkort og tilbakemelding
 
-Belønningspolicyen er samlet: 15 XP for gjennomgang, 10 for fagsjekk, 25 for bestått spill-/simulatoroppdrag og 25 i fullføringsbonus for en challenge-aktivitet. Nivåene bruker 100 XP per nivå. Alle dagens 13 aktiviteter krever fagsjekk for XP. Det gir 605 XP og labnivå 7 for en ny konto som fullfører alt. Historiske poeng fra utgåtte sjekker legges til kontoens maksimum slik at tidligere XP ikke skjuler gjenstående oppgaver.
+Belønningspolicyen er samlet: 15 XP for gjennomgang, 10 for fagsjekk, 25 for bestått spill-/simulatoroppdrag og 25 i fullføringsbonus for en challenge-aktivitet. Nivåene bruker 100 XP per nivå. De 13 vanlige aktivitetene krever fagsjekk for XP. I tillegg gir Nattvakt 50 XP ved første beståtte vakt, kontrollert gjennom selve utfordringen. Til sammen gir innholdet 655 XP og labnivå 7 for en ny konto som fullfører alt. Historiske poeng fra utgåtte sjekker legges til kontoens maksimum slik at tidligere XP ikke skjuler gjenstående oppgaver.
 
 Unike belønningsnøkler hindrer dobbeltelling ved nye forsøk og retry etter nettbrudd. Tidligere opptjente poeng beholdes selv om nye aktiviteter eller nye regler legges til. Eksisterende belønningsnøkler skal ikke endres.
 

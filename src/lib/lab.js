@@ -12,7 +12,7 @@ import { buildCelebration } from '#lib/celebrations.js';
 /** @typedef {{version:number,xp:number,level:number,nextLevelAt:number,xpPerLevel:number,maximumXp:number,progress:Progress[],achievements:Achievement[],tracks:import('#lib/progression.js').TrackState[],subjects:SubjectProgress[],lab:LabProfile,recentRewards:Reward[]}} Summary */
 /** @typedef {{format:string,version:number,key:string,createdAt:string,site:string}} RecoveryKey */
 /** @typedef {{ready:boolean,available:boolean,user:User|null,csrfToken:string|null,summary:Summary|null,development:boolean,error:string,pending:number,pendingReviews:string[],pendingObjectives:string[],syncing:boolean,storageWarning:boolean}} LabState */
-/** @typedef {{eventId:string,accountId:string,version:number,kind:string,activityId:string,objectiveId:string,confirmed?:boolean,attemptId?:string,solution?:string[]|Record<string,string>,client?:{at:number,deferred:boolean}}} Event */
+/** @typedef {{eventId:string,accountId:string,version:number,kind:string,activityId:string,objectiveId:string,confirmed?:boolean,attemptId?:string,answers?:import('./timedChallenges.js').TimedAnswers,solution?:string[]|Record<string,string>,client?:{at:number,deferred:boolean}}} Event */
 /** @type {LabState} */
 const initial = {
 	ready: false,
@@ -38,7 +38,7 @@ let flushing = false;
 let sessionRevision = 0;
 const prefix = 'it-laben-pending-v1-';
 // Event IDs are not credentials. getRandomValues also supports local HTTP previews.
-function randomId() {
+export function randomId() {
 	if (typeof crypto.randomUUID === 'function') return crypto.randomUUID();
 	const bytes = crypto.getRandomValues(new Uint8Array(16));
 	bytes[6] = (bytes[6] & 15) | 64;
@@ -322,6 +322,34 @@ export function saveCheckpoint(activityId, objectiveId, attemptId, answers) {
 	});
 }
 
+/** @param {string} activityId @param {'start'|'draft'} [action] @param {Record<string,unknown>} [body] @returns {Promise<import('./timedChallenges.js').ShiftResponse>} */
+export async function timedChallengeRequest(activityId, action, body) {
+	const userId = get(state).user?.id;
+	const result = await api(
+		`/timed/${encodeURIComponent(activityId)}${action ? `/${action}` : ''}`,
+		action ? { ...body, accountId: userId } : undefined
+	);
+	if (get(state).user?.id !== userId)
+		throw new ApiError('En annen profil er pålogget.', 409, 'ACCOUNT_CHANGED');
+	if (result.summary) {
+		sessionRevision += 1;
+		state.update((value) => ({ ...value, summary: result.summary, error: '', available: true }));
+	}
+	return result;
+}
+/** @param {string} activityId @param {string} objectiveId @param {string} attemptId @param {import('./timedChallenges.js').TimedAnswers} answers */
+export function saveTimedAttempt(activityId, objectiveId, attemptId, answers) {
+	enqueue({
+		kind: 'timed',
+		activityId,
+		objectiveId,
+		attemptId,
+		answers: Object.fromEntries(
+			Object.entries(answers).map(([id, value]) => [id, Array.isArray(value) ? [...value] : value])
+		)
+	});
+}
+
 export async function flushProgress() {
 	if (flushing || !get(state).user) return;
 	flushing = true;
@@ -373,6 +401,7 @@ export async function flushProgress() {
 				if (
 					problem.code === 'CHECKPOINT_COOLDOWN' ||
 					problem.code.startsWith('ASSESSMENT_') ||
+					problem.code.startsWith('TIMED_') ||
 					problem.code === 'CONTENT_VERSION'
 				) {
 					storeQueue(
