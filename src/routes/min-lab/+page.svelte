@@ -117,7 +117,11 @@
 <div class="profile-page">
 	<header>
 		<a class="brand" href="/"><span aria-hidden="true">IT</span>IT-laben.</a>
-		<div class="header-actions"><a href="/">Utforsk laben</a><ThemeToggle /></div>
+		<div class="header-actions">
+			{#if $lab.user?.role === 'teacher'}<a href="/laerer/">Lærerpanel →</a>{/if}<a href="/"
+				>Utforsk laben</a
+			><ThemeToggle />
+		</div>
 	</header>
 	<main>
 		{#if !$lab.ready}<p class="status" role="status">Henter profilen din …</p>
@@ -247,8 +251,8 @@
 					<p class="small">
 						Vanlige leksjoner gir {rewardPolicy.reviewed} XP for gjennomgang, spill gir {rewardPolicy.passed}
 						XP per oppdrag. Poengene frigjøres ved bestått fagsjekk, med {rewardPolicy.checked} XP ekstra.
-						Nattevakten gir 50 XP ved første beståtte vakt. Fagsjekker og Nattevakten har ett forsøk per 24
-						timer. Du kan lese og øve i de vanlige spillene så mye du vil.
+						Nattevakten gir 50 XP ved første beståtte vakt. Fagsjekker og Nattevakten har ett forsøk per
+						24 timer. Du kan lese og øve i de vanlige spillene så mye du vil.
 					</p>
 				</div>
 			</section>
@@ -304,6 +308,8 @@
 			<details class="settings">
 				<summary>Profil og nøkkelfil</summary>
 				<div class="settings-content">
+					<p>Din profil-ID: <code style="overflow-wrap:anywhere">{$lab.user.id}</code></p>
+					{#if $lab.user.role === 'teacher'}<p><a href="/laerer/">Åpne lærerpanel →</a></p>{/if}
 					<form
 						onsubmit={(event) => {
 							event.preventDefault();

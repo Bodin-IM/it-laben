@@ -10,6 +10,8 @@ Progresjonen skiller mellom **gjennomgått** (elevens egen bekreftelse), **best�
 
 [Nattevakten](nattvakt.md) er en egen utfordring på åtte minutter, med ett forsøk per 24 timer, fire reparasjoner, hendelsesrapport og valgfri ambience. Den bruker en felles tidsmotor som kan utvides med driftsoppdrag.
 
+Lærere kan [teste innhold og åpne aktiviteter for alle](laererpanel.md). Øving har egne data uten XP; undervisningsforsøk kan gi vanlig progresjon, med samme engangsbelønninger.
+
 ## Hvor definisjonene ligger
 
 | Fil                           | Ansvar                                                                                       |

@@ -1,7 +1,13 @@
 <script>
 	import { page } from '$app/state';
 	import { aktiviteter } from '#lib/innhold.js';
-	import { lab, reviewLesson, startLesson, refreshLab } from '#lib/lab.js';
+	import {
+		activityLab as lab,
+		learningContext,
+		reviewLesson,
+		startLesson,
+		refreshLab
+	} from '#lib/lab.js';
 	import { checkpointsFor } from '#lib/checkpoints.js';
 	import Checkpoint from '#lib/components/Checkpoint.svelte';
 	const activity = $derived(aktiviteter.find((item) => item.href === page.url.pathname));
@@ -9,7 +15,7 @@
 	const questions = $derived(activity ? checkpointsFor(activity.id) : []);
 	let startedFor = $state('');
 	$effect(() => {
-		const key = `${$lab.user?.id}:${activity?.id}`;
+		const key = `${$lab.user?.id}:${activity?.id}:${$learningContext.mode}:${$learningContext.openingId}`;
 		if (
 			activity?.tracking.kind === 'review' &&
 			$lab.user &&
@@ -29,7 +35,9 @@
 			<p class="eyebrow">DIN FREMDRIFT</p>
 			<h2>
 				{completed
-					? 'Dette har du fullført'
+					? $learningContext.mode === 'practice'
+						? 'Øvingen din er lagret'
+						: 'Dette har du fullført'
 					: activity.tracking.kind !== 'review'
 						? 'Ta vare på løsningene dine'
 						: 'Ferdig med gjennomgangen?'}
@@ -40,7 +48,9 @@
 				<a class="action" href="/min-lab/">Start min lab →</a>
 			{:else if activity.tracking.kind === 'review'}<p>
 					Marker leksjonen som gjennomgått når du har prøvd forsøkene og lest forklaringene. Dette
-					er din egen gjennomgang. XP får du når du også har bestått fagsjekken nedenfor.
+					er din egen gjennomgang. {$learningContext.mode === 'practice'
+						? 'Du er i øvingsmodus, uten XP og uten bruk av ordinære forsøk.'
+						: 'XP får du når du også har bestått fagsjekken nedenfor.'}
 				</p>
 				<button
 					class="action"
@@ -55,7 +65,9 @@
 				>
 			{:else}<p>
 					{progress?.completed ?? 0} av {progress?.total ?? 0} oppdrag bestått og lagret. Du kan øve så
-					mye du vil. XP får du når alle oppdragene og spillets fagsjekk er bestått.
+					mye du vil. {$learningContext.mode === 'practice'
+						? 'Dette er øving uten XP. Alle oppdrag kan utforskes.'
+						: 'XP får du når alle oppdragene og spillets fagsjekk er bestått.'}
 				</p>
 				<a href="/min-lab/">Se progresjonen din →</a>{/if}
 		</div>

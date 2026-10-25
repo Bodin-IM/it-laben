@@ -1,7 +1,7 @@
 <script>
 	import ThemeToggle from '#lib/components/ThemeToggle.svelte';
 	import AccountLink from '#lib/components/AccountLink.svelte';
-	import { lab as account, saveAttempt } from '#lib/lab.js';
+	import { activityLab as account, learningContext, saveAttempt } from '#lib/lab.js';
 	import { onMount, onDestroy, tick } from 'svelte';
 	import BackendRouteEditor from '#lib/components/BackendRouteEditor.svelte';
 	import RequestWalkthrough from '#lib/components/RequestWalkthrough.svelte';
@@ -189,7 +189,9 @@
 		$account.summary?.progress.find((item) => item.id === 'redd-chatten')
 	);
 	$effect(() => {
-		const userId = $account.user?.id;
+		const userId = $account.user
+			? `${$account.user.id}:${$learningContext.mode}:${$learningContext.openingId}`
+			: '';
 		if (!userId) {
 			restoredUser = '';
 			return;
@@ -212,10 +214,13 @@
 				)?.solution;
 				return Array.isArray(solution) ? [...solution] : initialProgram(item.id);
 			});
-			unlocked = Math.min(
-				MISSIONS.length - 1,
-				Math.max(0, ...completed.map((value, index) => (value ? index + 1 : 0)))
-			);
+			unlocked =
+				$learningContext.mode !== 'normal'
+					? MISSIONS.length - 1
+					: Math.min(
+							MISSIONS.length - 1,
+							Math.max(0, ...completed.map((value, index) => (value ? index + 1 : 0)))
+						);
 			const requested = MISSIONS.findIndex(
 				(item) => item.id === new URL(window.location.href).searchParams.get('oppdrag')
 			);

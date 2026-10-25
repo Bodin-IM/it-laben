@@ -39,8 +39,8 @@ export const timedChallenges = [
 /** @typedef {{name:string,passed:boolean,detail:string}} ShiftCheck */
 /** @typedef {{id:string,title:string,passed:boolean,checks:ShiftCheck[],explanation:string,solution:string[],lesson:{href:string,title:string}}} IncidentReport */
 /** @typedef {{attemptId:string,reason:'passed'|'failed'|'expired',passed:boolean,score:number,total:number,elapsedMs:number,endedAt:number,incidents:IncidentReport[]}} ShiftReport */
-/** @typedef {{id:string,startedAt:number,deadlineAt:number,revision:number,scenario:ShiftScenario,answers:TimedAnswers}} ActiveShift */
-/** @typedef {{unlocked:boolean,prerequisites:{activityId:string,objectiveId:string,title:string,href:string,completed:boolean}[],active:ActiveShift|null,report:ShiftReport|null,nextAttemptAt:number|null,attempts:number,bestMs:number|null}} ShiftState */
+/** @typedef {{id:string,startedAt:number,deadlineAt:number|null,untimed?:boolean,revision:number,scenario:ShiftScenario,answers:TimedAnswers}} ActiveShift */
+/** @typedef {{unlocked:boolean,access?:{mode:string,canStart:boolean,canRestart?:boolean,used:boolean,closed:boolean,endsAt:number|null,teacher?:boolean},prerequisites:{activityId:string,objectiveId:string,title:string,href:string,completed:boolean}[],active:ActiveShift|null,report:ShiftReport|null,nextAttemptAt:number|null,attempts:number,bestMs:number|null}} ShiftState */
 /** @typedef {{serverNow:number,state:ShiftState,summary?:import('./lab.js').Summary}} ShiftResponse */
 
 /** @param {number} milliseconds */

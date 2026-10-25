@@ -1,7 +1,7 @@
-import { writable, get } from 'svelte/store';
+import { writable, get, derived } from 'svelte/store';
 import { buildCelebration } from '#lib/celebrations.js';
 
-/** @typedef {{id:string,nickname:string,createdAt:number}} User */
+/** @typedef {{id:string,nickname:string,createdAt:number,role:'student'|'teacher'}} User */
 /** @typedef {import('#lib/progression.js').ObjectiveProgress} Objective */
 /** @typedef {import('#lib/progression.js').ActivityProgress} Progress */
 /** @typedef {import('#lib/progression.js').AchievementState} Achievement */
@@ -11,8 +11,8 @@ import { buildCelebration } from '#lib/celebrations.js';
 /** @typedef {{colorId:string,featuredAchievementId:string|null,colors:LabColor[]}} LabProfile */
 /** @typedef {{version:number,xp:number,level:number,nextLevelAt:number,xpPerLevel:number,maximumXp:number,progress:Progress[],achievements:Achievement[],tracks:import('#lib/progression.js').TrackState[],subjects:SubjectProgress[],lab:LabProfile,recentRewards:Reward[]}} Summary */
 /** @typedef {{format:string,version:number,key:string,createdAt:string,site:string}} RecoveryKey */
-/** @typedef {{ready:boolean,available:boolean,user:User|null,csrfToken:string|null,summary:Summary|null,development:boolean,error:string,pending:number,pendingReviews:string[],pendingObjectives:string[],syncing:boolean,storageWarning:boolean}} LabState */
-/** @typedef {{eventId:string,accountId:string,version:number,kind:string,activityId:string,objectiveId:string,confirmed?:boolean,attemptId?:string,answers?:import('./timedChallenges.js').TimedAnswers,solution?:string[]|Record<string,string>,client?:{at:number,deferred:boolean}}} Event */
+/** @typedef {{ready:boolean,available:boolean,user:User|null,csrfToken:string|null,summary:Summary|null,development:boolean,error:string,pending:number,pendingReviews:string[],pendingObjectives:string[],syncing:boolean,storageWarning:boolean,openings:import('./learning.js').ActivityOpening[]}} LabState */
+/** @typedef {{eventId:string,accountId:string,version:number,kind:string,activityId:string,objectiveId:string,confirmed?:boolean,attemptId?:string,mode?:import('./learning.js').LearningMode,openingId?:string|null,answers?:import('./timedChallenges.js').TimedAnswers,solution?:string[]|Record<string,string>,client?:{at:number,deferred:boolean}}} Event */
 /** @type {LabState} */
 const initial = {
 	ready: false,
@@ -26,10 +26,104 @@ const initial = {
 	pendingReviews: [],
 	pendingObjectives: [],
 	syncing: false,
-	storageWarning: false
+	storageWarning: false,
+	openings: []
 };
 const state = writable(initial);
 export const lab = { subscribe: state.subscribe };
+/** @type {import('svelte/store').Writable<import('./learning.js').LearningContext>} */
+export const learningContext = writable({
+	activityId: '',
+	mode: 'normal',
+	openingId: null,
+	untimed: false
+});
+/** @type {import('svelte/store').Writable<{key:string,activity:Progress|null,error:string}>} */
+const learningState = writable({ key: '', activity: null, error: '' });
+let learningRevision = 0;
+function learningKey() {
+	const context = get(learningContext);
+	return `${get(state).user?.id}:${context.activityId}:${context.mode}:${context.openingId}`;
+}
+export const activityLab = derived(
+	[state, learningContext, learningState],
+	([current, context, learned]) => {
+		const events = current.user
+			? readQueue(current.user.id).filter(
+					(event) =>
+						(event.mode ?? 'normal') === context.mode &&
+						(event.openingId ?? null) === context.openingId
+				)
+			: [];
+		const summary =
+			context.mode === 'normal'
+				? current.summary
+				: learned.key === learningKey() && learned.activity && current.summary
+					? {
+							...current.summary,
+							progress: current.summary.progress.map((item) =>
+								item.id === context.activityId ? (learned.activity ?? item) : item
+							)
+						}
+					: null;
+		return {
+			...current,
+			summary,
+			error: learned.key === learningKey() && learned.error ? learned.error : current.error,
+			pending: events.length,
+			pendingObjectives: events.map((event) => `${event.activityId}:${event.objectiveId}`),
+			pendingReviews: events
+				.filter((event) => event.kind === 'review')
+				.map((event) => event.activityId)
+		};
+	}
+);
+/** @param {import('./learning.js').LearningContext} context */
+export function setLearningContext(context) {
+	const previous = learningKey();
+	learningContext.set(context);
+	if (previous !== learningKey() || get(learningState).key !== learningKey()) {
+		learningRevision++;
+		learningState.set({ key: learningKey(), activity: null, error: '' });
+		if (context.mode !== 'normal') void refreshLearningActivity();
+	}
+}
+/** @param {Progress} activity */
+function acceptLearning(activity) {
+	learningRevision++;
+	learningState.set({ key: learningKey(), activity, error: '' });
+}
+export async function refreshLearningActivity() {
+	const context = get(learningContext);
+	const key = learningKey();
+	const revision = ++learningRevision;
+	if (!get(state).user || !context.activityId || context.mode === 'normal') return;
+	try {
+		const params = new URLSearchParams({ mode: context.mode });
+		if (context.openingId) params.set('openingId', context.openingId);
+		const result = await api(`/learning/${encodeURIComponent(context.activityId)}?${params}`);
+		if (key === learningKey() && revision === learningRevision) acceptLearning(result.activity);
+	} catch (error) {
+		if (key === learningKey() && revision === learningRevision)
+			learningState.update((value) => ({
+				...value,
+				error: error instanceof Error ? error.message : 'Kunne ikke hente øvingen.'
+			}));
+	}
+}
+/** @param {string} [path] @param {Record<string,unknown>} [body] @returns {Promise<import('./learning.js').TeacherView>} */
+export async function teacherRequest(path = '', body) {
+	const userId = get(state).user?.id;
+	const result = await api(
+		`/teacher${path}`,
+		body === undefined ? undefined : { ...body, accountId: userId }
+	);
+	if (userId !== get(state).user?.id)
+		throw new ApiError('En annen profil er pålogget.', 409, 'ACCOUNT_CHANGED');
+	if (body !== undefined) void refreshLab();
+	return result;
+}
+
 /** @type {import('svelte/store').Writable<import('#lib/celebrations.js').Celebration|null>} */
 export const rewardNotice = writable(null);
 /** @type {Map<string,Event[]>} */
@@ -161,6 +255,7 @@ export async function refreshLab() {
 		const result = await api('/me');
 		if (revision !== sessionRevision) return;
 		acceptSession(result);
+		void refreshLearningActivity();
 		void flushProgress();
 	} catch (error) {
 		if (revision !== sessionRevision) return;
@@ -184,7 +279,11 @@ export function initializeLab() {
 	window.addEventListener('online', reconnect);
 	window.addEventListener('focus', reconnect);
 	window.addEventListener('storage', changed);
+	const openingPoll = setInterval(() => {
+		if (document.visibilityState === 'visible') reconnect();
+	}, 30000);
 	return () => {
+		clearInterval(openingPoll);
 		window.removeEventListener('online', reconnect);
 		window.removeEventListener('focus', reconnect);
 		window.removeEventListener('storage', changed);
@@ -270,6 +369,8 @@ export function downloadKey(file) {
 function enqueue(event) {
 	const current = get(state);
 	if (!current.user) return;
+	const context = get(learningContext);
+	const mode = context.activityId === event.activityId ? context.mode : 'normal';
 	const queue = readQueue(current.user.id);
 	if (queue.length >= 100) {
 		state.update((value) => ({
@@ -282,6 +383,8 @@ function enqueue(event) {
 		...queue,
 		{
 			...event,
+			mode,
+			openingId: mode === 'teaching' ? context.openingId : null,
 			eventId: randomId(),
 			accountId: current.user.id,
 			client: { at: Date.now(), deferred: !navigator.onLine },
@@ -303,12 +406,28 @@ export function saveAttempt(activityId, objectiveId, solution) {
 	enqueue({ kind: 'attempt', activityId, objectiveId, solution: structuredClone(solution) });
 }
 /** @param {string} activityId @param {string} objectiveId @returns {Promise<import('./assessmentPolicy.js').Assessment|null>} */
-export async function openCheckpoint(activityId, objectiveId) {
+export async function openCheckpoint(activityId, objectiveId, reset = false) {
 	const userId = get(state).user?.id;
-	const result = await api('/checkpoints/open', { accountId: userId, activityId, objectiveId });
-	if (get(state).user?.id !== userId) return null;
-	sessionRevision += 1;
-	state.update((value) => ({ ...value, summary: result.summary, error: '', available: true }));
+	const context = get(learningContext);
+	const key = learningKey();
+	const practice = context.mode === 'practice' && context.activityId === activityId;
+	const result = await api(
+		practice ? `/practice/${encodeURIComponent(activityId)}/checkpoints/open` : '/checkpoints/open',
+		{
+			accountId: userId,
+			activityId,
+			objectiveId,
+			reset,
+			openingId: context.mode === 'teaching' ? context.openingId : null
+		}
+	);
+	if (get(state).user?.id !== userId || key !== learningKey()) return null;
+	if (result.summary) {
+		sessionRevision += 1;
+		state.update((value) => ({ ...value, summary: result.summary, error: '', available: true }));
+	}
+	if (result.activity) acceptLearning(result.activity);
+	else if (context.mode !== 'normal') await refreshLearningActivity();
 	return result.assessment;
 }
 /** @param {string} activityId @param {string} objectiveId @param {string} attemptId @param {Record<string,string>} answers */
@@ -325,12 +444,26 @@ export function saveCheckpoint(activityId, objectiveId, attemptId, answers) {
 /** @param {string} activityId @param {'start'|'draft'} [action] @param {Record<string,unknown>} [body] @returns {Promise<import('./timedChallenges.js').ShiftResponse>} */
 export async function timedChallengeRequest(activityId, action, body) {
 	const userId = get(state).user?.id;
+	const context = get(learningContext);
+	const key = learningKey();
+	const scoped =
+		context.activityId === activityId
+			? context
+			: { mode: 'normal', openingId: null, untimed: false };
+	let path =
+		scoped.mode === 'practice'
+			? `/practice/${encodeURIComponent(activityId)}/timed`
+			: `/timed/${encodeURIComponent(activityId)}`;
+	if (action) path += `/${action}`;
+	else if (scoped.openingId) path += `?openingId=${encodeURIComponent(scoped.openingId)}`;
 	const result = await api(
-		`/timed/${encodeURIComponent(activityId)}${action ? `/${action}` : ''}`,
-		action ? { ...body, accountId: userId } : undefined
+		path,
+		action
+			? { ...body, accountId: userId, openingId: scoped.openingId, untimed: scoped.untimed }
+			: undefined
 	);
-	if (get(state).user?.id !== userId)
-		throw new ApiError('En annen profil er pålogget.', 409, 'ACCOUNT_CHANGED');
+	if (get(state).user?.id !== userId || key !== learningKey())
+		throw new ApiError('Profil eller visningsmodus er endret.', 409, 'ACCOUNT_CHANGED');
 	if (result.summary) {
 		sessionRevision += 1;
 		state.update((value) => ({ ...value, summary: result.summary, error: '', available: true }));
@@ -366,7 +499,13 @@ export async function flushProgress() {
 			if (!event) break;
 			try {
 				const { client, ...submission } = event;
-				const result = await api('/progress', submission);
+				const contextKey = learningKey();
+				const result = await api(
+					event.mode === 'practice'
+						? `/practice/${encodeURIComponent(event.activityId)}/progress`
+						: '/progress',
+					submission
+				);
 				storeQueue(
 					userId,
 					readQueue(userId).filter((item) => item.eventId !== event.eventId)
@@ -375,11 +514,19 @@ export async function flushProgress() {
 					sessionRevision += 1;
 					state.update((value) => ({
 						...value,
-						summary: result.summary,
+						summary: result.summary ?? value.summary,
 						available: true,
 						error: ''
 					}));
-					confirmations.push(result);
+					if (event.mode !== 'practice') confirmations.push(result);
+					if (
+						contextKey === learningKey() &&
+						event.activityId === get(learningContext).activityId
+					) {
+						if (result.activity && event.mode === get(learningContext).mode)
+							acceptLearning(result.activity);
+						else void refreshLearningActivity();
+					}
 					batchId ||= event.eventId;
 					if (!client || client.deferred || Date.now() - client.at > 15000) live = false;
 				}
@@ -402,6 +549,9 @@ export async function flushProgress() {
 					problem.code === 'CHECKPOINT_COOLDOWN' ||
 					problem.code.startsWith('ASSESSMENT_') ||
 					problem.code.startsWith('TIMED_') ||
+					problem.code.startsWith('PRACTICE_') ||
+					problem.code.startsWith('OPENING_') ||
+					problem.code.startsWith('TEACHER_') ||
 					problem.code === 'CONTENT_VERSION'
 				) {
 					storeQueue(
@@ -410,6 +560,7 @@ export async function flushProgress() {
 					);
 					// A rejected assessment must not block unrelated progress in the outbox.
 					void refreshLab();
+					void refreshLearningActivity();
 					continue;
 				}
 				if (

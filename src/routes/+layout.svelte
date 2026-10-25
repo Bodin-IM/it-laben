@@ -6,6 +6,7 @@
 	import { initializeExperience } from '#lib/labPreferences.js';
 	import ActivityProgress from '#lib/components/ActivityProgress.svelte';
 	import RewardToast from '#lib/components/RewardToast.svelte';
+	import LearningAccess from '#lib/components/LearningAccess.svelte';
 	import '#lib/theme.css';
 
 	/** @type {{children: import('svelte').Snippet}} */
@@ -20,6 +21,7 @@
 	<link rel="icon" href={favicon} />
 </svelte:head>
 
+<LearningAccess />
 {@render children()}
 <ActivityProgress />
 <RewardToast />

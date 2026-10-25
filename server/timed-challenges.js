@@ -2,6 +2,7 @@ import { randomUUID } from 'node:crypto';
 import { transaction } from './database.js';
 import { timedChallenges } from '../src/lib/timedChallenges.js';
 import { createNightwatch, publicScenario, validateDraft, gradeNightwatch } from './nightwatch.js';
+import { openingAccess, requireTeachingOpening, learningError } from './learning-access.js';
 
 /** Register future operations scenarios here; timing, storage and rewards remain shared. */
 export const timedAdapters = {
@@ -40,16 +41,16 @@ function prerequisites(db, userId, definition) {
 				.get(userId, item.activityId, item.objectiveId)?.completed_at != null
 	}));
 }
-function latest(db, userId, activityId) {
+function latest(db, userId, activityId, openingId = null) {
 	return db
 		.prepare(
-			'SELECT * FROM timed_attempts WHERE user_id=? AND activity_id=? ORDER BY started_at DESC,rowid DESC LIMIT 1'
+			'SELECT * FROM timed_attempts WHERE user_id=? AND activity_id=? AND opening_id IS ? ORDER BY started_at DESC,rowid DESC LIMIT 1'
 		)
-		.get(userId, activityId);
+		.get(userId, activityId, openingId);
 }
-function finish(db, row, definition, answers, now, expired = false) {
+export function buildTimedReport(snapshot, definition, row, answers, now, expired = false) {
 	const adapter = timedAdapters[definition.adapter];
-	const incidents = adapter.grade(JSON.parse(row.scenario_json), answers);
+	const incidents = adapter.grade(snapshot, answers);
 	if (
 		!Array.isArray(incidents) ||
 		!incidents.length ||
@@ -77,13 +78,24 @@ function finish(db, row, definition, answers, now, expired = false) {
 		endedAt,
 		incidents
 	};
+	return report;
+}
+function finish(db, row, definition, answers, now, expired = false) {
+	const report = buildTimedReport(
+		JSON.parse(row.scenario_json),
+		definition,
+		row,
+		answers,
+		now,
+		expired
+	);
 	db.prepare(
 		`UPDATE timed_attempts SET status=?,final_answers_json=?,draft_json=?,ended_at=?,report_json=?,revision=revision+1 WHERE id=? AND status='active'`
 	).run(
-		reason,
+		report.reason,
 		JSON.stringify(answers),
 		JSON.stringify(answers),
-		endedAt,
+		report.endedAt,
 		JSON.stringify(report),
 		row.id
 	);
@@ -97,16 +109,32 @@ function expire(db, row, definition, now) {
 	}
 	return row;
 }
-function state(db, userId, definition, now) {
-	const row = expire(db, latest(db, userId, definition.id), definition, now);
+function state(db, userId, definition, now, openingId = null) {
+	const row = expire(db, latest(db, userId, definition.id, openingId), definition, now);
 	const required = prerequisites(db, userId, definition);
+	const opening = openingId ? openingAccess(db, definition.id, openingId, 'teaching', now) : null;
+	const unlocked = openingId
+		? !!(row || opening?.active)
+		: required.every((item) => item.completed);
+	const nextAt =
+		!openingId && row && now < row.started_at + definition.cooldownMs
+			? row.started_at + definition.cooldownMs
+			: null;
 	const best = db
 		.prepare(
 			"SELECT MIN(ended_at-started_at) AS ms FROM timed_attempts WHERE user_id=? AND activity_id=? AND status='passed'"
 		)
 		.get(userId, definition.id);
 	return {
-		unlocked: required.every((item) => item.completed),
+		unlocked,
+		access: {
+			mode: openingId ? 'teaching' : 'normal',
+			canStart:
+				unlocked && row?.status !== 'active' && (openingId ? !row && !!opening?.active : !nextAt),
+			used: !!openingId && !!row && row.status !== 'active',
+			closed: !!openingId && !opening?.active,
+			endsAt: opening?.closes_at ?? null
+		},
 		prerequisites: required,
 		active:
 			row?.status === 'active'
@@ -120,32 +148,44 @@ function state(db, userId, definition, now) {
 					}
 				: null,
 		report: row?.report_json ? JSON.parse(row.report_json) : null,
-		nextAttemptAt:
-			row && now < row.started_at + definition.cooldownMs
-				? row.started_at + definition.cooldownMs
-				: null,
+		nextAttemptAt: nextAt,
 		attempts: Number(
 			db
-				.prepare('SELECT count(*) AS n FROM timed_attempts WHERE user_id=? AND activity_id=?')
-				.get(userId, definition.id).n
+				.prepare(
+					'SELECT count(*) AS n FROM timed_attempts WHERE user_id=? AND activity_id=? AND opening_id IS ?'
+				)
+				.get(userId, definition.id, openingId).n
 		),
 		bestMs: best.ms ?? null
 	};
 }
-export function getTimedState(db, userId, activityId, now = Date.now()) {
+export function getTimedState(db, userId, activityId, now = Date.now(), openingId = null) {
 	const definition = timedDefinition(activityId);
-	return transaction(db, () => ({ serverNow: now, state: state(db, userId, definition, now) }));
+	return transaction(db, () => ({
+		serverNow: now,
+		state: state(db, userId, definition, now, openingId)
+	}));
 }
-export function startTimedChallenge(db, userId, activityId, startId, now = Date.now()) {
+export function startTimedChallenge(
+	db,
+	userId,
+	activityId,
+	startId,
+	now = Date.now(),
+	openingId = null
+) {
 	const definition = timedDefinition(activityId);
 	if (typeof startId !== 'string' || !/^[0-9a-f-]{36}$/i.test(startId))
 		throw new TypeError('Starten mangler en gyldig hendelses-ID.');
 	return transaction(db, () => {
-		const current = state(db, userId, definition, now);
+		const current = state(db, userId, definition, now, openingId);
 		const previousStart = db
 			.prepare('SELECT id FROM timed_attempts WHERE user_id=? AND activity_id=? AND start_key=?')
 			.get(userId, activityId, startId);
 		if (previousStart || current.active) return { serverNow: now, state: current };
+		if (openingId && current.attempts)
+			throw learningError('OPENING_USED', 'Du har brukt undervisningsforsøket i denne åpningen.');
+		if (openingId) requireTeachingOpening(db, activityId, openingId, now);
 		if (!current.unlocked)
 			throw problem('TIMED_LOCKED', 'Bestå de tre forberedende fagsjekkene før du starter vakten.');
 		if (current.nextAttemptAt)
@@ -155,12 +195,12 @@ export function startTimedChallenge(db, userId, activityId, startId, now = Date.
 				429,
 				current.nextAttemptAt
 			);
-		const previous = latest(db, userId, activityId);
+		const previous = latest(db, userId, activityId, openingId);
 		const scenario = timedAdapters[definition.adapter].create(
 			previous ? JSON.parse(previous.scenario_json) : null
 		);
 		db.prepare(
-			`INSERT INTO timed_attempts (id,user_id,activity_id,start_key,started_at,deadline_at,status,scenario_json) VALUES (?,?,?,?,?,?,'active',?)`
+			`INSERT INTO timed_attempts (id,user_id,activity_id,start_key,started_at,deadline_at,status,scenario_json,opening_id) VALUES (?,?,?,?,?,?,'active',?,?)`
 		).run(
 			randomUUID(),
 			userId,
@@ -168,13 +208,14 @@ export function startTimedChallenge(db, userId, activityId, startId, now = Date.
 			startId,
 			now,
 			now + definition.durationMs,
-			JSON.stringify(scenario)
+			JSON.stringify(scenario),
+			openingId
 		);
 		db.prepare(
 			`INSERT INTO progress (user_id,activity_id,objective_id,updated_at) VALUES (?,?,?,?)
 			ON CONFLICT(user_id,activity_id,objective_id) DO UPDATE SET updated_at=excluded.updated_at`
 		).run(userId, activityId, definition.objectiveId, now);
-		return { serverNow: now, state: state(db, userId, definition, now) };
+		return { serverNow: now, state: state(db, userId, definition, now, openingId) };
 	});
 }
 function ownAttempt(db, userId, activityId, attemptId) {
@@ -196,9 +237,10 @@ export function saveTimedDraft(db, userId, activityId, body, now = Date.now()) {
 	const definition = timedDefinition(activityId);
 	return transaction(db, () => {
 		let row = ownAttempt(db, userId, activityId, body.attemptId);
+		const openingId = row.opening_id;
 		row = expire(db, row, definition, now);
 		if (row.status !== 'active')
-			return { serverNow: now, state: state(db, userId, definition, now) };
+			return { serverNow: now, state: state(db, userId, definition, now, openingId) };
 		const answers = timedAdapters[definition.adapter].validate(
 			JSON.parse(row.scenario_json),
 			body.answers
@@ -207,7 +249,7 @@ export function saveTimedDraft(db, userId, activityId, body, now = Date.now()) {
 			throw new TypeError('Utkastet mangler en gyldig versjon.');
 		if (body.revision !== row.revision) {
 			if (body.revision < row.revision && JSON.stringify(answers) === row.draft_json)
-				return { serverNow: now, state: state(db, userId, definition, now) };
+				return { serverNow: now, state: state(db, userId, definition, now, openingId) };
 			throw problem(
 				'TIMED_DRAFT_CONFLICT',
 				'Arbeidet er endret i en annen fane. Hent det lagrede utkastet før du fortsetter.'
@@ -217,7 +259,7 @@ export function saveTimedDraft(db, userId, activityId, body, now = Date.now()) {
 			JSON.stringify(answers),
 			row.id
 		);
-		return { serverNow: now, state: state(db, userId, definition, now) };
+		return { serverNow: now, state: state(db, userId, definition, now, openingId) };
 	});
 }
 /** Called inside the progress/XP/receipt transaction. Client clocks and passed/points flags are ignored. */

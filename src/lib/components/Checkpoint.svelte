@@ -1,5 +1,12 @@
 <script>
-	import { lab, saveCheckpoint, openCheckpoint, refreshLab } from '#lib/lab.js';
+	import {
+		activityLab as lab,
+		learningContext,
+		saveCheckpoint,
+		openCheckpoint,
+		refreshLab,
+		refreshLearningActivity
+	} from '#lib/lab.js';
 	import { rewardPolicy } from '#lib/progression.js';
 	import { assessmentPolicy } from '#lib/assessmentPolicy.js';
 	/** @type {{question:import('#lib/checkpoints.js').Checkpoint}} */
@@ -10,7 +17,9 @@
 			?.objectives.find((item) => item.id === question.id)
 	);
 	const status = $derived(saved?.assessment);
-	const passed = $derived(saved?.completedAt != null);
+	const practice = $derived($learningContext.mode === 'practice');
+	const teaching = $derived($learningContext.mode === 'teaching');
+	const passed = $derived(status?.completed ?? saved?.completedAt != null);
 	const pending = $derived(
 		$lab.pendingObjectives.includes(`${question.activityId}:${question.id}`)
 	);
@@ -22,7 +31,7 @@
 	let error = $state('');
 	let owner = $state('');
 	$effect(() => {
-		const identity = `${$lab.user?.id}:${question.activityId}:${question.id}`;
+		const identity = `${$lab.user?.id}:${question.activityId}:${question.id}:${$learningContext.mode}:${$learningContext.openingId}`;
 		if (owner !== identity) {
 			owner = identity;
 			assessment = null;
@@ -40,12 +49,12 @@
 			timestamp
 		);
 	}
-	async function open() {
+	async function open(reset = false) {
 		const accountId = $lab.user?.id;
 		loading = true;
 		error = '';
 		try {
-			const next = await openCheckpoint(question.activityId, question.id);
+			const next = await openCheckpoint(question.activityId, question.id, reset);
 			if ($lab.user?.id !== accountId) return;
 			if (next?.id !== assessment?.id) answers = {};
 			assessment = next;
@@ -53,6 +62,7 @@
 			if ($lab.user?.id === accountId) {
 				error = problem instanceof Error ? problem.message : 'Kunne ikke åpne fagsjekken.';
 				void refreshLab();
+				void refreshLearningActivity();
 			}
 		} finally {
 			if ($lab.user?.id === accountId) loading = false;
@@ -71,13 +81,18 @@
 		<span class="points"
 			>{passed
 				? '✓ Bestått og lagret'
-				: `${rewardPolicy.checked} XP + poengene fra arbeidet ditt`}</span
+				: practice
+					? 'Øving uten XP'
+					: `${rewardPolicy.checked} XP + poengene fra arbeidet ditt`}</span
 		>
 	</div>
 	<h3 id={`question-${question.id}`}>{question.title}</h3>
 	<p class="rules">
-		{assessmentPolicy.questionsPerAttempt} spørsmål · begge må være riktige · ett innsendt forsøk per
-		24 timer per aktivitet.
+		{assessmentPolicy.questionsPerAttempt} spørsmål · begge må være riktige · {practice
+			? 'fri øving uten XP eller døgnsgrense.'
+			: teaching
+				? 'ett ekstra forsøk i denne åpningen.'
+				: 'ett innsendt forsøk per 24 timer per aktivitet.'}
 	</p>
 	{#if !$lab.user}
 		<p class="guest">
@@ -85,7 +100,13 @@
 			fritt.
 		</p>
 	{:else if !passed}
-		{#if !status?.prerequisitesMet}
+		{#if status?.openingUsed && teaching}<p class="feedback">
+				Undervisningsforsøket i denne åpningen er brukt. Se tilbakemeldingen nedenfor.
+			</p>
+		{:else if status?.openingClosed && !status?.hasPending}<p class="feedback">
+				Åpningen er stengt for nye forsøk.
+			</p>
+		{:else if !status?.prerequisitesMet}
 			<p class="guest">
 				Gjennomgå leksjonen og marker den som gjennomgått, eller løs alle spilloppdragene, for å
 				åpne fagsjekken.
@@ -139,7 +160,7 @@
 				Du kan lese og øve før du leverer. Å åpne sjekken bruker ikke forsøket. Neste forsøk har
 				varierte spørsmål og blandet svarrekkefølge.
 			</p>
-			<button type="button" disabled={loading || !status?.canStart} onclick={open}
+			<button type="button" disabled={loading || !status?.canStart} onclick={() => open()}
 				>{loading
 					? 'Åpner …'
 					: status?.hasPending
@@ -154,8 +175,14 @@
 			<h4>{active ? 'Tilbakemelding fra forrige forsøk' : 'Resultatet ditt'}</h4>
 			<p class="feedback" class:success={passed}>
 				{result.score} av {result.total} riktige. {passed
-					? 'Fagsjekken er bestått, og XP er lagret!'
-					: 'Begge svarene må være riktige for å få XP. Arbeidet ditt er fortsatt lagret.'}
+					? practice
+						? 'Øvingsforsøket er bestått og lagret uten XP.'
+						: teaching
+							? 'Bestått og lagret. Allerede opptjente XP gis ikke på nytt.'
+							: 'Fagsjekken er bestått, og XP er lagret!'
+					: practice
+						? 'Les forklaringene og prøv et nytt øvingsforsøk når du vil.'
+						: 'Begge svarene må være riktige for å få XP. Arbeidet ditt er fortsatt lagret.'}
 			</p>
 			<details open={!passed && !active}>
 				<summary>Se tilbakemeldingen</summary>
@@ -170,6 +197,11 @@
 			</details>
 		</div>
 	{/if}
+	{#if practice && !active && result && $lab.user && status?.canStart}<div class="actions">
+			<button type="button" disabled={loading || pending} onclick={() => open(true)}
+				>Nytt øvingsforsøk</button
+			><span>Ingen XP. Dagens ordinære forsøk beholdes.</span>
+		</div>{/if}
 </section>
 
 <style>

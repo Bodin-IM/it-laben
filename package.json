@@ -15,6 +15,7 @@
 		"format": "prettier --write .",
 		"api": "node --env-file-if-exists=.env server/index.js",
 		"backup": "node --env-file-if-exists=.env server/backup.js",
+		"teacher": "node --env-file-if-exists=.env server/teacher.js",
 		"dev:full": "node server/dev.js"
 	},
 	"devDependencies": {

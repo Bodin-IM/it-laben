@@ -9,6 +9,22 @@ import { labColors } from '../src/lib/progression.js';
 import { catalog } from './catalog.js';
 import { openCheckpoint } from './checkpoints.js';
 import { getTimedState, startTimedChallenge, saveTimedDraft } from './timed-challenges.js';
+import {
+	isTeacher,
+	requireTeacher,
+	activeOpenings,
+	createOpening,
+	closeOpening,
+	practiceAccess
+} from './learning-access.js';
+import {
+	learningActivity,
+	openPracticeCheckpoint,
+	getPracticeTimed,
+	startPracticeTimed,
+	savePracticeTimed,
+	submitPractice
+} from './practice.js';
 
 const DAY = 86400000;
 const hash = (value) => createHash('sha256').update(value).digest('hex');
@@ -96,6 +112,8 @@ export function createApp({ db, config, clock = Date.now, limits = true }) {
 		app.use('/api/progress', limit(60000, 600));
 		app.use('/api/checkpoints', limit(60000, 600));
 		app.use('/api/timed', limit(60000, 3000));
+		app.use('/api/practice', limit(60000, 3000));
+		app.use('/api/teacher', limit(60000, 120));
 	}
 	const authenticated = (req, res, next) => {
 		if (!req.labUser) return fail(res, 401, 'LOGIN_REQUIRED', 'Logg inn for å lagre fremgangen.');
@@ -146,7 +164,8 @@ export function createApp({ db, config, clock = Date.now, limits = true }) {
 	}
 	function me(user, session) {
 		return {
-			user,
+			user: { ...user, role: isTeacher(db, user.id) ? 'teacher' : 'student' },
+			openings: activeOpenings(db, clock()),
 			csrfToken: session.csrf,
 			summary: summary(db, user.id, clock()),
 			development: !config.secure
@@ -169,7 +188,13 @@ export function createApp({ db, config, clock = Date.now, limits = true }) {
 
 	app.get('/api/me', (req, res) => {
 		if (!req.labUser)
-			return res.json({ user: null, csrfToken: null, summary: null, development: !config.secure });
+			return res.json({
+				user: null,
+				csrfToken: null,
+				summary: null,
+				openings: activeOpenings(db, clock()),
+				development: !config.secure
+			});
 		res.json(me(req.labUser, req.labSession));
 	});
 	app.post('/api/auth/create', (req, res) => {
@@ -257,7 +282,12 @@ export function createApp({ db, config, clock = Date.now, limits = true }) {
 	app.post('/api/me/delete', authenticated, (req, res) => {
 		if (req.body.confirm !== 'SLETT')
 			return fail(res, 400, 'CONFIRM_DELETE', 'Bekreft sletting av profilen.');
-		db.prepare('DELETE FROM users WHERE id=?').run(req.labUser.id);
+		transaction(db, () => {
+			db.prepare(
+				"DELETE FROM teacher_actions WHERE action IN ('grant-teacher','revoke-teacher') AND target_id=?"
+			).run(req.labUser.id);
+			db.prepare('DELETE FROM users WHERE id=?').run(req.labUser.id);
+		});
 		res.clearCookie(config.cookieName, cookieOptions);
 		res.json({ ok: true });
 	});
@@ -266,11 +296,88 @@ export function createApp({ db, config, clock = Date.now, limits = true }) {
 			return fail(res, 409, 'ACCOUNT_CHANGED', 'En annen profil er pålogget. Oppdater siden.');
 		const activity = catalog.find((item) => item.id === req.body.activityId);
 		if (!activity) throw new TypeError('Ukjent aktivitet.');
-		const result = openCheckpoint(db, req.labUser.id, activity, req.body.objectiveId, clock());
+		const result = openCheckpoint(
+			db,
+			req.labUser.id,
+			activity,
+			req.body.objectiveId,
+			clock(),
+			req.body.openingId ?? null
+		);
 		res.json({ ...result, summary: summary(db, req.labUser.id, clock()) });
 	});
+	const accountMatches = (req, res, next) => {
+		if (req.method !== 'GET' && req.body.accountId !== req.labUser.id)
+			return fail(res, 409, 'ACCOUNT_CHANGED', 'En annen profil er pålogget. Oppdater siden.');
+		next();
+	};
+	const teacherView = (userId) => {
+		requireTeacher(db, userId);
+		return {
+			serverNow: clock(),
+			activities: catalog.map(({ id, title, href, subject, format }) => ({
+				id,
+				title,
+				href,
+				subject,
+				format
+			})),
+			openings: db
+				.prepare(
+					'SELECT id,activity_id AS activityId,mode,created_at AS createdAt,closes_at AS closesAt,closed_at AS closedAt FROM activity_openings ORDER BY created_at DESC,rowid DESC LIMIT 40'
+				)
+				.all()
+		};
+	};
+	app.get('/api/teacher', authenticated, (req, res) => res.json(teacherView(req.labUser.id)));
+	app.post('/api/teacher/openings', authenticated, accountMatches, (req, res) => {
+		createOpening(
+			db,
+			req.labUser.id,
+			req.body,
+			catalog.map((item) => item.id),
+			clock()
+		);
+		res.json(teacherView(req.labUser.id));
+	});
+	app.post('/api/teacher/openings/:id/close', authenticated, accountMatches, (req, res) => {
+		closeOpening(db, req.labUser.id, req.params.id, clock());
+		res.json(teacherView(req.labUser.id));
+	});
+	app.get('/api/learning/:activityId', authenticated, (req, res) => {
+		const mode = req.query.mode === 'teaching' ? 'teaching' : 'practice';
+		res.json({
+			activity: learningActivity(
+				db,
+				req.labUser.id,
+				req.params.activityId,
+				clock(),
+				mode,
+				req.query.openingId ?? null
+			),
+			access: practiceAccess(db, req.labUser.id, req.params.activityId, clock())
+		});
+	});
+	app.use('/api/practice', authenticated, accountMatches);
+	app.post('/api/practice/:activityId/checkpoints/open', (req, res) =>
+		res.json(openPracticeCheckpoint(db, req.labUser.id, req.params.activityId, req.body, clock()))
+	);
+	app.get('/api/practice/:activityId/timed', (req, res) =>
+		res.json(getPracticeTimed(db, req.labUser.id, req.params.activityId, clock()))
+	);
+	app.post('/api/practice/:activityId/timed/start', (req, res) =>
+		res.json(startPracticeTimed(db, req.labUser.id, req.params.activityId, req.body, clock()))
+	);
+	app.post('/api/practice/:activityId/timed/draft', (req, res) =>
+		res.json(savePracticeTimed(db, req.labUser.id, req.params.activityId, req.body, clock()))
+	);
+	app.post('/api/practice/:activityId/progress', (req, res) =>
+		res.json(submitPractice(db, req.labUser.id, req.params.activityId, req.body, clock()))
+	);
 	app.get('/api/timed/:activityId', authenticated, (req, res) => {
-		res.json(getTimedState(db, req.labUser.id, req.params.activityId, clock()));
+		res.json(
+			getTimedState(db, req.labUser.id, req.params.activityId, clock(), req.query.openingId ?? null)
+		);
 	});
 	app.post('/api/timed/:activityId/:action', authenticated, (req, res) => {
 		if (req.body.accountId !== req.labUser.id)
@@ -281,7 +388,8 @@ export function createApp({ db, config, clock = Date.now, limits = true }) {
 				req.labUser.id,
 				req.params.activityId,
 				req.body.startId,
-				clock()
+				clock(),
+				req.body.openingId ?? null
 			);
 			return res.json({ ...result, summary: summary(db, req.labUser.id, clock()) });
 		}
@@ -305,7 +413,10 @@ export function createApp({ db, config, clock = Date.now, limits = true }) {
 		if (
 			error.code === 'CHECKPOINT_COOLDOWN' ||
 			error.code?.startsWith('ASSESSMENT_') ||
-			error.code?.startsWith('TIMED_')
+			error.code?.startsWith('TIMED_') ||
+			error.code?.startsWith('PRACTICE_') ||
+			error.code?.startsWith('OPENING_') ||
+			error.code?.startsWith('TEACHER_')
 		) {
 			if (error.retryAt)
 				res.set('Retry-After', String(Math.max(1, Math.ceil((error.retryAt - clock()) / 1000))));

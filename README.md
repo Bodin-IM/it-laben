@@ -185,3 +185,5 @@ IT-laben hostes på en egen **Ubuntu-server med Nginx**. Serveren henter selv en
 Gjennomfør kode- og avhengighetsendringer på utviklingsmaskinen. Serverens oppdateringsjobb håndterer installasjon og bygging automatisk.
 
 Se [driftsveiledningen](docs/serverdrift.md) for manuell oppdatering, logger, timerstatus, Nginx, kontroll av publisert commit og feilsøking.
+
+Lærere kan bruke [lærerpanelet](docs/laererpanel.md) til å teste aktiviteter uten XP og åpne øving eller ekstra undervisningsforsøk for alle i 30 eller 60 minutter. Lærertilgang gis én gang til den eksisterende profilen fra serveren.

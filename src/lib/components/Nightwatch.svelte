@@ -3,7 +3,8 @@
 	import AccountLink from '#lib/components/AccountLink.svelte';
 	import BadgeIcon from '#lib/components/BadgeIcon.svelte';
 	import {
-		lab,
+		activityLab as lab,
+		learningContext,
 		timedChallengeRequest,
 		saveTimedAttempt,
 		randomId,
@@ -43,6 +44,8 @@
 	let debounce = null;
 	/** @type {ReturnType<typeof createNightwatchAudio>|null} */
 	let audio = $state.raw(null);
+	const practice = $derived($learningContext.mode === 'practice');
+	const teaching = $derived($learningContext.mode === 'teaching');
 	const active = $derived.by(() => info?.active ?? null);
 	const report = $derived.by(() => info?.report ?? null);
 	const pending = $derived(
@@ -54,13 +57,16 @@
 		incidents.filter((item) => item.tasks.every((task) => taskAnswered(task, answers[task.id])))
 			.length
 	);
+	const untimed = $derived(!!active && active.deadlineAt === null);
 	const urgent = $derived(!!active && remaining <= 60000);
 	const phase = $derived(
-		remaining <= 60000
-			? 'SISTE MINUTT'
-			: remaining <= 180000
-				? 'ÅPNING NÆRMER SEG'
-				: 'VAKTEN ER I GANG'
+		untimed
+			? 'TEST UTEN TIDSFRIST'
+			: remaining <= 60000
+				? 'SISTE MINUTT'
+				: remaining <= 180000
+					? 'ÅPNING NÆRMER SEG'
+					: 'VAKTEN ER I GANG'
 	);
 	const disabled = $derived(pending || remaining <= 0 || conflict || busy);
 	const prerequisiteList = $derived.by(
@@ -104,6 +110,8 @@
 		serverNow = response.serverNow;
 		anchor = performance.now();
 		const previousId = info?.active?.id;
+		if (previousId && response.state.active && response.state.active.id !== previousId)
+			forgetDraft(previousId);
 		if (
 			!ownSave &&
 			dirty &&
@@ -118,7 +126,10 @@
 			conflict = false;
 			return;
 		}
-		remaining = Math.max(0, info.active.deadlineAt - serverNow);
+		remaining =
+			info.active.deadlineAt === null
+				? definition.durationMs
+				: Math.max(0, info.active.deadlineAt - serverNow);
 		if (!dirty || previousId !== info.active.id) answers = $state.snapshot(info.active.answers);
 		if (previousId !== info.active.id) {
 			selected = 0;
@@ -242,7 +253,7 @@
 		audioReady = await audio.enable();
 		audioError = audioReady ? '' : 'Nettleseren kunne ikke starte lyden. Vakten fungerer fortsatt.';
 	}
-	async function start() {
+	async function start(reset = false) {
 		if (busy || !$lab.user) return;
 		busy = true;
 		serial++;
@@ -250,7 +261,10 @@
 		const accountId = $lab.user.id;
 		if ($labPreferences.sound) await enableAudio();
 		try {
-			const response = await timedChallengeRequest(definition.id, 'start', { startId: randomId() });
+			const response = await timedChallengeRequest(definition.id, 'start', {
+				startId: randomId(),
+				reset
+			});
 			if ($lab.user?.id !== accountId) return;
 			accept(response);
 		} catch (problem) {
@@ -269,7 +283,7 @@
 	}
 	$effect(() => {
 		if (!mounted || !$lab.ready) return;
-		const accountId = $lab.user?.id ?? 'guest';
+		const accountId = `${$lab.user?.id ?? 'guest'}:${$learningContext.mode}:${$learningContext.openingId}:${$learningContext.untimed}`;
 		if (loadedFor === accountId) return;
 		loadedFor = accountId;
 		serial++;
@@ -302,7 +316,7 @@
 		mounted = true;
 		let expiredFor = '';
 		const clock = setInterval(() => {
-			if (!active) return;
+			if (!active || active.deadlineAt === null) return;
 			remaining = Math.max(0, active.deadlineAt - (serverNow + performance.now() - anchor));
 			if (!remaining && expiredFor !== active.id) {
 				expiredFor = active.id;
@@ -347,7 +361,9 @@
 		</div>
 		<div class="hero">
 			<div>
-				<p class="eyebrow">HARDCORE UTFORDRING</p>
+				<p class="eyebrow">
+					{practice ? 'ØVING UTEN XP' : teaching ? 'UNDERVISNINGSFORSØK' : 'HARDCORE UTFORDRING'}
+				</p>
 				<h1>Nattevakten<span>.</span></h1>
 				<p class="lead">Fire feil. Åtte minutter.<br />Få produksjonen klar før åpning.</p>
 			</div>
@@ -358,14 +374,24 @@
 				<strong
 					class="clock"
 					role="timer"
-					aria-label={active ? `${shiftClock(remaining)} igjen` : 'Åtte minutter'}
-					>{active ? shiftClock(remaining) : '08:00'}</strong
+					aria-label={untimed
+						? 'Test uten tidsfrist'
+						: active
+							? `${shiftClock(remaining)} igjen`
+							: 'Åtte minutter'}
+					>{untimed ? 'TEST' : active ? shiftClock(remaining) : '08:00'}</strong
 				>
 				<div class="time-track" aria-hidden="true"><span></span></div>
 				<span class="clock-caption"
-					>{active
-						? 'Fristen fortsetter hvis du forlater siden.'
-						: 'Én vakt per 24 timer · 50 XP første gang'}</span
+					>{untimed
+						? 'Test uten tidsfrist · ingen XP'
+						: active
+							? 'Fristen fortsetter hvis du forlater siden.'
+							: practice
+								? 'Fri øving · ingen XP eller ordinære forsøk'
+								: teaching
+									? 'Ett ekstra forsøk · vanlig XP ved bestått'
+									: 'Én vakt per 24 timer · 50 XP første gang'}</span
 				>
 			</div>
 		</div>
@@ -402,8 +428,16 @@
 		</div>
 		{#if active}<div class="shift-hud" aria-label="Vaktstatus">
 				<span class="hud-status"><span class="live-dot"></span>{phase}</span>
-				<strong>{shiftClock(remaining)}</strong><span>{ready}/{incidents.length} klargjort</span>
-				<a href="#vaktrapport">Til innlevering ↓</a>
+				<strong>{untimed ? 'TEST' : shiftClock(remaining)}</strong><span
+					>{ready}/{incidents.length} klargjort</span
+				>
+				<a href="#vaktrapport">Til innlevering ↓</a
+				>{#if practice && info?.access?.canRestart}<button
+						type="button"
+						class="text-button"
+						disabled={busy || pending}
+						onclick={() => start(true)}>Start ny øvingsvakt</button
+					>{/if}
 			</div>{/if}
 		{#if error || audioError}<div class="notice" role="status">
 				<p>{error || audioError}</p>
@@ -605,7 +639,7 @@
 							</h2>
 							<p>
 								{report.passed
-									? `Alle fire hendelser løst på ${shiftClock(report.elapsedMs)}. Resultatet er lagret i Min lab.`
+									? `Alle fire hendelser løst på ${shiftClock(report.elapsedMs)}. ${practice ? 'Øvingsresultatet er lagret uten XP.' : 'Resultatet er lagret i Min lab.'}`
 									: report.reason === 'expired'
 										? `Tiden er ute. ${report.score} av ${report.total} hendelser hadde riktige rettinger i det lagrede utkastet. Denne vakten gir ikke XP.`
 										: `${report.score} av ${report.total} hendelser bestått. Se hva som gjenstår før neste vakt.`}
@@ -649,10 +683,24 @@
 						<span>08 MINUTTER</span><span>04 HENDELSER</span><span>01 INNLEVERING</span>
 					</div>
 					<ul class="briefing-rules">
-						<li>Forsøket brukes når du starter. Neste vakt åpner 24 timer senere.</li>
+						<li>
+							{practice
+								? 'Du kan starte nye øvingsvakter uten å bruke ordinære forsøk.'
+								: teaching
+									? 'Dette er ett ekstra forsøk i undervisningsåpningen.'
+									: 'Forsøket brukes når du starter. Neste vakt åpner 24 timer senere.'}
+						</li>
 						<li>Du kan lese spor og endre valgene helt fram til innlevering.</li>
-						<li>Utkast lagres underveis. Fristen fortsetter ved oppdatering eller utlogging.</li>
-						<li>Alle fire hendelser må bestås. Første bestått gir 50 XP og merket Nattevakten.</li>
+						<li>
+							Utkast lagres underveis. {untimed
+								? 'Dette testforsøket har ingen tidsfrist.'
+								: 'Fristen fortsetter ved oppdatering eller utlogging.'}
+						</li>
+						<li>
+							{practice
+								? 'Øving gir ingen XP eller merker og påvirker ikke din personlige rekord.'
+								: 'Alle fire hendelser må bestås. Første bestått gir 50 XP og merket Nattevakten.'}
+						</li>
 					</ul>
 					{#if info?.bestMs !== null && info?.bestMs !== undefined}<p class="best">
 							DIN REKORD <strong>{shiftClock(info.bestMs)}</strong><span
@@ -662,21 +710,37 @@
 				</div>
 				<div class="preflight">
 					<p class="eyebrow">FØR DU TAR VAKTEN</p>
-					<h3>Forberedelsene dine</h3>
-					<p>Bestå disse fagsjekkene for å låse opp utfordringen.</p>
-					<ul>
-						{#each prerequisiteList as item}<li>
-								<span class:complete={item.completed}>{item.completed ? '✓' : '○'}</span><a
-									href={item.href}>{item.title}<span>→</span></a
-								>
-							</li>{/each}
-					</ul>
+					<h3>
+						{practice
+							? 'Din øvingsvakt'
+							: teaching
+								? 'Ekstra undervisningsforsøk'
+								: 'Forberedelsene dine'}
+					</h3>
+					{#if $learningContext.mode === 'normal'}<p>
+							Bestå disse fagsjekkene for å låse opp utfordringen.
+						</p>
+						<ul>
+							{#each prerequisiteList as item}<li>
+									<span class:complete={item.completed}>{item.completed ? '✓' : '○'}</span><a
+										href={item.href}>{item.title}<span>→</span></a
+									>
+								</li>{/each}
+						</ul>{:else}<p>
+							{practice
+								? 'Egen øvingsprogresjon uten XP. Du kan starte på nytt mens øvingen er åpen.'
+								: 'Forkunnskapskravene er åpnet. Du har ett ekstra forsøk i denne åpningen.'}
+						</p>{/if}
 					{#if !$lab.ready}<p role="status">Henter Min lab …</p>{:else if !$lab.user}<a
 							class="primary"
 							href="/min-lab/">Start Min lab →</a
 						>{:else if !info}<button type="button" class="secondary" onclick={() => syncStatus()}
 							>Hent vaktstatus</button
-						>{:else if info.nextAttemptAt}<p class="cooldown" role="status">
+						>{:else if teaching && info.access?.used}<p class="cooldown">
+							Undervisningsforsøket i denne åpningen er brukt.
+						</p>
+					{:else if info.access?.closed}<p class="cooldown">Åpningen er stengt for nye forsøk.</p>
+					{:else if info.nextAttemptAt}<p class="cooldown" role="status">
 							Neste vakt åpner <strong>{nextOpen}</strong>
 						</p>
 						<button type="button" class="secondary" onclick={() => syncStatus()}
@@ -684,11 +748,20 @@
 						>{:else}<button
 							type="button"
 							class="primary"
-							disabled={!info.unlocked || busy}
-							onclick={start}>{busy ? 'Starter vakten …' : 'Start vakten · 08:00 →'}</button
+							disabled={!info.unlocked || busy || info.access?.canStart === false}
+							onclick={() => start()}
+							>{busy
+								? 'Starter vakten …'
+								: practice
+									? $learningContext.untimed
+										? 'Start test uten tidsfrist →'
+										: 'Start øvingsvakten · 08:00 →'
+									: 'Start vakten · 08:00 →'}</button
 						><small class="start-note"
 							>{info.unlocked
-								? 'Startknappen bruker forsøket og starter nedtellingen.'
+								? practice
+									? 'Øving påvirker ikke dine ordinære forsøk eller XP.'
+									: 'Startknappen bruker forsøket og starter nedtellingen.'
 								: 'Fullfør forberedelsene for å starte.'}</small
 						>{/if}
 				</div>

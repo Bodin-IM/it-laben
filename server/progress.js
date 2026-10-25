@@ -20,7 +20,7 @@ export function progressSnapshot(db, userId, now = Date.now()) {
 	const timedHistory = new Map();
 	for (const row of db
 		.prepare(
-			'SELECT activity_id,status,started_at,deadline_at FROM timed_attempts WHERE user_id=? ORDER BY started_at DESC,rowid DESC'
+			'SELECT activity_id,status,started_at,deadline_at FROM timed_attempts WHERE user_id=? AND opening_id IS NULL ORDER BY started_at DESC,rowid DESC'
 		)
 		.all(userId))
 		if (!timedHistory.has(row.activity_id)) timedHistory.set(row.activity_id, row);

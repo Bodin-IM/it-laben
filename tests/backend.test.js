@@ -1,11 +1,13 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { once } from 'node:events';
-import { spawn } from 'node:child_process';
-import { mkdtempSync, rmSync, readFileSync } from 'node:fs';
+import { spawn, spawnSync } from 'node:child_process';
+import { mkdtempSync, rmSync, readFileSync, existsSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import { randomUUID } from 'node:crypto';
+import { randomUUID, createHash } from 'node:crypto';
+import { DatabaseSync } from 'node:sqlite';
+import { setTeacherRole } from '../server/learning-access.js';
 import { openDatabase } from '../server/database.js';
 import { createApp } from '../server/app.js';
 import { readConfig } from '../server/config.js';
@@ -37,6 +39,29 @@ const solutions = {
 		rom: ['noah-get-gaming']
 	}
 };
+
+function historicalDatabase(filename, count) {
+	const db = new DatabaseSync(filename);
+	db.exec(
+		'PRAGMA foreign_keys=ON; CREATE TABLE migrations(name TEXT PRIMARY KEY,hash TEXT NOT NULL,applied_at INTEGER NOT NULL)'
+	);
+	const files = [
+		'001_initial.sql',
+		'002_lab_profile.sql',
+		'003_checkpoint_attempts.sql',
+		'004_timed_challenges.sql'
+	];
+	for (const name of files.slice(0, count)) {
+		const sql = readFileSync(new URL(`../server/migrations/${name}`, import.meta.url), 'utf8');
+		db.exec(sql);
+		db.prepare('INSERT INTO migrations VALUES (?,?,?)').run(
+			name,
+			createHash('sha256').update(sql).digest('hex'),
+			Date.now()
+		);
+	}
+	return db;
+}
 
 async function fixture(t, { persistent = false, secure = false, limits = false } = {}) {
 	const dir = mkdtempSync(join(tmpdir(), 'itlab-test-'));
@@ -357,7 +382,7 @@ test('backup av aktiv database bevarer konto, økt, poeng og progresjon', async 
 		restored.close();
 	}
 	const restarted = openDatabase(f.filename);
-	assert.equal(restarted.prepare('SELECT count(*) AS n FROM migrations').get().n, 4);
+	assert.equal(restarted.prepare('SELECT count(*) AS n FROM migrations').get().n, 5);
 	restarted.close();
 });
 
@@ -381,7 +406,11 @@ test('sletting fjerner hele profilen og gjør nøkkelfilen ubrukelig', async (t)
 		'receipts',
 		'lab_profiles',
 		'checkpoint_attempts',
-		'timed_attempts'
+		'timed_attempts',
+		'practice_runs',
+		'practice_progress',
+		'practice_receipts',
+		'user_roles'
 	])
 		assert.equal(f.db.prepare(`SELECT count(*) AS n FROM ${table}`).get().n, 0);
 	assert.equal((await f.client().request('/api/auth/key', { key })).status, 401);
@@ -546,15 +575,23 @@ test('oppgradering: nye merker etterregistreres for tidligere fullførte oppdrag
 		firstBadge
 	);
 	assert.ok(after.achievements.find((item) => item.id === 'session-guard').earnedAt);
-	// Simulate the previous schema and verify the additive migration preserves existing data.
-	f.db.exec(
-		"DROP TABLE checkpoint_attempts; DROP TABLE lab_profiles; DELETE FROM migrations WHERE name IN ('002_lab_profile.sql','003_checkpoint_attempts.sql')"
-	);
-	const upgraded = openDatabase(f.filename);
+	// Build a real version-1 database, then upgrade its existing users and progress.
+	const legacyPath = join(f.dir, 'legacy.sqlite');
+	const old = historicalDatabase(legacyPath, 1);
+	for (const table of ['users', 'progress', 'rewards', 'achievements']) {
+		for (const row of f.db.prepare(`SELECT * FROM ${table}`).all()) {
+			const values = Object.values(row);
+			old
+				.prepare(`INSERT INTO ${table} VALUES (${values.map(() => '?').join(',')})`)
+				.run(...values);
+		}
+	}
+	old.close();
+	const upgraded = openDatabase(legacyPath);
 	try {
 		assert.equal(summary(upgraded, a.user.id).xp, 0);
 		assert.equal(summary(upgraded, a.user.id).lab.colorId, 'forest');
-		assert.equal(upgraded.prepare('SELECT count(*) AS n FROM migrations').get().n, 4);
+		assert.equal(upgraded.prepare('SELECT count(*) AS n FROM migrations').get().n, 5);
 	} finally {
 		upgraded.close();
 	}
@@ -1291,4 +1328,588 @@ test('nattvakt: en ugyldig framtidig validator kan ikke godkjenne med truthy-ver
 	} finally {
 		adapter.grade = original;
 	}
+});
+
+async function teacherClient(f) {
+	const teacher = f.client();
+	await teacher.create();
+	setTeacherRole(f.db, teacher.user.id, true);
+	assert.equal((await teacher.request('/api/me')).result.user.role, 'teacher');
+	return teacher;
+}
+async function openActivity(teacher, activityId, mode = 'practice', minutes = 30) {
+	const id = randomUUID();
+	const response = await teacher.request('/api/teacher/openings', {
+		accountId: teacher.user.id,
+		id,
+		activityId,
+		mode,
+		minutes
+	});
+	assert.equal(response.status, 200, JSON.stringify(response.result));
+	return id;
+}
+async function practiceEvent(client, activityId, body) {
+	return client.request(`/api/practice/${activityId}/progress`, {
+		eventId: randomUUID(),
+		version: 2,
+		accountId: client.user.id,
+		activityId,
+		...body
+	});
+}
+async function practiceQuiz(f, client, activityId = 'frontend-backend', reset = false) {
+	const opened = await client.request(`/api/practice/${activityId}/checkpoints/open`, {
+		accountId: client.user.id,
+		objectiveId: 'check-v2',
+		reset
+	});
+	assert.equal(opened.status, 200, JSON.stringify(opened.result));
+	const row = f.db
+		.prepare('SELECT * FROM practice_runs WHERE id=?')
+		.get(opened.result.assessment.id);
+	const questions = JSON.parse(row.snapshot_json);
+	return {
+		opened,
+		row,
+		body: {
+			kind: 'check',
+			objectiveId: 'check-v2',
+			attemptId: row.id,
+			solution: Object.fromEntries(questions.map((item) => [item.id, item.correctChoiceId]))
+		}
+	};
+}
+function shiftAnswers(snapshot) {
+	const expected = {
+		field: snapshot.field,
+		validation: 'content',
+		cookies: 'both',
+		identity: 'session',
+		startup: 'load',
+		write: 'durable'
+	};
+	const sequence = [
+		'guard-login',
+		'find-id',
+		'guard-found',
+		'guard-owner-session',
+		'delete-id',
+		'reply-deleted'
+	];
+	return Object.fromEntries(
+		snapshot.incidents
+			.flatMap((item) => item.tasks)
+			.map((task) => [
+				task.id,
+				task.type === 'order'
+					? sequence.map((action) =>
+							Object.keys(task.values).find((id) => task.values[id] === action)
+						)
+					: Object.keys(task.values).find((id) => task.values[id] === expected[task.key])
+			])
+	);
+}
+
+test('lærer: serverrollen følger profilen og kan ikke velges av nettleseren; tilgang sjekkes ved hvert kall', async (t) => {
+	const f = await fixture(t);
+	const student = f.client();
+	await student.request('/api/auth/create', {
+		nickname: 'Lærer',
+		remember: true,
+		role: 'teacher',
+		teacher: true
+	});
+	assert.equal((await student.request('/api/me')).result.user.role, 'student');
+	assert.equal((await student.request('/api/teacher')).status, 403);
+	assert.equal(
+		(
+			await student.request('/api/teacher/openings', {
+				accountId: student.user.id,
+				id: randomUUID(),
+				activityId: 'nattvakt',
+				mode: 'practice',
+				minutes: 60,
+				role: 'teacher'
+			})
+		).status,
+		403
+	);
+	setTeacherRole(f.db, student.user.id, true);
+	assert.equal((await student.request('/api/teacher')).status, 200);
+	const other = f.client();
+	await other.request('/api/auth/key', { key: student.key.key });
+	assert.equal((await other.request('/api/me')).result.user.role, 'teacher');
+	assert.equal(
+		(
+			await student.request(
+				'/api/teacher/openings',
+				{ accountId: student.user.id },
+				{ csrf: false }
+			)
+		).status,
+		403
+	);
+	setTeacherRole(f.db, student.user.id, false);
+	assert.equal((await other.request('/api/teacher')).status, 403);
+	assert.equal((await student.request('/api/me')).result.user.role, 'student');
+});
+
+test('åpninger: tidsgrenser, erstatning, idempotent opprettelse, manuell stenging og historikk styres på serveren', async (t) => {
+	const f = await fixture(t);
+	const teacher = await teacherClient(f);
+	const body = {
+		accountId: teacher.user.id,
+		id: randomUUID(),
+		activityId: 'frontend-backend',
+		mode: 'practice',
+		minutes: 30
+	};
+	assert.equal((await teacher.request('/api/teacher/openings', body)).status, 200);
+	assert.equal((await teacher.request('/api/teacher/openings', body)).status, 200);
+	assert.equal(f.db.prepare('SELECT count(*) AS n FROM activity_openings').get().n, 1);
+	assert.equal(
+		(await teacher.request('/api/teacher/openings', { ...body, minutes: 60 })).status,
+		409
+	);
+	for (const change of [{ activityId: 'missing' }, { mode: 'admin' }, { minutes: 500 }])
+		assert.equal(
+			(await teacher.request('/api/teacher/openings', { ...body, id: randomUUID(), ...change }))
+				.status,
+			400
+		);
+	const next = await openActivity(teacher, 'frontend-backend', 'teaching', 60);
+	const publicOpenings = (await f.client().request('/api/me')).result.openings;
+	assert.equal(publicOpenings.length, 1);
+	assert.equal(publicOpenings[0].id, next);
+	assert.equal(Object.hasOwn(publicOpenings[0], 'created_by'), false);
+	await teacher.request(`/api/teacher/openings/${next}/close`, { accountId: teacher.user.id });
+	await teacher.request(`/api/teacher/openings/${next}/close`, { accountId: teacher.user.id });
+	assert.equal((await teacher.request('/api/me')).result.openings.length, 0);
+	const timed = await openActivity(teacher, 'sessions');
+	f.advance(30 * 60000);
+	assert.equal((await teacher.request('/api/me')).result.openings.length, 0);
+	assert.equal(
+		(await teacher.request('/api/teacher')).result.openings.find((item) => item.id === timed)
+			.closedAt,
+		null
+	);
+});
+
+test('øving: lærer kan teste fagsjekker, gjennomganger og spill uten XP, achievements eller ordinære forsøk', async (t) => {
+	const f = await fixture(t);
+	const teacher = await teacherClient(f);
+	const quiz = await practiceQuiz(f, teacher);
+	const passed = await practiceEvent(teacher, 'frontend-backend', quiz.body);
+	assert.equal(passed.result.passed, true);
+	assert.equal(passed.result.newRewards.length, 0);
+	assert.equal(
+		passed.result.activity.objectives.find((item) => item.kind === 'check').assessment.completed,
+		true
+	);
+	const newQuiz = await practiceQuiz(f, teacher, 'frontend-backend', true);
+	assert.notEqual(newQuiz.row.id, quiz.row.id);
+	assert.equal(
+		(
+			await teacher.event({
+				...review,
+				kind: 'check',
+				objectiveId: 'check-v2',
+				attemptId: newQuiz.row.id,
+				solution: newQuiz.body.solution
+			})
+		).result.error.code,
+		'ASSESSMENT_UNKNOWN'
+	);
+	assert.equal((await practiceEvent(teacher, 'frontend-backend', review)).result.passed, true);
+	assert.equal(
+		(
+			await practiceEvent(teacher, 'redd-chatten', {
+				kind: 'attempt',
+				objectiveId: 'sletting',
+				solution: solutions['redd-chatten'].sletting
+			})
+		).result.passed,
+		true
+	);
+	for (const table of [
+		'progress',
+		'rewards',
+		'achievements',
+		'receipts',
+		'checkpoint_attempts',
+		'timed_attempts'
+	])
+		assert.equal(f.db.prepare(`SELECT count(*) AS n FROM ${table}`).get().n, 0, table);
+	assert.equal((await teacher.request('/api/me')).result.summary.xp, 0);
+	assert.equal(
+		(await teacher.request('/api/learning/redd-chatten?mode=practice')).result.activity.completed,
+		1
+	);
+});
+
+test('åpen øving: bare riktig aktivitet åpnes; sluttførte forsøk kan leses etter stenging uten å starte nye', async (t) => {
+	const f = await fixture(t);
+	const teacher = await teacherClient(f);
+	const student = f.client();
+	await student.create();
+	assert.equal(
+		(
+			await student.request('/api/practice/frontend-backend/checkpoints/open', {
+				accountId: student.user.id,
+				objectiveId: 'check-v2'
+			})
+		).status,
+		403
+	);
+	const id = await openActivity(teacher, 'frontend-backend');
+	const quiz = await practiceQuiz(f, student);
+	assert.equal(
+		(
+			await student.request('/api/practice/sessions/checkpoints/open', {
+				accountId: student.user.id,
+				objectiveId: 'check-v2'
+			})
+		).status,
+		403
+	);
+	await teacher.request(`/api/teacher/openings/${id}/close`, { accountId: teacher.user.id });
+	assert.equal((await practiceEvent(student, 'frontend-backend', quiz.body)).result.passed, true);
+	assert.equal(
+		(
+			await student.request('/api/practice/frontend-backend/checkpoints/open', {
+				accountId: student.user.id,
+				objectiveId: 'check-v2',
+				reset: true
+			})
+		).status,
+		403
+	);
+	const other = f.client();
+	await other.create();
+	assert.equal((await practiceEvent(other, 'frontend-backend', quiz.body)).status, 404);
+	assert.equal((await student.request('/api/me')).result.summary.xp, 0);
+});
+
+test('øvingsvakt: ingen forkunnskapskrav eller døgnsgrense, lærer kan teste uten frist og ordinær vakt forblir separat', async (t) => {
+	const f = await fixture(t);
+	const teacher = await teacherClient(f);
+	const started = await teacher.request('/api/practice/nattvakt/timed/start', {
+		accountId: teacher.user.id,
+		startId: randomUUID(),
+		untimed: true
+	});
+	assert.equal(started.status, 200);
+	assert.equal(started.result.state.active.deadlineAt, null);
+	const id = started.result.state.active.id;
+	const row = f.db.prepare('SELECT * FROM practice_runs WHERE id=?').get(id);
+	const answers = shiftAnswers(JSON.parse(row.snapshot_json));
+	f.advance(86400000);
+	assert.equal((await teacher.request('/api/practice/nattvakt/timed')).result.state.active.id, id);
+	assert.equal(
+		(
+			await teacher.event({
+				kind: 'timed',
+				activityId: 'nattvakt',
+				objectiveId: 'shift-v1',
+				attemptId: id,
+				answers
+			})
+		).status,
+		404
+	);
+	const passed = await practiceEvent(teacher, 'nattvakt', {
+		kind: 'timed',
+		objectiveId: 'shift-v1',
+		attemptId: id,
+		answers
+	});
+	assert.equal(passed.result.passed, true);
+	assert.equal((await teacher.request('/api/me')).result.summary.xp, 0);
+	const again = await teacher.request('/api/practice/nattvakt/timed/start', {
+		accountId: teacher.user.id,
+		startId: randomUUID()
+	});
+	assert.notEqual(again.result.state.active.id, id);
+	assert.equal(again.result.state.active.deadlineAt - again.result.state.active.startedAt, 480000);
+	assert.equal(f.db.prepare('SELECT count(*) AS n FROM timed_attempts').get().n, 0);
+	const student = f.client();
+	await student.create();
+	await openActivity(teacher, 'nattvakt');
+	assert.equal(
+		(
+			await student.request('/api/practice/nattvakt/timed/start', {
+				accountId: student.user.id,
+				startId: randomUUID(),
+				untimed: true
+			})
+		).status,
+		403
+	);
+	const regularPractice = await student.request('/api/practice/nattvakt/timed/start', {
+		accountId: student.user.id,
+		startId: randomUUID()
+	});
+	assert.equal(
+		regularPractice.result.state.active.deadlineAt - regularPractice.result.state.active.startedAt,
+		480000
+	);
+});
+
+test('undervisningssjekk: ett ekstra forsøk også under ordinær ventetid; feil kan ikke prøves om med ny hendelses-ID', async (t) => {
+	const f = await fixture(t);
+	const teacher = await teacherClient(f);
+	const student = f.client();
+	await student.create();
+	await student.event(review);
+	const ordinary = await openQuiz(f, student);
+	const question = ordinary.questions[0];
+	await student.event({
+		...ordinary.body,
+		solution: {
+			...ordinary.body.solution,
+			[question.id]: question.choices.find((item) => item.id !== question.correctChoiceId).id
+		}
+	});
+	const openingId = await openActivity(teacher, 'frontend-backend', 'teaching');
+	const opened = await student.request('/api/checkpoints/open', {
+		accountId: student.user.id,
+		activityId: 'frontend-backend',
+		objectiveId: 'check-v2',
+		openingId
+	});
+	assert.equal(opened.status, 200);
+	const attempt = f.db
+		.prepare('SELECT * FROM checkpoint_attempts WHERE id=?')
+		.get(opened.result.assessment.id);
+	assert.equal(attempt.opening_id, openingId);
+	const questions = JSON.parse(attempt.questions_json);
+	const answers = Object.fromEntries(
+		questions.map((item) => [
+			item.id,
+			item.choices.find((choice) => choice.id !== item.correctChoiceId).id
+		])
+	);
+	const body = {
+		kind: 'check',
+		activityId: 'frontend-backend',
+		objectiveId: 'check-v2',
+		attemptId: attempt.id,
+		solution: answers
+	};
+	assert.equal((await student.event(body)).result.passed, false);
+	assert.equal(
+		(
+			await student.request('/api/checkpoints/open', {
+				accountId: student.user.id,
+				activityId: 'frontend-backend',
+				objectiveId: 'check-v2',
+				openingId
+			})
+		).result.error.code,
+		'OPENING_USED'
+	);
+	assert.equal(
+		(
+			await student.event({
+				...body,
+				solution: Object.fromEntries(questions.map((item) => [item.id, item.correctChoiceId]))
+			})
+		).result.error.code,
+		'ASSESSMENT_ALREADY_SUBMITTED'
+	);
+	assert.equal(
+		(
+			await student.request('/api/checkpoints/open', {
+				accountId: student.user.id,
+				activityId: 'frontend-backend',
+				objectiveId: 'check-v2'
+			})
+		).status,
+		429
+	);
+	assert.equal((await student.request('/api/me')).result.summary.xp, 0);
+});
+
+test('undervisningsåpning: fagsjekk kan bestås uten forkunnskaper; allerede opptjent XP gis ikke igjen', async (t) => {
+	const f = await fixture(t);
+	const teacher = await teacherClient(f);
+	const student = f.client();
+	await student.create();
+	async function complete(openingId) {
+		const opened = await student.request('/api/checkpoints/open', {
+			accountId: student.user.id,
+			activityId: 'sessions',
+			objectiveId: 'check-v2',
+			openingId
+		});
+		assert.equal(opened.status, 200);
+		const row = f.db
+			.prepare('SELECT * FROM checkpoint_attempts WHERE id=?')
+			.get(opened.result.assessment.id);
+		const questions = JSON.parse(row.questions_json);
+		return student.event({
+			kind: 'check',
+			activityId: 'sessions',
+			objectiveId: 'check-v2',
+			attemptId: row.id,
+			solution: Object.fromEntries(questions.map((item) => [item.id, item.correctChoiceId]))
+		});
+	}
+	const first = await complete(await openActivity(teacher, 'sessions', 'teaching'));
+	assert.equal(first.result.summary.xp, 10);
+	const second = await complete(await openActivity(teacher, 'sessions', 'teaching'));
+	assert.equal(second.result.passed, true);
+	assert.equal(second.result.summary.xp, 10);
+	assert.equal(second.result.newRewards.length, 0);
+});
+
+test('undervisningsvakt: åpning gir ett forsøk uten forkunnskaper; frist og XP-validering beholdes etter stenging', async (t) => {
+	const f = await fixture(t);
+	const teacher = await teacherClient(f);
+	const student = f.client();
+	await student.create();
+	const openingId = await openActivity(teacher, 'nattvakt', 'teaching');
+	f.advance(29 * 60000);
+	const started = await student.request('/api/timed/nattvakt/start', {
+		accountId: student.user.id,
+		startId: randomUUID(),
+		openingId
+	});
+	assert.equal(started.status, 200);
+	const row = f.db
+		.prepare('SELECT * FROM timed_attempts WHERE id=?')
+		.get(started.result.state.active.id);
+	assert.equal(row.opening_id, openingId);
+	assert.equal(row.deadline_at - row.started_at, 480000);
+	f.advance(2 * 60000); // The opening closes, but the issued attempt still has six minutes.
+	assert.equal(
+		(await student.request(`/api/timed/nattvakt?openingId=${openingId}`)).result.state.active.id,
+		row.id
+	);
+	const answers = shiftAnswers(JSON.parse(row.scenario_json));
+	const passed = await student.event({
+		kind: 'timed',
+		activityId: 'nattvakt',
+		objectiveId: 'shift-v1',
+		attemptId: row.id,
+		answers
+	});
+	assert.equal(passed.result.passed, true);
+	assert.equal(passed.result.summary.xp, 50);
+	assert.equal(
+		(
+			await student.request('/api/timed/nattvakt/start', {
+				accountId: student.user.id,
+				startId: randomUUID(),
+				openingId
+			})
+		).result.error.code,
+		'OPENING_USED'
+	);
+	const other = f.client();
+	await other.create();
+	assert.equal(
+		(
+			await other.request('/api/timed/nattvakt/start', {
+				accountId: other.user.id,
+				startId: randomUUID(),
+				openingId
+			})
+		).result.error.code,
+		'OPENING_CLOSED'
+	);
+	assert.equal((await student.request('/api/timed/nattvakt')).result.state.attempts, 0);
+});
+
+test('lærerdata: migrasjon fra versjon 4 bevarer vanlige forsøk, og øvingsdata og roller følger backup og sletting', async (t) => {
+	const f = await fixture(t, { persistent: true });
+	const teacher = await teacherClient(f);
+	await practiceQuiz(f, teacher);
+	const backup = join(f.dir, 'teacher-backup.sqlite');
+	backupDatabase(f.filename, backup);
+	const restored = openDatabase(backup);
+	try {
+		assert.equal(
+			restored.prepare('SELECT role FROM user_roles WHERE user_id=?').get(teacher.user.id).role,
+			'teacher'
+		);
+		assert.equal(restored.prepare('SELECT count(*) AS n FROM practice_runs').get().n, 1);
+	} finally {
+		restored.close();
+	}
+	await teacher.request('/api/me/delete', { confirm: 'SLETT' });
+	assert.equal(f.db.prepare('SELECT count(*) AS n FROM user_roles').get().n, 0);
+	assert.equal(f.db.prepare('SELECT count(*) AS n FROM practice_runs').get().n, 0);
+	const path = join(f.dir, 'version4.sqlite');
+	const old = historicalDatabase(path, 4);
+	const id = randomUUID();
+	old.prepare('INSERT INTO users VALUES (?,?,?)').run(id, 'Gammel elev', Date.now());
+	old
+		.prepare(
+			"INSERT INTO checkpoint_attempts(id,user_id,activity_id,objective_id,sequence,issued_at,questions_json) VALUES (?,?,?,? ,1,?, '[]')"
+		)
+		.run(randomUUID(), id, 'sessions', 'check-v2', Date.now());
+	old.close();
+	const upgraded = openDatabase(path);
+	try {
+		assert.equal(
+			upgraded.prepare('SELECT opening_id FROM checkpoint_attempts').get().opening_id,
+			null
+		);
+		assert.equal(upgraded.prepare('SELECT count(*) AS n FROM migrations').get().n, 5);
+	} finally {
+		upgraded.close();
+	}
+});
+
+test('lærerkommando: ekte serverkommando gir og fjerner rollen, og nekter en manglende database', async (t) => {
+	const f = await fixture(t, { persistent: true });
+	const user = f.client();
+	await user.create();
+	const command = (action, path = f.filename) =>
+		spawnSync(process.execPath, ['server/teacher.js', action, user.user.id], {
+			cwd: new URL('..', import.meta.url),
+			env: { ...process.env, ITLAB_DB_PATH: path },
+			encoding: 'utf8',
+			timeout: 10000
+		});
+	assert.equal(command('grant').status, 0);
+	assert.equal((await user.request('/api/me')).result.user.role, 'teacher');
+	assert.equal(command('revoke').status, 0);
+	assert.equal((await user.request('/api/me')).result.user.role, 'student');
+	const missing = join(f.dir, 'must-not-create.sqlite');
+	assert.equal(command('grant', missing).status, 1);
+	assert.equal(existsSync(missing), false);
+});
+
+test('øving: kvitteringer er idempotente, og feil før commit ruller tilbake øvingsresultatet', async (t) => {
+	const f = await fixture(t);
+	const teacher = await teacherClient(f);
+	const run = await practiceQuiz(f, teacher);
+	const { submitPractice } = await import('../server/practice.js');
+	const body = {
+		...run.body,
+		activityId: 'frontend-backend',
+		eventId: randomUUID(),
+		version: 2,
+		accountId: teacher.user.id,
+		mode: 'practice'
+	};
+	f.db.exec(
+		"CREATE TRIGGER fail_practice_receipt BEFORE INSERT ON practice_receipts BEGIN SELECT RAISE(ABORT, 'rollback practice'); END"
+	);
+	assert.throws(
+		() => submitPractice(f.db, teacher.user.id, 'frontend-backend', body),
+		/rollback practice/
+	);
+	assert.equal(f.db.prepare('SELECT status FROM practice_runs').get().status, 'active');
+	assert.equal(f.db.prepare('SELECT count(*) AS n FROM practice_progress').get().n, 0);
+	f.db.exec('DROP TRIGGER fail_practice_receipt');
+	const result = submitPractice(f.db, teacher.user.id, 'frontend-backend', body);
+	assert.equal(result.passed, true);
+	assert.equal(submitPractice(f.db, teacher.user.id, 'frontend-backend', body).duplicate, true);
+	assert.equal(f.db.prepare('SELECT count(*) AS n FROM practice_receipts').get().n, 1);
+	assert.equal(f.db.prepare('SELECT count(*) AS n FROM receipts').get().n, 0);
+	assert.equal(summary(f.db, teacher.user.id).xp, 0);
 });

@@ -1,7 +1,7 @@
 <script>
 	import ThemeToggle from '#lib/components/ThemeToggle.svelte';
 	import AccountLink from '#lib/components/AccountLink.svelte';
-	import { lab as account, saveAttempt } from '#lib/lab.js';
+	import { activityLab as account, learningContext, saveAttempt } from '#lib/lab.js';
 	import { onMount } from 'svelte';
 	import DetectiveCode from '#lib/components/DetectiveCode.svelte';
 	import DetectiveEvidence from '#lib/components/DetectiveEvidence.svelte';
@@ -108,7 +108,9 @@
 
 	let restoredUser = $state('');
 	$effect(() => {
-		const userId = $account.user?.id;
+		const userId = $account.user
+			? `${$account.user.id}:${$learningContext.mode}:${$learningContext.openingId}`
+			: '';
 		const saved = $account.summary?.progress.find((item) => item.id === 'meldingsdetektiven');
 		if (!userId) {
 			restoredUser = '';
@@ -126,10 +128,13 @@
 				const solution = saved.objectives.find((objective) => objective.id === item.id)?.solution;
 				return solution && !Array.isArray(solution) ? { ...solution } : initialSettings(item.id);
 			});
-			unlocked = Math.min(
-				CASES.length - 1,
-				Math.max(0, ...earned.map((value, index) => (value ? index + 1 : 0)))
-			);
+			unlocked =
+				$learningContext.mode !== 'normal'
+					? CASES.length - 1
+					: Math.min(
+							CASES.length - 1,
+							Math.max(0, ...earned.map((value, index) => (value ? index + 1 : 0)))
+						);
 			const requested = CASES.findIndex(
 				(item) => item.id === new URL(window.location.href).searchParams.get('oppdrag')
 			);

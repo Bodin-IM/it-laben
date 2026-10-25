@@ -1,7 +1,7 @@
 <script>
 	import ThemeToggle from '#lib/components/ThemeToggle.svelte';
 	import AccountLink from '#lib/components/AccountLink.svelte';
-	import { lab as account, saveAttempt } from '#lib/lab.js';
+	import { activityLab as account, learningContext, saveAttempt } from '#lib/lab.js';
 	import { onMount, onDestroy } from 'svelte';
 	import InteractiveCode from '#lib/components/InteractiveCode.svelte';
 	import ChatGameBoard from '#lib/components/ChatGameBoard.svelte';
@@ -90,7 +90,9 @@
 	let restoredUser = $state('');
 	const savedProgress = $derived($account.summary?.progress.find((item) => item.id === 'chat'));
 	$effect(() => {
-		const userId = $account.user?.id;
+		const userId = $account.user
+			? `${$account.user.id}:${$learningContext.mode}:${$learningContext.openingId}`
+			: '';
 		if (!userId) {
 			restoredUser = '';
 			return;
@@ -101,10 +103,13 @@
 			completed = LEVELS.map((item) =>
 				Boolean(savedProgress.objectives.find((objective) => objective.id === item.id)?.completedAt)
 			);
-			unlocked = Math.min(
-				LEVELS.length - 1,
-				Math.max(0, ...completed.map((value, index) => (value ? index + 1 : 0)))
-			);
+			unlocked =
+				$learningContext.mode !== 'normal'
+					? LEVELS.length - 1
+					: Math.min(
+							LEVELS.length - 1,
+							Math.max(0, ...completed.map((value, index) => (value ? index + 1 : 0)))
+						);
 			const requested = LEVELS.findIndex(
 				(item) => item.id === new URL(window.location.href).searchParams.get('oppdrag')
 			);
@@ -336,10 +341,13 @@
 		completed = LEVELS.map(
 			(_, index) => completed[index] || Boolean(savedProgress?.objectives[index]?.completedAt)
 		);
-		unlocked = Math.min(
-			LEVELS.length - 1,
-			Math.max(0, ...completed.map((value, index) => (value ? index + 1 : 0)))
-		);
+		unlocked =
+			$learningContext.mode !== 'normal'
+				? LEVELS.length - 1
+				: Math.min(
+						LEVELS.length - 1,
+						Math.max(0, ...completed.map((value, index) => (value ? index + 1 : 0)))
+					);
 		changeLevel(0);
 	}
 

@@ -17,11 +17,12 @@ Fagspor, ni merker, fagsjekker med døgnsgrense, labkort og lydeffekter er beskr
 - De tre ordinære spillene kontrolleres på serveren med de eksisterende simuleringsmodellene. Hvert oppdrag gir 25 XP og et ferdig spill gir 25 ekstra, frigjort etter at alle oppdragene og spillets fagsjekk er bestått. Ingen fri elevkode kjøres.
 - 13 fagsjekker med to varierte spørsmål, begge riktige for å bestå. Ett innsendt forsøk per fagsjekk per 24 timer, håndhevet på serveren per konto. Oppdatering og ny pålogging nullstiller ikke grensen.
 - [Nattevakten](nattvakt.md): åtte minutter, fire reparasjoner, ett forsøk per 24 timer, serverstyrt frist, lagrede utkast, hendelsesrapport og 50 XP første gang.
+- Lærerpanel med «Test selv», egne øvingsforsøk uten XP og tidsbegrensede åpninger for alle. Undervisningsåpninger gir ett ekstra kontrollert forsøk uten å doble allerede opptjent XP.
 - Progresjon og innsendte spillvalg gjenopprettes. Et bestått oppdrag beholdes selv om neste forsøk feiler.
 - Innsendinger som venter på nett lagres lokalt per konto, med et tak på 100. Nøkler og påloggingshemmeligheter lagres aldri i localStorage. Dersom lokal lagring er sperret, må fanen holdes åpen til synkronisering er ferdig.
 - Sletting av konto fjerner også økter, nøkler, poeng og progresjon fra aktiv database. Eldre sikkerhetskopier følger serverens sletterutine/retensjon.
 
-Passkeys, skolepålogging, læreroversikt og offentlig poengtavle er ikke med i denne versjonen.
+[Lærerpanelet](laererpanel.md) lar lærere teste innhold og åpne aktiviteter for alle. Lærerrollen gis én gang fra serveren med eksisterende profil-ID. Passkeys, skolepålogging, klasseadministrasjon og offentlig poengtavle er ikke med i denne versjonen.
 
 ## Kjør lokalt
 
