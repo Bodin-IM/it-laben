@@ -8,8 +8,8 @@ export const rewardPolicy = {
 };
 
 /** @typedef {'reviewed'|'checked'|'passed'} Evidence */
-/** @typedef {{id:string,title:string,kind:string,evidence:Evidence,required:boolean,points:number,completedAt:number|null,updatedAt:number|null,solution:string[]|Record<string,string>|null}} ObjectiveProgress */
-/** @typedef {{id:string,title:string,href:string,subject:string,format:string,completionEvidence:Evidence,status:string,completed:number,total:number,checksCompleted:number,checksTotal:number,objectives:ObjectiveProgress[]}} ActivityProgress */
+/** @typedef {{id:string,title:string,kind:string,evidence:Evidence,required:boolean,points:number,completedAt:number|null,updatedAt:number|null,solution:string[]|Record<string,string>|null,assessment?:import('./assessmentPolicy.js').AssessmentState}} ObjectiveProgress */
+/** @typedef {{id:string,title:string,href:string,subject:string,format:string,completionEvidence:Evidence,status:string,completed:number,total:number,checksCompleted:number,checksTotal:number,creditEligible:boolean,pendingXp:number,objectives:ObjectiveProgress[]}} ActivityProgress */
 /** @typedef {{type:'activity',activityId:string}|{type:'objective',activityId:string,objectiveId:string}|{type:'count',scope:'activities'|'objectives',target:number,subject?:string,format?:string,evidence?:Evidence}|{type:'all',goals:Goal[]}} Goal */
 /** @typedef {{id:string,title:string,href:string,subject:string,evidence:Evidence,completed:boolean,completedAt:number|null}} Requirement */
 /** @typedef {{completed:number,total:number,requirements:Requirement[],next:Requirement|null}} GoalProgress */
@@ -120,7 +120,7 @@ export const trackDefinitions = [
 			type: 'all',
 			goals: [
 				{ type: 'activity', activityId: 'frontend-backend' },
-				{ type: 'objective', activityId: 'frontend-backend', objectiveId: 'check-v1' },
+				{ type: 'objective', activityId: 'frontend-backend', objectiveId: 'check-v2' },
 				{ type: 'activity', activityId: 'chat' },
 				{ type: 'objective', activityId: 'meldingsdetektiven', objectiveId: 'kontrakt' },
 				{ type: 'objective', activityId: 'meldingsdetektiven', objectiveId: 'visning' }
@@ -137,9 +137,9 @@ export const trackDefinitions = [
 			type: 'all',
 			goals: [
 				{ type: 'activity', activityId: 'fillagring' },
-				{ type: 'objective', activityId: 'fillagring', objectiveId: 'check-v1' },
+				{ type: 'objective', activityId: 'fillagring', objectiveId: 'check-v2' },
 				{ type: 'activity', activityId: 'oving-5' },
-				{ type: 'objective', activityId: 'oving-5', objectiveId: 'check-v1' },
+				{ type: 'objective', activityId: 'oving-5', objectiveId: 'check-v2' },
 				{ type: 'activity', activityId: 'oving-6' },
 				{ type: 'activity', activityId: 'oving-7' },
 				{ type: 'objective', activityId: 'redd-chatten', objectiveId: 'tekst' },
@@ -157,7 +157,7 @@ export const trackDefinitions = [
 			type: 'all',
 			goals: [
 				{ type: 'activity', activityId: 'sessions' },
-				{ type: 'objective', activityId: 'sessions', objectiveId: 'check-v1' },
+				{ type: 'objective', activityId: 'sessions', objectiveId: 'check-v2' },
 				{ type: 'activity', activityId: 'oving-8' },
 				{ type: 'activity', activityId: 'oving-9' },
 				{ type: 'activity', activityId: 'chatrom' },
@@ -177,7 +177,7 @@ export const trackDefinitions = [
 			type: 'all',
 			goals: [
 				{ type: 'activity', activityId: 'oving-10' },
-				{ type: 'objective', activityId: 'oving-10', objectiveId: 'check-v1' }
+				{ type: 'objective', activityId: 'oving-10', objectiveId: 'check-v2' }
 			]
 		}
 	}
@@ -322,6 +322,13 @@ export function nearestAchievement(achievements, subject = 'alle') {
 /** @param {ActivityProgress[]} progress @param {string} subject @returns {Requirement|null} */
 export function nextActivity(progress, subject = 'alle') {
 	const candidates = progress.filter((item) => subject === 'alle' || item.subject === subject);
+	// Finish the understanding check before moving to another activity.
+	for (const activity of candidates) {
+		const check = activity.objectives.find(
+			(item) => item.kind === 'check' && item.completedAt === null && item.assessment?.canStart
+		);
+		if (check) return requirement(activity, check);
+	}
 	const started = candidates
 		.filter((item) => item.status === 'started')
 		.sort(

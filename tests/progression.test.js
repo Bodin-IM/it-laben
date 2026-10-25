@@ -54,7 +54,7 @@ test('tillegg av fagsjekker trekker ikke tilbake en gjennomgått leksjon', () =>
 	assert.equal(session.total, 1);
 	assert.equal(session.checksCompleted, 0);
 	assert.equal(
-		evaluateGoal({ type: 'objective', activityId: 'sessions', objectiveId: 'check-v1' }, progress)
+		evaluateGoal({ type: 'objective', activityId: 'sessions', objectiveId: 'check-v2' }, progress)
 			.completed,
 		0
 	);
@@ -208,7 +208,7 @@ test('nye validatorer kan ikke godkjenne oppgaver ved å returnere et objekt ell
 
 test('siste fagsteg og fagsjekk får riktige fortsett-lenker, og en ferdig samling har ingen neste oppgave', () => {
 	const onlyLesson = snapshot(['sessions:review']).filter((item) => item.id === 'sessions');
-	assert.equal(nextActivity(onlyLesson).href, '/sessions/#fagsjekk-check-v1');
+	assert.equal(nextActivity(onlyLesson).href, '/sessions/#fagsjekk-check-v2');
 	const everything = catalog.flatMap((item) =>
 		item.objectives.map((objective) => `${item.id}:${objective.id}`)
 	);
@@ -240,4 +240,16 @@ test('samlede feiringer viser ett nivåskifte og teller ikke samme kvittering el
 	assert.equal(queued.kind, 'xp');
 	assert.equal(queued.live, false);
 	assert.match(queued.message, /synkronisert/);
+});
+
+test('fortsett-forslaget prioriterer en tilgjengelig fagsjekk og foreslår annet arbeid under ventetiden', () => {
+	const progress = snapshot(['frontend-backend:review']);
+	const check = progress
+		.find((item) => item.id === 'frontend-backend')
+		.objectives.find((item) => item.kind === 'check');
+	check.assessment = { canStart: true };
+	assert.equal(nextActivity(progress).id, 'frontend-backend:check-v2');
+	check.assessment.canStart = false;
+	assert.notEqual(nextActivity(progress).id, 'frontend-backend:check-v2');
+	assert.equal(nextActivity(progress, 'drift').id, 'oving-10:review');
 });

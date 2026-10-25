@@ -6,6 +6,8 @@ import { randomBytes, randomUUID, randomInt, createHash, timingSafeEqual } from 
 import { transaction } from './database.js';
 import { summary, submit, reconcileAchievements } from './progress.js';
 import { labColors } from '../src/lib/progression.js';
+import { catalog } from './catalog.js';
+import { openCheckpoint } from './checkpoints.js';
 
 const DAY = 86400000;
 const hash = (value) => createHash('sha256').update(value).digest('hex');
@@ -91,6 +93,7 @@ export function createApp({ db, config, clock = Date.now, limits = true }) {
 		app.use('/api/auth/create', limit(60 * 60000, 200));
 		app.use('/api/auth/key', limit(15 * 60000, 120));
 		app.use('/api/progress', limit(60000, 600));
+		app.use('/api/checkpoints', limit(60000, 600));
 	}
 	const authenticated = (req, res, next) => {
 		if (!req.labUser) return fail(res, 401, 'LOGIN_REQUIRED', 'Logg inn for å lagre fremgangen.');
@@ -143,7 +146,7 @@ export function createApp({ db, config, clock = Date.now, limits = true }) {
 		return {
 			user,
 			csrfToken: session.csrf,
-			summary: summary(db, user.id),
+			summary: summary(db, user.id, clock()),
 			development: !config.secure
 		};
 	}
@@ -229,7 +232,7 @@ export function createApp({ db, config, clock = Date.now, limits = true }) {
 		res.json(me({ ...req.labUser, nickname: name }, req.labSession));
 	});
 	app.post('/api/me/lab', authenticated, (req, res) => {
-		const current = summary(db, req.labUser.id);
+		const current = summary(db, req.labUser.id, clock());
 		const color = labColors.find((item) => item.id === req.body.colorId);
 		if (
 			!color ||
@@ -256,6 +259,14 @@ export function createApp({ db, config, clock = Date.now, limits = true }) {
 		res.clearCookie(config.cookieName, cookieOptions);
 		res.json({ ok: true });
 	});
+	app.post('/api/checkpoints/open', authenticated, (req, res) => {
+		if (req.body.accountId !== req.labUser.id)
+			return fail(res, 409, 'ACCOUNT_CHANGED', 'En annen profil er pålogget. Oppdater siden.');
+		const activity = catalog.find((item) => item.id === req.body.activityId);
+		if (!activity) throw new TypeError('Ukjent aktivitet.');
+		const result = openCheckpoint(db, req.labUser.id, activity, req.body.objectiveId, clock());
+		res.json({ ...result, summary: summary(db, req.labUser.id, clock()) });
+	});
 	app.post('/api/progress', authenticated, (req, res) => {
 		if (req.body.accountId !== req.labUser.id)
 			return fail(res, 409, 'ACCOUNT_CHANGED', 'En annen profil er pålogget. Oppdater siden.');
@@ -269,6 +280,13 @@ export function createApp({ db, config, clock = Date.now, limits = true }) {
 			return fail(res, 400, 'INVALID_JSON', 'Ugyldig JSON.');
 		if (error.code === 'CONTENT_VERSION' || error.code === 'EVENT_CONFLICT')
 			return fail(res, 409, error.code, error.message);
+		if (error.code === 'CHECKPOINT_COOLDOWN' || error.code?.startsWith('ASSESSMENT_')) {
+			if (error.retryAt)
+				res.set('Retry-After', String(Math.max(1, Math.ceil((error.retryAt - clock()) / 1000))));
+			return res
+				.status(error.status)
+				.json({ error: { code: error.code, message: error.message, retryAt: error.retryAt } });
+		}
 		if (error instanceof TypeError || error instanceof RangeError)
 			return fail(res, 400, 'INVALID_INPUT', error.message);
 		// Never log request bodies: account creation and login contain recovery credentials.

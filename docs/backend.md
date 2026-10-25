@@ -4,7 +4,7 @@ Arbeidet ligger på branchen `backend`. Dagens `main` og publiseringstimer er ue
 
 [Se forhåndsvisning av Min lab med en eksempelprofil](backend-preview.png).
 
-Fagspor, åtte merker, valgfrie fagsjekker, labkort og lydeffekter er beskrevet i [veiledningen for progresjon](progresjon.md). Den viser også hvordan nye leksjoner, spill, praktiske aktiviteter og driftsinnhold legges til.
+Fagspor, åtte merker, fagsjekker med døgnsgrense, labkort og lydeffekter er beskrevet i [veiledningen for progresjon](progresjon.md). Den viser også hvordan nye leksjoner, spill, praktiske aktiviteter og driftsinnhold legges til.
 
 ## Dette er med
 
@@ -13,8 +13,9 @@ Fagspor, åtte merker, valgfrie fagsjekker, labkort og lydeffekter er beskrevet 
 - Nedlastbar nøkkelfil. Samme fil kan brukes på flere enheter fram til den erstattes.
 - Ny nøkkel sperrer den gamle og logger ut andre enheter. Nåværende enhet får en ny økt.
 - Min lab med XP, nivåer, achievements, fagfilter og fortsett-lenker.
-- Alle dagens leksjoner kan markeres som gjennomgått (15 XP én gang). Dette er egenrapportert gjennomgang, ikke en fagprøve.
-- Alle tre spill kontrolleres på serveren med de eksisterende simuleringsmodellene. Hvert oppdrag gir 25 XP og et ferdig spill gir 25 ekstra. Ingen fri elevkode kjøres.
+- Alle dagens leksjoner kan markeres som gjennomgått. De 15 XP frigjøres først ved bestått fagsjekk, som gir 10 XP ekstra. Gjennomgangen er egenrapportert.
+- Alle tre spill kontrolleres på serveren med de eksisterende simuleringsmodellene. Hvert oppdrag gir 25 XP og et ferdig spill gir 25 ekstra, frigjort etter at alle oppdragene og spillets fagsjekk er bestått. Ingen fri elevkode kjøres.
+- 13 fagsjekker med to varierte spørsmål, begge riktige for å bestå. Ett innsendt forsøk per fagsjekk per 24 timer, håndhevet på serveren per konto. Oppdatering og ny pålogging nullstiller ikke grensen.
 - Progresjon og innsendte spillvalg gjenopprettes. Et bestått oppdrag beholdes selv om neste forsøk feiler.
 - Innsendinger som venter på nett lagres lokalt per konto, med et tak på 100. Nøkler og påloggingshemmeligheter lagres aldri i localStorage. Dersom lokal lagring er sperret, må fanen holdes åpen til synkronisering er ferdig.
 - Sletting av konto fjerner også økter, nøkler, poeng og progresjon fra aktiv database. Eldre sikkerhetskopier følger serverens sletterutine/retensjon.
@@ -51,24 +52,25 @@ Backendtestene kontrollerer blant annet nøkkelgjenoppretting, lagring av nøkke
 
 API-et bruker samme origin som nettstedet, under `/api/`:
 
-| Adresse                     | Bruk                                                                 |
-| --------------------------- | -------------------------------------------------------------------- |
-| `GET /api/health`           | Helsesjekk uten brukerdata                                           |
-| `GET /api/me`               | Profil, CSRF-token og samlet progresjon; `user: null` uten pålogging |
-| `POST /api/auth/create`     | Opprett profil og returner nøkkelfilen én gang                       |
-| `POST /api/auth/key`        | Logg inn med nøkkelfilens hemmelighet                                |
-| `POST /api/auth/logout`     | Avslutt gjeldende økt                                                |
-| `POST /api/auth/rotate-key` | Erstatt nøkkelfil og andre pålogginger                               |
-| `POST /api/me/nickname`     | Endre kallenavn                                                      |
-| `POST /api/me/lab`          | Lagre labfarge og et opptjent merke på labkortet                     |
-| `POST /api/me/delete`       | Slett konto med eksplisitt bekreftelse                               |
-| `POST /api/progress`        | Gjennomgang, fagsjekk eller kontroll av en spill-/aktivitetsløsning  |
+| Adresse                      | Bruk                                                                 |
+| ---------------------------- | -------------------------------------------------------------------- |
+| `GET /api/health`            | Helsesjekk uten brukerdata                                           |
+| `GET /api/me`                | Profil, CSRF-token og samlet progresjon; `user: null` uten pålogging |
+| `POST /api/auth/create`      | Opprett profil og returner nøkkelfilen én gang                       |
+| `POST /api/auth/key`         | Logg inn med nøkkelfilens hemmelighet                                |
+| `POST /api/auth/logout`      | Avslutt gjeldende økt                                                |
+| `POST /api/auth/rotate-key`  | Erstatt nøkkelfil og andre pålogginger                               |
+| `POST /api/me/nickname`      | Endre kallenavn                                                      |
+| `POST /api/me/lab`           | Lagre labfarge og et opptjent merke på labkortet                     |
+| `POST /api/me/delete`        | Slett konto med eksplisitt bekreftelse                               |
+| `POST /api/checkpoints/open` | Åpne/gjenoppta samme serverutstedte fagsjekkforsøk                   |
+| `POST /api/progress`         | Gjennomgang, fagsjekk eller kontroll av en spill-/aktivitetsløsning  |
 
 Alle skrivekall krever riktig `Origin` og JSON. Påloggede skrivekall krever dessuten øktens `X-CSRF-Token`. Progresjonskall må ha samme konto-ID som økten. Brukeren bestemmes alltid av den servervaliderte cookien. API-et tillater ikke CORS fra andre nettsteder.
 
 Session og gjenopprettingsnøkkel er separate tilfeldige hemmeligheter på 256 bit. Databasen lagrer SHA-256-verifikatorer, ikke de rå hemmelighetene. Cookie er HttpOnly, SameSite=Lax og Secure i produksjon, med `__Host-`-prefiks. Ved husket pålogging er tomgangsgrensen 30 dager og absoluttgrensen 180 dager. Midlertidige økter har 30 minutters tomgang og maksimalt 8 timer. Utløp håndheves på serveren.
 
-Innholds-ID-ene i `src/lib/innhold.js` beholdes selv om en adresse eller tittel endres. Nytt innhold og belønningsregler registreres i `server/catalog.js`. `CONTENT_VERSION` endres når innsendinger krever et nytt format. Backend avviser ukjente aktiviteter, oppdrag, løsninger og versjoner. Backend bestemmer XP og achievements. En unik belønningsnøkkel per konto/mål forhindrer gjentatte poeng også med en ny hendelses-ID. Poeng, progresjon og kvittering skrives i én transaksjon.
+Innholds-ID-ene i `src/lib/innhold.js` beholdes selv om en adresse eller tittel endres. Nytt innhold og belønningsregler registreres i `server/catalog.js`. `CONTENT_VERSION` endres når innsendinger krever et nytt format. Backend avviser ukjente aktiviteter, oppdrag, løsninger og versjoner. Backend bestemmer XP og achievements. En unik belønningsnøkkel per konto/mål forhindrer gjentatte poeng også med en ny hendelses-ID. Forsøk, poeng, progresjon og kvittering skrives i én transaksjon. Fagsjekker bruker innsendingversjon 2, med `attemptId` og `solution` som kart fra utstedt spørsmåls-ID til utstedt alternativ-ID. Forsøksgrenser og XP beregnes fra serverdata. Se progresjonsveiledningen for oppgraderingsregler og spørsmålsbanker.
 
 Migrasjoner ligger i `server/migrations/` og kjøres ved oppstart. Anvendte migrasjoner er sjekksumbeskyttet: opprett en ny migrasjon i stedet for å redigere den gamle. Tilbakeføring må bruke en API-versjon som forstår aktivt skjema.
 

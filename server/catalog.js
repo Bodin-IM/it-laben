@@ -4,10 +4,10 @@ import { rewardPolicy, achievementDefinitions, trackDefinitions } from '../src/l
 import { MISSIONS, evaluateProgram } from '../src/lib/reddChatten.js';
 import { CASES, verifyCase } from '../src/lib/meldingsdetektiven.js';
 import { LEVELS, planAttempt } from '../src/lib/chatSpill.js';
-import { validateCheckpoint } from './checkpoints.js';
+import { gradeCheckpoint } from './checkpoints.js';
 
-// Additive objectives do not change the submission wire format.
-export const CONTENT_VERSION = 1;
+// Version 2 requires a server-issued assessment before checkpoint submission.
+export const CONTENT_VERSION = 2;
 export { achievementDefinitions, trackDefinitions, rewardPolicy };
 
 function orderedChoices(solution) {
@@ -129,13 +129,6 @@ export function buildCatalog(
 	for (const question of questions) {
 		if (!ids.has(question.activityId))
 			throw new Error(`Fagsjekken peker på en ukjent aktivitet: ${question.activityId}`);
-		if (
-			question.choices.length < 2 ||
-			new Set(question.choices.map((item) => item.id)).size !== question.choices.length
-		)
-			throw new Error(
-				`Fagsjekken ${question.activityId}:${question.id} har ugyldige svaralternativer.`
-			);
 	}
 	return result;
 }
@@ -199,10 +192,12 @@ export function validateProgressionDefinitions(activities, achievements, tracks,
 
 validateProgressionDefinitions(catalog, achievementDefinitions, trackDefinitions);
 
-export function checkSubmission(body) {
+export function checkSubmission(body, { db, userId, now }) {
 	if (!body || typeof body !== 'object' || Array.isArray(body))
 		throw new TypeError('Ugyldig innsending.');
-	if (body.version !== CONTENT_VERSION) {
+	// Preserve queued work from the previous frontend; old checkpoint submissions cannot bypass v2.
+	const compatibleWork = body.version === 1 && ['start', 'review', 'attempt'].includes(body.kind);
+	if (body.version !== CONTENT_VERSION && !compatibleWork) {
 		const error = new Error('Oppgaven er oppdatert. Last siden på nytt og prøv igjen.');
 		error.code = 'CONTENT_VERSION';
 		throw error;
@@ -219,9 +214,28 @@ export function checkSubmission(body) {
 		if (body.confirmed !== true) throw new TypeError('Bekreft at du har gjennomgått leksjonen.');
 		return { activity, objective, passed: true, solution: null };
 	}
-	const passed =
-		objective.kind === 'check'
-			? validateCheckpoint(activity.id, objective.id, body.solution)
-			: validateChallenge(challengeAdapters[activity.adapter], objective.id, body.solution);
-	return { activity, objective, passed, solution: body.solution };
+	if (objective.kind === 'check') {
+		const graded = gradeCheckpoint(
+			db,
+			userId,
+			activity,
+			objective.id,
+			body.attemptId,
+			body.solution,
+			now
+		);
+		return {
+			activity,
+			objective,
+			passed: graded.passed,
+			solution: null,
+			assessmentResult: graded.result
+		};
+	}
+	return {
+		activity,
+		objective,
+		passed: validateChallenge(challengeAdapters[activity.adapter], objective.id, body.solution),
+		solution: body.solution
+	};
 }

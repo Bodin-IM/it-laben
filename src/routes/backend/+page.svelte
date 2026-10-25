@@ -767,6 +767,7 @@
 	.proveverdier,
 	.getverdier {
 		display: flex;
+		flex-wrap: wrap;
 		align-items: center;
 		gap: 18px;
 		padding: 14px 18px;
@@ -807,7 +808,7 @@
 		font-size: var(--font-small);
 	}
 	.proveverdier .meldingsfelt {
-		flex: 1;
+		flex: 1 1 240px;
 	}
 	.meldingsfelt input {
 		width: 100%;

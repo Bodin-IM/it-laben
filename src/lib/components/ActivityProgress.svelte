@@ -4,7 +4,6 @@
 	import { lab, reviewLesson, startLesson, refreshLab } from '#lib/lab.js';
 	import { checkpointsFor } from '#lib/checkpoints.js';
 	import Checkpoint from '#lib/components/Checkpoint.svelte';
-	import { rewardPolicy } from '#lib/progression.js';
 	const activity = $derived(aktiviteter.find((item) => item.href === page.url.pathname));
 	const progress = $derived($lab.summary?.progress.find((item) => item.id === activity?.id));
 	const questions = $derived(activity ? checkpointsFor(activity.id) : []);
@@ -41,7 +40,7 @@
 				<a class="action" href="/min-lab/">Start min lab →</a>
 			{:else if activity.tracking.kind === 'review'}<p>
 					Marker leksjonen som gjennomgått når du har prøvd forsøkene og lest forklaringene. Dette
-					er din egen gjennomgang.
+					er din egen gjennomgang. XP får du når du også har bestått fagsjekken nedenfor.
 				</p>
 				<button
 					class="action"
@@ -52,14 +51,17 @@
 						? '✓ Gjennomgått'
 						: $lab.pendingReviews.includes(activity.id)
 							? 'Venter på lagring …'
-							: `Jeg har gjennomgått dette · ${rewardPolicy.reviewed} XP`}</button
+							: 'Jeg har gjennomgått dette'}</button
 				>
 			{:else}<p>
-					{progress?.completed ?? 0} av {progress?.total ?? 0} oppdrag bestått og lagret. Poengene bekreftes
-					når serveren har kontrollert løsningen.
+					{progress?.completed ?? 0} av {progress?.total ?? 0} oppdrag bestått og lagret. Du kan øve så
+					mye du vil. XP får du når alle oppdragene og spillets fagsjekk er bestått.
 				</p>
 				<a href="/min-lab/">Se progresjonen din →</a>{/if}
 		</div>
+		{#if progress?.pendingXp}<p class="sync">
+				{progress.pendingXp} XP venter på bestått fagsjekk. Arbeidet ditt er lagret.
+			</p>{/if}
 		{#if $lab.user && $lab.pending}<p class="sync" role="status">
 				{$lab.pending}
 				{$lab.pending === 1 ? 'forsøk venter' : 'forsøk venter'} på lagring.

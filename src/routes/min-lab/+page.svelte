@@ -240,8 +240,9 @@
 						>publiserte aktiviteter gjennomgått eller bestått</span
 					>
 					<p class="small">
-						{rewardPolicy.reviewed} XP for egen gjennomgang · {rewardPolicy.checked} XP for en bestått
-						fagsjekk · {rewardPolicy.passed} XP for et bestått spilloppdrag.
+						{rewardPolicy.reviewed} XP for gjennomgang · {rewardPolicy.passed} XP per spilloppdrag. Poengene
+						frigjøres når aktivitetens fagsjekk er bestått, med {rewardPolicy.checked} XP ekstra. Ett
+						innsendt forsøk per fagsjekk per 24 timer. Du kan lese og øve så mye du vil.
 					</p>
 				</div>
 			</section>
@@ -287,6 +288,8 @@
 								class:done={['passed', 'reviewed'].includes(activity.status)}
 								>{statusText(activity)}{#if activity.checksCompleted}<small>
 										· {activity.checksCompleted}/{activity.checksTotal} fagsjekker bestått</small
+									>{/if}{#if activity.pendingXp}<small>
+										· {activity.pendingXp} XP venter på fagsjekk</small
 									>{/if}</span
 							><span class="row-arrow" aria-hidden="true">→</span></a
 						>{/each}

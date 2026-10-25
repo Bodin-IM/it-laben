@@ -10,7 +10,7 @@ import { openDatabase } from '../server/database.js';
 import { createApp } from '../server/app.js';
 import { readConfig } from '../server/config.js';
 import { backupDatabase } from '../server/backup.js';
-import { reconcileAchievements, summary } from '../server/progress.js';
+import { reconcileAchievements, summary, submit } from '../server/progress.js';
 
 const solutions = {
 	'redd-chatten': {
@@ -88,7 +88,7 @@ async function fixture(t, { persistent = false, secure = false, limits = false }
 			async event(body) {
 				return this.request('/api/progress', {
 					eventId: randomUUID(),
-					version: 1,
+					version: 2,
 					accountId: this.user?.id ?? 'anonymous',
 					...body
 				});
@@ -106,6 +106,33 @@ async function fixture(t, { persistent = false, secure = false, limits = false }
 			now += ms;
 		}
 	};
+}
+
+async function openQuiz(f, client, activityId = 'frontend-backend') {
+	const opened = await client.request('/api/checkpoints/open', {
+		accountId: client.user.id,
+		activityId,
+		objectiveId: 'check-v2'
+	});
+	assert.equal(opened.status, 200, JSON.stringify(opened.result));
+	const assessment = opened.result.assessment;
+	const row = f.db.prepare('SELECT * FROM checkpoint_attempts WHERE id=?').get(assessment.id);
+	const questions = JSON.parse(row.questions_json);
+	const solution = Object.fromEntries(questions.map((item) => [item.id, item.correctChoiceId]));
+	return {
+		opened,
+		assessment,
+		row,
+		questions,
+		body: { kind: 'check', activityId, objectiveId: 'check-v2', attemptId: assessment.id, solution }
+	};
+}
+async function passQuiz(f, client, activityId = 'frontend-backend') {
+	const { body } = await openQuiz(f, client, activityId);
+	const response = await client.event(body);
+	assert.equal(response.status, 200, JSON.stringify(response.result));
+	assert.equal(response.result.passed, true);
+	return response;
 }
 
 const review = {
@@ -134,7 +161,7 @@ test('konto: kun nøkkelhash på serveren, beskyttet cookie og gjenbrukbar innlo
 	assert.equal((await c.request('/api/auth/key', { key: a.key.key })).status, 200);
 });
 
-test('progresjon: start gir ingen XP; belønning gis én gang, også med nye hendelses-ID-er', async (t) => {
+test('progresjon: klikk gir ingen XP; bestått fagsjekk frigjør poengene én gang', async (t) => {
 	const f = await fixture(t);
 	const a = f.client();
 	await a.create();
@@ -146,21 +173,29 @@ test('progresjon: start gir ingen XP; belønning gis én gang, også med nye hen
 	);
 	const body = {
 		eventId: randomUUID(),
-		version: 1,
+		version: 2,
 		accountId: a.user.id,
 		...review,
 		points: 999999
 	};
 	const first = await a.request('/api/progress', body);
-	assert.equal(first.result.summary.xp, 15);
-	assert.equal(first.result.newRewards.length, 1);
+	assert.equal(first.result.summary.xp, 0);
+	assert.equal(first.result.newRewards.length, 0);
+	assert.equal(
+		first.result.summary.progress.find((item) => item.id === review.activityId).pendingXp,
+		15
+	);
 	const duplicate = await a.request('/api/progress', body);
 	assert.equal(duplicate.result.duplicate, true);
-	assert.equal(duplicate.result.summary.xp, 15);
+	assert.equal(duplicate.result.summary.xp, 0);
 	assert.equal((await a.request('/api/progress', { ...body, activityId: 'sessions' })).status, 409);
 	const parallel = await Promise.all(Array.from({ length: 8 }, () => a.event(review)));
-	assert.ok(parallel.every((r) => r.result.summary.xp === 15));
-	assert.equal(f.db.prepare('SELECT count(*) AS n FROM rewards').get().n, 1);
+	assert.ok(parallel.every((r) => r.result.summary.xp === 0));
+	const passed = await passQuiz(f, a);
+	assert.equal(passed.result.summary.xp, 25);
+	assert.equal(passed.result.newRewards.length, 2);
+	assert.equal((await a.event(review)).result.summary.xp, 25);
+	assert.equal(f.db.prepare('SELECT count(*) AS n FROM rewards').get().n, 2);
 	assert.equal(f.db.prepare('SELECT count(*) AS n FROM achievements').get().n, 1);
 });
 
@@ -202,6 +237,7 @@ test('ny nøkkel sperrer gammel fil og andre økter, men beholder fremgangen', a
 	const a = f.client();
 	await a.create();
 	await a.event(review);
+	await passQuiz(f, a);
 	const oldKey = a.key.key,
 		b = f.client();
 	await b.request('/api/auth/key', { key: oldKey });
@@ -211,7 +247,7 @@ test('ny nøkkel sperrer gammel fil og andre økter, men beholder fremgangen', a
 	const c = f.client();
 	assert.equal((await c.request('/api/auth/key', { key: oldKey })).status, 401);
 	const restored = await c.request('/api/auth/key', { key: rotated.result.recoveryKey.key });
-	assert.equal(restored.result.summary.xp, 15);
+	assert.equal(restored.result.summary.xp, 25);
 	assert.equal((await a.request('/api/me')).result.user.id, c.user.id);
 });
 
@@ -226,8 +262,11 @@ test('serveren kontrollerer alle tre spill, bonus og achievements; nullstilling 
 			assert.equal(result.status, 200, JSON.stringify(result.result));
 			assert.equal(result.result.passed, true, `${activityId}/${objectiveId}`);
 		}
+		const before = (await a.request('/api/me')).result.summary;
+		assert.equal(before.progress.find((item) => item.id === activityId).creditEligible, false);
+		result = await passQuiz(f, a, activityId);
 	}
-	assert.equal(result.result.summary.xp, 325);
+	assert.equal(result.result.summary.xp, 355);
 	assert.equal(result.result.summary.achievements.filter((a) => a.earnedAt !== null).length, 6);
 	const failed = await a.event({
 		kind: 'attempt',
@@ -238,7 +277,7 @@ test('serveren kontrollerer alle tre spill, bonus og achievements; nullstilling 
 		points: 99999
 	});
 	assert.equal(failed.result.passed, false);
-	assert.equal(failed.result.summary.xp, 325);
+	assert.equal(failed.result.summary.xp, 355);
 	assert.equal(
 		failed.result.summary.progress.find((p) => p.id === 'redd-chatten').status,
 		'passed'
@@ -246,6 +285,9 @@ test('serveren kontrollerer alle tre spill, bonus og achievements; nullstilling 
 	await a.event(review);
 	result = await a.event({ ...review, activityId: 'oving-10' });
 	assert.equal(result.result.summary.xp, 355);
+	await passQuiz(f, a);
+	result = await passQuiz(f, a, 'oving-10');
+	assert.equal(result.result.summary.xp, 405);
 	assert.equal(result.result.summary.achievements.filter((a) => a.earnedAt !== null).length, 8);
 });
 
@@ -299,12 +341,14 @@ test('backup av aktiv database bevarer konto, økt, poeng og progresjon', async 
 			.status,
 		200
 	);
+	await passQuiz(f, a);
 	const backup = join(f.dir, 'backup.sqlite');
 	backupDatabase(f.filename, backup);
 	const restored = openDatabase(backup);
 	try {
 		assert.equal(restored.prepare('SELECT count(*) AS n FROM users').get().n, 1);
-		assert.equal(restored.prepare('SELECT sum(points) AS xp FROM rewards').get().xp, 15);
+		assert.equal(restored.prepare('SELECT sum(points) AS xp FROM rewards').get().xp, 25);
+		assert.equal(restored.prepare('SELECT count(*) AS n FROM checkpoint_attempts').get().n, 1);
 		assert.equal(restored.prepare('SELECT count(*) AS n FROM sessions').get().n, 1);
 		assert.ok(restored.prepare('SELECT completed_at FROM progress').get().completed_at);
 		assert.equal(restored.prepare('SELECT color_id FROM lab_profiles').get().color_id, 'ocean');
@@ -313,7 +357,7 @@ test('backup av aktiv database bevarer konto, økt, poeng og progresjon', async 
 		restored.close();
 	}
 	const restarted = openDatabase(f.filename);
-	assert.equal(restarted.prepare('SELECT count(*) AS n FROM migrations').get().n, 2);
+	assert.equal(restarted.prepare('SELECT count(*) AS n FROM migrations').get().n, 3);
 	restarted.close();
 });
 
@@ -323,6 +367,7 @@ test('sletting fjerner hele profilen og gjør nøkkelfilen ubrukelig', async (t)
 	await a.create();
 	await a.event(review);
 	await a.request('/api/me/lab', { colorId: 'ocean', featuredAchievementId: 'first-review' });
+	await passQuiz(f, a);
 	const key = a.key.key;
 	assert.equal((await a.request('/api/me/delete', { confirm: 'wrong' })).status, 400);
 	assert.equal((await a.request('/api/me/delete', { confirm: 'SLETT' })).status, 200);
@@ -334,7 +379,8 @@ test('sletting fjerner hele profilen og gjør nøkkelfilen ubrukelig', async (t)
 		'rewards',
 		'achievements',
 		'receipts',
-		'lab_profiles'
+		'lab_profiles',
+		'checkpoint_attempts'
 	])
 		assert.equal(f.db.prepare(`SELECT count(*) AS n FROM ${table}`).get().n, 0);
 	assert.equal((await f.client().request('/api/auth/key', { key })).status, 401);
@@ -421,39 +467,6 @@ test('API-prosessen feiler tydelig når porten er opptatt', async (t) => {
 	}
 });
 
-test('fagsjekker: serveren kontrollerer valget, beholder gjennomgang og gir bare én belønning', async (t) => {
-	const f = await fixture(t);
-	const a = f.client();
-	await a.create();
-	await a.event(review);
-	const check = { kind: 'check', activityId: 'frontend-backend', objectiveId: 'check-v1' };
-	const wrong = await a.event({
-		...check,
-		solution: { choice: 'wait' },
-		passed: true,
-		points: 99999
-	});
-	assert.equal(wrong.result.passed, false);
-	assert.equal(wrong.result.summary.xp, 15);
-	assert.equal(
-		wrong.result.summary.progress.find((item) => item.id === 'frontend-backend').status,
-		'reviewed'
-	);
-	const right = await a.event({ ...check, solution: { choice: 'fetch' } });
-	assert.equal(right.result.passed, true);
-	assert.equal(right.result.summary.xp, 25);
-	const activity = right.result.summary.progress.find((item) => item.id === 'frontend-backend');
-	assert.equal(activity.checksCompleted, 1);
-	assert.equal(activity.total, 1);
-	assert.equal(right.result.summary.maximumXp, 575);
-	assert.equal((await a.event({ ...check, solution: { choice: 'fetch' } })).result.summary.xp, 25);
-	assert.equal((await a.event({ ...check, solution: { choice: 'unknown' } })).status, 400);
-	assert.equal(
-		(await a.event({ ...check, solution: { choice: 'fetch', points: '999' } })).status,
-		400
-	);
-});
-
 test('labkort: kosmetiske valg krever egne opptjente merker og følger kontoen på en annen enhet', async (t) => {
 	const f = await fixture(t);
 	const a = f.client();
@@ -493,7 +506,7 @@ test('labkort: kosmetiske valg krever egne opptjente merker og følger kontoen p
 	const b = f.client();
 	const other = await b.request('/api/auth/key', { key: a.key.key });
 	assert.equal(other.result.summary.lab.colorId, 'iris');
-	assert.equal(other.result.summary.xp, 50);
+	assert.equal(other.result.summary.xp, 0);
 	const c = f.client();
 	await c.create();
 	assert.equal((await c.request('/api/me')).result.summary.lab.colorId, 'forest');
@@ -526,20 +539,320 @@ test('oppgradering: nye merker etterregistreres for tidligere fullførte oppdrag
 	assert.equal(reconcileAchievements(f.db), 1);
 	assert.equal(reconcileAchievements(f.db), 0);
 	const after = summary(f.db, a.user.id);
-	assert.equal(after.xp, 50);
+	assert.equal(after.xp, 0);
 	assert.equal(
 		after.achievements.find((item) => item.id === 'first-solution').earnedAt,
 		firstBadge
 	);
 	assert.ok(after.achievements.find((item) => item.id === 'session-guard').earnedAt);
 	// Simulate the previous schema and verify the additive migration preserves existing data.
-	f.db.exec("DROP TABLE lab_profiles; DELETE FROM migrations WHERE name='002_lab_profile.sql'");
+	f.db.exec(
+		"DROP TABLE checkpoint_attempts; DROP TABLE lab_profiles; DELETE FROM migrations WHERE name IN ('002_lab_profile.sql','003_checkpoint_attempts.sql')"
+	);
 	const upgraded = openDatabase(f.filename);
 	try {
-		assert.equal(summary(upgraded, a.user.id).xp, 50);
+		assert.equal(summary(upgraded, a.user.id).xp, 0);
 		assert.equal(summary(upgraded, a.user.id).lab.colorId, 'forest');
-		assert.equal(upgraded.prepare('SELECT count(*) AS n FROM migrations').get().n, 2);
+		assert.equal(upgraded.prepare('SELECT count(*) AS n FROM migrations').get().n, 3);
 	} finally {
 		upgraded.close();
 	}
+});
+
+test('fagsjekker: serverutstedt forsøk krever forkunnskap, skjuler fasit og gjenbrukes på tvers av økter', async (t) => {
+	const f = await fixture(t);
+	const a = f.client();
+	await a.create();
+	const openBody = {
+		accountId: a.user.id,
+		activityId: 'frontend-backend',
+		objectiveId: 'check-v2'
+	};
+	assert.equal((await f.client().request('/api/checkpoints/open', openBody)).status, 401);
+	assert.equal((await a.request('/api/checkpoints/open', openBody, { csrf: false })).status, 403);
+	assert.equal(
+		(await a.request('/api/checkpoints/open', openBody, { origin: 'https://evil.test' })).status,
+		403
+	);
+	assert.equal(
+		(await a.request('/api/checkpoints/open', openBody)).result.error.code,
+		'ASSESSMENT_PREREQUISITE'
+	);
+	assert.equal(f.db.prepare('SELECT count(*) AS n FROM checkpoint_attempts').get().n, 0);
+	await a.event(review);
+	const quiz = await openQuiz(f, a);
+	assert.equal(quiz.assessment.questions.length, 2);
+	assert.deepEqual(Object.keys(quiz.assessment.questions[0]).sort(), ['choices', 'id', 'prompt']);
+	assert.deepEqual(Object.keys(quiz.assessment.questions[0].choices[0]).sort(), ['id', 'label']);
+	assert.equal(
+		quiz.opened.result.summary.progress
+			.find((item) => item.id === review.activityId)
+			.objectives.find((item) => item.kind === 'check').assessment.lastResult,
+		null
+	);
+	const b = f.client();
+	await b.request('/api/auth/key', { key: a.key.key, remember: true });
+	const resumed = await b.request('/api/checkpoints/open', openBody);
+	assert.deepEqual(resumed.result.assessment, quiz.assessment);
+	for (const solution of [
+		{},
+		{ choice: 'fetch' },
+		[],
+		{ ...quiz.body.solution, extra: 'x' },
+		Object.fromEntries(quiz.questions.map((item) => [item.id, 'invalid']))
+	])
+		assert.equal((await a.event({ ...quiz.body, solution })).status, 400);
+	assert.equal(
+		f.db.prepare('SELECT submitted_at FROM checkpoint_attempts').get().submitted_at,
+		null
+	);
+	assert.equal(
+		(await a.event({ ...quiz.body, attemptId: randomUUID() })).result.error.code,
+		'ASSESSMENT_UNKNOWN'
+	);
+	const c = f.client();
+	await c.create();
+	assert.equal((await c.event(quiz.body)).result.error.code, 'ASSESSMENT_UNKNOWN');
+	assert.equal(
+		(await c.request('/api/checkpoints/open', openBody)).result.error.code,
+		'ACCOUNT_CHANGED'
+	);
+	assert.equal((await passQuiz(f, b)).result.summary.xp, 25);
+});
+
+test('fagsjekker: 2 av 2 kreves, innsendt forsøk låses i 24 timer og neste forsøk varierer', async (t) => {
+	const f = await fixture(t);
+	const a = f.client();
+	await a.create();
+	await a.event(review);
+	const first = await openQuiz(f, a);
+	const question = first.questions[0];
+	const wrong = {
+		...first.body.solution,
+		[question.id]: question.choices.find((item) => item.id !== question.correctChoiceId).id
+	};
+	const event = { ...first.body, solution: wrong, eventId: randomUUID() };
+	const failed = await a.event(event);
+	assert.equal(failed.status, 200);
+	assert.equal(failed.result.passed, false);
+	assert.equal(failed.result.assessmentResult.score, 1);
+	assert.equal(failed.result.summary.xp, 0);
+	const activity = failed.result.summary.progress.find((item) => item.id === review.activityId);
+	const state = activity.objectives.find((item) => item.kind === 'check').assessment;
+	assert.equal(activity.status, 'reviewed');
+	assert.equal(activity.pendingXp, 15);
+	assert.equal(state.nextAttemptAt - state.lastResult.submittedAt, 86400000);
+	assert.ok(state.lastResult.questions.every((item) => item.explanation && item.correctLabel));
+	assert.equal((await a.event(event)).result.duplicate, true);
+	const newEventSameAttempt = await a.event({ ...event, eventId: randomUUID() });
+	assert.equal(newEventSameAttempt.result.summary.xp, 0);
+	assert.deepEqual(newEventSameAttempt.result.assessmentResult, failed.result.assessmentResult);
+	assert.equal((await a.event(first.body)).result.error.code, 'ASSESSMENT_ALREADY_SUBMITTED');
+	const openBody = { accountId: a.user.id, activityId: review.activityId, objectiveId: 'check-v2' };
+	const blocked = await a.request('/api/checkpoints/open', openBody);
+	assert.equal(blocked.status, 429);
+	assert.equal(blocked.result.error.retryAt, state.nextAttemptAt);
+	assert.equal(blocked.headers.get('Retry-After'), '86400');
+	// A fresh session on another device and another event ID cannot reset the timer.
+	const b = f.client();
+	await b.request('/api/auth/key', { key: a.key.key, remember: true });
+	assert.equal((await b.request('/api/checkpoints/open', openBody)).status, 429);
+	f.advance(86400000 - 1);
+	assert.equal((await b.request('/api/checkpoints/open', openBody)).status, 429);
+	f.advance(1);
+	const second = await openQuiz(f, b);
+	assert.notEqual(second.assessment.id, first.assessment.id);
+	assert.equal(second.assessment.number, 2);
+	assert.ok(
+		second.questions.some(
+			(item) => !first.questions.some((previous) => previous.sourceId === item.sourceId)
+		)
+	);
+	for (const item of second.questions) {
+		const previous = first.questions.find((other) => other.sourceId === item.sourceId);
+		if (previous)
+			assert.notEqual(
+				item.choices.findIndex((choice) => choice.id === item.correctChoiceId),
+				previous.choices.findIndex((choice) => choice.id === previous.correctChoiceId)
+			);
+	}
+	const passed = await b.event(second.body);
+	assert.equal(passed.result.summary.xp, 25);
+	assert.equal(passed.result.newRewards.length, 2);
+	assert.equal(
+		passed.result.summary.progress.find((item) => item.id === review.activityId).pendingXp,
+		0
+	);
+	assert.equal((await b.event(second.body)).result.summary.xp, 25);
+	assert.equal((await b.request('/api/checkpoints/open', openBody)).result.assessment, null);
+	assert.equal(f.db.prepare('SELECT count(*) AS n FROM checkpoint_attempts').get().n, 2);
+});
+
+test('fagsjekker: parallelle leveringer kan ikke prøve flere svar i samme forsøk', async (t) => {
+	const f = await fixture(t);
+	const a = f.client();
+	await a.create();
+	await a.event(review);
+	const quiz = await openQuiz(f, a);
+	const variants = quiz.questions[0].choices.map((choice) => ({
+		...quiz.body,
+		solution: { ...quiz.body.solution, [quiz.questions[0].id]: choice.id }
+	}));
+	const results = await Promise.all(variants.map((body) => a.event(body)));
+	assert.equal(results.filter((item) => item.status === 200).length, 1);
+	assert.equal(
+		results.filter((item) => item.result.error?.code === 'ASSESSMENT_ALREADY_SUBMITTED').length,
+		2
+	);
+	assert.equal(
+		f.db
+			.prepare('SELECT count(*) AS n FROM checkpoint_attempts WHERE submitted_at IS NOT NULL')
+			.get().n,
+		1
+	);
+	const xp = (await a.request('/api/me')).result.summary.xp;
+	assert.ok(xp === 0 || xp === 25);
+});
+
+test('fagsjekker: døgnsgrensen gjelder per aktivitet og konto, og spill krever alle oppdrag før sjekken', async (t) => {
+	const f = await fixture(t);
+	const a = f.client();
+	await a.create();
+	await a.event(review);
+	const quiz = await openQuiz(f, a);
+	const wrong = Object.fromEntries(
+		quiz.questions.map((item) => [
+			item.id,
+			item.choices.find((choice) => choice.id !== item.correctChoiceId).id
+		])
+	);
+	await a.event({ ...quiz.body, solution: wrong });
+	await a.event({ ...review, activityId: 'sessions' });
+	assert.equal((await passQuiz(f, a, 'sessions')).result.summary.xp, 25);
+	const b = f.client();
+	await b.create();
+	await b.event(review);
+	assert.equal((await passQuiz(f, b)).result.summary.xp, 25);
+	const openGame = { accountId: a.user.id, activityId: 'redd-chatten', objectiveId: 'check-v2' };
+	assert.equal(
+		(await a.request('/api/checkpoints/open', openGame)).result.error.code,
+		'ASSESSMENT_PREREQUISITE'
+	);
+	for (const [objectiveId, solution] of Object.entries(solutions['redd-chatten'])) {
+		const saved = await a.event({
+			kind: 'attempt',
+			activityId: 'redd-chatten',
+			objectiveId,
+			solution
+		});
+		assert.equal(saved.result.summary.xp, 25);
+	}
+	const passed = await passQuiz(f, a, 'redd-chatten');
+	assert.equal(passed.result.summary.xp, 135); // 3×25 +25 bonus +10 quiz, plus the other lesson.
+});
+
+test('oppgradering: gamle poeng beholdes, men gamle sjekkformat kan ikke gi nye XP', async (t) => {
+	const f = await fixture(t);
+	const a = f.client();
+	await a.create();
+	await a.event(review);
+	for (const [objectiveId, points] of [
+		['review', 15],
+		['check-v1', 10]
+	]) {
+		f.db
+			.prepare('INSERT INTO rewards VALUES (?,?,?,?,?,?)')
+			.run(
+				randomUUID(),
+				a.user.id,
+				`objective:frontend-backend:${objectiveId}`,
+				points,
+				'Tidligere opptjent',
+				Date.now()
+			);
+	}
+	f.db
+		.prepare('INSERT INTO progress VALUES (?,?,?,?,?,?)')
+		.run(a.user.id, review.activityId, 'check-v1', Date.now(), Date.now(), '{"choice":"fetch"}');
+	const old = (await a.request('/api/me')).result.summary;
+	assert.equal(old.xp, 25);
+	assert.equal(old.maximumXp, 615);
+	assert.equal(
+		(
+			await a.event({
+				kind: 'check',
+				activityId: review.activityId,
+				objectiveId: 'check-v1',
+				solution: { choice: 'fetch' },
+				version: 1
+			})
+		).status,
+		409
+	);
+	assert.equal(
+		(
+			await a.event({
+				kind: 'check',
+				activityId: review.activityId,
+				objectiveId: 'check-v2',
+				solution: { choice: 'fetch' }
+			})
+		).result.error.code,
+		'ASSESSMENT_UNKNOWN'
+	);
+	const passed = await passQuiz(f, a);
+	assert.equal(passed.result.summary.xp, 35);
+	assert.equal(passed.result.newRewards.length, 1);
+	assert.equal(passed.result.summary.maximumXp, 615);
+});
+
+test('fagsjekker: feil før commit ruller tilbake både forsøk, progresjon og XP', async (t) => {
+	const f = await fixture(t);
+	const a = f.client();
+	await a.create();
+	await a.event(review);
+	const quiz = await openQuiz(f, a);
+	f.db.exec(
+		"CREATE TRIGGER receipt_failure BEFORE INSERT ON receipts BEGIN SELECT RAISE(ABORT, 'test transaction rollback'); END"
+	);
+	assert.throws(
+		() =>
+			submit(f.db, a.user.id, {
+				...quiz.body,
+				eventId: randomUUID(),
+				accountId: a.user.id,
+				version: 2
+			}),
+		/test transaction rollback/
+	);
+	assert.equal(
+		f.db.prepare('SELECT submitted_at FROM checkpoint_attempts').get().submitted_at,
+		null
+	);
+	assert.equal(f.db.prepare('SELECT count(*) AS n FROM rewards').get().n, 0);
+	assert.equal(
+		f.db.prepare("SELECT count(*) AS n FROM progress WHERE objective_id='check-v2'").get().n,
+		0
+	);
+	f.db.exec('DROP TRIGGER receipt_failure');
+	assert.equal((await a.event(quiz.body)).result.summary.xp, 25);
+});
+
+test('oppgradering: ventende gjennomganger og spillforsøk fra forrige klient lagres uten å omgå XP-kravet', async (t) => {
+	const f = await fixture(t);
+	const a = f.client();
+	await a.create();
+	const reviewed = await a.event({ ...review, version: 1 });
+	assert.equal(reviewed.status, 200);
+	assert.equal(reviewed.result.summary.xp, 0);
+	const game = await a.event({
+		kind: 'attempt',
+		activityId: 'chat',
+		objectiveId: 'lever',
+		solution: solutions.chat.lever,
+		version: 1
+	});
+	assert.equal(game.result.passed, true);
+	assert.equal(game.result.summary.xp, 0);
+	assert.equal((await passQuiz(f, a)).result.summary.xp, 25);
 });

@@ -12,7 +12,7 @@ import { buildCelebration } from '#lib/celebrations.js';
 /** @typedef {{version:number,xp:number,level:number,nextLevelAt:number,xpPerLevel:number,maximumXp:number,progress:Progress[],achievements:Achievement[],tracks:import('#lib/progression.js').TrackState[],subjects:SubjectProgress[],lab:LabProfile,recentRewards:Reward[]}} Summary */
 /** @typedef {{format:string,version:number,key:string,createdAt:string,site:string}} RecoveryKey */
 /** @typedef {{ready:boolean,available:boolean,user:User|null,csrfToken:string|null,summary:Summary|null,development:boolean,error:string,pending:number,pendingReviews:string[],pendingObjectives:string[],syncing:boolean,storageWarning:boolean}} LabState */
-/** @typedef {{eventId:string,accountId:string,version:number,kind:string,activityId:string,objectiveId:string,confirmed?:boolean,solution?:string[]|Record<string,string>,client?:{at:number,deferred:boolean}}} Event */
+/** @typedef {{eventId:string,accountId:string,version:number,kind:string,activityId:string,objectiveId:string,confirmed?:boolean,attemptId?:string,solution?:string[]|Record<string,string>,client?:{at:number,deferred:boolean}}} Event */
 /** @type {LabState} */
 const initial = {
 	ready: false,
@@ -285,7 +285,7 @@ function enqueue(event) {
 			eventId: randomId(),
 			accountId: current.user.id,
 			client: { at: Date.now(), deferred: !navigator.onLine },
-			version: current.summary?.version ?? 1
+			version: current.summary?.version ?? 2
 		}
 	]);
 	void flushProgress();
@@ -302,9 +302,24 @@ export function reviewLesson(activityId) {
 export function saveAttempt(activityId, objectiveId, solution) {
 	enqueue({ kind: 'attempt', activityId, objectiveId, solution: structuredClone(solution) });
 }
-/** @param {string} activityId @param {string} objectiveId @param {string} choice */
-export function saveCheckpoint(activityId, objectiveId, choice) {
-	enqueue({ kind: 'check', activityId, objectiveId, solution: { choice } });
+/** @param {string} activityId @param {string} objectiveId @returns {Promise<import('./assessmentPolicy.js').Assessment|null>} */
+export async function openCheckpoint(activityId, objectiveId) {
+	const userId = get(state).user?.id;
+	const result = await api('/checkpoints/open', { accountId: userId, activityId, objectiveId });
+	if (get(state).user?.id !== userId) return null;
+	sessionRevision += 1;
+	state.update((value) => ({ ...value, summary: result.summary, error: '', available: true }));
+	return result.assessment;
+}
+/** @param {string} activityId @param {string} objectiveId @param {string} attemptId @param {Record<string,string>} answers */
+export function saveCheckpoint(activityId, objectiveId, attemptId, answers) {
+	enqueue({
+		kind: 'check',
+		activityId,
+		objectiveId,
+		attemptId,
+		solution: { ...answers }
+	});
 }
 
 export async function flushProgress() {
@@ -354,6 +369,19 @@ export async function flushProgress() {
 				if (problem.code === 'CSRF') {
 					void refreshLab();
 					break;
+				}
+				if (
+					problem.code === 'CHECKPOINT_COOLDOWN' ||
+					problem.code.startsWith('ASSESSMENT_') ||
+					problem.code === 'CONTENT_VERSION'
+				) {
+					storeQueue(
+						userId,
+						readQueue(userId).filter((item) => item.eventId !== event.eventId)
+					);
+					// A rejected assessment must not block unrelated progress in the outbox.
+					void refreshLab();
+					continue;
 				}
 				if (
 					problem.status === 403 ||
