@@ -4,7 +4,8 @@ import cookieParser from 'cookie-parser';
 import { rateLimit } from 'express-rate-limit';
 import { randomBytes, randomUUID, randomInt, createHash, timingSafeEqual } from 'node:crypto';
 import { transaction } from './database.js';
-import { summary, submit } from './progress.js';
+import { summary, submit, reconcileAchievements } from './progress.js';
+import { labColors } from '../src/lib/progression.js';
 
 const DAY = 86400000;
 const hash = (value) => createHash('sha256').update(value).digest('hex');
@@ -17,6 +18,7 @@ const matches = (a, b) =>
 	timingSafeEqual(Buffer.from(a), Buffer.from(b));
 
 export function createApp({ db, config, clock = Date.now, limits = true }) {
+	reconcileAchievements(db, clock());
 	const app = express();
 	app.disable('x-powered-by');
 	app.set('trust proxy', 'loopback');
@@ -225,6 +227,27 @@ export function createApp({ db, config, clock = Date.now, limits = true }) {
 		const name = nickname(req.body.nickname);
 		db.prepare('UPDATE users SET nickname=? WHERE id=?').run(name, req.labUser.id);
 		res.json(me({ ...req.labUser, nickname: name }, req.labSession));
+	});
+	app.post('/api/me/lab', authenticated, (req, res) => {
+		const current = summary(db, req.labUser.id);
+		const color = labColors.find((item) => item.id === req.body.colorId);
+		if (
+			!color ||
+			(color.requires &&
+				!current.achievements.some((item) => item.id === color.requires && item.earnedAt !== null))
+		)
+			return fail(res, 400, 'LOCKED_COLOR', 'Velg en labfarge du har låst opp.');
+		const featured = req.body.featuredAchievementId;
+		if (
+			featured !== null &&
+			!current.achievements.some((item) => item.id === featured && item.earnedAt !== null)
+		)
+			return fail(res, 400, 'LOCKED_ACHIEVEMENT', 'Velg et merke du har oppnådd.');
+		db.prepare(
+			`INSERT INTO lab_profiles (user_id,color_id,featured_achievement_id) VALUES (?,?,?)
+			ON CONFLICT(user_id) DO UPDATE SET color_id=excluded.color_id, featured_achievement_id=excluded.featured_achievement_id`
+		).run(req.labUser.id, color.id, featured);
+		res.json(me(req.labUser, req.labSession));
 	});
 	app.post('/api/me/delete', authenticated, (req, res) => {
 		if (req.body.confirm !== 'SLETT')

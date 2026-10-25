@@ -81,6 +81,8 @@ Når vi lager og videreutvikler sider, legger vi vekt på å:
 
 Branchen `backend` har en førsteversjon med brukerprofiler, nøkkelfil, varig progresjon, XP og achievements. Se [backendveiledningen](docs/backend.md) for lokal kjøring, API, sikkerhetsmodell, HTTPS-oppsett og backup. Undervisningssimuleringene er fremdeles separate fra ekte innlogging.
 
+På `backend` finnes også personlig fremdrift på forsiden, fire fagspor, åtte merker, korte fagsjekker og et eget labkort. [Progresjonsveiledningen](docs/progresjon.md) beskriver utvidelse med nye fag, aktiviteter, kontrollregler, merker og oppgavevarianter. Lydeffekter er valgfrie og av som standard.
+
 ## Teknisk oppsett
 
 Prosjektet er bygget med **Svelte 5, SvelteKit 3 og Vite**. Demonstrasjonene simulerer handlinger i nettleseren, så selve IT-laben kan kjøres uten en egen Express-backend eller database. Express-koden på undervisningssidene er eksempler til elevenes egne prosjekter.
@@ -155,8 +157,8 @@ npm run preview
 
 | Fil eller mappe                  | Bruk                                                                          |
 | -------------------------------- | ----------------------------------------------------------------------------- |
-| `src/routes/+page.svelte`        | Forsiden med fagvalg, søk, aktivitetstype og kortvisning.                    |
-| `src/lib/innhold.js`             | Felles fag- og innholdsoversikt for alle leksjoner og spill på forsiden.     |
+| `src/routes/+page.svelte`        | Forsiden med fagvalg, søk, aktivitetstype og kortvisning.                     |
+| `src/lib/innhold.js`             | Felles fag- og innholdsoversikt for alle leksjoner og spill på forsiden.      |
 | `src/routes/<tema>/+page.svelte` | En undervisningsside med egen adresse.                                        |
 | `src/lib/components/`            | Felles kodevisninger og forklaringer ved klikk på kodelinjer.                 |
 | `src/lib/chatromLab.js`          | Rene simuleringssteg og kodeutdrag for chatrom, session-avsender og sletting. |

@@ -1,14 +1,23 @@
 import { randomUUID, createHash } from 'node:crypto';
 import { transaction } from './database.js';
-import { catalog, checkSubmission, achievementDefinitions, CONTENT_VERSION } from './catalog.js';
+import {
+	catalog,
+	checkSubmission,
+	achievementDefinitions,
+	trackDefinitions,
+	rewardPolicy,
+	CONTENT_VERSION
+} from './catalog.js';
+import { evaluateGoal, labColors } from '../src/lib/progression.js';
+import { fag } from '../src/lib/innhold.js';
 
-export function summary(db, userId) {
+export function progressSnapshot(db, userId) {
 	const rows = db.prepare('SELECT * FROM progress WHERE user_id=?').all(userId);
-	const progress = catalog.map((activity) => {
+	const byObjective = new Map(rows.map((row) => [`${row.activity_id}:${row.objective_id}`, row]));
+	const startedActivities = new Set(rows.map((row) => row.activity_id));
+	return catalog.map((activity) => {
 		const objectives = activity.objectives.map((objective) => {
-			const row = rows.find(
-				(value) => value.activity_id === activity.id && value.objective_id === objective.id
-			);
+			const row = byObjective.get(`${activity.id}:${objective.id}`);
 			return {
 				...objective,
 				completedAt: row?.completed_at ?? null,
@@ -16,22 +25,54 @@ export function summary(db, userId) {
 				solution: row?.solution_json ? JSON.parse(row.solution_json) : null
 			};
 		});
-		const completed = objectives.filter((value) => value.completedAt !== null).length;
+		const required = objectives.filter((value) => value.required);
+		const completed = required.filter((value) => value.completedAt !== null).length;
+		const checks = objectives.filter((value) => value.kind === 'check');
 		return {
 			...activity,
 			objectives,
 			completed,
-			total: objectives.length,
+			total: required.length,
+			checksCompleted: checks.filter((value) => value.completedAt !== null).length,
+			checksTotal: checks.length,
 			status:
-				completed === objectives.length
-					? activity.format === 'spill'
-						? 'passed'
-						: 'reviewed'
-					: rows.some((value) => value.activity_id === activity.id)
+				completed === required.length
+					? activity.completionEvidence === 'reviewed'
+						? 'reviewed'
+						: 'passed'
+					: startedActivities.has(activity.id)
 						? 'started'
 						: 'new'
 		};
 	});
+}
+
+function awardAchievements(db, userId, progress, now) {
+	const earned = [];
+	for (const definition of achievementDefinitions) {
+		const goal = evaluateGoal(definition.goal, progress);
+		if (goal.total > 0 && goal.completed === goal.total) {
+			const added = db
+				.prepare('INSERT OR IGNORE INTO achievements VALUES (?,?,?)')
+				.run(userId, definition.id, now);
+			if (Number(added.changes) > 0) earned.push(definition);
+		}
+	}
+	return earned;
+}
+
+/** Reconcile new definitions at startup, including users who finished before an upgrade. */
+export function reconcileAchievements(db, now = Date.now()) {
+	return transaction(db, () => {
+		let added = 0;
+		for (const user of db.prepare('SELECT id FROM users').all())
+			added += awardAchievements(db, user.id, progressSnapshot(db, user.id), now).length;
+		return added;
+	});
+}
+
+export function summary(db, userId) {
+	const progress = progressSnapshot(db, userId);
 	const earned = db.prepare('SELECT * FROM achievements WHERE user_id=?').all(userId);
 	const xp = Number(
 		db.prepare('SELECT COALESCE(SUM(points),0) AS xp FROM rewards WHERE user_id=?').get(userId).xp
@@ -41,16 +82,46 @@ export function summary(db, userId) {
 			'SELECT id, points, title, created_at AS createdAt FROM rewards WHERE user_id=? ORDER BY created_at DESC, rowid DESC LIMIT 20'
 		)
 		.all(userId);
+	const profile = db.prepare('SELECT * FROM lab_profiles WHERE user_id=?').get(userId);
+	const achievements = achievementDefinitions.map((item) => ({
+		...item,
+		...evaluateGoal(item.goal, progress),
+		earnedAt: earned.find((value) => value.achievement_id === item.id)?.earned_at ?? null
+	}));
 	return {
 		version: CONTENT_VERSION,
 		xp,
-		level: Math.floor(xp / 100) + 1,
-		nextLevelAt: (Math.floor(xp / 100) + 1) * 100,
+		level: Math.floor(xp / rewardPolicy.xpPerLevel) + 1,
+		nextLevelAt: (Math.floor(xp / rewardPolicy.xpPerLevel) + 1) * rewardPolicy.xpPerLevel,
+		xpPerLevel: rewardPolicy.xpPerLevel,
+		maximumXp: catalog.reduce(
+			(sum, item) =>
+				sum + item.completionBonus + item.objectives.reduce((n, obj) => n + obj.points, 0),
+			0
+		),
 		progress,
-		achievements: achievementDefinitions.map((item) => ({
-			...item,
-			earnedAt: earned.find((value) => value.achievement_id === item.id)?.earned_at ?? null
-		})),
+		achievements,
+		tracks: trackDefinitions.map((item) => ({ ...item, ...evaluateGoal(item.goal, progress) })),
+		subjects: fag.map((item) => {
+			const activities = progress.filter((value) => value.subject === item.id);
+			return {
+				id: item.id,
+				title: item.navn,
+				total: activities.length,
+				completed: activities.filter((value) => ['reviewed', 'passed'].includes(value.status))
+					.length,
+				checksTotal: activities.reduce((sum, value) => sum + value.checksTotal, 0),
+				checksCompleted: activities.reduce((sum, value) => sum + value.checksCompleted, 0)
+			};
+		}),
+		lab: {
+			colorId: profile?.color_id ?? 'forest',
+			featuredAchievementId: profile?.featured_achievement_id ?? null,
+			colors: labColors.map((item) => ({
+				...item,
+				unlocked: !item.requires || earned.some((badge) => badge.achievement_id === item.requires)
+			}))
+		},
 		recentRewards
 	};
 }
@@ -71,7 +142,7 @@ export function submit(db, userId, body, now = Date.now()) {
 			}
 			return { ...JSON.parse(previous.result_json), duplicate: true, summary: summary(db, userId) };
 		}
-		const { activity, passed, solution } = checkSubmission(body);
+		const { activity, objective, passed, solution } = checkSubmission(body);
 		db.prepare(
 			`INSERT INTO progress (user_id,activity_id,objective_id,completed_at,updated_at,solution_json) VALUES (?,?,?,?,?,?)
       ON CONFLICT(user_id,activity_id,objective_id) DO UPDATE SET
@@ -95,39 +166,16 @@ export function submit(db, userId, body, now = Date.now()) {
 		if (passed)
 			award(
 				`objective:${activity.id}:${body.objectiveId}`,
-				activity.format === 'spill' ? 25 : 15,
-				activity.format === 'spill'
-					? activity.objectives.find((item) => item.id === body.objectiveId).title
-					: activity.title
+				objective.points,
+				objective.kind === 'review' ? activity.title : objective.title
 			);
 		let current = summary(db, userId);
-		const gameComplete = (id) =>
-			current.progress.some((item) => item.id === id && item.status === 'passed');
-		if (activity.format === 'spill' && gameComplete(activity.id))
-			award(`game:${activity.id}:complete`, 25, `${activity.title} fullført`);
-		const eligible = {
-			'first-review': current.progress.some((item) => item.status === 'reviewed'),
-			'first-solution': current.progress.some(
-				(item) => item.format === 'spill' && item.completed > 0
-			),
-			'redd-chatten': gameComplete('redd-chatten'),
-			meldingsdetektiven: gameComplete('meldingsdetektiven'),
-			chat: gameComplete('chat'),
-			'both-subjects': ['utvikling', 'drift'].every((subject) =>
-				current.progress.some(
-					(item) => item.subject === subject && ['passed', 'reviewed'].includes(item.status)
-				)
-			)
-		};
-		const newAchievements = [];
-		for (const definition of achievementDefinitions) {
-			if (eligible[definition.id]) {
-				const added = db
-					.prepare('INSERT OR IGNORE INTO achievements VALUES (?,?,?)')
-					.run(userId, definition.id, now);
-				if (Number(added.changes) > 0) newAchievements.push(definition);
-			}
-		}
+		if (
+			activity.completionBonus &&
+			current.progress.some((item) => item.id === activity.id && item.status === 'passed')
+		)
+			award(`game:${activity.id}:complete`, activity.completionBonus, `${activity.title} fullført`);
+		const newAchievements = awardAchievements(db, userId, current.progress, now);
 		const receipt = { passed, newRewards, newAchievements };
 		db.prepare('INSERT INTO receipts VALUES (?,?,?,?,?)').run(
 			userId,

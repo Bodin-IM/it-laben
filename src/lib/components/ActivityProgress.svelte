@@ -2,13 +2,17 @@
 	import { page } from '$app/state';
 	import { aktiviteter } from '#lib/innhold.js';
 	import { lab, reviewLesson, startLesson, refreshLab } from '#lib/lab.js';
+	import { checkpointsFor } from '#lib/checkpoints.js';
+	import Checkpoint from '#lib/components/Checkpoint.svelte';
+	import { rewardPolicy } from '#lib/progression.js';
 	const activity = $derived(aktiviteter.find((item) => item.href === page.url.pathname));
 	const progress = $derived($lab.summary?.progress.find((item) => item.id === activity?.id));
+	const questions = $derived(activity ? checkpointsFor(activity.id) : []);
 	let startedFor = $state('');
 	$effect(() => {
 		const key = `${$lab.user?.id}:${activity?.id}`;
 		if (
-			activity?.format === 'leksjon' &&
+			activity?.tracking.kind === 'review' &&
 			$lab.user &&
 			progress?.status === 'new' &&
 			startedFor !== key
@@ -27,7 +31,7 @@
 			<h2>
 				{completed
 					? 'Dette har du fullført'
-					: activity.format === 'spill'
+					: activity.tracking.kind !== 'review'
 						? 'Ta vare på løsningene dine'
 						: 'Ferdig med gjennomgangen?'}
 			</h2>
@@ -35,7 +39,7 @@
 					Start Min lab for å lagre fremgang, samle XP og ta med profilen til en annen PC.
 				</p>
 				<a class="action" href="/min-lab/">Start min lab →</a>
-			{:else if activity.format === 'leksjon'}<p>
+			{:else if activity.tracking.kind === 'review'}<p>
 					Marker leksjonen som gjennomgått når du har prøvd forsøkene og lest forklaringene. Dette
 					er din egen gjennomgang.
 				</p>
@@ -48,7 +52,7 @@
 						? '✓ Gjennomgått'
 						: $lab.pendingReviews.includes(activity.id)
 							? 'Venter på lagring …'
-							: 'Jeg har gjennomgått dette · 15 XP'}</button
+							: `Jeg har gjennomgått dette · ${rewardPolicy.reviewed} XP`}</button
 				>
 			{:else}<p>
 					{progress?.completed ?? 0} av {progress?.total ?? 0} oppdrag bestått og lagret. Poengene bekreftes
@@ -66,9 +70,18 @@
 				Nettleseren tillater ikke lokal lagring. Hold fanen åpen til fremgangen er synkronisert.
 			</p>{/if}
 	</section>
+	{#if questions.length}<div class="checkpoints">
+			{#each questions as question (question.id)}<Checkpoint {question} />{/each}
+		</div>{/if}
 {/if}
 
 <style>
+	.checkpoints {
+		width: min(1120px, calc(100% - 40px));
+		margin: 0 auto 36px;
+		display: grid;
+		gap: 16px;
+	}
 	.activity-progress {
 		box-sizing: border-box;
 		width: min(1120px, calc(100% - 40px));

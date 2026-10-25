@@ -1221,6 +1221,7 @@
 	}
 	.tallpar {
 		display: flex;
+		flex-wrap: wrap;
 		align-items: center;
 		gap: 11px;
 		font-size: var(--font-meta);

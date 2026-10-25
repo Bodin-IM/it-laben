@@ -1,5 +1,6 @@
 <script>
 	import { lab } from '#lib/lab.js';
+	import AnimatedNumber from '#lib/components/AnimatedNumber.svelte';
 </script>
 
 <a href="/min-lab/" class="account-link">
@@ -7,7 +8,9 @@
 		><circle cx="12" cy="8" r="3.5" /><path d="M5 21v-2a7 7 0 0 1 14 0v2" /></svg
 	>
 	<span>Min lab</span>
-	{#if $lab.user && $lab.summary}<span class="xp">{$lab.summary.xp} XP</span>{/if}
+	{#if $lab.user && $lab.summary}<span class="xp"
+			><AnimatedNumber value={$lab.summary.xp} /> XP</span
+		>{/if}
 	{#if $lab.pending}<span
 			class="pending"
 			title="Fremgang venter på lagring"

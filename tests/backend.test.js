@@ -10,6 +10,7 @@ import { openDatabase } from '../server/database.js';
 import { createApp } from '../server/app.js';
 import { readConfig } from '../server/config.js';
 import { backupDatabase } from '../server/backup.js';
+import { reconcileAchievements, summary } from '../server/progress.js';
 
 const solutions = {
 	'redd-chatten': {
@@ -227,7 +228,7 @@ test('serveren kontrollerer alle tre spill, bonus og achievements; nullstilling 
 		}
 	}
 	assert.equal(result.result.summary.xp, 325);
-	assert.equal(result.result.summary.achievements.filter((a) => a.earnedAt !== null).length, 4);
+	assert.equal(result.result.summary.achievements.filter((a) => a.earnedAt !== null).length, 6);
 	const failed = await a.event({
 		kind: 'attempt',
 		activityId: 'redd-chatten',
@@ -245,7 +246,7 @@ test('serveren kontrollerer alle tre spill, bonus og achievements; nullstilling 
 	await a.event(review);
 	result = await a.event({ ...review, activityId: 'oving-10' });
 	assert.equal(result.result.summary.xp, 355);
-	assert.equal(result.result.summary.achievements.filter((a) => a.earnedAt !== null).length, 6);
+	assert.equal(result.result.summary.achievements.filter((a) => a.earnedAt !== null).length, 8);
 });
 
 test('ugyldige løsninger og innholdsversjoner kan ikke gi poeng', async (t) => {
@@ -293,6 +294,11 @@ test('backup av aktiv database bevarer konto, økt, poeng og progresjon', async 
 	const a = f.client();
 	await a.create();
 	await a.event(review);
+	assert.equal(
+		(await a.request('/api/me/lab', { colorId: 'ocean', featuredAchievementId: 'first-review' }))
+			.status,
+		200
+	);
 	const backup = join(f.dir, 'backup.sqlite');
 	backupDatabase(f.filename, backup);
 	const restored = openDatabase(backup);
@@ -301,12 +307,13 @@ test('backup av aktiv database bevarer konto, økt, poeng og progresjon', async 
 		assert.equal(restored.prepare('SELECT sum(points) AS xp FROM rewards').get().xp, 15);
 		assert.equal(restored.prepare('SELECT count(*) AS n FROM sessions').get().n, 1);
 		assert.ok(restored.prepare('SELECT completed_at FROM progress').get().completed_at);
+		assert.equal(restored.prepare('SELECT color_id FROM lab_profiles').get().color_id, 'ocean');
 		assert.throws(() => backupDatabase(f.filename, backup));
 	} finally {
 		restored.close();
 	}
 	const restarted = openDatabase(f.filename);
-	assert.equal(restarted.prepare('SELECT count(*) AS n FROM migrations').get().n, 1);
+	assert.equal(restarted.prepare('SELECT count(*) AS n FROM migrations').get().n, 2);
 	restarted.close();
 });
 
@@ -315,6 +322,7 @@ test('sletting fjerner hele profilen og gjør nøkkelfilen ubrukelig', async (t)
 	const a = f.client();
 	await a.create();
 	await a.event(review);
+	await a.request('/api/me/lab', { colorId: 'ocean', featuredAchievementId: 'first-review' });
 	const key = a.key.key;
 	assert.equal((await a.request('/api/me/delete', { confirm: 'wrong' })).status, 400);
 	assert.equal((await a.request('/api/me/delete', { confirm: 'SLETT' })).status, 200);
@@ -325,7 +333,8 @@ test('sletting fjerner hele profilen og gjør nøkkelfilen ubrukelig', async (t)
 		'progress',
 		'rewards',
 		'achievements',
-		'receipts'
+		'receipts',
+		'lab_profiles'
 	])
 		assert.equal(f.db.prepare(`SELECT count(*) AS n FROM ${table}`).get().n, 0);
 	assert.equal((await f.client().request('/api/auth/key', { key })).status, 401);
@@ -409,5 +418,128 @@ test('API-prosessen feiler tydelig når porten er opptatt', async (t) => {
 		assert.doesNotMatch(output, /API klar/);
 	} finally {
 		clearTimeout(timeout);
+	}
+});
+
+test('fagsjekker: serveren kontrollerer valget, beholder gjennomgang og gir bare én belønning', async (t) => {
+	const f = await fixture(t);
+	const a = f.client();
+	await a.create();
+	await a.event(review);
+	const check = { kind: 'check', activityId: 'frontend-backend', objectiveId: 'check-v1' };
+	const wrong = await a.event({
+		...check,
+		solution: { choice: 'wait' },
+		passed: true,
+		points: 99999
+	});
+	assert.equal(wrong.result.passed, false);
+	assert.equal(wrong.result.summary.xp, 15);
+	assert.equal(
+		wrong.result.summary.progress.find((item) => item.id === 'frontend-backend').status,
+		'reviewed'
+	);
+	const right = await a.event({ ...check, solution: { choice: 'fetch' } });
+	assert.equal(right.result.passed, true);
+	assert.equal(right.result.summary.xp, 25);
+	const activity = right.result.summary.progress.find((item) => item.id === 'frontend-backend');
+	assert.equal(activity.checksCompleted, 1);
+	assert.equal(activity.total, 1);
+	assert.equal(right.result.summary.maximumXp, 575);
+	assert.equal((await a.event({ ...check, solution: { choice: 'fetch' } })).result.summary.xp, 25);
+	assert.equal((await a.event({ ...check, solution: { choice: 'unknown' } })).status, 400);
+	assert.equal(
+		(await a.event({ ...check, solution: { choice: 'fetch', points: '999' } })).status,
+		400
+	);
+});
+
+test('labkort: kosmetiske valg krever egne opptjente merker og følger kontoen på en annen enhet', async (t) => {
+	const f = await fixture(t);
+	const a = f.client();
+	await a.create();
+	assert.equal(
+		(await a.request('/api/me/lab', { colorId: 'iris', featuredAchievementId: null })).status,
+		400
+	);
+	assert.equal(
+		(await a.request('/api/me/lab', { colorId: 'ocean', featuredAchievementId: 'session-guard' }))
+			.status,
+		400
+	);
+	assert.equal(
+		(await a.request('/api/me/lab', { colorId: 'invalid', featuredAchievementId: null })).status,
+		400
+	);
+	await a.event({
+		kind: 'attempt',
+		activityId: 'redd-chatten',
+		objectiveId: 'avsender',
+		solution: solutions['redd-chatten'].avsender
+	});
+	await a.event({
+		kind: 'attempt',
+		activityId: 'meldingsdetektiven',
+		objectiveId: 'session',
+		solution: solutions.meldingsdetektiven.session
+	});
+	const saved = await a.request('/api/me/lab', {
+		colorId: 'iris',
+		featuredAchievementId: 'session-guard'
+	});
+	assert.equal(saved.status, 200);
+	assert.equal(saved.result.summary.lab.colorId, 'iris');
+	assert.equal(saved.result.summary.lab.featuredAchievementId, 'session-guard');
+	const b = f.client();
+	const other = await b.request('/api/auth/key', { key: a.key.key });
+	assert.equal(other.result.summary.lab.colorId, 'iris');
+	assert.equal(other.result.summary.xp, 50);
+	const c = f.client();
+	await c.create();
+	assert.equal((await c.request('/api/me')).result.summary.lab.colorId, 'forest');
+	assert.equal(
+		(await c.request('/api/me/lab', { colorId: 'iris', featuredAchievementId: 'session-guard' }))
+			.status,
+		400
+	);
+});
+
+test('oppgradering: nye merker etterregistreres for tidligere fullførte oppdrag uten ekstra XP', async (t) => {
+	const f = await fixture(t, { persistent: true });
+	const a = f.client();
+	await a.create();
+	await a.event({
+		kind: 'attempt',
+		activityId: 'redd-chatten',
+		objectiveId: 'avsender',
+		solution: solutions['redd-chatten'].avsender
+	});
+	await a.event({
+		kind: 'attempt',
+		activityId: 'meldingsdetektiven',
+		objectiveId: 'session',
+		solution: solutions.meldingsdetektiven.session
+	});
+	f.db.prepare("DELETE FROM achievements WHERE achievement_id='session-guard'").run();
+	const before = summary(f.db, a.user.id);
+	const firstBadge = before.achievements.find((item) => item.id === 'first-solution').earnedAt;
+	assert.equal(reconcileAchievements(f.db), 1);
+	assert.equal(reconcileAchievements(f.db), 0);
+	const after = summary(f.db, a.user.id);
+	assert.equal(after.xp, 50);
+	assert.equal(
+		after.achievements.find((item) => item.id === 'first-solution').earnedAt,
+		firstBadge
+	);
+	assert.ok(after.achievements.find((item) => item.id === 'session-guard').earnedAt);
+	// Simulate the previous schema and verify the additive migration preserves existing data.
+	f.db.exec("DROP TABLE lab_profiles; DELETE FROM migrations WHERE name='002_lab_profile.sql'");
+	const upgraded = openDatabase(f.filename);
+	try {
+		assert.equal(summary(upgraded, a.user.id).xp, 50);
+		assert.equal(summary(upgraded, a.user.id).lab.colorId, 'forest');
+		assert.equal(upgraded.prepare('SELECT count(*) AS n FROM migrations').get().n, 2);
+	} finally {
+		upgraded.close();
 	}
 });

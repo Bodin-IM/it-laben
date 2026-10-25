@@ -6,6 +6,19 @@ export const fag = [
 	{ id: 'drift', navn: 'Driftsstøtte', beskrivelse: 'Nettverk, servere og systemer', symbol: '▤' }
 ];
 
+export const innholdsformater = [
+	{ id: 'leksjon', navn: 'Leksjoner', entall: 'Leksjon', sokeord: 'leksjon forklaring øvelse' },
+	{ id: 'spill', navn: 'Spill og utfordringer', entall: 'Spill', sokeord: 'spill utfordring' },
+	{ id: 'aktivitet', navn: 'Aktiviteter', entall: 'Aktivitet', sokeord: 'aktivitet oppgave' }
+];
+
+/** @param {string} id */
+export function innholdsformat(id) {
+	return (
+		innholdsformater.find((item) => item.id === id) ?? { id, navn: id, entall: id, sokeord: id }
+	);
+}
+
 /**
  * @typedef {Object} Aktivitet
  * @property {string} id
@@ -18,6 +31,7 @@ export const fag = [
  * @property {string[]} emner
  * @property {string[]} sokeord
  * @property {string} symbol
+ * @property {{kind:'review'|'challenge'|'checkpoint',adapter?:string}} tracking
  */
 
 /** @type {Record<number, string[]>} */
@@ -34,6 +48,7 @@ const ovingsEmner = {
 export const aktiviteter = [
 	{
 		id: 'frontend-backend',
+		tracking: { kind: 'review' },
 		tittel: 'Frontend møter backend',
 		beskrivelse: 'Send en melding, hent den tilbake og følg koden mellom nettleser og server.',
 		href: '/backend/',
@@ -46,6 +61,7 @@ export const aktiviteter = [
 	},
 	{
 		id: 'chatrom',
+		tracking: { kind: 'review' },
 		tittel: 'Bygg videre på chatten',
 		beskrivelse:
 			'Hent riktig chatrom, bruk session som avsender og kontroller hvem som får slette.',
@@ -59,6 +75,7 @@ export const aktiviteter = [
 	},
 	{
 		id: 'fillagring',
+		tracking: { kind: 'review' },
 		tittel: 'Lagring i JSON-fil',
 		beskrivelse: 'Følg data fra minne til fil og undersøk hva som overlever en omstart.',
 		href: '/fillagring/',
@@ -71,6 +88,7 @@ export const aktiviteter = [
 	},
 	{
 		id: 'sessions',
+		tracking: { kind: 'review' },
 		tittel: 'Sessions og pålogging',
 		beskrivelse: 'Følg en innlogging steg for steg og utforsk samspillet mellom cookie og session.',
 		href: '/sessions/',
@@ -83,6 +101,7 @@ export const aktiviteter = [
 	},
 	{
 		id: 'meldingsdetektiven',
+		tracking: { kind: 'challenge', adapter: 'meldingsdetektiven' },
 		tittel: 'Meldingsdetektiven',
 		beskrivelse: 'Finn spor i kode, requests og serverdata. Rett feilen og test løsningen.',
 		href: '/spill/meldingsdetektiven/',
@@ -95,6 +114,7 @@ export const aktiviteter = [
 	},
 	{
 		id: 'redd-chatten',
+		tracking: { kind: 'challenge', adapter: 'redd-chatten' },
 		tittel: 'Redd chatten',
 		beskrivelse: 'Reparer serverkoden og test om chatten tåler både meldinger og feilforsøk.',
 		href: '/spill/redd-chatten/',
@@ -107,6 +127,7 @@ export const aktiviteter = [
 	},
 	{
 		id: 'chat',
+		tracking: { kind: 'challenge', adapter: 'chat' },
 		tittel: 'To nettlesere, én chat',
 		beskrivelse: 'Velg handlingene som får meldingen fra Ada fram til Noah, via serveren.',
 		href: '/spill/chat/',
@@ -121,6 +142,7 @@ export const aktiviteter = [
 		/** @returns {Aktivitet} */
 		(lesson) => ({
 			id: `oving-${lesson.number}`,
+			tracking: { kind: 'review' },
 			tittel: `Øving ${lesson.number}: ${lesson.title}`,
 			beskrivelse: lesson.question,
 			href: `/oving-${lesson.number}/`,

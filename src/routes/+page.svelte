@@ -3,7 +3,8 @@
 	import { replaceState } from '$app/navigation';
 	import ThemeToggle from '#lib/components/ThemeToggle.svelte';
 	import AccountLink from '#lib/components/AccountLink.svelte';
-	import { aktiviteter, fag } from '#lib/innhold.js';
+	import PersonalOverview from '#lib/components/PersonalOverview.svelte';
+	import { aktiviteter, fag, innholdsformat } from '#lib/innhold.js';
 	import { lab as account } from '#lib/lab.js';
 
 	let valgtFag = $state('alle');
@@ -13,8 +14,7 @@
 
 	const formater = [
 		{ id: 'alle', navn: 'Alt innhold' },
-		{ id: 'leksjon', navn: 'Leksjoner' },
-		{ id: 'spill', navn: 'Spill og utfordringer' }
+		...Array.from(new Set(aktiviteter.map((item) => item.format))).map(innholdsformat)
 	];
 
 	/** @param {string} tekst */
@@ -37,7 +37,7 @@
 					aktivitet.tittel,
 					aktivitet.beskrivelse,
 					aktivitet.type,
-					aktivitet.format === 'spill' ? 'spill utfordring' : 'leksjon forklaring øvelse',
+					innholdsformat(aktivitet.format).sokeord,
 					...aktivitet.emner,
 					...aktivitet.sokeord
 				].join(' ')
@@ -171,6 +171,7 @@
 			</div>
 		</section>
 
+		<PersonalOverview subject={valgtFag} />
 		<section id="utforsk" class="oversikt" aria-label="Leksjoner og spill">
 			<div class="verktoylinje">
 				<div class="sokefelt">
@@ -246,9 +247,7 @@
 										href={aktivitet.href}
 									>
 										<div class="korttopp">
-											<span class="formatmerke"
-												>{aktivitet.format === 'spill' ? 'Spill' : 'Leksjon'}</span
-											>
+											<span class="formatmerke">{innholdsformat(aktivitet.format).entall}</span>
 											<span class="symbol" aria-hidden="true">{aktivitet.symbol}</span>
 										</div>
 										<h3>{aktivitet.tittel}</h3>

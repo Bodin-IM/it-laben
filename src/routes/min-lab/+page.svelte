@@ -1,5 +1,14 @@
 <script>
+	import { onMount } from 'svelte';
 	import ThemeToggle from '#lib/components/ThemeToggle.svelte';
+	import PersonalOverview from '#lib/components/PersonalOverview.svelte';
+	import LabCustomizer from '#lib/components/LabCustomizer.svelte';
+	import TrackList from '#lib/components/TrackList.svelte';
+	import AchievementGallery from '#lib/components/AchievementGallery.svelte';
+	import ExperienceSettings from '#lib/components/ExperienceSettings.svelte';
+	import AnimatedNumber from '#lib/components/AnimatedNumber.svelte';
+	import { fag, innholdsformat } from '#lib/innhold.js';
+	import { rewardPolicy } from '#lib/progression.js';
 	import {
 		lab,
 		createProfile,
@@ -27,19 +36,12 @@
 		($lab.summary?.progress ?? []).filter((item) => filter === 'alle' || item.subject === filter)
 	);
 	const finished = $derived(
-		($lab.summary?.progress ?? []).filter((item) => ['passed', 'reviewed'].includes(item.status))
-			.length
+		activities.filter((item) => ['passed', 'reviewed'].includes(item.status)).length
 	);
-	const recent = $derived(
-		($lab.summary?.progress ?? [])
-			.filter((item) => item.status === 'started')
-			.sort(
-				(a, b) =>
-					Math.max(...b.objectives.map((item) => item.updatedAt ?? 0)) -
-					Math.max(...a.objectives.map((item) => item.updatedAt ?? 0))
-			)
-			.slice(0, 2)
-	);
+	onMount(() => {
+		const chosen = new URL(window.location.href).searchParams.get('fag');
+		filter = fag.some((item) => item.id === chosen) ? (chosen ?? 'alle') : 'alle';
+	});
 	$effect(() => {
 		if (!$lab.user || (recoveryKey && keyOwner !== $lab.user.id)) {
 			recoveryKey = null;
@@ -78,13 +80,14 @@
 	}
 	/** @param {import('#lib/lab.js').Progress} activity */
 	function resumeLink(activity) {
-		if (activity.format !== 'spill') return activity.href;
 		const objective = activity.objectives
 			.filter((item) => !item.completedAt)
 			.sort((a, b) => (b.updatedAt ?? 0) - (a.updatedAt ?? 0))[0];
-		return objective
+		return objective?.kind === 'attempt'
 			? `${activity.href}?oppdrag=${encodeURIComponent(objective.id)}`
-			: activity.href;
+			: objective?.kind === 'check'
+				? `${activity.href}#fagsjekk-${objective.id}`
+				: activity.href;
 	}
 	/** @param {import('#lib/lab.js').Progress} activity */
 	function statusText(activity) {
@@ -92,7 +95,7 @@
 			? '✓ Gjennomgått'
 			: activity.status === 'passed'
 				? '✓ Bestått'
-				: activity.format === 'spill' && activity.completed
+				: activity.completionEvidence !== 'reviewed' && activity.completed
 					? `${activity.completed} av ${activity.total} oppdrag`
 					: activity.status === 'started'
 						? 'Påbegynt'
@@ -193,7 +196,11 @@
 				>
 			</section>
 			{#if recoveryKey}<section class="key-panel" aria-labelledby="key-title">
-					<span class="panel-icon" aria-hidden="true">↧</span>
+					<span class="panel-icon" aria-hidden="true"
+						><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" width="24" height="24"
+							><path d="M12 3v12m-5-5 5 5 5-5M4 16v5h16v-5" /></svg
+						></span
+					>
 					<div>
 						<h2 id="key-title">Ta vare på profilen din</h2>
 						<p>
@@ -217,19 +224,24 @@
 			<section class="stats" aria-label="Din progresjon">
 				<div class="xp-card">
 					<span class="eyebrow">NIVÅ {$lab.summary.level}</span><strong
-						>{$lab.summary.xp} <small>XP</small></strong
-					><progress aria-label="Fremgang til neste nivå" max="100" value={$lab.summary.xp % 100}
+						><AnimatedNumber value={$lab.summary.xp} /> <small>XP</small></strong
+					><progress
+						aria-label="Fremgang til neste nivå"
+						max={$lab.summary.xpPerLevel}
+						value={$lab.summary.xp % $lab.summary.xpPerLevel}
 					></progress><span class="small"
-						>{$lab.summary.nextLevelAt - $lab.summary.xp} XP til nivå {$lab.summary.level + 1}</span
+						>{$lab.summary.xp >= $lab.summary.maximumXp
+							? 'Alle dagens XP er samlet!'
+							: `${$lab.summary.nextLevelAt - $lab.summary.xp} XP til labnivå ${$lab.summary.level + 1}`}</span
 					>
 				</div>
 				<div>
-					<strong>{finished}<small> / {$lab.summary.progress.length}</small></strong><span
-						>aktiviteter fullført</span
+					<strong>{finished}<small> / {activities.length}</small></strong><span
+						>publiserte aktiviteter gjennomgått eller bestått</span
 					>
 					<p class="small">
-						Leksjoner gir 15 XP. Beståtte spilloppdrag gir 25 XP, med en bonus når hele spillet er
-						løst.
+						{rewardPolicy.reviewed} XP for egen gjennomgang · {rewardPolicy.checked} XP for en bestått
+						fagsjekk · {rewardPolicy.passed} XP for et bestått spilloppdrag.
 					</p>
 				</div>
 			</section>
@@ -243,69 +255,39 @@
 						}}>{$lab.syncing ? 'Synkroniserer …' : 'Prøv å synkronisere'}</button
 					>{#if $lab.storageWarning}<p>Hold denne fanen åpen til fremgangen er lagret.</p>{/if}
 				</div>{/if}
-			{#if recent.length}<section class="continue-section">
-					<h2>Fortsett der du slapp</h2>
-					<div class="continue-grid">
-						{#each recent as activity}<a class="continue-card" href={resumeLink(activity)}
-								><span class="eyebrow"
-									>{activity.subject === 'drift' ? 'DRIFTSSTØTTE' : 'UTVIKLING'}</span
-								>
-								<h3>{activity.title}</h3>
-								<span>Fortsett →</span></a
-							>{/each}
-					</div>
-				</section>{/if}
-			<section class="achievements" aria-labelledby="achievements-title">
-				<div class="section-top">
-					<h2 id="achievements-title">Dine achievements</h2>
-					<span class="small"
-						>{$lab.summary.achievements.filter((item) => item.earnedAt !== null).length} av {$lab
-							.summary.achievements.length} oppnådd</span
-					>
-				</div>
-				<div class="badge-grid">
-					{#each $lab.summary.achievements as achievement}<article
-							class="badge"
-							class:earned={achievement.earnedAt !== null}
-						>
-							<span class="badge-symbol" aria-hidden="true">{achievement.symbol}</span>
-							<div>
-								<h3>{achievement.title}</h3>
-								<p>{achievement.description}</p>
-								<span class="badge-status"
-									>{achievement.earnedAt !== null ? '✓ Oppnådd' : 'Neste mål'}</span
-								>
-							</div>
-						</article>{/each}
-				</div>
-			</section>
+			<div class="subject-filter" role="group" aria-label="Velg fag for fremgangen din">
+				{#each [{ id: 'alle', navn: 'Alle fag' }, ...fag] as item (item.id)}<button
+						type="button"
+						class:active={filter === item.id}
+						aria-pressed={filter === item.id}
+						onclick={() => (filter = item.id)}>{item.navn}</button
+					>{/each}
+			</div>
+			<PersonalOverview subject={filter} />
+			<LabCustomizer />
+			<TrackList subject={filter} />
+			<AchievementGallery subject={filter} />
 			<section class="activity-section" aria-labelledby="activity-title">
 				<div class="section-top">
 					<h2 id="activity-title">Innholdet ditt</h2>
-					<div class="filters" role="group" aria-label="Velg fag">
-						{#each [{ id: 'alle', title: 'Alle fag' }, { id: 'utvikling', title: 'Utvikling' }, { id: 'drift', title: 'Driftsstøtte' }] as item}<button
-								type="button"
-								class:active={filter === item.id}
-								aria-pressed={filter === item.id}
-								onclick={() => (filter = item.id)}>{item.title}</button
-							>{/each}
-					</div>
+					<span class="small">Gjennomgang og fagsjekker vises hver for seg.</span>
 				</div>
 				<div class="activity-list">
 					{#each activities as activity}<a href={resumeLink(activity)} class="activity-row"
 							><div>
 								<span class="small"
-									>{activity.subject === 'drift' ? 'Driftsstøtte' : 'Utvikling'} · {activity.format ===
-									'spill'
-										? 'Spill'
-										: 'Leksjon'}</span
+									>{fag.find((item) => item.id === activity.subject)?.navn ?? activity.subject} · {innholdsformat(
+										activity.format
+									).entall}</span
 								>
 								<h3>{activity.title}</h3>
 							</div>
 							<span
 								class="activity-status"
 								class:done={['passed', 'reviewed'].includes(activity.status)}
-								>{statusText(activity)}</span
+								>{statusText(activity)}{#if activity.checksCompleted}<small>
+										· {activity.checksCompleted}/{activity.checksTotal} fagsjekker bestått</small
+									>{/if}</span
 							><span class="row-arrow" aria-hidden="true">→</span></a
 						>{/each}
 				</div>
@@ -367,6 +349,7 @@
 		{#if $lab.development}<p class="development">
 				Dette er en lokal prøveversjon. Bruk en testprofil.
 			</p>{/if}
+		<ExperienceSettings />
 		<footer><a href="/">← Til IT-laben</a><span>Se. Prøv. Forstå.</span></footer>
 	</main>
 	<dialog bind:this={rotationDialog}>
@@ -539,303 +522,201 @@
 		margin-bottom: 16px;
 		background: var(--color-accent-soft);
 		color: var(--color-accent);
-		font: 24px monospace;
+		font-size: 24px;
 	}
-	label {
+	form label {
 		display: block;
 		font-size: var(--font-small);
-		font-weight: 600;
-		margin-bottom: 7px;
+		font-weight: 650;
+		margin: 0 0 8px;
 	}
-	label span {
+	form label span {
 		font-weight: 400;
 		color: var(--color-text-muted);
 	}
-	input:not([type='checkbox']) {
+	input:not([type='checkbox']):not([type='file']) {
 		width: 100%;
-		min-height: 44px;
-		padding: 10px 12px;
-		border: 1px solid var(--color-border);
+		min-width: 0;
+		min-height: 46px;
+		padding: 10px 13px;
+		border: 1px solid var(--color-border-strong);
 		border-radius: 7px;
 		background: var(--color-surface);
 		color: var(--color-text);
-		min-width: 0;
-	}
-	input[type='file'] {
-		font-size: var(--font-small);
-		overflow-wrap: anywhere;
-	}
-	input[type='file']::file-selector-button {
-		min-height: 36px;
-		border: 1px solid var(--color-border);
-		border-radius: 5px;
-		background: var(--color-surface-soft);
-		color: var(--color-text);
-		font: inherit;
-		margin-right: 10px;
-		cursor: pointer;
+		margin-bottom: 12px;
 	}
 	.primary,
 	.secondary,
-	.danger {
+	.danger,
+	.key-panel button,
+	.notice button {
 		display: inline-flex;
 		align-items: center;
 		justify-content: center;
 		min-height: 44px;
-		max-width: 100%;
 		padding: 10px 16px;
 		border: 1px solid var(--color-action);
 		border-radius: 7px;
 		background: var(--color-action);
 		color: var(--color-on-action);
 		font:
-			600 var(--font-small)/1.5 system-ui,
+			650 var(--font-small)/1.5 system-ui,
 			sans-serif;
 		text-decoration: none;
 	}
-	.secondary {
+	.secondary,
+	.notice button {
 		background: var(--color-surface);
 		color: var(--color-accent);
-		border-color: var(--color-border);
+		border-color: var(--color-border-strong);
 	}
 	.danger {
-		background: var(--color-danger);
-		border-color: var(--color-danger);
-		color: white;
+		background: var(--color-danger-soft);
+		color: var(--color-danger);
+		border-color: var(--color-danger-border);
 	}
-	.panel form .primary {
-		margin-top: 14px;
-	}
-	.small {
+	.file-label {
+		display: inline-flex;
+		align-items: center;
+		padding: 11px 16px;
+		border: 1px solid var(--color-border-strong);
+		border-radius: 7px;
+		color: var(--color-accent);
+		cursor: pointer;
 		font-size: var(--font-small);
-		line-height: 1.6;
+		font-weight: 650;
+		min-height: 44px;
+	}
+	input[type='file'] {
+		display: block;
+		width: 100%;
+		margin-top: 10px;
 		color: var(--color-text-muted);
-	}
-	.panel .small {
-		margin-bottom: 0;
-	}
-	code {
-		overflow-wrap: anywhere;
-		font-size: var(--font-meta);
+		font-size: var(--font-small);
 	}
 	.remember {
 		display: flex;
 		align-items: center;
 		gap: 10px;
-		margin: 24px 0 2px;
+		margin: 22px 0 8px;
+		font-size: var(--font-small);
 	}
 	.remember input {
 		width: 18px;
 		height: 18px;
-		accent-color: var(--color-accent);
-		flex: 0 0 18px;
+		accent-color: var(--color-action);
 	}
-	.notice {
-		margin: 20px 0;
-		padding: 18px 20px;
-		border: 1px solid var(--color-warning-border);
-		border-radius: 10px;
-		background: var(--color-warning-soft);
+	.small {
+		font-size: var(--font-small);
+		color: var(--color-text-muted);
 	}
-	.notice p {
-		margin: 0 0 10px;
-	}
-	.notice button {
-		border: 0;
-		background: none;
-		padding: 6px 8px 6px 0;
-		color: var(--color-accent);
-		text-decoration: underline;
-	}
-	.notice a {
-		margin-left: 16px;
-	}
-	.status {
-		padding-block: 36px;
+	code {
+		font-size: var(--font-code-small);
+		overflow-wrap: anywhere;
 	}
 	.welcome {
+		display: flex;
+		justify-content: space-between;
+		align-items: center;
+		flex-wrap: wrap;
+		gap: 20px;
+		padding: 40px 0 22px;
+	}
+	.welcome h1 {
+		margin-bottom: 0;
+	}
+	.key-panel,
+	.notice {
 		display: flex;
 		align-items: center;
 		justify-content: space-between;
 		gap: 20px;
-		padding: 36px 0 24px;
-	}
-	.welcome h1 {
-		font-size: clamp(2rem, 4vw, 2.8rem);
-	}
-	.welcome p:last-child {
-		margin-bottom: 0;
-	}
-	.key-panel {
-		display: flex;
-		align-items: start;
-		gap: 20px;
-		padding: 24px;
-		border: 1px solid var(--color-success-border);
-		border-radius: 12px;
-		background: var(--color-success-soft);
+		flex-wrap: wrap;
+		padding: 22px;
 		margin-bottom: 24px;
+		border: 1px solid var(--color-warning-border);
+		border-radius: 12px;
+		background: var(--color-warning-soft);
 	}
-	.key-panel .panel-icon {
-		flex: 0 0 44px;
-		margin: 0;
+	.key-panel > div {
+		min-width: 0;
 	}
-	.key-panel .small {
-		margin-bottom: 0;
+	.key-panel p,
+	.notice p {
+		margin-bottom: 8px;
 	}
 	.stats {
 		display: grid;
-		grid-template-columns: 1fr 1fr;
-		gap: 24px;
-		margin: 0 0 28px;
+		grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+		border: 1px solid var(--color-border);
+		border-radius: 14px;
+		overflow: hidden;
+		background: var(--color-surface);
+		margin: 0 0 24px;
 	}
 	.stats > div {
-		padding: 24px;
-		border: 1px solid var(--color-border);
-		border-radius: 12px;
-		background: var(--color-surface);
-		display: flex;
-		flex-direction: column;
-		justify-content: center;
-		gap: 6px;
+		padding: 24px 28px;
+		min-width: 0;
+	}
+	.stats > div + div {
+		border-left: 1px solid var(--color-border);
 	}
 	.stats strong {
-		font-size: 2.8rem;
-		line-height: 1.2;
+		display: block;
+		font-size: 2.5rem;
 		letter-spacing: -1px;
+		line-height: 1.2;
 	}
 	.stats strong small {
-		font-size: 1.2rem;
+		font-size: 1.15rem;
+		color: var(--color-text-muted);
 		font-weight: 500;
+	}
+	.stats > div > span {
+		display: block;
+		font-size: var(--font-small);
 		color: var(--color-text-muted);
 	}
 	.stats p {
-		margin: 0;
-		max-width: 400px;
+		margin-bottom: 0;
 	}
 	.xp-card progress {
+		display: block;
 		width: 100%;
-		height: 10px;
-		appearance: none;
-		border: 0;
-		border-radius: 99px;
-		overflow: hidden;
-		background: var(--color-surface-soft);
-		margin: 8px 0;
+		height: 7px;
+		margin: 14px 0 8px;
+		accent-color: var(--color-accent);
 	}
-	.xp-card progress::-webkit-progress-bar {
-		background: var(--color-surface-soft);
+	.subject-filter {
+		display: flex;
+		gap: 8px;
+		flex-wrap: wrap;
+		margin: 0 0 20px;
 	}
-	.xp-card progress::-webkit-progress-value {
-		background: var(--color-accent);
-	}
-	.xp-card progress::-moz-progress-bar {
-		background: var(--color-accent);
-	}
-	.continue-section {
-		margin-bottom: 32px;
-	}
-	.continue-grid {
-		display: grid;
-		grid-template-columns: 1fr 1fr;
-		gap: 16px;
-		margin-top: 12px;
-	}
-	.continue-card {
-		padding: 20px;
+	.subject-filter button {
+		padding: 9px 14px;
+		min-height: 42px;
 		border: 1px solid var(--color-border);
-		border-radius: 12px;
+		border-radius: 8px;
 		background: var(--color-surface);
-		text-decoration: none;
-	}
-	.continue-card h3 {
-		margin-block: 6px 12px;
-	}
-	.continue-card > span:last-child {
+		color: var(--color-text-muted);
 		font-size: var(--font-small);
+	}
+	.subject-filter button.active {
+		background: var(--color-action);
+		border-color: var(--color-action);
+		color: var(--color-on-action);
+	}
+	.activity-section {
+		margin: 36px 0;
 	}
 	.section-top {
 		display: flex;
 		justify-content: space-between;
 		align-items: center;
-		gap: 12px 20px;
 		flex-wrap: wrap;
-		margin-bottom: 14px;
-	}
-	.section-top h2 {
-		margin: 0;
-	}
-	.badge-grid {
-		display: grid;
-		grid-template-columns: repeat(3, minmax(0, 1fr));
 		gap: 14px;
-	}
-	.badge {
-		padding: 20px;
-		border: 1px dashed var(--color-border-strong);
-		border-radius: 12px;
-		display: flex;
-		align-items: start;
-		gap: 12px;
-		background: var(--color-surface);
-	}
-	.badge.earned {
-		border-style: solid;
-		border-color: var(--color-success-border);
-		background: var(--color-success-soft);
-	}
-	.badge-symbol {
-		display: grid;
-		place-items: center;
-		flex: 0 0 36px;
-		width: 36px;
-		height: 36px;
-		border-radius: 50%;
-		background: var(--color-surface-soft);
-		font: 600 18px monospace;
-		color: var(--color-text-muted);
-	}
-	.earned .badge-symbol {
-		color: var(--color-success);
-	}
-	.badge p {
-		font-size: var(--font-small);
-		margin: 0 0 8px;
-		line-height: 1.5;
-	}
-	.badge-status {
-		font-size: var(--font-meta);
-		color: var(--color-text-muted);
-	}
-	.earned .badge-status {
-		color: var(--color-success);
-		font-weight: 650;
-	}
-	.activity-section {
-		margin-top: 32px;
-	}
-	.filters {
-		display: flex;
-		flex-wrap: wrap;
-		gap: 4px;
-		padding: 3px;
-		border: 1px solid var(--color-border);
-		border-radius: 8px;
-		background: var(--color-surface-soft);
-	}
-	.filters button {
-		min-height: 38px;
-		padding: 7px 10px;
-		border: 0;
-		background: transparent;
-		color: var(--color-text-muted);
-		border-radius: 5px;
-		font-size: var(--font-small);
-	}
-	.filters .active {
-		background: var(--color-surface-raised);
-		color: var(--color-accent);
-		font-weight: 650;
+		margin-bottom: 14px;
 	}
 	.activity-list {
 		border: 1px solid var(--color-border);
@@ -844,177 +725,156 @@
 		background: var(--color-surface);
 	}
 	.activity-row {
-		display: flex;
+		display: grid;
+		grid-template-columns: minmax(0, 1fr) auto 16px;
 		align-items: center;
-		gap: 16px;
-		flex-wrap: wrap;
-		padding: 17px 20px;
-		text-decoration: none;
+		gap: 18px;
+		padding: 18px 20px;
 		color: var(--color-text);
+		text-decoration: none;
+		border-bottom: 1px solid var(--color-border);
 	}
-	.activity-row + .activity-row {
-		border-top: 1px solid var(--color-border);
+	.activity-row:last-child {
+		border-bottom: 0;
 	}
 	.activity-row:hover {
 		background: var(--color-surface-hover);
 	}
-	.activity-row > div {
-		flex: 1 1 220px;
-		min-width: 0;
-	}
 	.activity-row h3 {
-		margin: 3px 0 0;
+		margin-top: 3px;
+		margin-bottom: 0;
 	}
 	.activity-status {
-		font-size: var(--font-small);
 		color: var(--color-text-muted);
+		font-size: var(--font-small);
+		max-width: 220px;
 		overflow-wrap: anywhere;
+	}
+	.activity-status small {
+		display: block;
+		font-size: var(--font-meta);
 	}
 	.activity-status.done {
 		color: var(--color-success);
-		font-weight: 600;
 	}
 	.row-arrow {
 		color: var(--color-accent);
 	}
 	.settings {
-		margin-top: 32px;
 		border: 1px solid var(--color-border);
 		border-radius: 12px;
 		background: var(--color-surface);
+		margin: 32px 0 20px;
 	}
-	summary {
+	.settings > summary {
+		padding: 18px 22px;
 		cursor: pointer;
-		padding: 18px 20px;
-		font-size: var(--font-body);
-		font-weight: 600;
+		font-weight: 650;
+		font-size: var(--font-small);
 	}
 	.settings-content {
-		padding: 0 20px 24px;
+		padding: 0 22px 24px;
 		display: grid;
 		gap: 26px;
 	}
 	.inline {
 		display: flex;
-		gap: 10px;
+		align-items: flex-start;
 		flex-wrap: wrap;
+		gap: 10px;
 	}
 	.inline input {
 		flex: 1 1 200px;
 	}
-	.settings form {
-		max-width: 500px;
-	}
-	.settings p {
-		font-size: var(--font-small);
-		max-width: 650px;
-	}
 	.delete-account {
 		border-top: 1px solid var(--color-border);
-		padding-top: 12px;
+		padding-top: 18px;
 	}
 	.delete-account summary {
-		padding: 8px 0;
+		cursor: pointer;
 		color: var(--color-danger);
 		font-size: var(--font-small);
 	}
 	.delete-account input {
-		max-width: 240px;
+		max-width: 280px;
 		display: block;
-		margin-bottom: 12px;
+		margin-top: 8px;
 	}
 	.error {
-		padding: 14px 18px;
+		padding: 14px;
 		border: 1px solid var(--color-danger-border);
-		border-radius: 8px;
-		background: var(--color-danger-soft);
 		color: var(--color-danger);
+		background: var(--color-danger-soft);
+		border-radius: 8px;
 	}
 	.development {
 		font-size: var(--font-small);
-		margin-top: 24px;
+		text-align: center;
 		color: var(--color-text-muted);
+	}
+	.status {
+		padding-block: 60px;
 	}
 	footer {
 		display: flex;
 		justify-content: space-between;
+		gap: 16px;
 		flex-wrap: wrap;
-		gap: 12px;
-		margin-top: 32px;
 		padding: 24px 0 36px;
-		border-top: 1px solid var(--color-border);
 		font-size: var(--font-small);
 		color: var(--color-text-muted);
 	}
-	footer a {
-		text-decoration: none;
-	}
 	dialog {
-		width: min(480px, calc(100% - 40px));
-		border: 1px solid var(--color-border);
+		max-width: min(500px, calc(100vw - 32px));
+		padding: 28px;
+		border: 1px solid var(--color-border-strong);
 		border-radius: 14px;
 		background: var(--color-surface);
 		color: var(--color-text);
-		padding: 28px;
 	}
 	dialog::backdrop {
-		background: rgb(0 0 0 / 0.5);
+		background: rgb(0 0 0 / 45%);
 	}
-	@media (max-width: 900px) {
-		.badge-grid {
-			grid-template-columns: repeat(2, minmax(0, 1fr));
+	@media (max-width: 700px) {
+		.entry-grid {
+			grid-template-columns: 1fr;
+		}
+		.stats > div {
+			padding: 20px;
+		}
+		.activity-row {
+			grid-template-columns: minmax(0, 1fr) 16px;
+			gap: 6px 12px;
+		}
+		.activity-status {
+			grid-column: 1;
+			max-width: none;
+		}
+		.row-arrow {
+			grid-row: 1/3;
+			grid-column: 2;
 		}
 	}
-	@media (max-width: 600px) {
+	@media (max-width: 480px) {
 		header,
 		main {
 			width: calc(100% - 32px);
 		}
-		.header-actions {
-			gap: 12px;
-		}
-		.header-actions > a {
-			display: none;
-		}
-		.intro {
-			padding-top: 28px;
-		}
-		.entry-grid,
-		.stats,
-		.continue-grid,
-		.badge-grid {
+		.stats {
 			grid-template-columns: 1fr;
+		}
+		.stats > div + div {
+			border-left: 0;
+			border-top: 1px solid var(--color-border);
 		}
 		.panel {
 			padding: 22px;
 		}
-		.welcome {
-			align-items: start;
-			flex-wrap: wrap;
-			padding-top: 26px;
+		.welcome h1 {
+			font-size: 2rem;
 		}
-		.key-panel {
-			padding: 20px;
-			gap: 12px;
-		}
-		.key-panel .panel-icon {
-			display: none;
-		}
-		.stats {
-			gap: 14px;
-		}
-		.badge {
-			padding: 18px;
-		}
-		.activity-row {
-			gap: 10px;
-			padding: 16px;
-		}
-		.activity-row > div {
-			flex-basis: 100%;
-		}
-		.row-arrow {
-			margin-left: auto;
+		.intro {
+			padding-top: 32px;
 		}
 	}
 </style>

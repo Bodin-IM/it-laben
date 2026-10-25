@@ -1,8 +1,10 @@
 # Min lab – første backendversjon
 
-Arbeidet ligger på branchen `backend`. Dagens `main` og publiseringstimer er uendret. GitHub Actions kjører tester, Svelte-kontroll og statisk bygg ved push og pull requests. Workflowen publiserer ikke til skolens server.
+Arbeidet ligger på branchen `backend`. Dagens `main` og publiseringstimer er uendret. GitHub Actions er konfigurert for tester, Svelte-kontroll og statisk bygg ved push og pull requests. Workflowen publiserer ikke til skolens server.
 
 [Se forhåndsvisning av Min lab med en eksempelprofil](backend-preview.png).
+
+Fagspor, åtte merker, valgfrie fagsjekker, labkort og lydeffekter er beskrevet i [veiledningen for progresjon](progresjon.md). Den viser også hvordan nye leksjoner, spill, praktiske aktiviteter og driftsinnhold legges til.
 
 ## Dette er med
 
@@ -49,17 +51,18 @@ Backendtestene kontrollerer blant annet nøkkelgjenoppretting, lagring av nøkke
 
 API-et bruker samme origin som nettstedet, under `/api/`:
 
-| Adresse | Bruk |
-| --- | --- |
-| `GET /api/health` | Helsesjekk uten brukerdata |
-| `GET /api/me` | Profil, CSRF-token og samlet progresjon; `user: null` uten pålogging |
-| `POST /api/auth/create` | Opprett profil og returner nøkkelfilen én gang |
-| `POST /api/auth/key` | Logg inn med nøkkelfilens hemmelighet |
-| `POST /api/auth/logout` | Avslutt gjeldende økt |
-| `POST /api/auth/rotate-key` | Erstatt nøkkelfil og andre pålogginger |
-| `POST /api/me/nickname` | Endre kallenavn |
-| `POST /api/me/delete` | Slett konto med eksplisitt bekreftelse |
-| `POST /api/progress` | Start/gjennomgang av leksjon eller kontroll av spilløsning |
+| Adresse                     | Bruk                                                                 |
+| --------------------------- | -------------------------------------------------------------------- |
+| `GET /api/health`           | Helsesjekk uten brukerdata                                           |
+| `GET /api/me`               | Profil, CSRF-token og samlet progresjon; `user: null` uten pålogging |
+| `POST /api/auth/create`     | Opprett profil og returner nøkkelfilen én gang                       |
+| `POST /api/auth/key`        | Logg inn med nøkkelfilens hemmelighet                                |
+| `POST /api/auth/logout`     | Avslutt gjeldende økt                                                |
+| `POST /api/auth/rotate-key` | Erstatt nøkkelfil og andre pålogginger                               |
+| `POST /api/me/nickname`     | Endre kallenavn                                                      |
+| `POST /api/me/lab`          | Lagre labfarge og et opptjent merke på labkortet                     |
+| `POST /api/me/delete`       | Slett konto med eksplisitt bekreftelse                               |
+| `POST /api/progress`        | Gjennomgang, fagsjekk eller kontroll av en spill-/aktivitetsløsning  |
 
 Alle skrivekall krever riktig `Origin` og JSON. Påloggede skrivekall krever dessuten øktens `X-CSRF-Token`. Progresjonskall må ha samme konto-ID som økten. Brukeren bestemmes alltid av den servervaliderte cookien. API-et tillater ikke CORS fra andre nettsteder.
 

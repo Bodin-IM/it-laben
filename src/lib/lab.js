@@ -1,14 +1,18 @@
 import { writable, get } from 'svelte/store';
+import { buildCelebration } from '#lib/celebrations.js';
 
 /** @typedef {{id:string,nickname:string,createdAt:number}} User */
-/** @typedef {{id:string,title:string,completedAt:number|null,updatedAt:number|null,solution:string[]|Record<string,string>|null}} Objective */
-/** @typedef {{id:string,title:string,href:string,subject:string,format:string,status:string,completed:number,total:number,objectives:Objective[]}} Progress */
-/** @typedef {{id:string,title:string,description:string,symbol:string,earnedAt:number|null}} Achievement */
+/** @typedef {import('#lib/progression.js').ObjectiveProgress} Objective */
+/** @typedef {import('#lib/progression.js').ActivityProgress} Progress */
+/** @typedef {import('#lib/progression.js').AchievementState} Achievement */
 /** @typedef {{id:string,points:number,title:string,createdAt:number}} Reward */
-/** @typedef {{version:number,xp:number,level:number,nextLevelAt:number,progress:Progress[],achievements:Achievement[],recentRewards:Reward[]}} Summary */
+/** @typedef {{id:string,title:string,total:number,completed:number,checksTotal:number,checksCompleted:number}} SubjectProgress */
+/** @typedef {{id:string,title:string,color:string,background:string,requires:string|null,unlocked:boolean}} LabColor */
+/** @typedef {{colorId:string,featuredAchievementId:string|null,colors:LabColor[]}} LabProfile */
+/** @typedef {{version:number,xp:number,level:number,nextLevelAt:number,xpPerLevel:number,maximumXp:number,progress:Progress[],achievements:Achievement[],tracks:import('#lib/progression.js').TrackState[],subjects:SubjectProgress[],lab:LabProfile,recentRewards:Reward[]}} Summary */
 /** @typedef {{format:string,version:number,key:string,createdAt:string,site:string}} RecoveryKey */
-/** @typedef {{ready:boolean,available:boolean,user:User|null,csrfToken:string|null,summary:Summary|null,development:boolean,error:string,pending:number,pendingReviews:string[],syncing:boolean,storageWarning:boolean}} LabState */
-/** @typedef {{eventId:string,accountId:string,version:number,kind:string,activityId:string,objectiveId:string,confirmed?:boolean,solution?:string[]|Record<string,string>}} Event */
+/** @typedef {{ready:boolean,available:boolean,user:User|null,csrfToken:string|null,summary:Summary|null,development:boolean,error:string,pending:number,pendingReviews:string[],pendingObjectives:string[],syncing:boolean,storageWarning:boolean}} LabState */
+/** @typedef {{eventId:string,accountId:string,version:number,kind:string,activityId:string,objectiveId:string,confirmed?:boolean,solution?:string[]|Record<string,string>,client?:{at:number,deferred:boolean}}} Event */
 /** @type {LabState} */
 const initial = {
 	ready: false,
@@ -20,12 +24,13 @@ const initial = {
 	error: '',
 	pending: 0,
 	pendingReviews: [],
+	pendingObjectives: [],
 	syncing: false,
 	storageWarning: false
 };
 const state = writable(initial);
 export const lab = { subscribe: state.subscribe };
-/** @type {import('svelte/store').Writable<{id:string,message:string,points:number}|null>} */
+/** @type {import('svelte/store').Writable<import('#lib/celebrations.js').Celebration|null>} */
 export const rewardNotice = writable(null);
 /** @type {Map<string,Event[]>} */
 const memory = new Map();
@@ -98,6 +103,7 @@ function readQueue(userId) {
 			? saved
 					.filter((item) => item.accountId === userId && typeof item.eventId === 'string')
 					.slice(0, 100)
+					.map((item) => ({ ...item, client: { at: item.client?.at ?? 0, deferred: true } }))
 			: [];
 		memory.set(userId, valid);
 		return valid;
@@ -119,6 +125,7 @@ function storeQueue(userId, events) {
 		state.update((value) => ({
 			...value,
 			pending: events.length,
+			pendingObjectives: events.map((event) => `${event.activityId}:${event.objectiveId}`),
 			pendingReviews: events
 				.filter((event) => event.kind === 'review')
 				.map((event) => event.activityId)
@@ -135,6 +142,7 @@ function acceptSession(result) {
 		available: true,
 		storageWarning: get(state).storageWarning,
 		pending: queue.length,
+		pendingObjectives: queue.map((event) => `${event.activityId}:${event.objectiveId}`),
 		pendingReviews: queue
 			.filter((event) => event.kind === 'review')
 			.map((event) => event.activityId)
@@ -221,6 +229,15 @@ export async function rotateRecoveryKey() {
 export async function changeNickname(nickname) {
 	acceptSession(await api('/me/nickname', { nickname }));
 }
+/** @param {string} colorId @param {string|null} featuredAchievementId */
+export async function changeLabProfile(colorId, featuredAchievementId) {
+	const userId = get(state).user?.id;
+	const result = await api('/me/lab', { colorId, featuredAchievementId });
+	if (get(state).user?.id === userId) {
+		acceptSession(result);
+		broadcast();
+	}
+}
 export async function deleteProfile() {
 	const userId = get(state).user?.id;
 	await api('/me/delete', { confirm: 'SLETT' });
@@ -267,6 +284,7 @@ function enqueue(event) {
 			...event,
 			eventId: randomId(),
 			accountId: current.user.id,
+			client: { at: Date.now(), deferred: !navigator.onLine },
 			version: current.summary?.version ?? 1
 		}
 	]);
@@ -284,18 +302,28 @@ export function reviewLesson(activityId) {
 export function saveAttempt(activityId, objectiveId, solution) {
 	enqueue({ kind: 'attempt', activityId, objectiveId, solution: structuredClone(solution) });
 }
+/** @param {string} activityId @param {string} objectiveId @param {string} choice */
+export function saveCheckpoint(activityId, objectiveId, choice) {
+	enqueue({ kind: 'check', activityId, objectiveId, solution: { choice } });
+}
 
 export async function flushProgress() {
 	if (flushing || !get(state).user) return;
 	flushing = true;
 	state.update((value) => ({ ...value, syncing: true }));
 	const userId = get(state).user?.id;
+	const previousLevel = get(state).summary?.level ?? 1;
+	/** @type {import('#lib/celebrations.js').RewardResult[]} */
+	const confirmations = [];
+	let live = true;
+	let batchId = '';
 	try {
 		while (userId && get(state).user?.id === userId) {
 			const event = readQueue(userId)[0];
 			if (!event) break;
 			try {
-				const result = await api('/progress', event);
+				const { client, ...submission } = event;
+				const result = await api('/progress', submission);
 				storeQueue(
 					userId,
 					readQueue(userId).filter((item) => item.eventId !== event.eventId)
@@ -308,17 +336,12 @@ export async function flushProgress() {
 						available: true,
 						error: ''
 					}));
-					if (!result.duplicate && (result.newRewards.length || result.newAchievements.length)) {
-						const rewards = /** @type {{points:number}[]} */ (result.newRewards);
-						const points = rewards.reduce((total, value) => total + value.points, 0);
-						rewardNotice.set({
-							id: event.eventId,
-							message: result.newAchievements[0]?.title || 'Godt jobbet!',
-							points
-						});
-					}
+					confirmations.push(result);
+					batchId ||= event.eventId;
+					if (!client || client.deferred || Date.now() - client.at > 15000) live = false;
 				}
 			} catch (error) {
+				if (get(state).user?.id !== userId) break;
 				const problem =
 					error instanceof ApiError
 						? error
@@ -337,8 +360,16 @@ export async function flushProgress() {
 					problem.status === 429 ||
 					problem.status === 0 ||
 					problem.status >= 500
-				)
+				) {
+					storeQueue(
+						userId,
+						readQueue(userId).map((item) => ({
+							...item,
+							client: { at: item.client?.at ?? 0, deferred: true }
+						}))
+					);
 					break;
+				}
 				storeQueue(
 					userId,
 					readQueue(userId).filter((item) => item.eventId !== event.eventId)
@@ -346,6 +377,16 @@ export async function flushProgress() {
 			}
 		}
 	} finally {
+		if (userId && get(state).user?.id === userId) {
+			const notice = buildCelebration({
+				id: batchId,
+				userId,
+				previousLevel,
+				results: confirmations,
+				live
+			});
+			if (notice) rewardNotice.set(notice);
+		}
 		flushing = false;
 		state.update((value) => ({ ...value, syncing: false }));
 		const nextUser = get(state).user?.id;
