@@ -102,14 +102,23 @@ export const aktiviteter = [
 	{
 		id: 'nattvakt',
 		tracking: { kind: 'timed', adapter: 'production-v1' },
-		tittel: 'Nattvakt – redd produksjonen',
+		tittel: 'Nattevakten – redd produksjonen',
 		beskrivelse: 'Åtte minutter. Fire feil. Ta vakten, følg sporene og få chatten klar før åpning.',
 		href: '/spill/nattvakt/',
 		fag: 'utvikling',
 		format: 'spill',
 		type: 'Hardcore · 8 minutter',
 		emner: ['Feilsøking', 'Tidspress', 'Produksjon'],
-		sokeord: ['hardcore', 'utfordring', 'nattvakt', 'session', 'fillagring', 'eierskap', 'backend'],
+		sokeord: [
+			'hardcore',
+			'utfordring',
+			'nattvakt',
+			'nattevakten',
+			'session',
+			'fillagring',
+			'eierskap',
+			'backend'
+		],
 		symbol: '08'
 	},
 	{

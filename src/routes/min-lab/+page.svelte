@@ -247,7 +247,7 @@
 					<p class="small">
 						Vanlige leksjoner gir {rewardPolicy.reviewed} XP for gjennomgang, spill gir {rewardPolicy.passed}
 						XP per oppdrag. Poengene frigjøres ved bestått fagsjekk, med {rewardPolicy.checked} XP ekstra.
-						Nattvakt gir 50 XP ved første beståtte vakt. Fagsjekker og Nattvakt har ett forsøk per 24
+						Nattevakten gir 50 XP ved første beståtte vakt. Fagsjekker og Nattevakten har ett forsøk per 24
 						timer. Du kan lese og øve i de vanlige spillene så mye du vil.
 					</p>
 				</div>

@@ -81,7 +81,7 @@ Når vi lager og videreutvikler sider, legger vi vekt på å:
 
 Branchen `backend` har en førsteversjon med brukerprofiler, nøkkelfil, varig progresjon, XP og achievements. Se [backendveiledningen](docs/backend.md) for lokal kjøring, API, sikkerhetsmodell, HTTPS-oppsett og backup. Undervisningssimuleringene er fremdeles separate fra ekte innlogging.
 
-På `backend` finnes også personlig fremdrift på forsiden, fire fagspor, ni merker, fagsjekker med ett forsøk per døgn og et eget labkort. [Progresjonsveiledningen](docs/progresjon.md) beskriver utvidelse med nye fag, aktiviteter, kontrollregler, merker og oppgavevarianter. Vanlige leksjoner og spill krever bestått fagsjekk for XP. [Nattvakt](docs/nattvakt.md) er en egen utfordring på åtte minutter med ett forsøk per døgn, økende lydbilde og en samlet kontroll av fire reparasjoner. Lydeffekter er valgfrie og av som standard.
+På `backend` finnes også personlig fremdrift på forsiden, fire fagspor, ni merker, fagsjekker med ett forsøk per døgn og et eget labkort. [Progresjonsveiledningen](docs/progresjon.md) beskriver utvidelse med nye fag, aktiviteter, kontrollregler, merker og oppgavevarianter. Vanlige leksjoner og spill krever bestått fagsjekk for XP. [Nattevakten](docs/nattvakt.md) er en egen utfordring på åtte minutter med ett forsøk per døgn, økende lydbilde og en samlet kontroll av fire reparasjoner. Lydeffekter er valgfrie og av som standard.
 
 ## Teknisk oppsett
 

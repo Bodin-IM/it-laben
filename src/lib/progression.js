@@ -108,7 +108,7 @@ export const achievementDefinitions = [
 	},
 	{
 		id: 'nattvakt-v1',
-		title: 'Nattvakt',
+		title: 'Nattevakten',
 		description: 'Gjør alle fire reparasjonene og få produksjonen klar innen åtte minutter.',
 		symbol: '08',
 		subjects: ['utvikling'],

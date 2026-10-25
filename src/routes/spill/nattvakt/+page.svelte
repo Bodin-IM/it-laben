@@ -3,7 +3,7 @@
 </script>
 
 <svelte:head>
-	<title>Nattvakt – redd produksjonen | IT-laben</title>
+	<title>Nattevakten – redd produksjonen | IT-laben</title>
 	<meta
 		name="description"
 		content="Åtte minutter, fire feil og én vakt. Følg sporene, reparer koden og få produksjonen klar før åpning."

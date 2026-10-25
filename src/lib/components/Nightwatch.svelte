@@ -16,7 +16,7 @@
 
 	const definition = (() => {
 		const match = timedChallenges.find((item) => item.id === 'nattvakt');
-		if (!match) throw new Error('Nattvakt mangler i aktivitetsregisteret.');
+		if (!match) throw new Error('Nattevakten mangler i aktivitetsregisteret.');
 		return match;
 	})();
 	/** @type {import('#lib/timedChallenges.js').ShiftState|null} */
@@ -336,7 +336,7 @@
 >
 	<header class="site-header">
 		<a class="brand" href="/"
-			>IT<span>▧</span>LABEN<span class="separator">/</span><span class="subbrand">NATTVAKT</span
+			>IT<span>▧</span>LABEN<span class="separator">/</span><span class="subbrand">NATTEVAKTEN</span
 			></a
 		>
 		<div class="header-links"><a href="/">← Alle oppdrag</a><AccountLink /></div>
@@ -348,7 +348,7 @@
 		<div class="hero">
 			<div>
 				<p class="eyebrow">HARDCORE UTFORDRING</p>
-				<h1>Nattvakt<span>.</span></h1>
+				<h1>Nattevakten<span>.</span></h1>
 				<p class="lead">Fire feil. Åtte minutter.<br />Få produksjonen klar før åpning.</p>
 			</div>
 			<div class="clock-panel" class:live={!!active}>
@@ -652,7 +652,7 @@
 						<li>Forsøket brukes når du starter. Neste vakt åpner 24 timer senere.</li>
 						<li>Du kan lese spor og endre valgene helt fram til innlevering.</li>
 						<li>Utkast lagres underveis. Fristen fortsetter ved oppdatering eller utlogging.</li>
-						<li>Alle fire hendelser må bestås. Første bestått gir 50 XP og merket Nattvakt.</li>
+						<li>Alle fire hendelser må bestås. Første bestått gir 50 XP og merket Nattevakten.</li>
 					</ul>
 					{#if info?.bestMs !== null && info?.bestMs !== undefined}<p class="best">
 							DIN REKORD <strong>{shiftClock(info.bestMs)}</strong><span
@@ -695,7 +695,7 @@
 			</section>
 		{/if}
 		<footer class="mission-footer">
-			<span>IT-LABEN / NATTVAKT</span><span
+			<span>IT-LABEN / NATTEVAKTEN</span><span
 				>En simulert produksjonsvakt. Prøv. Forstå. Ta med deg læringen.</span
 			>
 		</footer>
@@ -810,7 +810,7 @@
 		margin: 0 0 10px;
 	}
 	h1 {
-		font-size: clamp(3.5rem, 7vw, 6.5rem);
+		font-size: clamp(2.5rem, 7vw, 6.5rem);
 		letter-spacing: -6px;
 		line-height: 1.05;
 		font-weight: 650;
@@ -1643,8 +1643,8 @@
 			grid-template-columns: minmax(0, 1fr);
 		}
 		h1 {
-			font-size: 4.2rem;
-			letter-spacing: -4px;
+			font-size: clamp(2.5rem, 12vw, 4.2rem);
+			letter-spacing: -2px;
 			margin-bottom: 12px;
 		}
 		.lead {

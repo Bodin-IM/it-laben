@@ -1,6 +1,6 @@
-# Nattvakt – redd produksjonen
+# Nattevakten – redd produksjonen
 
-Nattvakt ligger på `backend`, under `/spill/nattvakt/`. Det er en produksjonsvakt på åtte minutter med fire hendelser, ett innsendingsforsøk og en lokal elektronisk ambience som bygger seg opp mot slutten.
+Nattevakten ligger på `backend`, under `/spill/nattvakt/`. Det er en produksjonsvakt på åtte minutter med fire hendelser, ett innsendingsforsøk og en lokal elektronisk ambience som bygger seg opp mot slutten.
 
 Forhåndsvisning med eksempeldata: [briefing](nattvakt-briefing.png), [aktiv vakt](nattvakt-aktiv.png), [mobil](nattvakt-mobile.png) og [hendelsesrapport](nattvakt-rapport.png).
 
@@ -21,7 +21,7 @@ Slettingsruten kjøres gjennom de samme åtte prøvene som i Redd chatten. Til s
 
 Etter levering eller utløp vises en hendelsesrapport med resultat, forklaring, løsningsprinsipp og relevante leksjoner. Ved utløp vurderes sist lagrede serverutkast for å gi læringsfeedback; utløpt vakt gir ikke XP, selv med et korrekt utkast.
 
-Første bestått gir **50 XP og merket Nattvakt**. Dette er en serverkontrollert forståelsesoppgave og krever ingen ekstra fagsjekk. Senere beståtte vakter kan forbedre personlig rekord, men gir ikke samme XP på nytt. Tidligere opptjent progresjon og merke beholdes ved senere feil.
+Første bestått gir **50 XP og merket Nattevakten**. Dette er en serverkontrollert forståelsesoppgave og krever ingen ekstra fagsjekk. Senere beståtte vakter kan forbedre personlig rekord, men gir ikke samme XP på nytt. Tidligere opptjent progresjon og merke beholdes ved senere feil.
 
 ## Lagring og nettbrudd
 

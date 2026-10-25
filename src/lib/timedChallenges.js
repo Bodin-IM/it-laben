@@ -4,7 +4,7 @@ export const timedChallenges = [
 		id: 'nattvakt',
 		adapter: 'production-v1',
 		objectiveId: 'shift-v1',
-		title: 'Nattvakt',
+		title: 'Nattevakten',
 		durationMs: 8 * 60 * 1000,
 		cooldownMs: 24 * 60 * 60 * 1000,
 		points: 50,
