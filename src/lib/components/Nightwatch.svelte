@@ -616,11 +616,9 @@
 				>
 			</section>
 			{#if pending}<p class="notice" role="status">
-					Innleveringen venter på serveren. Ved nettbrudd sendes samme innlevering på nytt. Serveren
-					må motta den før fristen for at vakten skal bestås. <button
-						type="button"
-						class="text-button"
-						onclick={() => refreshLab()}>Prøv å synkronisere</button
+					Innleveringen venter på bekreftelse. Den må være mottatt før fristen for at vakten skal
+					bestås. <button type="button" class="text-button" onclick={() => refreshLab()}
+						>Prøv å synkronisere</button
 					>
 				</p>{/if}
 		{:else}

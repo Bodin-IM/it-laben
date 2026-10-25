@@ -18,6 +18,16 @@ import {
 	assignExistingUsernames
 } from '../server/usernames.js';
 import { backupDatabase } from '../server/backup.js';
+import { aktiviteter } from '../src/lib/innhold.js';
+import {
+	teachingPlans,
+	buildPresentationLessons,
+	validateTeachingPlans,
+	presentationLink,
+	studentLessonLink
+} from '../src/lib/teaching.js';
+import { teachingGuides, validateTeachingGuides } from '../server/teaching.js';
+import { catalog, buildCatalog } from '../server/catalog.js';
 
 const namePattern = /^[\p{L}]+ [\p{L}]+ [1-9][0-9]{3}$/u;
 
@@ -118,12 +128,12 @@ test('brukernavn: serveren tildeler navn, ignorerer klientnavn og sperrer selvva
 		nickname: 'VALGT NAVN',
 		role: 'admin',
 		name_assigned: 0,
-		leaderboard_visible: 1
+		leaderboard_visible: 0
 	});
 	assert.match(student.user.nickname, namePattern);
 	assert.notEqual(student.user.nickname, 'VALGT NAVN');
 	assert.equal(student.user.role, 'student');
-	assert.equal(student.user.leaderboardVisible, false);
+	assert.equal(student.user.leaderboardVisible, true);
 	const changed = await student.request('/api/me/nickname', { nickname: 'NYTT NAVN' });
 	assert.equal(changed.status, 403);
 	assert.equal(changed.result.error.code, 'NAME_MANAGED');
@@ -199,7 +209,7 @@ test('oppgradering fra v5: duplikatnavn erstattes én gang uten å miste konto, 
 	for (const row of rows) {
 		assert.match(row.nickname, namePattern);
 		assert.equal(row.name_assigned, 1);
-		assert.equal(row.leaderboard_visible, 0);
+		assert.equal(row.leaderboard_visible, 1);
 	}
 	assert.notEqual(rows[0].nickname, rows[1].nickname);
 	assert.equal(assignExistingUsernames(f.db), 0);
@@ -414,7 +424,7 @@ test('administrator: arver lærerfunksjoner, siste admin beskyttes og faktisk CL
 	assert.notEqual(run('revoke', other.user.id).status, 0);
 });
 
-test('toppliste: frivillig, bare aktive elever, korrekt delt rangering og minimal offentlig respons', async (t) => {
+test('toppliste: på som standard, bare aktive elever, korrekt delt rangering og minimal offentlig respons', async (t) => {
 	const f = await fixture(t),
 		teacher = await f.staff(),
 		admin = await f.staff('admin');
@@ -426,8 +436,7 @@ test('toppliste: frivillig, bare aktive elever, korrekt delt rangering og minima
 		students.push(student);
 	}
 	const guest = f.client();
-	assert.equal((await guest.request('/api/leaderboard')).result.total, 0);
-	for (const student of students) await student.visible(true);
+	assert.equal((await guest.request('/api/leaderboard')).result.total, 13);
 	assert.equal((await teacher.visible(true)).status, 403);
 	assert.equal((await admin.visible(true)).status, 403);
 	const publicResult = await guest.request('/api/leaderboard');
@@ -510,4 +519,185 @@ test('backup inkluderer tildelte navn, administrator, kontostatus, deltakelse og
 	} finally {
 		copy.close();
 	}
+});
+
+test('undervisning: læreropplegg og egne lærersider er adskilt fra elevkatalogen og kan utvides med drift', () => {
+	assert.equal(teachingPlans.length, 4);
+	assert.ok(aktiviteter.every((item) => item.audience === 'student'));
+	assert.ok(
+		teachingPlans.every(
+			(plan) => plan.audience === 'teacher' && !catalog.some((item) => item.id === plan.id)
+		)
+	);
+	validateTeachingPlans();
+	validateTeachingGuides();
+	assert.throws(() => buildCatalog([{ ...aktiviteter[0], audience: 'teacher' }]), /lærerkatalogen/);
+	assert.throws(
+		() => validateTeachingPlans([{ ...teachingPlans[0], lessonIds: ['ukjent'] }]),
+		/leksjon/
+	);
+	assert.throws(
+		() => validateTeachingGuides(teachingPlans, teachingGuides.slice(1)),
+		/lærerveiledning/
+	);
+	const resource = {
+		id: 'drift-felles-nettverk',
+		audience: 'teacher',
+		tittel: 'Nettverk på tavla',
+		beskrivelse: 'Felles gjennomgang',
+		href: '/laerer/leksjoner/nettverk/',
+		fag: 'drift',
+		format: 'leksjon'
+	};
+	const resources = buildPresentationLessons(aktiviteter, [resource]);
+	const plan = {
+		...teachingPlans[0],
+		id: 'drift-nettverk',
+		subject: 'drift',
+		lessonIds: [resource.id],
+		selfWorkIds: []
+	};
+	validateTeachingPlans([plan], aktiviteter, resources);
+	assert.throws(
+		() => buildPresentationLessons(aktiviteter, [{ ...resource, id: aktiviteter[0].id }]),
+		/lærerleksjon/
+	);
+	assert.ok(!aktiviteter.some((item) => item.id === resource.id));
+});
+
+test('undervisning: lærernotater krever serverrolle ved hvert kall og endrer ikke elevprogresjon', async (t) => {
+	const f = await fixture(t),
+		teacher = await f.staff(),
+		admin = await f.staff('admin'),
+		student = f.client();
+	await student.create();
+	assert.equal((await f.client().request('/api/teacher/teaching')).status, 401);
+	assert.equal((await student.request('/api/teacher/teaching')).status, 403);
+	assert.equal((await admin.request('/api/teacher/teaching')).status, 200);
+	const response = await teacher.request('/api/teacher/teaching');
+	assert.equal(response.status, 200);
+	assert.equal(response.result.guides.length, 4);
+	assert.deepEqual(response.result.guides[0].preparation, teachingGuides[0].preparation);
+	assert.ok(
+		!JSON.stringify((await student.request('/api/me')).result).includes(
+			teachingGuides[0].preparation[0]
+		)
+	);
+	assert.equal(f.db.prepare('SELECT COUNT(*) AS n FROM progress').get().n, 0);
+	assert.equal(f.db.prepare('SELECT COUNT(*) AS n FROM rewards').get().n, 0);
+	assert.equal(
+		(
+			await student.request('/api/progress', {
+				accountId: student.user.id,
+				eventId: randomUUID(),
+				version: 2,
+				kind: 'start',
+				activityId: teachingPlans[0].id,
+				objectiveId: 'review'
+			})
+		).status,
+		400
+	);
+	setTeacherRole(f.db, teacher.user.id, false);
+	assert.equal((await teacher.request('/api/teacher/teaching')).status, 403);
+});
+
+test('presentasjonslenker holder elevforsøk og presentasjon adskilt', () => {
+	const projected = presentationLink(
+		'/backend/?modus=undervisning&apning=old&utenTid=1#kode',
+		'meldingens-reise'
+	);
+	const url = new URL(projected, 'https://itlab.invalid');
+	assert.equal(url.searchParams.get('visning'), 'presentasjon');
+	assert.equal(url.searchParams.get('opplegg'), 'meldingens-reise');
+	for (const name of ['modus', 'apning', 'utenTid'])
+		assert.equal(url.searchParams.has(name), false);
+	assert.equal(studentLessonLink(projected), '/backend/#kode');
+	assert.equal(
+		new URL(presentationLink(projected), 'https://itlab.invalid').searchParams.has('opplegg'),
+		false
+	);
+});
+
+test('toppliste: skjul er et varig aktivt valg, også etter ny innlogging og API-oppstart', async (t) => {
+	const f = await fixture(t),
+		student = f.client();
+	await student.create();
+	f.points(student, 25);
+	assert.equal(student.user.leaderboardVisible, true);
+	assert.equal(
+		f.db
+			.prepare('SELECT leaderboard_preference_set AS chosen FROM users WHERE id=?')
+			.get(student.user.id).chosen,
+		0
+	);
+	await student.visible(false);
+	assert.equal(
+		f.db
+			.prepare('SELECT leaderboard_preference_set AS chosen FROM users WHERE id=?')
+			.get(student.user.id).chosen,
+		1
+	);
+	const second = f.client(),
+		login = await second.request('/api/auth/key', { key: student.key.key });
+	assert.equal(login.result.user.leaderboardVisible, false);
+	assert.equal(login.result.summary.xp, 25);
+	const reopened = openDatabase(f.filename);
+	try {
+		createApp({ db: reopened, config: readConfig(), limits: false });
+		assert.equal(
+			reopened
+				.prepare('SELECT leaderboard_visible AS visible FROM users WHERE id=?')
+				.get(student.user.id).visible,
+			0
+		);
+	} finally {
+		reopened.close();
+	}
+	assert.equal((await f.client().request('/api/leaderboard')).result.total, 0);
+	await second.visible(true);
+	assert.equal((await f.client().request('/api/leaderboard')).result.total, 1);
+});
+
+test('oppgradering fra tidligere dev bevarer skjulte profiler og aktiverer standarden for kontoer uten tidligere valg', async (t) => {
+	const ids = [randomUUID(), randomUUID(), randomUUID()];
+	const f = await fixture(t, (filename) => {
+		const db = new DatabaseSync(filename);
+		db.exec(
+			'PRAGMA foreign_keys=ON; CREATE TABLE migrations(name TEXT PRIMARY KEY,hash TEXT NOT NULL,applied_at INTEGER NOT NULL)'
+		);
+		const directory = new URL('../server/migrations/', import.meta.url);
+		for (const file of readdirSync(directory)
+			.filter((item) => item.endsWith('.sql'))
+			.sort()
+			.slice(0, 6)) {
+			const sql = readFileSync(new URL(file, directory), 'utf8');
+			db.exec(sql);
+			db.prepare('INSERT INTO migrations VALUES (?,?,?)').run(
+				file,
+				createHash('sha256').update(sql).digest('hex'),
+				1
+			);
+		}
+		ids.forEach((id, index) =>
+			db
+				.prepare(
+					'INSERT INTO users(id,nickname,created_at,name_assigned,leaderboard_visible) VALUES (?,?,1,?,?)'
+				)
+				.run(id, `Lur Oter ${2000 + index}`, index === 2 ? 0 : 1, index === 1 ? 1 : 0)
+		);
+		db.close();
+	});
+	assert.equal(
+		f.db.prepare('SELECT leaderboard_visible AS visible FROM users WHERE id=?').get(ids[0]).visible,
+		0
+	);
+	assert.equal(
+		f.db.prepare('SELECT leaderboard_visible AS visible FROM users WHERE id=?').get(ids[1]).visible,
+		1
+	);
+	assert.equal(
+		f.db.prepare('SELECT leaderboard_visible AS visible FROM users WHERE id=?').get(ids[2]).visible,
+		1
+	);
 });

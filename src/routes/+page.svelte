@@ -6,6 +6,7 @@
 	import PersonalOverview from '#lib/components/PersonalOverview.svelte';
 	import { aktiviteter, fag, innholdsformat } from '#lib/innhold.js';
 	import { lab as account } from '#lib/lab.js';
+	import { hasTeacherRole } from '#lib/learning.js';
 
 	let valgtFag = $state('alle');
 	let valgtFormat = $state('alle');
@@ -122,6 +123,9 @@
 		</a>
 		<div class="header-actions">
 			<span class="header-note">SE. PRØV. FORSTÅ.</span>
+			{#if hasTeacherRole($account.user?.role)}<a class="teaching-link" href="/laerer/undervisning/"
+					>Undervisning →</a
+				>{/if}
 			<a href="/toppliste/">Toppliste</a><AccountLink /><ThemeToggle />
 		</div>
 	</header>
@@ -247,7 +251,11 @@
 										href={aktivitet.href}
 									>
 										<div class="korttopp">
-											<span class="formatmerke">{innholdsformat(aktivitet.format).entall}</span>
+											<span class="formatmerke"
+												>{innholdsformat(aktivitet.format).entall}{aktivitet.format === 'leksjon'
+													? ' · Gjør selv'
+													: ''}</span
+											>
 											<span class="symbol" aria-hidden="true">{aktivitet.symbol}</span>
 										</div>
 										<h3>{aktivitet.tittel}</h3>

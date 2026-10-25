@@ -382,7 +382,7 @@ test('backup av aktiv database bevarer konto, økt, poeng og progresjon', async 
 		restored.close();
 	}
 	const restarted = openDatabase(f.filename);
-	assert.equal(restarted.prepare('SELECT count(*) AS n FROM migrations').get().n, 6);
+	assert.equal(restarted.prepare('SELECT count(*) AS n FROM migrations').get().n, 7);
 	restarted.close();
 });
 
@@ -592,7 +592,7 @@ test('oppgradering: nye merker etterregistreres for tidligere fullførte oppdrag
 	try {
 		assert.equal(summary(upgraded, a.user.id).xp, 0);
 		assert.equal(summary(upgraded, a.user.id).lab.colorId, 'forest');
-		assert.equal(upgraded.prepare('SELECT count(*) AS n FROM migrations').get().n, 6);
+		assert.equal(upgraded.prepare('SELECT count(*) AS n FROM migrations').get().n, 7);
 	} finally {
 		upgraded.close();
 	}
@@ -1858,7 +1858,7 @@ test('lærerdata: migrasjon fra versjon 4 bevarer vanlige forsøk, og øvingsdat
 			upgraded.prepare('SELECT opening_id FROM checkpoint_attempts').get().opening_id,
 			null
 		);
-		assert.equal(upgraded.prepare('SELECT count(*) AS n FROM migrations').get().n, 6);
+		assert.equal(upgraded.prepare('SELECT count(*) AS n FROM migrations').get().n, 7);
 	} finally {
 		upgraded.close();
 	}

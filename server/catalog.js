@@ -66,6 +66,8 @@ export function buildCatalog(
 ) {
 	const ids = new Set();
 	const result = activities.map((activity) => {
+		if (activity.audience && activity.audience !== 'student')
+			throw new Error('Undervisningsopplegg hører til i lærerkatalogen, uten elev-XP.');
 		if (ids.has(activity.id))
 			throw new Error(`Aktivitets-ID er brukt flere ganger: ${activity.id}`);
 		ids.add(activity.id);

@@ -2,7 +2,7 @@
 
 Backend utvikles på branchen `backend` og publiseres via `main` etter sammenslåing. [Engangsoppsettet for Ubuntu](installasjon-main.md) klargjør HTTPS uten offentlig domene, API, databasebackup og den eksisterende oppdateringstimeren. Serveren henter fortsatt bare `main`. Klargjør serveren før sammenslåingen, siden en push til `main` kan utløse publisering med en gang.
 
-Neste versjon utvikles isolert på `dev`: [elevadministrasjon, tildelte brukernavn og frivillig toppliste](elevadministrasjon.md). Bruk en egen database til lokal utprøving. Migrasjon 006 og de nye funksjonene blir ikke publisert på skoleserveren før en senere merge til `main`.
+Neste versjon utvikles isolert på `dev`: [elevadministrasjon, tildelte brukernavn og toppliste med mulighet til å skjule seg](elevadministrasjon.md). Bruk en egen database til lokal utprøving. Migrasjonene 006–007 og de nye funksjonene blir ikke publisert på skoleserveren før en senere merge til `main`.
 
 GitHub Actions er konfigurert for tester, Svelte-kontroll og statisk bygg ved push og pull requests. Workflowen publiserer ikke til skolens server.
 
@@ -128,3 +128,5 @@ Ved gjenoppretting stoppes API-et først, gjeldende database og tilhørende WAL/
 - «Bruk nettstedets HTTPS-adresse»: kontroller Nginx sitt `X-Forwarded-Proto` og at TLS faktisk er aktivt.
 - Mistet nettleserdata: logg inn med filen. Hvis både filen og alle økter er borte, finnes ingen identitetskobling for sikker gjenoppretting i denne versjonen.
 - Kunne ikke kontakte Min lab: undervisningen virker fortsatt. Ventende innsendinger er knyttet til kontoen og synkroniseres når den samme brukeren er pålogget og tilkoblingen er tilbake.
+
+[Undervisningsmodus](undervisning.md) gir egne læreropplegg og storskjermvisning. Lærernotater hentes fra et lærerbeskyttet API, mens elevkatalogen og vurderingsreglene beholdes.

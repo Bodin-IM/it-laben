@@ -34,6 +34,7 @@ import {
 	deleteUser
 } from './students.js';
 import { leaderboard } from './leaderboard.js';
+import { teachingLibrary } from './teaching.js';
 
 const DAY = 86400000;
 const hash = (value) => createHash('sha256').update(value).digest('hex');
@@ -226,14 +227,12 @@ export function createApp({ db, config, clock = Date.now, limits = true }) {
 				id: randomUUID(),
 				nickname: generateUsername(db),
 				createdAt: clock(),
-				leaderboardVisible: 0
+				leaderboardVisible: 1
 			};
 			db.prepare('DELETE FROM sessions WHERE expires_at<?').run(clock());
-			db.prepare('INSERT INTO users(id,nickname,created_at,name_assigned) VALUES (?,?,?,1)').run(
-				user.id,
-				user.nickname,
-				user.createdAt
-			);
+			db.prepare(
+				'INSERT INTO users(id,nickname,created_at,name_assigned,leaderboard_visible) VALUES (?,?,?,1,1)'
+			).run(user.id, user.nickname, user.createdAt);
 			const recovery = keyFile(user.id),
 				session = newSession(user.id, req.body.remember !== false);
 			return { payload: { ...me(user, session), recoveryKey: recovery }, session };
@@ -301,10 +300,9 @@ export function createApp({ db, config, clock = Date.now, limits = true }) {
 			throw new TypeError('Velg om du vil vises på topplisten.');
 		if (userRole(db, req.labUser.id) !== 'student')
 			return fail(res, 403, 'STAFF_NOT_RANKED', 'Lærerprofiler deltar ikke på topplisten.');
-		db.prepare('UPDATE users SET leaderboard_visible=? WHERE id=?').run(
-			req.body.visible ? 1 : 0,
-			req.labUser.id
-		);
+		db.prepare(
+			'UPDATE users SET leaderboard_visible=?,leaderboard_preference_set=1 WHERE id=?'
+		).run(req.body.visible ? 1 : 0, req.labUser.id);
 		res.json(me({ ...req.labUser, leaderboardVisible: req.body.visible ? 1 : 0 }, req.labSession));
 	});
 	app.post('/api/me/lab', authenticated, (req, res) => {
@@ -376,6 +374,9 @@ export function createApp({ db, config, clock = Date.now, limits = true }) {
 		};
 	};
 	app.get('/api/teacher', authenticated, (req, res) => res.json(teacherView(req.labUser.id)));
+	app.get('/api/teacher/teaching', authenticated, (req, res) =>
+		res.json(teachingLibrary(db, req.labUser.id))
+	);
 	app.get('/api/teacher/overview', authenticated, (req, res) =>
 		res.json(teacherOverview(db, req.labUser.id, clock()))
 	);

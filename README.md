@@ -79,7 +79,7 @@ Når vi lager og videreutvikler sider, legger vi vekt på å:
 
 ## Min lab og backend
 
-Videreutviklingen på `dev` har elevoversikt, administratorverktøy, tildelte unike brukernavn og frivillig offentlig toppliste. Se [oppsettet for elevadministrasjon](docs/elevadministrasjon.md) for lokal utprøving med egen database. Serverens automatiske publisering bruker fortsatt `main`.
+Videreutviklingen på `dev` har elevoversikt, administratorverktøy, tildelte unike brukernavn og offentlig toppliste med mulighet til å skjule seg. Se [oppsettet for elevadministrasjon](docs/elevadministrasjon.md) for lokal utprøving med egen database. Serverens automatiske publisering bruker fortsatt `main`.
 
 Branchen `backend` har en førsteversjon med brukerprofiler, nøkkelfil, varig progresjon, XP og achievements. Se [backendveiledningen](docs/backend.md) for lokal kjøring, API, sikkerhetsmodell, HTTPS-oppsett og backup. Undervisningssimuleringene er fremdeles separate fra ekte innlogging.
 
@@ -191,3 +191,5 @@ Se [driftsveiledningen](docs/serverdrift.md) for manuell oppdatering, logger, ti
 Før backend merges til `main`, klargjøres serveren med [installasjonsskriptene for HTTPS, API og backup](docs/installasjon-main.md). Den eksisterende timeren fortsetter å hente `main`; den nye jobben publiserer API og frontend fra samme commit.
 
 Lærere kan bruke [lærerpanelet](docs/laererpanel.md) til å teste aktiviteter uten XP og åpne øving eller ekstra undervisningsforsøk for alle i 30 eller 60 minutter. Lærertilgang gis én gang til den eksisterende profilen fra serveren.
+
+På `dev` finnes også [undervisningsmodus](docs/undervisning.md): egne læreropplegg, lærerveiledninger og storskjermvisning, adskilt fra elevleksjonene for selvarbeid.

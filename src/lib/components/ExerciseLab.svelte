@@ -105,8 +105,7 @@
 			<h1 id="title">{lesson.title}</h1>
 			<p class="lead">{lesson.intro}</p>
 			<p class="simulation">
-				<span aria-hidden="true">◉</span> Lokal undervisningssimulering · brukere og innlogging i forsøket
-				er eksempler · nye eksempeldata ved hvert forsøk
+				<span aria-hidden="true">◉</span> Prøv med eksempeldata.
 			</p>
 		</section>
 
@@ -298,7 +297,6 @@
 			{#if lesson.number === 10}<p>
 					Øvingsarket bruker intern HTTP og testkontoer. En offentlig tjeneste trenger blant annet
 					HTTPS, riktig secure-cookie, varig sessionlager og begrensning av innloggingsforsøk.
-					IT-labens egen Ubuntu-publisering er beskrevet i prosjektets docs/serverdrift.md.
 				</p>{/if}
 			{#each lesson.related as related}<a href={related.href}>{related.label} →</a>{/each}
 		</details>

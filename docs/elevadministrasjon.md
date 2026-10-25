@@ -36,7 +36,7 @@ npm run admin -- grant PROFIL_ID
 
 Kommandoen leser samme `.env` som API-et. Oppdater nettleseren. Du får både lærerfunksjonene og brukeradministrasjonen.
 
-Bruk aldri produksjonsdatabasen som testdatabase for `dev`. Migrasjon 006 er en skjemaoppgradering, og dagens eldre `main`-API vil avvise et skjema som er nyere enn API-koden. Den lokale databasefilen er ignorert av Git.
+Bruk aldri produksjonsdatabasen som testdatabase for `dev`. Migrasjonene 006 og 007 er skjemaoppgraderinger, og dagens eldre `main`-API vil avvise et skjema som er nyere enn API-koden. Den lokale databasefilen er ignorert av Git.
 
 ## Brukernavn tildeles av IT-laben
 
@@ -53,7 +53,7 @@ Ved første API-oppstart med den nye versjonen får **eksisterende profiler, ink
 
 ## Lærerpanelet
 
-Panelet har fire innganger: **Oversikt**, **Elever**, **Aktiviteter** og **Toppliste**.
+Panelet har fem innganger: **Oversikt**, **Undervisning**, **Elever**, **Aktiviteter** og **Toppliste**. [Undervisningsmodus](undervisning.md) skiller læreropplegg fra elevleksjoner og gir en egen storskjermvisning.
 
 ### Oversikt
 
@@ -123,7 +123,7 @@ Alle elevhandlinger krever ny kontroll av serverrollen, Origin, CSRF og aktøren
 
 `/toppliste/` kan leses uten innlogging av alle som har tilgang til IT-laben. Dette endrer ikke skolens nettverk eller gjør siden tilgjengelig fra internett.
 
-Elevene er **skjult som standard**, også etter oppgradering. Fra **Min lab → Profil og nøkkelfil**, eller på topplistesiden, velger eleven **Bli med på topplisten**. **Skjul meg fra topplisten** fjerner deltakelsen uten å endre poeng eller progresjon.
+Nye elevprofiler og kontoer som oppgraderes fra skoleversjonen uten tidligere innstilling er **synlige som standard**. **Skjul meg fra topplisten** fjerner deltakelsen uten å endre poeng eller progresjon. **Vis meg på topplisten** viser profilen igjen. Tidligere innstillinger fra `dev` beholdes, inkludert skjulte profiler. Valget finnes i **Min lab → Profil og nøkkelfil** og på topplistesiden.
 
 Den offentlige responsen inneholder bare plassering, tildelt brukernavn, XP, nivå, labfarge og et valgt opptjent merke. Konto-ID, aktivitetshistorikk, tidspunkt og nøkkel-/øktdata returneres ikke. En innlogget deltaker får i tillegg sin egen plassering, selv om profilen er utenfor siden som vises.
 
@@ -140,4 +140,6 @@ Migrasjon `006_students_and_leaderboard.sql` legger til kontostatus, navnetildel
 
 Oversiktene bruker den eksisterende aktivitetskatalogen og stabile aktivitets-ID-er. Nye leksjoner, spill og driftsaktiviteter kommer med automatisk. Elevlisten henter progresjon samlet per side fremfor å kjøre en komplett profilsammenstilling for hver elev; detaljvisningen laster én valgt profil.
 
-Daglig backup og backup før publisering inkluderer de nye feltene og tabellene. Før eventuell merge til `main`: kontroller navn/rolleovergangen, ta backup og bruk en API-versjon som forstår skjema 006 ved tilbakeføring.
+Daglig backup og backup før publisering inkluderer de nye feltene og tabellene. Før eventuell merge til `main`: kontroller navn/rolleovergangen, ta backup og bruk en API-versjon som forstår skjema 007 ved tilbakeføring.
+
+Se [undervisningsmodus](undervisning.md) for migrasjon 007, separate læreropplegg, private lærernotater og de nye topplisteinnstillingene.

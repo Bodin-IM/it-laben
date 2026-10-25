@@ -85,9 +85,10 @@
 			</div>
 		</div>
 		<div class="quick-links">
-			<a class="button-link" href="/laerer/elever/">Se elevene →</a><a
+			<a class="button-link" href="/laerer/undervisning/">Start undervisning →</a><a
 				class="button-link secondary"
-				href="/laerer/aktiviteter/">Åpne en felles aktivitet →</a
+				href="/laerer/elever/">Se elevene →</a
+			><a class="button-link secondary" href="/laerer/aktiviteter/">Åpne en felles aktivitet →</a
 			><button class="secondary" type="button" disabled={loading} onclick={load}
 				>Oppdater oversikten</button
 			>

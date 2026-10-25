@@ -2,7 +2,7 @@
 
 Lærerpanelet ligger på `/laerer/` i `backend`-versjonen. Du bruker din eksisterende Min lab-profil og nøkkelfil. Ingen nye passord eller skolepålogging er nødvendig.
 
-På `dev` er panelet utvidet med **Oversikt**, **Elever**, **Aktiviteter** og **Toppliste**. Test- og åpningsverktøyene er flyttet til `/laerer/aktiviteter/`. Se [elevadministrasjon og tildelte brukernavn](elevadministrasjon.md) for ny administratorrolle, lokal utprøving og navneovergangen for eksisterende profiler.
+På `dev` er panelet utvidet med **Oversikt**, **Undervisning**, **Elever**, **Aktiviteter** og **Toppliste**. Test- og åpningsverktøyene er flyttet til `/laerer/aktiviteter/`. Se [elevadministrasjon og tildelte brukernavn](elevadministrasjon.md) for ny administratorrolle, lokal utprøving og navneovergangen for eksisterende profiler.
 
 Se eksempelvisning av [lærerpanelet](teacher-panel.png), [test uten tidsfrist](teacher-practice.png) og [et undervisningsforsøk](teacher-opening.png).
 
@@ -79,3 +79,5 @@ Et undervisningsforsøk kan gi vanlig XP ved bestått, men allerede opptjente po
 Backup inkluderer roller, åpninger og øvingsdata. Kontosletting fjerner rollen og elevens øvingsforsøk/progresjon; historikk for felles åpninger kan beholdes med lærerreferansen anonymisert. Bruk en API-versjon som forstår det nye skjemaet ved eventuell tilbakeføring.
 
 De felles tilgangsreglene bruker stabile aktivitets-ID-er. Nye leksjoner og driftsaktiviteter som registreres i innholdskatalogen kommer automatisk med i panelet; de trenger ikke egne lærerknapper eller nye regler for åpninger.
+
+Se [undervisningsmodus og elevleksjoner](undervisning.md) for planlegging, private lærernotater, rask tilgang til leksjoner og visning på storskjerm.

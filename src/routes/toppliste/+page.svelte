@@ -63,10 +63,7 @@
 		<section class="intro">
 			<p class="eyebrow">SMÅ STEG. SYNLIG FREMGANG.</p>
 			<h1>Læring som<br /><em>setter spor.</em></h1>
-			<p>
-				Hvert poeng kommer fra gjennomførte mål og beståtte fagsjekker. Her ser du de som har valgt
-				å dele fremgangen sin.
-			</p>
+			<p>Løs oppdrag, fullfør leksjoner og se fremgangen vokse.</p>
 		</section>
 		{#if error}<p class="notice" role="alert">{error}</p>{/if}
 		<div class="board-heading">
@@ -89,7 +86,7 @@
 					</h3>
 					<p>
 						{board.total === 0
-							? 'Topplisten er frivillig. Bli med fra Min lab, og la læringen synes.'
+							? 'Fullfør aktiviteter i Min lab og la læringen synes.'
 							: 'Gå tilbake til første side for å se deltakerne.'}
 					</p>
 					{#if board.total !== 0}<a href="/toppliste/">Til første side →</a>{/if}
@@ -112,11 +109,9 @@
 		{:else}<p role="status">
 				{loading ? 'Henter topplisten …' : 'Topplisten er ikke tilgjengelig.'}
 			</p>{/if}
-		<section class="participation"><LeaderboardPreference showLink={false} /></section>
-		<p class="small rules">
-			XP beregnes på serveren og gis én gang per mål. Øving og lærerprofiler inngår ikke. Det er
-			ingen ukentlig nullstilling av poeng eller progresjon.
-		</p>
+		{#if !$lab.user || $lab.user.role === 'student'}<section class="participation">
+				<LeaderboardPreference showLink={false} />
+			</section>{/if}
 	</main>
 </div>
 
@@ -265,10 +260,6 @@
 		border-radius: 10px;
 		padding: 24px;
 		margin-top: 30px;
-	}
-	.rules {
-		max-width: 760px;
-		margin-top: 22px;
 	}
 	.notice {
 		color: var(--color-danger);

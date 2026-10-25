@@ -303,7 +303,10 @@
 			<details class="settings">
 				<summary>Profil og nøkkelfil</summary>
 				<div class="settings-content">
-					<p>Din profil-ID: <code style="overflow-wrap:anywhere">{$lab.user.id}</code></p>
+					<details>
+						<summary>Profilinformasjon</summary>
+						<p>Din profil-ID: <code style="overflow-wrap:anywhere">{$lab.user.id}</code></p>
+					</details>
 					{#if hasTeacherRole($lab.user.role)}<p><a href="/laerer/">Åpne lærerpanel →</a></p>{/if}
 					<p>
 						Brukernavnet er tildelt av IT-laben. Be læreren om hjelp hvis det må endres. Nøkkelfilen
@@ -344,9 +347,6 @@
 			</details>
 		{/if}
 		{#if message}<p class="error" role="alert">{message}</p>{/if}
-		{#if $lab.development}<p class="development">
-				Dette er en lokal prøveversjon. Bruk en testprofil.
-			</p>{/if}
 		<ExperienceSettings />
 		<footer><a href="/">← Til IT-laben</a><span>Se. Prøv. Forstå.</span></footer>
 	</main>
@@ -791,11 +791,6 @@
 		color: var(--color-danger);
 		background: var(--color-danger-soft);
 		border-radius: 8px;
-	}
-	.development {
-		font-size: var(--font-small);
-		text-align: center;
-		color: var(--color-text-muted);
 	}
 	.status {
 		padding-block: 60px;

@@ -2,6 +2,7 @@
 	import { page } from '$app/state';
 	const links = [
 		{ href: '/laerer/', label: 'Oversikt' },
+		{ href: '/laerer/undervisning/', label: 'Undervisning' },
 		{ href: '/laerer/elever/', label: 'Elever' },
 		{ href: '/laerer/aktiviteter/', label: 'Aktiviteter' },
 		{ href: '/toppliste/', label: 'Toppliste' }

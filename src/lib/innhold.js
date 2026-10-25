@@ -26,6 +26,7 @@ export function innholdsformat(id) {
  * @property {string} beskrivelse
  * @property {string} href
  * @property {'utvikling' | 'drift'} fag
+ * @property {'student'} audience
  * @property {'leksjon' | 'spill'} format
  * @property {string} type
  * @property {string[]} emner
@@ -48,6 +49,7 @@ const ovingsEmner = {
 export const aktiviteter = [
 	{
 		id: 'frontend-backend',
+		audience: 'student',
 		tracking: { kind: 'review' },
 		tittel: 'Frontend møter backend',
 		beskrivelse: 'Send en melding, hent den tilbake og følg koden mellom nettleser og server.',
@@ -61,6 +63,7 @@ export const aktiviteter = [
 	},
 	{
 		id: 'chatrom',
+		audience: 'student',
 		tracking: { kind: 'review' },
 		tittel: 'Bygg videre på chatten',
 		beskrivelse:
@@ -75,6 +78,7 @@ export const aktiviteter = [
 	},
 	{
 		id: 'fillagring',
+		audience: 'student',
 		tracking: { kind: 'review' },
 		tittel: 'Lagring i JSON-fil',
 		beskrivelse: 'Følg data fra minne til fil og undersøk hva som overlever en omstart.',
@@ -88,6 +92,7 @@ export const aktiviteter = [
 	},
 	{
 		id: 'sessions',
+		audience: 'student',
 		tracking: { kind: 'review' },
 		tittel: 'Sessions og pålogging',
 		beskrivelse: 'Følg en innlogging steg for steg og utforsk samspillet mellom cookie og session.',
@@ -101,6 +106,7 @@ export const aktiviteter = [
 	},
 	{
 		id: 'nattvakt',
+		audience: 'student',
 		tracking: { kind: 'timed', adapter: 'production-v1' },
 		tittel: 'Nattevakten – redd produksjonen',
 		beskrivelse: 'Åtte minutter. Fire feil. Ta vakten, følg sporene og få chatten klar før åpning.',
@@ -123,6 +129,7 @@ export const aktiviteter = [
 	},
 	{
 		id: 'meldingsdetektiven',
+		audience: 'student',
 		tracking: { kind: 'challenge', adapter: 'meldingsdetektiven' },
 		tittel: 'Meldingsdetektiven',
 		beskrivelse: 'Finn spor i kode, requests og serverdata. Rett feilen og test løsningen.',
@@ -136,6 +143,7 @@ export const aktiviteter = [
 	},
 	{
 		id: 'redd-chatten',
+		audience: 'student',
 		tracking: { kind: 'challenge', adapter: 'redd-chatten' },
 		tittel: 'Redd chatten',
 		beskrivelse: 'Reparer serverkoden og test om chatten tåler både meldinger og feilforsøk.',
@@ -149,6 +157,7 @@ export const aktiviteter = [
 	},
 	{
 		id: 'chat',
+		audience: 'student',
 		tracking: { kind: 'challenge', adapter: 'chat' },
 		tittel: 'To nettlesere, én chat',
 		beskrivelse: 'Velg handlingene som får meldingen fra Ada fram til Noah, via serveren.',
@@ -164,6 +173,7 @@ export const aktiviteter = [
 		/** @returns {Aktivitet} */
 		(lesson) => ({
 			id: `oving-${lesson.number}`,
+			audience: 'student',
 			tracking: { kind: 'review' },
 			tittel: `Øving ${lesson.number}: ${lesson.title}`,
 			beskrivelse: lesson.question,

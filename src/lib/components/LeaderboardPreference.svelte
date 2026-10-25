@@ -37,30 +37,30 @@
 	}
 </script>
 
-<section class="leaderboard-preference" aria-label="Deltakelse på topplisten">
-	<h3>Din plass på topplisten</h3>
-	{#if !$lab.user}<p>Logg inn i Min lab for å velge om du vil delta.</p>
-		<a href="/min-lab/">Til Min lab →</a>
-	{:else if $lab.user.role !== 'student'}<p>
-			Lærerprofiler og administratorer deltar ikke i rangeringen.
-		</p>
-	{:else}<p>
-			{#if $lab.user.leaderboardVisible}Du har valgt å vises med brukernavn, XP, nivå, labfarge og
-				valgt merke.{:else}Du er skjult fra topplisten. Du velger selv om du vil delta.{/if} Listen kan
-			ses av alle som har tilgang til IT-laben. Du kan skjule deg igjen når som helst.
-		</p>
-		<button type="button" disabled={busy} onclick={toggle}
-			>{busy
-				? 'Lagrer …'
-				: $lab.user.leaderboardVisible
-					? 'Skjul meg fra topplisten'
-					: 'Bli med på topplisten'}</button
-		>{/if}
-	{#if error}<p class="error" role="alert">{error}</p>{/if}{#if message}<p role="status">
-			{message}
-		</p>{/if}
-	{#if showLink}<p><a href="/toppliste/">Se topplisten →</a></p>{/if}
-</section>
+{#if !$lab.user || $lab.user.role === 'student'}<section
+		class="leaderboard-preference"
+		aria-label="Deltakelse på topplisten"
+	>
+		<h3>Din plass på topplisten</h3>
+		{#if !$lab.user}<p>Logg inn for å se din egen plassering.</p>
+			<a href="/min-lab/">Til Min lab →</a>
+		{:else}<p>
+				{#if $lab.user.leaderboardVisible}Brukernavnet ditt og poengene dine vises på topplisten. Du
+					kan skjule deg når du vil.{:else}Du er skjult fra topplisten. Poengene og fremgangen din
+					beholdes.{/if}
+			</p>
+			<button type="button" disabled={busy} onclick={toggle}
+				>{busy
+					? 'Lagrer …'
+					: $lab.user.leaderboardVisible
+						? 'Skjul meg fra topplisten'
+						: 'Vis meg på topplisten'}</button
+			>{/if}
+		{#if error}<p class="error" role="alert">{error}</p>{/if}{#if message}<p role="status">
+				{message}
+			</p>{/if}
+		{#if showLink}<p><a href="/toppliste/">Se topplisten →</a></p>{/if}
+	</section>{/if}
 
 <style>
 	h3 {
