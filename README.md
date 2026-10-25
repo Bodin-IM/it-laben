@@ -186,4 +186,6 @@ Gjennomfør kode- og avhengighetsendringer på utviklingsmaskinen. Serverens opp
 
 Se [driftsveiledningen](docs/serverdrift.md) for manuell oppdatering, logger, timerstatus, Nginx, kontroll av publisert commit og feilsøking.
 
+Før backend merges til `main`, klargjøres serveren med [installasjonsskriptene for HTTPS, API og backup](docs/installasjon-main.md). Den eksisterende timeren fortsetter å hente `main`; den nye jobben publiserer API og frontend fra samme commit.
+
 Lærere kan bruke [lærerpanelet](docs/laererpanel.md) til å teste aktiviteter uten XP og åpne øving eller ekstra undervisningsforsøk for alle i 30 eller 60 minutter. Lærertilgang gis én gang til den eksisterende profilen fra serveren.

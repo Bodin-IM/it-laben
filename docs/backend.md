@@ -1,6 +1,8 @@
 # Min lab – første backendversjon
 
-Arbeidet ligger på branchen `backend`. Dagens `main` og publiseringstimer er uendret. GitHub Actions er konfigurert for tester, Svelte-kontroll og statisk bygg ved push og pull requests. Workflowen publiserer ikke til skolens server.
+Backend utvikles på branchen `backend` og publiseres via `main` etter sammenslåing. [Engangsoppsettet for Ubuntu](installasjon-main.md) klargjør HTTPS uten offentlig domene, API, databasebackup og den eksisterende oppdateringstimeren. Serveren henter fortsatt bare `main`. Klargjør serveren før sammenslåingen, siden en push til `main` kan utløse publisering med en gang.
+
+GitHub Actions er konfigurert for tester, Svelte-kontroll og statisk bygg ved push og pull requests. Workflowen publiserer ikke til skolens server.
 
 [Se forhåndsvisning av Min lab med en eksempelprofil](backend-preview.png).
 
@@ -80,7 +82,7 @@ Migrasjoner ligger i `server/migrations/` og kjøres ved oppstart. Anvendte migr
 
 Skolens nåværende HTTP-adresse på port 8080 skal ikke brukes til ekte elevpålogging. Velg et fast HTTPS-vertsnavn og et sertifikat som skole-PC-ene stoler på. En intern DNS-/sertifikatløsning kan brukes. API-et nekter usikre produksjonsadresser.
 
-Oppsettet under er en egen prøveinstallasjon for `backend`, med et eget vertsnavn. Eksisterende `main`-publisering og `/var/www/it-laben/current` berøres ikke. Tilpass stier og bruker til serveren; tjenestemalen forventer eksisterende bruker `itlab` og Node i `/usr/bin/node`.
+Bruk normalt [installasjonsskriptene for main](installasjon-main.md). Oppsettet under er et manuelt alternativ for en separat prøveinstallasjon, med et eget vertsnavn. Dette alternativet berører ikke eksisterende `main`-publisering eller `/var/www/it-laben/current`. Tilpass stier og bruker til serveren; tjenestemalen forventer eksisterende bruker `itlab` og Node i `/usr/bin/node`.
 
 1. Klargjør en separat checkout/release under `/srv/it-laben-backend/`. La `current` peke til den kontrollerte releasen som inneholder både kildekode, produksjonsavhengigheter og `build/`. Bygg som vanlig bruker med `npm ci`, `npm test`, `npm run check` og `npm run build`. Nginx må kunne lese `build/`; den skal aldri servere repoets rotmappe.
 2. Opprett `/var/lib/it-laben/` eid av tjenestebrukeren, med modus 0700. Databasen må ligge her, utenfor kildekode og statisk publisering.
