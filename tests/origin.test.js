@@ -68,6 +68,10 @@ function fixture(t) {
 		new URL('../server/backup.js', import.meta.url),
 		join(dir, 'base/api-current/server/backup.js')
 	);
+	copyFileSync(
+		new URL('../server/config.js', import.meta.url),
+		join(dir, 'base/api-current/server/config.js')
+	);
 	const db = new DatabaseSync(join(dir, 'data/it-laben.sqlite'));
 	db.exec("CREATE TABLE work(answer TEXT); INSERT INTO work VALUES ('behold elevens svar');");
 	db.close();
@@ -115,19 +119,22 @@ JS
   esac
 }
 nginx() {
-  if grep -q 'Canonical origin configured' "$ORIGIN_site"; then
+  if grep -q 'DNS and IP access configured' "$ORIGIN_site"; then
     if [[ "$QA_FAIL_NGINX" == 1 ]]; then printf 'invalid config\\n' >&2; return 1; fi
     if [[ "$QA_FAIL_NGINX" == warning ]]; then printf 'conflicting server name\\n' >&2; fi
   fi
 }
 ss() { :; }
 origin_health() {
+  printf '%s\\n' "$3" >> "$QA_DIR/health"
   if [[ "$3" == https://itlab.im.local && "$QA_FAIL_HTTPS" == 1 ]]; then return 1; fi
+  if [[ "$3" == https://10.100.0.14 && "$QA_FAIL_IP" == 1 ]]; then return 1; fi
 }
 curl() {
+  printf '%s\\n' "$*" >> "$QA_DIR/requests"
   if [[ "$*" == *api/me/lab* ]]; then printf 401
-  elif [[ "$*" == *http://itlab.im.local/api/* ]]; then printf 426
-  elif [[ "$*" == *http://itlab.im.local/* ]]; then printf 200
+  elif [[ "$*" == *http://*/api/* ]]; then printf 426
+  else printf 200
   fi
 }
 sleep() { :; }
@@ -144,6 +151,7 @@ function run(f, command, env = {}) {
 		QA_DIR: f.dir,
 		QA_FAIL_NGINX: '0',
 		QA_FAIL_HTTPS: '0',
+		QA_FAIL_IP: '0',
 		QA_UPDATE_DATA: '0',
 		...env
 	});
@@ -187,6 +195,25 @@ test(
 	}
 );
 test(
+	'adressebytte: eldre API uten IP-støtte avvises før filer eller tjenester endres',
+	{ skip: !supported },
+	(t) => {
+		const f = fixture(t);
+		writeFileSync(
+			join(f.dir, 'base/api-current/server/config.js'),
+			'export function readConfig(env) { return {allowedOrigins: new Set([env.APP_ORIGIN])}; }'
+		);
+		const result = run(f, ':');
+		assert.notEqual(result.status, 0);
+		assert.match(result.stderr, /Publiser main med støtte for APP_ORIGIN_ALIASES først/);
+		assert.equal(readFileSync(join(f.dir, 'etc/deploy.conf'), 'utf8'), f.config);
+		assert.equal(readdirSync(join(f.dir, 'backups')).length, 0);
+		assert.ok(existsSync(join(f.dir, 'timer-active')));
+		assert.ok(!existsSync(join(f.dir, 'origin-backups')));
+	}
+);
+
+test(
 	'adressebytte: samme CA og nøkkel, DNS/IP beholdes, konfigurasjon og frisk tjeneste aktiveres samlet',
 	{ skip: !supported },
 	(t) => {
@@ -215,7 +242,17 @@ test(
 		assert.match(nginx, /listen 80;/);
 		assert.match(nginx, /listen 443 ssl;/);
 		assert.match(nginx, /listen 8443 ssl;/);
-		assert.match(nginx, /return 308 https:\/\/itlab.im.local\$request_uri;/);
+		assert.match(nginx, /server_name itlab.im.local 10.100.0.14;/);
+		assert.match(
+			nginx,
+			/if \(\$host = 10.100.0.14\) \{ return 307 https:\/\/10.100.0.14\$request_uri; \}/
+		);
+		assert.match(nginx, /if \(\$host !~ \^\(itlab\\\.im\\\.local\|10\\\.100\\\.0\\\.14\)\$\)/);
+		assert.doesNotMatch(nginx, /if \(\$host !=|return 308/);
+		assert.match(
+			readFileSync(join(f.dir, 'etc/api.env'), 'utf8'),
+			/^APP_ORIGIN_ALIASES=https:\/\/10.100.0.14$/m
+		);
 		assert.match(nginx, /proxy_pass http:\/\/127.0.0.1:3001;/);
 		assert.match(nginx, /proxy_set_header X-Forwarded-Proto \$scheme;/);
 		assert.match(nginx, /proxy_hide_header Strict-Transport-Security;/);
@@ -235,6 +272,8 @@ test(
 		assert.equal(readdirSync(join(f.dir, 'backups')).length, 1);
 		const again = run(f, 'origin_verify_target');
 		assert.equal(again.status, 0, again.stderr);
+		assert.match(readFileSync(join(f.dir, 'health'), 'utf8'), /^https:\/\/10.100.0.14$/m);
+		assert.match(readFileSync(join(f.dir, 'requests'), 'utf8'), /Origin: https:\/\/10.100.0.14/);
 	}
 );
 test(
@@ -249,12 +288,57 @@ test(
 		assert.equal(second.status, 0, second.stderr);
 		assert.equal(fingerprint(join(f.dir, 'certs/server.crt')), cert);
 		assert.match(readFileSync(join(f.dir, 'nginx/https'), 'utf8'), /listen 8443 ssl;/);
+		assert.equal(
+			readFileSync(join(f.dir, 'etc/api.env'), 'utf8').match(/^APP_ORIGIN_ALIASES=/gm).length,
+			1
+		);
+	}
+);
+test(
+	'adressebytte: eksisterende aliaser bevares, og manglende IP i sertifikatet repareres også ved samme DNS-navn',
+	{ skip: !supported },
+	(t) => {
+		const f = fixture(t);
+		assert.equal(run(f, 'origin_apply').status, 0);
+		const envPath = join(f.dir, 'etc/api.env');
+		writeFileSync(
+			envPath,
+			readFileSync(envPath, 'utf8').replace(
+				'APP_ORIGIN_ALIASES=https://10.100.0.14',
+				'APP_ORIGIN_ALIASES=https://extra.example.test'
+			)
+		);
+		const missingIp = run(
+			f,
+			'ORIGIN_stage="$QA_DIR/stage"; ORIGIN_san=DNS:itlab.im.local; origin_certificate() { openssl req -new -sha256 -key "$ORIGIN_key" -subj "/CN=$ORIGIN_host" -out "$ORIGIN_stage/server.csr"; printf "subjectAltName=DNS:itlab.im.local\\nextendedKeyUsage=serverAuth\\n" > "$ORIGIN_stage/server.ext"; openssl x509 -req -days 365 -in "$ORIGIN_stage/server.csr" -CA "$ORIGIN_ca/root-ca.crt" -CAkey "$ORIGIN_ca/root-ca.key" -set_serial 42 -extfile "$ORIGIN_stage/server.ext" -out "$ORIGIN_cert"; }; origin_certificate'
+		);
+		assert.equal(missingIp.status, 0, missingIp.stderr);
+		const before = fingerprint(join(f.dir, 'certs/server.crt'));
+		const result = run(f, 'origin_apply');
+		assert.equal(result.status, 0, result.stderr + result.stdout);
+		assert.notEqual(fingerprint(join(f.dir, 'certs/server.crt')), before);
+		assert.equal(fingerprint(join(f.dir, 'certs/server.key')), f.key);
+		assert.equal(fingerprint(join(f.dir, 'ca/root-ca.key')), f.ca);
+		assert.match(
+			readFileSync(envPath, 'utf8'),
+			/^APP_ORIGIN_ALIASES=https:\/\/extra.example.test,https:\/\/10.100.0.14$/m
+		);
+		const ipCheck = spawnSync('openssl', [
+			'x509',
+			'-in',
+			join(f.dir, 'certs/server.crt'),
+			'-noout',
+			'-checkip',
+			'10.100.0.14'
+		]);
+		assert.equal(ipCheck.status, 0);
 	}
 );
 for (const condition of [
 	{ QA_FAIL_NGINX: '1' },
 	{ QA_FAIL_NGINX: 'warning' },
-	{ QA_FAIL_HTTPS: '1' }
+	{ QA_FAIL_HTTPS: '1' },
+	{ QA_FAIL_IP: '1' }
 ]) {
 	test(
 		`adressebytte: ${JSON.stringify(condition)} gjenoppretter filer og timer uten databasetilbakerulling`,
