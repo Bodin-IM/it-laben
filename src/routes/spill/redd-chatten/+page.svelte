@@ -498,7 +498,7 @@
 			><span aria-hidden="true">IT</span>IT-laben<span class="brand-dot">.</span></a
 		>
 		<nav aria-label="Spillnavigasjon">
-			<a href="/spill/chat/">Prøv første variant ↗</a><a href="/#spill">Alle spill</a>
+			<a href="/spill/redd-chatten/pilot/">Prøv læringspiloten ↗</a><a href="/#spill">Alle spill</a>
 		</nav>
 		<div class="theme-control"><AccountLink /><ThemeToggle /></div>
 	</header>
@@ -508,6 +508,7 @@
 				<p class="eyebrow">SPILL 02 <span>DU BYGGER BACKEND</span></p>
 				<h1>Redd <em>chatten.</em></h1>
 				<p>Reparer koden. Slipp inn brukerne. Se om den holder.</p>
+				<p><a href="/spill/redd-chatten/pilot/">Ny pilot: Forutsi, undersøk og reparer én feil →</a></p>
 			</div>
 			<div class="campaign">
 				<span>{progressCount} av 3 reparasjoner løst</span>

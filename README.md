@@ -67,6 +67,10 @@ De viktigste kravene står synlig ved hvert oppdrag. Etter en bestått prøverun
 
 Spillene bruker faste startdata for å gjøre forsøkene sammenlignbare. Nettleserne, brukerne og backend er lokale simuleringer; spillene sender ingen ekte chatmeldinger mellom brukere.
 
+### Læringspilot i Redd chatten
+
+På `/spill/redd-chatten/pilot/` kan eleven forutsi, undersøke, reparere og forklare én valideringsfeil, før prinsippet brukes på et romnavn. Piloten har egne testdata, hint i tre nivåer, fire milepæler med pilotpoeng og et arbeidsnotat. Den bruker ikke ordinær XP eller begrensede forsøk. Se [lærerveiledningen](docs/redd-chatten-pilot.md) for mål, gjennomføring og utprøving.
+
 ## Hvordan vi bygger undervisningssidene
 
 Når vi lager og videreutvikler sider, legger vi vekt på å:

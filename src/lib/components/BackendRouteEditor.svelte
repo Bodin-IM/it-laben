@@ -8,7 +8,7 @@
 	/**
 	 * @typedef {{
 	 * blocks:Block[], program:string[], opening:string[], closing:string[], maxBlocks:number,
-	 * disabled?:boolean, onprogramchange:(program:string[], message:string)=>void,
+	 * disabled?:boolean, disabledMessage?:string, onprogramchange:(program:string[], message:string)=>void,
 	 * onexplain?:()=>void, activeBlockId?:string|null, activeLineIds?:string[], executedBlockIds?:string[],
 	 * skippedBlockIds?:string[], resetKey?:string, explanationBoundary?:HTMLElement|null
 	 * }} Props
@@ -21,6 +21,7 @@
 		closing,
 		maxBlocks,
 		disabled = false,
+		disabledMessage = 'Koden er låst mens testen kjører. Du kan lese forklaringene.',
 		onprogramchange,
 		onexplain,
 		activeBlockId = null,
@@ -382,7 +383,7 @@
 				>{draggedId
 					? 'Slipp her for å flytte blokken sist.'
 					: disabled
-						? 'Koden er låst mens testen kjører. Du kan lese forklaringene.'
+						? disabledMessage
 						: 'Flytt med pilene eller dra en blokk til en ny plass.'}</span
 			><span aria-hidden="true">{draggedId ? '↓' : '{}'}</span>
 		</div>

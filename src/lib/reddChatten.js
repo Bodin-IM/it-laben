@@ -992,9 +992,40 @@ function feedbackFor(testCase, runtime, passed) {
 
 /** @param {string} missionId @param {string[]} program @param {string} caseId @returns {CaseResult} */
 export function evaluateCase(missionId, program, caseId) {
-	const blocks = validateProgram(missionId, program);
 	const testCase = casesFor(missionId).find((item) => item.id === caseId);
 	if (!testCase) throw new RangeError('Ukjent prøverequest: ' + caseId);
+	return evaluateRequest(missionId, program, testCase);
+}
+
+/** A learner's own input, evaluated by the same interpreter and contract as the fixed cases.
+ * @param {string[]} program @param {unknown} value @param {boolean} [missing]
+ * @returns {CaseResult}
+ */
+export function evaluateTextInput(program, value, missing = false) {
+	const body = missing
+		? { rom: 'generelt', avsenderId: USERS.ada.id, avsender: USERS.ada.navn }
+		: messageBody(USERS.ada, value);
+	const valid = !missing && typeof value === 'string' && value.trim().length > 0;
+	return evaluateRequest(
+		'tekst',
+		program,
+		postCase(
+			'egen-test',
+			'Din test',
+			'Ada',
+			'edge',
+			'Du har valgt innholdet i denne requesten.',
+			request(USERS.ada, body),
+			valid ? 201 : 400,
+			valid ? USERS.ada : undefined
+		)
+	);
+}
+
+/** @param {string} missionId @param {string[]} program @param {Case} testCase @returns {CaseResult} */
+function evaluateRequest(missionId, program, testCase) {
+	const blocks = validateProgram(missionId, program);
+	const caseId = testCase.id;
 	const req = copy(testCase.request);
 	const runtime = initialRuntime(testCase, req);
 	/** @type {ExecutionStep[]} */
