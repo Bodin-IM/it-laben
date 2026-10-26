@@ -133,3 +133,5 @@ Ved gjenoppretting stoppes API-et først, gjeldende database og tilhørende WAL/
 [Undervisningsmodus](undervisning.md) gir egne læreropplegg og storskjermvisning. Lærernotater hentes fra et lærerbeskyttet API, mens elevkatalogen og vurderingsreglene beholdes.
 
 [Avatarer og tryggere lagring](avatarer-og-trygg-lagring.md) beskriver figurvalg, reaksjoner, nøkkelbytte og synkronisering mellom faner.
+
+Den åpne [HTTP-visningen og sertifikatveiledningen](dns-og-standardporter.md#åpen-http-og-veiledning-for-sertifikat) lar eleven utforske uten profil-API og gå videre til HTTPS for pålogging og lagring. Lokal utvikling på localhost beholder HTTP-støtte.

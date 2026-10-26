@@ -2,9 +2,10 @@
 	import { lab } from '#lib/lab.js';
 	import AnimatedNumber from '#lib/components/AnimatedNumber.svelte';
 	import Avatar from '#lib/components/Avatar.svelte';
+	import { connection } from '#lib/connection.js';
 </script>
 
-<a href="/min-lab/" class="account-link">
+<a href={$connection.publicHttp ? '/kom-i-gang/' : '/min-lab/'} class="account-link">
 	{#if $lab.user && $lab.summary}<Avatar
 			id={$lab.summary.lab.avatarId}
 			size={28}

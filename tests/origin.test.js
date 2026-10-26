@@ -87,6 +87,7 @@ ORIGIN_config="$QA_DIR/etc/deploy.conf"; ORIGIN_env="$QA_DIR/etc/api.env"
 ORIGIN_site="$QA_DIR/nginx/https"; ORIGIN_enabled="$QA_DIR/nginx/enabled"
 ORIGIN_cert="$QA_DIR/certs/server.crt"; ORIGIN_key="$QA_DIR/certs/server.key"
 ORIGIN_ca="$QA_DIR/ca"; ORIGIN_public_ca="$QA_DIR/certs/root-ca.crt"
+ORIGIN_public_config="$QA_DIR/etc/public.json"
 ORIGIN_backups="$QA_DIR/origin-backups"; ORIGIN_lock="$QA_DIR/deploy.lock"
 ORIGIN_host=itlab.im.local; ORIGIN_ip=10.100.0.14
 # Only service management, ownership and HTTP are mocked. Certificates, file edits,
@@ -125,7 +126,8 @@ origin_health() {
 }
 curl() {
   if [[ "$*" == *api/me/lab* ]]; then printf 401
-  elif [[ "$*" == *http://itlab.im.local/* ]]; then printf 308
+  elif [[ "$*" == *http://itlab.im.local/api/* ]]; then printf 426
+  elif [[ "$*" == *http://itlab.im.local/* ]]; then printf 200
   fi
 }
 sleep() { :; }
@@ -216,6 +218,15 @@ test(
 		assert.match(nginx, /return 308 https:\/\/itlab.im.local\$request_uri;/);
 		assert.match(nginx, /proxy_pass http:\/\/127.0.0.1:3001;/);
 		assert.match(nginx, /proxy_set_header X-Forwarded-Proto \$scheme;/);
+		assert.match(nginx, /proxy_hide_header Strict-Transport-Security;/);
+		assert.match(nginx, /Strict-Transport-Security 'max-age=0' always/);
+		const http = nginx.split('listen 443 ssl;')[0];
+		assert.doesNotMatch(http, /proxy_pass|return 308/);
+		assert.match(http, /return 426/);
+		assert.match(http, /alias .*\/certs\/root-ca.crt;/);
+		const metadata = JSON.parse(readFileSync(join(f.dir, 'etc/public.json'), 'utf8'));
+		assert.equal(metadata.httpsOrigin, 'https://itlab.im.local');
+		assert.match(metadata.caSha256, /^[0-9A-F]{64}$/);
 		assert.equal(readFileSync(join(f.dir, 'web/current/index.html'), 'utf8'), 'existing frontend');
 		assert.ok(existsSync(join(f.dir, 'timer-active')));
 		const db = new DatabaseSync(join(f.dir, 'data/it-laben.sqlite'));
@@ -224,6 +235,20 @@ test(
 		assert.equal(readdirSync(join(f.dir, 'backups')).length, 1);
 		const again = run(f, 'origin_verify_target');
 		assert.equal(again.status, 0, again.stderr);
+	}
+);
+test(
+	'adressebytte: allerede konfigurert HTTPS får offentlig HTTP uten nytt sertifikat, og 8443-videresending beholdes',
+	{ skip: !supported },
+	(t) => {
+		const f = fixture(t),
+			first = run(f, 'origin_apply');
+		assert.equal(first.status, 0, first.stderr);
+		const cert = fingerprint(join(f.dir, 'certs/server.crt'));
+		const second = run(f, 'origin_apply');
+		assert.equal(second.status, 0, second.stderr);
+		assert.equal(fingerprint(join(f.dir, 'certs/server.crt')), cert);
+		assert.match(readFileSync(join(f.dir, 'nginx/https'), 'utf8'), /listen 8443 ssl;/);
 	}
 );
 for (const condition of [
@@ -294,7 +319,7 @@ test('adressebytte: feil Origin avvises selv om HTTPS er frisk', { skip: !suppor
 	assert.notEqual(result.status, 0);
 });
 test(
-	'installasjon: standardport 443 beholder administrert markør og videresender HTTP til fast adresse',
+	'installasjon: HTTP viser statisk innhold og sperrer API, mens HTTPS beholder profiltilgang',
 	{ skip: !supported },
 	() => {
 		const result = shell(
@@ -305,7 +330,13 @@ test(
 		assert.equal(result.stdout.split('\n')[0], '# Managed by IT-laben main deploy v1');
 		assert.match(result.stdout, /listen 80;/);
 		assert.match(result.stdout, /listen 443 ssl;/);
-		assert.match(result.stdout, /return 308 https:\/\/itlab.im.local\$request_uri;/);
+		const [http, https] = result.stdout.split('listen 443 ssl;');
+		assert.match(http, /return 426/);
+		assert.match(http, /try_files \$uri \$uri\/ =404;/);
+		assert.doesNotMatch(http, /proxy_pass|return 308/);
+		assert.match(https, /proxy_pass http:\/\/127.0.0.1:3001;/);
+		assert.match(https, /location = \/tilkobling.json/);
+		assert.match(https, /Access-Control-Allow-Origin '\*'/);
 	}
 );
 test(

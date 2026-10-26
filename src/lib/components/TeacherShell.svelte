@@ -3,6 +3,8 @@
 	import { hasTeacherRole } from '#lib/learning.js';
 	import ThemeToggle from '#lib/components/ThemeToggle.svelte';
 	import TeacherNav from '#lib/components/TeacherNav.svelte';
+	import { connection, secureHref } from '#lib/connection.js';
+	import { page } from '$app/state';
 	/** @type {{title:string,intro?:string,children:import('svelte').Snippet}} */
 	let { title, intro = '', children } = $props();
 </script>
@@ -22,7 +24,17 @@
 	<main>
 		<p class="eyebrow">LÆRERPANEL</p>
 		<h1>{title}<span>.</span></h1>
-		{#if !$lab.ready}<p role="status">Henter profilen din …</p>
+		{#if $connection.publicHttp}<section class="panel">
+				<h2>Lærerpanelet bruker HTTPS</h2>
+				<p>Åpne den sikre adressen for å logge inn med lærerprofilen din.</p>
+				<a
+					class="button-link"
+					href={secureHref($connection.httpsOrigin, page.url.pathname + page.url.search)}
+					>Åpne lærerpanel på HTTPS →</a
+				>
+				<p><a href="/kom-i-gang/">Sertifikat og hjelp til pålogging →</a></p>
+			</section>
+		{:else if !$lab.ready}<p role="status">Henter profilen din …</p>
 		{:else if !hasTeacherRole($lab.user?.role)}
 			<section class="panel">
 				<h2>Aktiver lærertilgang på profilen din</h2>

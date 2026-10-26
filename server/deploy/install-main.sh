@@ -15,7 +15,7 @@ Bruk på Ubuntu-serveren:
   --check  Kontroller forutsetningene uten å endre serveren.
   --ca     Valgfritt dersom utstederen allerede finnes i serverens tillitslager.
 
-Standard HTTPS-port er 443, med HTTP-videresending på 80.
+Standard HTTPS-port er 443. HTTP på 80 viser åpent innhold uten backend.
 Bruk change-origin.sh for å flytte en eksisterende installasjon til en ny adresse.
 Eksisterende visning på 8080 beholdes.
 Sertifikatet må dekke vertsnavnet/IP-en i --origin. Klientene må stole på CA-en.
@@ -41,15 +41,56 @@ try {
 JS
 }
 
+setup_public_locations() {
+    cat <<NGINX
+    location = /itlab-config.json {
+        alias /etc/it-laben-public.json;
+        default_type application/json;
+        add_header Cache-Control no-store always;
+    }
+NGINX
+    if [[ -n "${DEPLOY_CA:-}" ]]; then
+        cat <<NGINX
+    location = /sertifikat/it-laben-root-ca.crt {
+        alias $DEPLOY_CA;
+        default_type application/x-x509-ca-cert;
+        add_header Content-Disposition 'attachment; filename="it-laben-root-ca.crt"';
+        add_header Cache-Control no-cache always;
+    }
+NGINX
+    fi
+}
 setup_nginx() {
     printf '%s\n' '# Managed by IT-laben main deploy v1'
     if [[ "$DEPLOY_HTTPS_PORT" == 443 ]]; then
         cat <<NGINX
-# HTTP redirects to the configured canonical origin.
+# IT-laben public HTTP v2
 server {
     listen 80;
     server_name $DEPLOY_HOST;
-    return 308 $DEPLOY_ORIGIN\$request_uri;
+    root $DEPLOY_WEB/current;
+    index index.html;
+    add_header X-Content-Type-Options nosniff always;
+    add_header Referrer-Policy strict-origin-when-cross-origin always;
+    add_header X-Frame-Options DENY always;
+NGINX
+        setup_public_locations
+        cat <<NGINX
+    location = /api { return 426; }
+    location /api/ {
+        default_type application/json;
+        return 426 '{"error":{"code":"HTTPS_REQUIRED","message":"Bruk HTTPS for Min lab."}}';
+    }
+    location /_app/immutable/ {
+        try_files \$uri =404;
+        expires 1y;
+        add_header Cache-Control "public, immutable";
+    }
+    location / {
+        try_files \$uri \$uri/ =404;
+        add_header Cache-Control no-cache;
+        add_header Strict-Transport-Security 'max-age=0' always;
+    }
 }
 NGINX
     fi
@@ -66,13 +107,26 @@ server {
     add_header X-Content-Type-Options nosniff always;
     add_header Referrer-Policy strict-origin-when-cross-origin always;
     add_header X-Frame-Options DENY always;
+    add_header Strict-Transport-Security 'max-age=0' always;
+    if (\$host != $DEPLOY_HOST) { return 308 $DEPLOY_ORIGIN\$request_uri; }
+NGINX
+    setup_public_locations
+    cat <<NGINX
+    location = /tilkobling.json {
+        default_type application/json;
+        add_header Access-Control-Allow-Origin '*' always;
+        add_header Cache-Control no-store always;
+        return 200 '{"ok":true}';
+    }
     location /api/ {
         proxy_pass http://127.0.0.1:3001;
         proxy_set_header Host \$host;
         proxy_set_header X-Real-IP \$remote_addr;
         proxy_set_header X-Forwarded-For \$proxy_add_x_forwarded_for;
         proxy_set_header X-Forwarded-Proto \$scheme;
+        proxy_hide_header Strict-Transport-Security;
         add_header Cache-Control no-store always;
+        add_header Strict-Transport-Security 'max-age=0' always;
         proxy_cache_bypass 1;
         proxy_no_cache 1;
     }
@@ -84,6 +138,7 @@ server {
     location / {
         try_files \$uri \$uri/ =404;
         add_header Cache-Control no-cache;
+        add_header Strict-Transport-Security 'max-age=0' always;
     }
 }
 NGINX
@@ -234,7 +289,7 @@ setup_main() {
     local setup_backup
     setup_backup="/var/backups/it-laben/setup/$(date -u +%Y%m%dT%H%M%S)-$$"
     install -d -m 0700 "$setup_backup"
-    local -a setup_paths=(/usr/local/sbin/it-laben-update /usr/local/sbin/it-laben-backup /etc/it-laben-deploy.conf /etc/it-laben-api.env
+    local -a setup_paths=(/usr/local/sbin/it-laben-update /usr/local/sbin/it-laben-backup /etc/it-laben-deploy.conf /etc/it-laben-api.env /etc/it-laben-public.json
         /etc/systemd/system/it-laben-api.service /etc/systemd/system/it-laben-update.service
         /etc/systemd/system/it-laben-update.timer /etc/systemd/system/it-laben-backup.service
         /etc/systemd/system/it-laben-backup.timer "$nginx_site" "$nginx_enabled")
@@ -266,6 +321,13 @@ setup_main() {
     )
     chown root:root /etc/it-laben-deploy.conf /etc/it-laben-api.env
     chmod 0600 /etc/it-laben-deploy.conf /etc/it-laben-api.env
+    local ca_fingerprint=''
+    if [[ -n "$DEPLOY_CA" ]]; then ca_fingerprint=$(openssl x509 -in "$DEPLOY_CA" -outform DER | sha256sum); ca_fingerprint=${ca_fingerprint%% *}; fi
+    "$DEPLOY_NODE" --input-type=module - "$DEPLOY_ORIGIN" "$ca_fingerprint" > /etc/it-laben-public.json <<'JS'
+console.log(JSON.stringify({httpsOrigin: process.argv[2], caSha256: process.argv[3] ? process.argv[3].toUpperCase() : null}));
+JS
+    chown root:root /etc/it-laben-public.json
+    chmod 0644 /etc/it-laben-public.json
     cat > /etc/systemd/system/it-laben-api.service <<'API'
 # Managed by IT-laben main deploy v1
 [Unit]

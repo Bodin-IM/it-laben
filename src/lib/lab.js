@@ -2,6 +2,7 @@ import { writable, get, derived } from 'svelte/store';
 import { buildCelebration } from '#lib/celebrations.js';
 import { createProgressQueue } from '#lib/progressQueue.js';
 import { avatarFeedback } from '#lib/avatarFeedback.js';
+import { backendDisabled } from '#lib/connection.js';
 
 /** @typedef {{id:string,nickname:string,createdAt:number,role:'student'|'teacher'|'admin',leaderboardVisible:boolean}} User */
 /** @typedef {import('#lib/progression.js').ObjectiveProgress} Objective */
@@ -158,6 +159,12 @@ export class ApiError extends Error {
 }
 /** @param {string} path @param {unknown} [body] */
 async function api(path, body) {
+	if (backendDisabled())
+		throw new ApiError(
+			'Åpne Min lab på HTTPS for å logge inn og lagre fremgangen.',
+			426,
+			'HTTPS_REQUIRED'
+		);
 	const current = get(state);
 	/** @type {Record<string,string>} */
 	const headers = { Accept: 'application/json' };
@@ -237,6 +244,11 @@ function broadcast() {
 	}
 }
 export async function refreshLab() {
+	if (backendDisabled()) {
+		sessionRevision++;
+		state.set({ ...initial, ready: true });
+		return;
+	}
 	const revision = sessionRevision;
 	try {
 		const result = await api('/me');
@@ -256,6 +268,7 @@ export async function refreshLab() {
 }
 export function initializeLab() {
 	void refreshLab();
+	if (backendDisabled()) return;
 	const reconnect = () => {
 		void refreshLab();
 	};

@@ -1,4 +1,6 @@
 <script>
+	import { connection } from '#lib/connection.js';
+	import SecureAccessGuide from '#lib/components/SecureAccessGuide.svelte';
 	import { onMount } from 'svelte';
 	import ThemeToggle from '#lib/components/ThemeToggle.svelte';
 	import PersonalOverview from '#lib/components/PersonalOverview.svelte';
@@ -181,7 +183,8 @@
 		</div>
 	</header>
 	<main>
-		{#if !$lab.ready}<p class="status" role="status">Henter profilen din …</p>
+		{#if $connection.publicHttp}<SecureAccessGuide />
+		{:else if !$lab.ready}<p class="status" role="status">Henter profilen din …</p>
 		{:else if !$lab.user}
 			<section class="intro">
 				<p class="eyebrow">DIN EGEN PLASS I IT-LABEN</p>

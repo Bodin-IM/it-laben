@@ -12,6 +12,7 @@ origin_paths() {
     ORIGIN_key=/etc/ssl/it-laben/server.key
     ORIGIN_ca=/root/it-laben-ca
     ORIGIN_public_ca=/etc/ssl/it-laben/root-ca.crt
+    ORIGIN_public_config=/etc/it-laben-public.json
     ORIGIN_backups=/var/backups/it-laben/origin
     ORIGIN_lock=/run/lock/it-laben-deploy.lock
     ORIGIN_port=443
@@ -49,6 +50,12 @@ origin_check() {
     [[ -x "$DEPLOY_NODE" && "$DEPLOY_HTTPS_PORT" =~ ^[0-9]+$ && "$DEPLOY_HOST" =~ ^[a-zA-Z0-9.-]+$ ]] || origin_die 'Uventet publiseringskonfigurasjon.'
     [[ "$DEPLOY_ORIGIN" == "https://$DEPLOY_HOST:$DEPLOY_HTTPS_PORT" || ( "$DEPLOY_HTTPS_PORT" == 443 && "$DEPLOY_ORIGIN" == "https://$DEPLOY_HOST" ) ]] || origin_die 'Adresse, vertsnavn og port i publiseringsoppsettet avviker.'
     ORIGIN_old=$DEPLOY_ORIGIN; ORIGIN_old_host=$DEPLOY_HOST; ORIGIN_old_port=$DEPLOY_HTTPS_PORT
+    ORIGIN_redirect_port=$ORIGIN_old_port
+    if [[ "$ORIGIN_old_port" == 443 ]]; then
+        local legacy
+        legacy=$(sed -nE 's/^[[:space:]]*listen ([0-9]+) ssl;[[:space:]]*$/\1/p' "$ORIGIN_site" | grep -v '^443$' | head -n 1 || true)
+        if [[ -n "$legacy" ]]; then ORIGIN_redirect_port=$legacy; fi
+    fi
     [[ $(grep -c '^APP_ORIGIN=' "$ORIGIN_env") == 1 ]] || origin_die 'Forventet én APP_ORIGIN.'
     grep -Fxq "APP_ORIGIN=$ORIGIN_old" "$ORIGIN_env" || origin_die 'API-adressen avviker fra publiseringsoppsettet.'
     grep -Fxq "ITLAB_DB_PATH=$DEPLOY_DATA/it-laben.sqlite" "$ORIGIN_env" || origin_die 'Uventet databasesti. Behold den eksisterende databasen.'
@@ -88,7 +95,7 @@ const previous = extension.split('\n').slice(1).join('').split(',').map(s => s.t
 console.log([...new Set([...previous,'DNS:'+name,'IP:'+ip])].join(','));
 JS
     )
-    printf 'Kontroll OK: %s → %s (80 videresender, API forblir lokalt).\n' "$ORIGIN_old" "$ORIGIN_target"
+    printf 'Kontroll OK: %s → %s (åpen HTTP på 80, pålogging på HTTPS).\n' "$ORIGIN_old" "$ORIGIN_target"
 }
 origin_certificate() {
     openssl req -new -sha256 -key "$ORIGIN_key" -subj "/CN=$ORIGIN_host" -out "$ORIGIN_stage/server.csr"
@@ -105,14 +112,52 @@ EXT
     openssl x509 -in "$ORIGIN_stage/server.crt" -noout -checkhost "$ORIGIN_host"
     openssl x509 -in "$ORIGIN_stage/server.crt" -noout -checkip "$ORIGIN_ip"
 }
+origin_public_locations() {
+    cat <<NGINX
+    location = /itlab-config.json {
+        alias $ORIGIN_public_config;
+        default_type application/json;
+        add_header Cache-Control no-store always;
+    }
+    location = /sertifikat/it-laben-root-ca.crt {
+        alias $ORIGIN_public_ca;
+        default_type application/x-x509-ca-cert;
+        add_header Content-Disposition 'attachment; filename="it-laben-root-ca.crt"';
+        add_header Cache-Control no-cache always;
+    }
+NGINX
+}
 origin_nginx() {
     cat <<NGINX
 # Managed by IT-laben main deploy v1
 # Canonical origin configured by change-origin.sh
+# IT-laben public HTTP v2
 server {
     listen 80;
-    server_name $ORIGIN_host;
-    return 308 $ORIGIN_target\$request_uri;
+    server_name $ORIGIN_host $ORIGIN_ip;
+    root $DEPLOY_WEB/current;
+    index index.html;
+    add_header X-Content-Type-Options nosniff always;
+    add_header Referrer-Policy strict-origin-when-cross-origin always;
+    add_header X-Frame-Options DENY always;
+NGINX
+    origin_public_locations
+    cat <<NGINX
+    location = /api { return 426; }
+    location /api/ {
+        default_type application/json;
+        return 426 '{"error":{"code":"HTTPS_REQUIRED","message":"Bruk HTTPS for Min lab."}}';
+    }
+    location /_app/immutable/ {
+        try_files \$uri =404;
+        expires 1y;
+        add_header Cache-Control "public, immutable";
+    }
+    location / {
+        try_files \$uri \$uri/ =404;
+        add_header Cache-Control no-cache;
+        add_header Strict-Transport-Security 'max-age=0' always;
+    }
 }
 server {
     listen 443 ssl;
@@ -126,13 +171,27 @@ server {
     add_header X-Content-Type-Options nosniff always;
     add_header Referrer-Policy strict-origin-when-cross-origin always;
     add_header X-Frame-Options DENY always;
+    # This host deliberately supports public HTTP; clear older HTTPS-only policy.
+    add_header Strict-Transport-Security 'max-age=0' always;
+    if (\$host != $ORIGIN_host) { return 308 $ORIGIN_target\$request_uri; }
+NGINX
+    origin_public_locations
+    cat <<NGINX
+    location = /tilkobling.json {
+        default_type application/json;
+        add_header Access-Control-Allow-Origin '*' always;
+        add_header Cache-Control no-store always;
+        return 200 '{"ok":true}';
+    }
     location /api/ {
         proxy_pass http://127.0.0.1:3001;
         proxy_set_header Host \$host;
         proxy_set_header X-Real-IP \$remote_addr;
         proxy_set_header X-Forwarded-For \$proxy_add_x_forwarded_for;
         proxy_set_header X-Forwarded-Proto \$scheme;
+        proxy_hide_header Strict-Transport-Security;
         add_header Cache-Control no-store always;
+        add_header Strict-Transport-Security 'max-age=0' always;
         proxy_cache_bypass 1;
         proxy_no_cache 1;
     }
@@ -144,13 +203,14 @@ server {
     location / {
         try_files \$uri \$uri/ =404;
         add_header Cache-Control no-cache;
+        add_header Strict-Transport-Security 'max-age=0' always;
     }
 }
 NGINX
-    if [[ "$ORIGIN_old_port" != 443 ]]; then
+    if [[ "$ORIGIN_redirect_port" != 443 ]]; then
         cat <<NGINX
 server {
-    listen $ORIGIN_old_port ssl;
+    listen $ORIGIN_redirect_port ssl;
     server_name $ORIGIN_old_host;
     ssl_certificate $ORIGIN_cert;
     ssl_certificate_key $ORIGIN_key;
@@ -166,6 +226,11 @@ origin_configs() {
         -e "s#^DEPLOY_HOST=.*#DEPLOY_HOST=$ORIGIN_host#" \
         -e 's#^DEPLOY_HTTPS_PORT=.*#DEPLOY_HTTPS_PORT=443#' "$ORIGIN_config" > "$ORIGIN_stage/deploy.conf"
     origin_nginx > "$ORIGIN_stage/nginx.conf"
+    local fingerprint
+    fingerprint=$(openssl x509 -in "$ORIGIN_public_ca" -outform DER | sha256sum)
+    "$DEPLOY_NODE" --input-type=module - "$ORIGIN_target" "${fingerprint%% *}" > "$ORIGIN_stage/public.json" <<'JS'
+console.log(JSON.stringify({httpsOrigin: process.argv[2], caSha256: process.argv[3].toUpperCase()}));
+JS
 }
 origin_verify_target() {
     origin_health "$ORIGIN_host" "$ORIGIN_port" "$ORIGIN_target" || return 1
@@ -178,7 +243,10 @@ origin_verify_target() {
     [[ "$status" == 401 ]] || return 1
     status=$(curl --noproxy "$ORIGIN_host" --silent --show-error --max-time 5 \
         --resolve "$ORIGIN_host:80:127.0.0.1" --output /dev/null --write-out '%{http_code}' "http://$ORIGIN_host/") || return 1
-    [[ "$status" == 308 ]] || return 1
+    [[ "$status" == 200 ]] || return 1
+    status=$(curl --noproxy "$ORIGIN_host" --silent --show-error --max-time 5 \
+        --resolve "$ORIGIN_host:80:127.0.0.1" --output /dev/null --write-out '%{http_code}' "http://$ORIGIN_host/api/health") || return 1
+    [[ "$status" == 426 ]] || return 1
     curl --noproxy "$ORIGIN_host" --fail --silent --show-error --max-time 5 \
         --cacert "$ORIGIN_public_ca" --resolve "$ORIGIN_host:$ORIGIN_port:127.0.0.1" --output /dev/null "$ORIGIN_target/"
 }
@@ -220,7 +288,7 @@ origin_apply() {
     ORIGIN_backup="$ORIGIN_backups/$(date -u +%Y%m%dT%H%M%S)-$$"
     ORIGIN_stage="$ORIGIN_backup/staged"
     install -d -m 0700 "$ORIGIN_stage" "$ORIGIN_backup/files"
-    ORIGIN_files=("$ORIGIN_env" "$ORIGIN_config" "$ORIGIN_site" "$ORIGIN_cert" "$ORIGIN_ca/server.csr" "$ORIGIN_ca/server.ext")
+    ORIGIN_files=("$ORIGIN_env" "$ORIGIN_config" "$ORIGIN_site" "$ORIGIN_cert" "$ORIGIN_ca/server.csr" "$ORIGIN_ca/server.ext" "$ORIGIN_public_config")
     local file
     for file in "${ORIGIN_files[@]}"; do
         if [[ -f "$file" ]]; then
@@ -228,17 +296,21 @@ origin_apply() {
             cp -a -- "$file" "$ORIGIN_backup/files$file"
         fi
     done
-    origin_certificate
+    local renew=0
+    if [[ "$ORIGIN_old" != "$ORIGIN_target" ]]; then renew=1; origin_certificate; fi
     origin_configs
     runuser -u "$DEPLOY_USER" -- env ITLAB_DB_PATH="$DEPLOY_DATA/it-laben.sqlite" \
         "$DEPLOY_NODE" "$DEPLOY_BASE/api-current/server/backup.js" "$DEPLOY_BACKUPS/before-origin-$(basename "$ORIGIN_backup").sqlite"
     ORIGIN_changed=1
-    install -o root -g root -m 0644 "$ORIGIN_stage/server.crt" "$ORIGIN_cert"
-    install -o root -g root -m 0600 "$ORIGIN_stage/server.csr" "$ORIGIN_ca/server.csr"
-    install -o root -g root -m 0600 "$ORIGIN_stage/server.ext" "$ORIGIN_ca/server.ext"
+    if [[ "$renew" == 1 ]]; then
+        install -o root -g root -m 0644 "$ORIGIN_stage/server.crt" "$ORIGIN_cert"
+        install -o root -g root -m 0600 "$ORIGIN_stage/server.csr" "$ORIGIN_ca/server.csr"
+        install -o root -g root -m 0600 "$ORIGIN_stage/server.ext" "$ORIGIN_ca/server.ext"
+    fi
     install -o root -g root -m 0600 "$ORIGIN_stage/api.env" "$ORIGIN_env"
     install -o root -g root -m 0600 "$ORIGIN_stage/deploy.conf" "$ORIGIN_config"
     install -o root -g root -m 0644 "$ORIGIN_stage/nginx.conf" "$ORIGIN_site"
+    install -o root -g root -m 0644 "$ORIGIN_stage/public.json" "$ORIGIN_public_config"
     # nginx -t can return success with duplicate-server warnings; refuse those too.
     nginx -t 2> "$ORIGIN_stage/nginx-check.log"
     if grep -q 'conflicting server name' "$ORIGIN_stage/nginx-check.log"; then origin_die 'Nginx har et motstridende servernavn. Forrige oppsett gjenopprettes.'; fi
@@ -252,7 +324,7 @@ origin_apply() {
     [[ "$healthy" == 1 ]] || origin_die 'Ny HTTPS-adresse eller API-Origin består ikke helsesjekken.'
     [[ "$ORIGIN_timer_active" != 1 ]] || systemctl start it-laben-update.timer
     trap - ERR INT TERM HUP
-    printf '\nAdressebytte ferdig: %s\nSamme CA, database og publiserte main-versjon er beholdt.\nBackup: %s\n' "$ORIGIN_target" "$ORIGIN_backup"
+    printf '\nOppsett ferdig: %s\nHTTP på 80 viser åpent innhold uten backend.\nSamme CA, database og publiserte main-versjon er beholdt.\nBackup: %s\n' "$ORIGIN_target" "$ORIGIN_backup"
     printf 'Test DNS og HTTPS fra begge elevnett. Tillat TCP 80/443 i eventuelle brannmurer.\n'
     if [[ "$ORIGIN_timer_active" == 1 ]]; then printf 'Automatisk oppdatering fra main fortsetter.\n';
     else printf 'Oppdateringstimeren var pauset og er fortsatt pauset. Start den igjen når publiseringen er klar.\n'; fi
@@ -277,7 +349,7 @@ origin_main() {
     for command in openssl nginx systemctl curl ss flock runuser sed grep stat find sha256sum; do command -v "$command" >/dev/null || origin_die "Mangler $command."; done
     origin_check
     [[ "$check" != 1 ]] || return 0
-    if [[ "$ORIGIN_old" == "$ORIGIN_target" ]]; then
+    if [[ "$ORIGIN_old" == "$ORIGIN_target" && -f "$ORIGIN_public_config" ]] && grep -Fq '# IT-laben public HTTP v2' "$ORIGIN_site"; then
         origin_verify_target
         printf 'Serveren bruker allerede %s. Ingen filer er endret.\n' "$ORIGIN_target"
         return 0

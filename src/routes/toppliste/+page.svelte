@@ -6,6 +6,7 @@
 	import ThemeToggle from '#lib/components/ThemeToggle.svelte';
 	import LeaderboardRow from '#lib/components/LeaderboardRow.svelte';
 	import LeaderboardPreference from '#lib/components/LeaderboardPreference.svelte';
+	import { connection, secureHref } from '#lib/connection.js';
 	const browser = typeof window !== 'undefined';
 	/** @type {import('#lib/school.js').Leaderboard|null} */
 	let board = $state(null);
@@ -15,6 +16,7 @@
 	let revision = 0;
 	const number = $derived(browser ? (page.url.searchParams.get('side') ?? '1') : '1');
 	async function load() {
+		if (!$connection.ready || $connection.publicHttp) return;
 		const request = ++revision,
 			userId = $lab.user?.id;
 		loading = true;
@@ -31,6 +33,14 @@
 		}
 	}
 	$effect(() => {
+		if (!$connection.ready || $connection.publicHttp) {
+			board = null;
+			error = '';
+			loadedKey = '';
+			revision++;
+			loading = false;
+			return;
+		}
 		const key = `${$lab.user?.id ?? 'guest'}:${$lab.user?.role}:${$lab.user?.leaderboardVisible}:${number}`;
 		if (key === loadedKey) return;
 		loadedKey = key;
@@ -41,7 +51,13 @@
 	});
 	onMount(() => {
 		const poll = setInterval(() => {
-			if (!loading && document.visibilityState === 'visible') void load();
+			if (
+				$connection.ready &&
+				!$connection.publicHttp &&
+				!loading &&
+				document.visibilityState === 'visible'
+			)
+				void load();
 		}, 30000);
 		return () => clearInterval(poll);
 	});
@@ -65,53 +81,66 @@
 			<h1>Læring som<br /><em>setter spor.</em></h1>
 			<p>Løs oppdrag, fullfør leksjoner og se fremgangen vokse.</p>
 		</section>
-		{#if error}<p class="notice" role="alert">{error}</p>{/if}
-		<div class="board-heading">
-			<div>
-				<p class="eyebrow">SAMLET XP</p>
-				<h2>Topplisten</h2>
-				<p class="small">
-					{board ? `${board.total} deltakere` : 'Henter deltakere …'} · Lik poengsum gir delt plassering.
+		{#if $connection.publicHttp}<section class="empty">
+				<h2>Se topplisten på HTTPS</h2>
+				<p>
+					Den åpne nettsiden kan brukes uten innlogging. Topplisten hentes på den sikre adressen.
 				</p>
-			</div>
-			<button type="button" disabled={loading} onclick={load}>Oppdater</button>
-		</div>
-		{#if board}
-			{#if !board.entries.length}<section class="empty">
-					<span aria-hidden="true">✦</span>
-					<h3>
-						{board.total === 0
-							? 'De første sporene er dine å sette.'
-							: 'Ingen deltakere på denne siden.'}
-					</h3>
-					<p>
-						{board.total === 0
-							? 'Fullfør aktiviteter i Min lab og la læringen synes.'
-							: 'Gå tilbake til første side for å se deltakerne.'}
+				<p>
+					<a href={secureHref($connection.httpsOrigin, '/toppliste/')}>Åpne topplisten på HTTPS →</a
+					>
+				</p>
+				<a href="/kom-i-gang/">Sertifikat og hjelp til pålogging →</a>
+			</section>
+		{:else}
+			{#if error}<p class="notice" role="alert">{error}</p>{/if}
+			<div class="board-heading">
+				<div>
+					<p class="eyebrow">SAMLET XP</p>
+					<h2>Topplisten</h2>
+					<p class="small">
+						{board ? `${board.total} deltakere` : 'Henter deltakere …'} · Lik poengsum gir delt plassering.
 					</p>
-					{#if board.total !== 0}<a href="/toppliste/">Til første side →</a>{/if}
-				</section>
-			{:else}<ol class="ranking" aria-label="Deltakere rangert etter samlet XP">
-					{#each board.entries as entry}<li>
-							<LeaderboardRow {entry} own={board.self?.nickname === entry.nickname} />
-						</li>{/each}
-				</ol>{/if}
-			<nav class="pagination" aria-label="Sider i topplisten">
-				{#if board.page > 1}<a href={`/toppliste/?side=${board.page - 1}`}>← Forrige</a
-					>{/if}{#if board.page * board.pageSize < board.total}<a
-						href={`/toppliste/?side=${board.page + 1}`}>Neste →</a
-					>{/if}
-			</nav>
-			{#if board.self}<section class="own-position">
-					<p class="eyebrow">DIN PLASSERING BLANT DELTAKERNE</p>
-					<LeaderboardRow entry={board.self} own />
+				</div>
+				<button type="button" disabled={loading} onclick={load}>Oppdater</button>
+			</div>
+			{#if board}
+				{#if !board.entries.length}<section class="empty">
+						<span aria-hidden="true">✦</span>
+						<h3>
+							{board.total === 0
+								? 'De første sporene er dine å sette.'
+								: 'Ingen deltakere på denne siden.'}
+						</h3>
+						<p>
+							{board.total === 0
+								? 'Fullfør aktiviteter i Min lab og la læringen synes.'
+								: 'Gå tilbake til første side for å se deltakerne.'}
+						</p>
+						{#if board.total !== 0}<a href="/toppliste/">Til første side →</a>{/if}
+					</section>
+				{:else}<ol class="ranking" aria-label="Deltakere rangert etter samlet XP">
+						{#each board.entries as entry}<li>
+								<LeaderboardRow {entry} own={board.self?.nickname === entry.nickname} />
+							</li>{/each}
+					</ol>{/if}
+				<nav class="pagination" aria-label="Sider i topplisten">
+					{#if board.page > 1}<a href={`/toppliste/?side=${board.page - 1}`}>← Forrige</a
+						>{/if}{#if board.page * board.pageSize < board.total}<a
+							href={`/toppliste/?side=${board.page + 1}`}>Neste →</a
+						>{/if}
+				</nav>
+				{#if board.self}<section class="own-position">
+						<p class="eyebrow">DIN PLASSERING BLANT DELTAKERNE</p>
+						<LeaderboardRow entry={board.self} own />
+					</section>{/if}
+			{:else}<p role="status">
+					{loading ? 'Henter topplisten …' : 'Topplisten er ikke tilgjengelig.'}
+				</p>{/if}
+			{#if !$lab.user || $lab.user.role === 'student'}<section class="participation">
+					<LeaderboardPreference showLink={false} />
 				</section>{/if}
-		{:else}<p role="status">
-				{loading ? 'Henter topplisten …' : 'Topplisten er ikke tilgjengelig.'}
-			</p>{/if}
-		{#if !$lab.user || $lab.user.role === 'student'}<section class="participation">
-				<LeaderboardPreference showLink={false} />
-			</section>{/if}
+		{/if}
 	</main>
 </div>
 

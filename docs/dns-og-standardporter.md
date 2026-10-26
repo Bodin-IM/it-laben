@@ -1,6 +1,6 @@
 # Fast DNS-navn, port 80/443 og publisering av dev
 
-Målet er **https://itlab.im.local**, som peker til **10.100.0.14**. Nginx videresender HTTP på 80 til HTTPS på 443. `/api/` bruker samme adresse som nettstedet; Node fortsetter på `127.0.0.1:3001`.
+Målet er **https://itlab.im.local**, som peker til **10.100.0.14**. HTTP på port 80 viser leksjoner og vanlige spill uten innlogging eller backend. HTTPS på 443 gir pålogging, progresjon og lærerfunksjoner. `/api/` bruker samme adresse som nettstedet; Node fortsetter på `127.0.0.1:3001`.
 
 Dette er flytting av en allerede fungerende installasjon. Skriptet `change-origin.sh` gjenbruker serverens eksisterende lokale CA og private servernøkkel. Det oppgraderer ingen database eller publisert API-kode. Den senere sammenslåingen av `dev` til `main` publiserer funksjonene og databasemigrasjonene separat.
 
@@ -44,9 +44,9 @@ Skriptet gjør følgende:
 
 - Pauser oppdateringstimeren og bruker samme publiseringslås som main-jobben. En pågående publisering får fullføre; ved opptatt lås avsluttes forsøket og timerens tilstand gjenopprettes.
 - Tar konfigurasjonsbackup under `/var/backups/it-laben/origin/` og en konsistent databasebackup under `/var/backups/it-laben/database/`.
-- Lager et nytt ettårig serversertifikat med samme CA og servernøkkel. Alle eksisterende DNS/IP-navn beholdes, og `itlab.im.local` legges til. CA-sertifikat og CA-nøkkel endres ikke. PC-er som allerede stoler på CA-en trenger ingen ny rotsertifikatinstallasjon.
-- Oppdaterer Nginx, `APP_ORIGIN` og publiseringsjobbens adresse samlet. Ny adresse er `https://itlab.im.local`, ny HTTPS-port er `443` og HTTP på `80` videresender til den faste adressen. Den tidligere HTTPS-porten, normalt `8443`, videresender også. Eksisterende HTTP-oppsett på `8080` beholdes i overgangsperioden.
-- Kontrollerer Nginx, starter eksisterende API på nytt og laster Nginx på nytt. Det kontrollerer HTTPS, API-helse, API-ets Origin-kontroll, HTTP-videresending og forsiden.
+- Ved adressebytte lages et nytt ettårig serversertifikat med samme CA og servernøkkel. Hvis serveren allerede bruker riktig HTTPS-adresse, beholdes sertifikatet. Alle eksisterende DNS/IP-navn beholdes, og `itlab.im.local` legges til. CA-sertifikat og CA-nøkkel endres ikke. PC-er som allerede stoler på CA-en trenger ingen ny rotsertifikatinstallasjon.
+- Oppdaterer Nginx, `APP_ORIGIN` og publiseringsjobbens adresse samlet. Ny adresse er `https://itlab.im.local`, ny HTTPS-port er `443` og HTTP på `80` viser det statiske nettstedet uten profil-API. Den tidligere HTTPS-porten, normalt `8443`, videresender også. Eksisterende HTTP-oppsett på `8080` beholdes i overgangsperioden.
+- Kontrollerer Nginx, starter eksisterende API på nytt og laster Nginx på nytt. Det kontrollerer HTTPS, API-helse, API-ets Origin-kontroll, HTTP-forsiden og at API-kall på HTTP avvises med 426.
 - Gjenoppretter timerens tidligere tilstand. Var automatisk oppdatering på, fortsetter den å hente bare `main`. Var timeren allerede pauset, forblir den pauset.
 
 Ved feil etter aktivering forsøker skriptet å gjenopprette konfigurasjon og sertifikat og friskmelde den gamle adressen. Databasen overskrives aldri med backup. Hvis tilbakeføringen ikke kan friskmeldes, forblir oppdateringstimeren pauset for manuell kontroll. Backupområdet inneholder originalfilene og testloggen.
@@ -67,7 +67,9 @@ https://itlab.im.local/api/health
 https://itlab.im.local/min-lab/
 ```
 
-HTTP skal videresende til HTTPS. Nettleseren skal godta sertifikatet, og helsesjekken skal vise `{"ok":true}`. Logg inn med eksisterende nøkkelfil og kontroller progresjon og lagring med dagens main-versjon.
+HTTP skal bli værende på HTTP og vise innhold uten pålogging. `/kom-i-gang/` gir sertifikatnedlasting, Windows-veiledning og en test av HTTPS-forbindelsen. Nettleseren skal godta sertifikatet, og helsesjekken skal vise `{"ok":true}`. Logg inn med eksisterende nøkkelfil og kontroller progresjon og lagring med dagens main-versjon.
+
+Den tidligere HTTPS-versjonen kan ha lagret HSTS i nettleseren, som automatisk oppgraderer HTTP. Det nye Nginx-oppsettet fjerner denne policyen med `Strict-Transport-Security: max-age=0`, også på API-svar. Besøk **https://itlab.im.local/** én gang etter oppdateringen, og prøv deretter HTTP igjen. En tidligere permanent HTTP-videresending kan også ligge i nettleserens hurtiglager; tøm hurtiglagrede nettstedsfiler hvis den fortsatt brukes. Opplegget forutsetter at ingen overordnet domene-policy tvinger HTTPS.
 
 Når ny adresse virker fra begge nett, kan `dev` slås sammen med `main`. Serveren publiserer da elevadministrasjon, undervisningsmodus, avatarer og feilrettinger. Migrasjonene 006–008 beholder kontoer, nøkkelfiler og poeng; eksisterende brukernavn blir tildelt på nytt én gang. Databasebackup og en kompatibel API-versjon trengs ved eventuell tilbakeføring etter migrasjon.
 
@@ -86,3 +88,17 @@ sudo systemctl start it-laben-update.timer
 ```
 
 Administratorrollen kan gis til din eksisterende profil etter at den nye API-versjonen er publisert, som beskrevet i [elevadministrasjon](elevadministrasjon.md).
+
+## Åpen HTTP og veiledning for sertifikat
+
+Den nye frontendversjonen på `dev` viser en liten påminnelse om Min lab på HTTP. `/min-lab/` viser veiledningen i stedet for innloggingsskjema. Toppliste og lærerpanel viser lenker til HTTPS. Fagsjekker, lagring og Nattevakten krever den sikre versjonen; de vanlige leksjonene og tre lokale spillene kan utforskes uten backend.
+
+Sertifikatveiledningen er tilgjengelig på `/kom-i-gang/`. Den laster ned **bare** den offentlige CA-filen fra `/sertifikat/it-laben-root-ca.crt`, gir tre steg for Windows og tilbyr en ny kontroll etter installasjon. Ingen privatnøkkel kopieres til nettstedet eller repoet. Læreren kan bekrefte CA-ens SHA-256-fingeravtrykk fra en annen kjent kanal; HTTP-siden alene er ikke en uavhengig verifikasjon av sertifikatet.
+
+Nettleseren kan ikke lese Windows sitt sertifikatlager. Kontrollen forsøker derfor å hente den statiske HTTPS-ressursen `/tilkobling.json` uten cookies eller brukerdata. Lykkes det, viser siden at HTTPS er tilgjengelig i nettleseren. Feil betyr at HTTPS ikke kunne bekreftes; det kan skyldes sertifikatet eller nettverket. Kontrollen hevder ikke at et bestemt sertifikat er installert, og den omgår ingen nettleservarsler.
+
+Nginx serverer `/itlab-config.json` fra `/etc/it-laben-public.json`, med HTTPS-adressen og det offentlige CA-fingeravtrykket. Filen inneholder ingen innloggingsdata. Bare `/tilkobling.json` har åpen CORS for testen; profil-API-ets Origin-, CSRF- og cookie-regler er beholdt. HTTP `/api/` videresendes aldri til Node.
+
+For en server som allerede er flyttet til `https://itlab.im.local`, hentes siste `change-origin.sh` og kjøres med samme argumenter som ovenfor. Det oppdaterer HTTP-visning, metadata og sertifikatnedlasting uten å fornye et allerede riktig serversertifikat. Eksisterende 8443-videresending beholdes. Frontendens veiledning blir synlig når denne versjonen publiseres fra `main`.
+
+Eksempelbilder bruker en syntetisk test-CA: [HTTP-forside](http-browsing.png), [sertifikatveiledning](certificate-guide.png) og [mobilvisning](certificate-guide-mobile.png).

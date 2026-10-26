@@ -79,7 +79,7 @@ Når vi lager og videreutvikler sider, legger vi vekt på å:
 
 ## Min lab og backend
 
-For den eksisterende serveren: [fast DNS-navn og standardportene 80/443](docs/dns-og-standardporter.md) beskriver flytting til `itlab.im.local`, kontroll av begge elevnett og etterfølgende publisering fra `main`.
+For den eksisterende serveren: [fast DNS-navn og standardportene 80/443](docs/dns-og-standardporter.md) beskriver `itlab.im.local`, åpen HTTP uten backend, HTTPS-pålogging med sertifikatveiledning, kontroll av begge elevnett og publisering fra `main`.
 
 Videreutviklingen på `dev` har elevoversikt, administratorverktøy, tildelte unike brukernavn og offentlig toppliste med mulighet til å skjule seg. [Avatarer og tryggere lagring](docs/avatarer-og-trygg-lagring.md) legger til seks figurer med reaksjoner, nøkkelbytte i to trinn og sikker lagringskø mellom faner. Se [oppsettet for elevadministrasjon](docs/elevadministrasjon.md) for lokal utprøving med egen database. Serverens automatiske publisering bruker fortsatt `main`.
 

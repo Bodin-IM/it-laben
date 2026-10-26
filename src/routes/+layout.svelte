@@ -13,6 +13,8 @@
 	import LearningAccess from '#lib/components/LearningAccess.svelte';
 	import AvatarCompanion from '#lib/components/AvatarCompanion.svelte';
 	import '#lib/theme.css';
+	import { initializeConnection } from '#lib/connection.js';
+	import ConnectionBanner from '#lib/components/ConnectionBanner.svelte';
 
 	/** @type {{children: import('svelte').Snippet}} */
 	let { children } = $props();
@@ -37,6 +39,7 @@
 	);
 
 	onMount(initializeTheme);
+	onMount(initializeConnection);
 	onMount(initializeLab);
 	onMount(initializeExperience);
 </script>
@@ -46,6 +49,7 @@
 </svelte:head>
 
 <div class:presentation={presenting}>
+	<ConnectionBanner />
 	{#if presenting && activity}<TeachingPresentation {activity} {plan} />{:else}<LearningAccess
 		/>{/if}
 	{#if !presentationRequested || ($lab.ready && !presenting)}<AvatarCompanion />{/if}
