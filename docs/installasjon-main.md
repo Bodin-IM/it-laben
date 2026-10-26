@@ -1,5 +1,7 @@
 # Installer backend og HTTPS med fortsatt publisering fra main
 
+Har du allerede et fungerende API og HTTPS på 8443? Bruk [flytting til DNS-navn og standardportene](dns-og-standardporter.md) for `itlab.im.local`. Den gjenbruker eksisterende CA og database og samordner Nginx, API og publiseringsjobb. Oppskriften under beskriver førstegangsoppsettet.
+
 Dette er engangsoppsettet for Ubuntu-serveren som allerede henter `main` med `it-laben-update.timer`. Utvikling skjer på `backend`; serveren fortsetter å hente **bare `main`** etter sammenslåing. Det opprettes ingen separat backend-publisering fra featurebranchen.
 
 Kjør oppsettet **før backend merges til main**. Installatøren oppgraderer oppdateringsjobben. Den nye jobben venter hvis `main` ennå mangler API-et, og beholder siden som vises nå. Når backend er merget, bygger og aktiverer neste timerkjøring både API og frontend fra samme commit.

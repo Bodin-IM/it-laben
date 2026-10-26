@@ -7,7 +7,7 @@ setup_help() {
     cat <<'HELP'
 Bruk på Ubuntu-serveren:
   sudo bash server/deploy/install-main.sh \
-    --origin https://im.local:8443 \
+    --origin https://itlab.im.local \
     --cert /etc/ssl/it-laben/server.crt \
     --key /etc/ssl/it-laben/server.key \
     --ca /etc/ssl/it-laben/root-ca.crt
@@ -15,7 +15,9 @@ Bruk på Ubuntu-serveren:
   --check  Kontroller forutsetningene uten å endre serveren.
   --ca     Valgfritt dersom utstederen allerede finnes i serverens tillitslager.
 
-Bruk en ledig HTTPS-port. Eksisterende visning på 8080 beholdes.
+Standard HTTPS-port er 443, med HTTP-videresending på 80.
+Bruk change-origin.sh for å flytte en eksisterende installasjon til en ny adresse.
+Eksisterende visning på 8080 beholdes.
 Sertifikatet må dekke vertsnavnet/IP-en i --origin. Klientene må stole på CA-en.
 Installerer systemd-API, Nginx-HTTPS, daglig backup og oppdatering fra main.
 Installerer ikke Node.js, sertifikater eller brannmurregler.
@@ -40,8 +42,18 @@ JS
 }
 
 setup_nginx() {
+    printf '%s\n' '# Managed by IT-laben main deploy v1'
+    if [[ "$DEPLOY_HTTPS_PORT" == 443 ]]; then
+        cat <<NGINX
+# HTTP redirects to the configured canonical origin.
+server {
+    listen 80;
+    server_name $DEPLOY_HOST;
+    return 308 $DEPLOY_ORIGIN\$request_uri;
+}
+NGINX
+    fi
     cat <<NGINX
-# Managed by IT-laben main deploy v1
 server {
     listen $DEPLOY_HTTPS_PORT ssl;
     server_name $DEPLOY_HOST;
