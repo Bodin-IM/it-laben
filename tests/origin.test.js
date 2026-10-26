@@ -157,6 +157,60 @@ function run(f, command, env = {}) {
 	});
 }
 
+// Exercise argument parsing and the real CLI control flow without touching /etc
+// or requiring the test runner to be root. Service/HTTP mocks stay the same.
+function runMain(f, options = '', env = {}) {
+	return run(
+		f,
+		`origin_paths() { :; }; origin_require_root() { :; }; origin_main --name itlab.im.local --ip 10.100.0.14 ${options}`,
+		env
+	);
+}
+
+test(
+	'CLI: gammel HTTP v2 på samme DNS-navn oppgraderes, og --check endrer ingenting',
+	{ skip: !supported },
+	(t) => {
+		const f = fixture(t);
+		assert.equal(run(f, 'origin_apply').status, 0);
+		const nginxPath = join(f.dir, 'nginx/https');
+		const envPath = join(f.dir, 'etc/api.env');
+		const oldNginx = readFileSync(nginxPath, 'utf8').replace(
+			/^    if \(\$host !~.*$/m,
+			'    if ($host != itlab.im.local) { return 308 https://itlab.im.local$request_uri; }'
+		);
+		writeFileSync(nginxPath, oldNginx);
+		writeFileSync(envPath, readFileSync(envPath, 'utf8').replace(/^APP_ORIGIN_ALIASES=.*\n/m, ''));
+		const oldEnv = readFileSync(envPath, 'utf8');
+		const cert = fingerprint(join(f.dir, 'certs/server.crt'));
+		const backupCount = readdirSync(join(f.dir, 'origin-backups')).length;
+		// Reproduce the old installation: DNS works, but IP health redirects until applied.
+		const ipRedirect = `origin_health() { if [[ "$3" == https://10.100.0.14 ]] && grep -Fq 'if ($host != itlab.im.local)' "$ORIGIN_site"; then return 1; fi; }; `;
+		const command =
+			'origin_paths() { :; }; origin_require_root() { :; }; ' +
+			ipRedirect +
+			'origin_main --name itlab.im.local --ip 10.100.0.14';
+		const checked = run(f, command + ' --check');
+		assert.equal(checked.status, 0, checked.stderr);
+		assert.equal(readFileSync(nginxPath, 'utf8'), oldNginx);
+		assert.equal(readFileSync(envPath, 'utf8'), oldEnv);
+		assert.equal(readdirSync(join(f.dir, 'origin-backups')).length, backupCount);
+		const applied = run(f, command);
+		assert.equal(applied.status, 0, applied.stderr + applied.stdout);
+		assert.match(applied.stdout, /Oppsett ferdig:/);
+		assert.doesNotMatch(readFileSync(nginxPath, 'utf8'), /if \(\$host != itlab.im.local\)/);
+		assert.match(readFileSync(envPath, 'utf8'), /^APP_ORIGIN_ALIASES=https:\/\/10.100.0.14$/m);
+		assert.equal(fingerprint(join(f.dir, 'certs/server.crt')), cert);
+		const repeated = runMain(f);
+		assert.equal(repeated.status, 0, repeated.stderr + repeated.stdout);
+		assert.match(repeated.stdout, /Oppsett ferdig:/);
+		assert.equal(fingerprint(join(f.dir, 'certs/server.crt')), cert);
+		const db = new DatabaseSync(join(f.dir, 'data/it-laben.sqlite'));
+		assert.equal(db.prepare('SELECT answer FROM work').get().answer, 'behold elevens svar');
+		db.close();
+	}
+);
+
 test(
 	'adressebytte: Bash-syntaks og avvisning av ugyldige navn/IP før endring',
 	{ skip: !supported },

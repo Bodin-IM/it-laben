@@ -3,6 +3,7 @@
 set -Eeuo pipefail
 
 origin_die() { printf 'FEIL: %s\n' "$*" >&2; return 1; }
+origin_require_root() { [[ $EUID -eq 0 ]] || origin_die 'Kjør med sudo på Ubuntu-serveren.'; }
 origin_paths() {
     ORIGIN_config=/etc/it-laben-deploy.conf
     ORIGIN_env=/etc/it-laben-api.env
@@ -371,16 +372,13 @@ origin_main() {
             *) origin_die "Ukjent argument: $1" ;;
         esac
     done
-    [[ $EUID -eq 0 ]] || origin_die 'Kjør med sudo på Ubuntu-serveren.'
+    origin_require_root
     umask 077
     for command in openssl nginx systemctl curl ss flock runuser sed grep stat find sha256sum; do command -v "$command" >/dev/null || origin_die "Mangler $command."; done
     origin_check
     [[ "$check" != 1 ]] || return 0
-    if [[ "$ORIGIN_old" == "$ORIGIN_target" && -f "$ORIGIN_public_config" ]] && grep -Fq '# IT-laben public HTTP v2' "$ORIGIN_site"; then
-        origin_verify_target
-        printf 'Serveren bruker allerede %s. Ingen filer er endret.\n' "$ORIGIN_target"
-        return 0
-    fi
+    # An unchanged DNS name or old HTTP marker does not mean the configuration is
+    # current. Always apply the generated configuration under the deployment lock.
     origin_apply
 }
 if [[ "${BASH_SOURCE[0]}" == "$0" ]]; then origin_main "$@"; fi

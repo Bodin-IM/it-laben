@@ -28,6 +28,8 @@ cat /var/www/it-laben/current/.commit
 
 Hent deretter siste `change-origin.sh` som beskrevet nedenfor, kjør `--check`, og kjør uten `--check` når kontrollen består. Samme kommando med samme DNS-navn og IP oppdaterer eksisterende oppsett. API-et får en eksplisitt tillatelse til `https://10.100.0.14` gjennom `APP_ORIGIN_ALIASES`; andre Origin-adresser tillates ikke automatisk. Eventuelle eksisterende aliaser bevares. Skriptet kontrollerer HTTPS, Origin, statisk HTTP og avvist HTTP-API via både DNS-navnet og IP-adressen, uten behov for DNS-oppslag fra serveren.
 
+En vellykket aktivering avsluttes med **«Oppsett ferdig»** og **«IP-adressen virker også»**. «Kontroll OK» alene betyr bare at forhåndskontrollen bestod. En tidligere skriptversjon hoppet feilaktig over oppdateringen når DNS-navnet var uendret og det gamle HTTP-oppsettet fantes. Hent nyeste skript dersom kjøringen stopper etter kontrollen. Kjøring uten `--check` legger nå alltid inn gjeldende konfigurasjon, også ved samme navn; sertifikat, CA, nøkler og data beholdes når de allerede er riktige.
+
 En gammel permanent videresending kan ligge i nettleserens hurtiglager. Hvis IP fortsatt blir til DNS etter serveroppdateringen, prøv et privat vindu og tøm eventuelt hurtiglagrede nettstedsfiler. Et nytt besøk på IP bruker et annet cookie- og lagringsområde enn DNS-navnet: logg inn med samme nøkkelfil for å bruke samme konto og serverlagrede progresjon. Ventende lokale endringer bør synkroniseres før adressebytte. Nettverket må fortsatt gi tilgang til serverens IP, og HTTPS-sertifikatet må være betrodd og dekke IP-adressen.
 
 ## 1. DNS og nøkkelfiler
