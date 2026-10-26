@@ -33,4 +33,6 @@ Kjør `npm test`, `npm run check` og `npm run build`. Modelltestene dekker mello
 
 ## Pedagogisk grunnlag
 
+Piloten er ett eksempel på prinsippene i [IT-labens felles pedagogiske grunnlag](pedagogisk-grunnlag.md). Bruk grunnlaget og [aktivitetsmalen](aktivitetsmal.md) ved senere utvikling; nye aktiviteter trenger ikke kopiere pilotens seks deler eller poengmodell.
+
 Pilotens utforming er inspirert av ICAP (Chi & Wylie, 2014, DOI 10.1080/00461520.2014.965823), PRIMM (Sentance mfl., 2019, DOI 10.1080/08993408.2019.1608781), feedback-oversikten (Wisniewski mfl., 2020, DOI 10.3389/fpsyg.2019.03087) og gamification-oversikten (Sailer & Homner, 2020, DOI 10.1007/s10648-019-09498-w). Disse studiene undersøker andre kontekster og tiltak. Seks deler, hintnivåer og poengregler er lokale designvalg som må prøves i undervisningen.
