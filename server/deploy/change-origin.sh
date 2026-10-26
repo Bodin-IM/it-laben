@@ -61,6 +61,18 @@ origin_check() {
     grep -Fxq "ITLAB_DB_PATH=$DEPLOY_DATA/it-laben.sqlite" "$ORIGIN_env" || origin_die 'Uventet databasesti. Behold den eksisterende databasen.'
     grep -Fxq 'API_PORT=3001' "$ORIGIN_env" || origin_die 'Forventet internt API på port 3001.'
     [[ -f "$DEPLOY_BASE/api-current/server/backup.js" && -f "$DEPLOY_WEB/current/index.html" && -f "$DEPLOY_DATA/it-laben.sqlite" ]] || origin_die 'Forventet et publisert API, nettsted og eksisterende database.'
+    # Check the deployed API before changing Nginx: older versions reject IP logins.
+    [[ $(grep -c '^APP_ORIGIN_ALIASES=' "$ORIGIN_env") -le 1 ]] || origin_die 'Forventet høyst én APP_ORIGIN_ALIASES.'
+    ORIGIN_aliases=$("$DEPLOY_NODE" --input-type=module - "$DEPLOY_BASE/api-current/server/config.js" "$ORIGIN_target" "$ORIGIN_ip" "$(sed -n 's/^APP_ORIGIN_ALIASES=//p' "$ORIGIN_env")" <<'JS'
+import { pathToFileURL } from 'node:url';
+const [path, origin, ip, existing] = process.argv.slice(2);
+const { readConfig } = await import(pathToFileURL(path));
+const aliases = existing.trim() ? `${existing},https://${ip}` : `https://${ip}`;
+const config = readConfig({NODE_ENV: 'production', APP_ORIGIN: origin, APP_ORIGIN_ALIASES: aliases});
+if (!config.allowedOrigins.has(`https://${ip}`)) throw new Error('API-et mangler støtte for IP-alias.');
+console.log([...config.allowedOrigins].filter(value => value !== origin).join(','));
+JS
+    ) || origin_die 'Publiser main med støtte for APP_ORIGIN_ALIASES først, og kontroller eventuelle eksisterende aliaser. Ingen serverfiler er endret.'
     [[ "$DEPLOY_CA" == "$ORIGIN_public_ca" ]] || origin_die 'Oppsettet bruker en annen CA. Dette skriptet er for IT-labens lokale CA.'
     openssl verify -CAfile "$ORIGIN_ca/root-ca.crt" "$ORIGIN_cert" >/dev/null
     openssl verify -CAfile "$ORIGIN_public_ca" "$ORIGIN_cert" >/dev/null
@@ -97,6 +109,12 @@ JS
     )
     printf 'Kontroll OK: %s → %s (åpen HTTP på 80, pålogging på HTTPS).\n' "$ORIGIN_old" "$ORIGIN_target"
 }
+origin_certificate_matches() {
+    openssl verify -purpose sslserver -CAfile "$ORIGIN_public_ca" \
+        -verify_hostname "$ORIGIN_host" "$1" >/dev/null 2>&1 && \
+    openssl verify -purpose sslserver -CAfile "$ORIGIN_public_ca" \
+        -verify_ip "$ORIGIN_ip" "$1" >/dev/null 2>&1
+}
 origin_certificate() {
     openssl req -new -sha256 -key "$ORIGIN_key" -subj "/CN=$ORIGIN_host" -out "$ORIGIN_stage/server.csr"
     cat > "$ORIGIN_stage/server.ext" <<EXT
@@ -108,9 +126,7 @@ EXT
     openssl x509 -req -sha256 -days 365 -in "$ORIGIN_stage/server.csr" \
         -CA "$ORIGIN_ca/root-ca.crt" -CAkey "$ORIGIN_ca/root-ca.key" \
         -set_serial "0x$(openssl rand -hex 16)" -extfile "$ORIGIN_stage/server.ext" -out "$ORIGIN_stage/server.crt"
-    openssl verify -purpose sslserver -CAfile "$ORIGIN_public_ca" "$ORIGIN_stage/server.crt"
-    openssl x509 -in "$ORIGIN_stage/server.crt" -noout -checkhost "$ORIGIN_host"
-    openssl x509 -in "$ORIGIN_stage/server.crt" -noout -checkip "$ORIGIN_ip"
+    origin_certificate_matches "$ORIGIN_stage/server.crt"
 }
 origin_public_locations() {
     cat <<NGINX
@@ -130,7 +146,7 @@ NGINX
 origin_nginx() {
     cat <<NGINX
 # Managed by IT-laben main deploy v1
-# Canonical origin configured by change-origin.sh
+# DNS and IP access configured by change-origin.sh
 # IT-laben public HTTP v2
 server {
     listen 80;
@@ -161,7 +177,7 @@ NGINX
 }
 server {
     listen 443 ssl;
-    server_name $ORIGIN_host;
+    server_name $ORIGIN_host $ORIGIN_ip;
     ssl_certificate $ORIGIN_cert;
     ssl_certificate_key $ORIGIN_key;
     ssl_protocols TLSv1.2 TLSv1.3;
@@ -173,7 +189,8 @@ server {
     add_header X-Frame-Options DENY always;
     # This host deliberately supports public HTTP; clear older HTTPS-only policy.
     add_header Strict-Transport-Security 'max-age=0' always;
-    if (\$host != $ORIGIN_host) { return 308 $ORIGIN_target\$request_uri; }
+    # Keep both the configured DNS name and IP; only unknown hosts use the default address.
+    if (\$host !~ ^(${ORIGIN_host//./\\.}|${ORIGIN_ip//./\\.})$) { return 307 $ORIGIN_target\$request_uri; }
 NGINX
     origin_public_locations
     cat <<NGINX
@@ -211,17 +228,19 @@ NGINX
         cat <<NGINX
 server {
     listen $ORIGIN_redirect_port ssl;
-    server_name $ORIGIN_old_host;
+    server_name $ORIGIN_host $ORIGIN_ip;
     ssl_certificate $ORIGIN_cert;
     ssl_certificate_key $ORIGIN_key;
     ssl_protocols TLSv1.2 TLSv1.3;
-    return 308 $ORIGIN_target\$request_uri;
+    if (\$host = $ORIGIN_ip) { return 307 https://$ORIGIN_ip\$request_uri; }
+    return 307 $ORIGIN_target\$request_uri;
 }
 NGINX
     fi
 }
 origin_configs() {
-    sed "s#^APP_ORIGIN=.*#APP_ORIGIN=$ORIGIN_target#" "$ORIGIN_env" > "$ORIGIN_stage/api.env"
+    sed -e "s#^APP_ORIGIN=.*#APP_ORIGIN=$ORIGIN_target#" -e '/^APP_ORIGIN_ALIASES=/d' "$ORIGIN_env" > "$ORIGIN_stage/api.env"
+    printf '\nAPP_ORIGIN_ALIASES=%s\n' "$ORIGIN_aliases" >> "$ORIGIN_stage/api.env"
     sed -e "s#^DEPLOY_ORIGIN=.*#DEPLOY_ORIGIN=$ORIGIN_target#" \
         -e "s#^DEPLOY_HOST=.*#DEPLOY_HOST=$ORIGIN_host#" \
         -e 's#^DEPLOY_HTTPS_PORT=.*#DEPLOY_HTTPS_PORT=443#' "$ORIGIN_config" > "$ORIGIN_stage/deploy.conf"
@@ -233,22 +252,27 @@ console.log(JSON.stringify({httpsOrigin: process.argv[2], caSha256: process.argv
 JS
 }
 origin_verify_target() {
-    origin_health "$ORIGIN_host" "$ORIGIN_port" "$ORIGIN_target" || return 1
-    local status
-    # A write without a session must reach authentication, rather than fail Origin.
-    status=$(curl --noproxy "$ORIGIN_host" --silent --show-error --max-time 5 \
-        --cacert "$ORIGIN_public_ca" --resolve "$ORIGIN_host:$ORIGIN_port:127.0.0.1" \
-        -H "Origin: $ORIGIN_target" -H 'Content-Type: application/json' \
-        --data '{}' --output /dev/null --write-out '%{http_code}' "$ORIGIN_target/api/me/lab") || return 1
-    [[ "$status" == 401 ]] || return 1
-    status=$(curl --noproxy "$ORIGIN_host" --silent --show-error --max-time 5 \
-        --resolve "$ORIGIN_host:80:127.0.0.1" --output /dev/null --write-out '%{http_code}' "http://$ORIGIN_host/") || return 1
-    [[ "$status" == 200 ]] || return 1
-    status=$(curl --noproxy "$ORIGIN_host" --silent --show-error --max-time 5 \
-        --resolve "$ORIGIN_host:80:127.0.0.1" --output /dev/null --write-out '%{http_code}' "http://$ORIGIN_host/api/health") || return 1
-    [[ "$status" == 426 ]] || return 1
-    curl --noproxy "$ORIGIN_host" --fail --silent --show-error --max-time 5 \
-        --cacert "$ORIGIN_public_ca" --resolve "$ORIGIN_host:$ORIGIN_port:127.0.0.1" --output /dev/null "$ORIGIN_target/"
+    local host target status
+    for host in "$ORIGIN_host" "$ORIGIN_ip"; do
+        target="https://$host"
+        origin_health "$host" "$ORIGIN_port" "$target" || return 1
+        # A write without a session must reach authentication, rather than fail Origin.
+        status=$(curl --noproxy "$host" --silent --show-error --max-time 5 \
+            --cacert "$ORIGIN_public_ca" --resolve "$host:$ORIGIN_port:127.0.0.1" \
+            -H "Origin: $target" -H 'Content-Type: application/json' \
+            --data '{}' --output /dev/null --write-out '%{http_code}' "$target/api/me/lab") || return 1
+        [[ "$status" == 401 ]] || return 1
+        status=$(curl --noproxy "$host" --silent --show-error --max-time 5 \
+            --resolve "$host:80:127.0.0.1" --output /dev/null --write-out '%{http_code}' "http://$host/") || return 1
+        [[ "$status" == 200 ]] || return 1
+        status=$(curl --noproxy "$host" --silent --show-error --max-time 5 \
+            --resolve "$host:80:127.0.0.1" --output /dev/null --write-out '%{http_code}' "http://$host/api/health") || return 1
+        [[ "$status" == 426 ]] || return 1
+        status=$(curl --noproxy "$host" --silent --show-error --max-time 5 \
+            --cacert "$ORIGIN_public_ca" --resolve "$host:$ORIGIN_port:127.0.0.1" \
+            --output /dev/null --write-out '%{http_code}' "$target/") || return 1
+        [[ "$status" == 200 ]] || return 1
+    done
 }
 origin_failed() {
     local status=$1 restored=1
@@ -297,7 +321,9 @@ origin_apply() {
         fi
     done
     local renew=0
-    if [[ "$ORIGIN_old" != "$ORIGIN_target" ]]; then renew=1; origin_certificate; fi
+    if [[ "$ORIGIN_old" != "$ORIGIN_target" ]] || ! origin_certificate_matches "$ORIGIN_cert"; then
+        renew=1; origin_certificate
+    fi
     origin_configs
     runuser -u "$DEPLOY_USER" -- env ITLAB_DB_PATH="$DEPLOY_DATA/it-laben.sqlite" \
         "$DEPLOY_NODE" "$DEPLOY_BASE/api-current/server/backup.js" "$DEPLOY_BACKUPS/before-origin-$(basename "$ORIGIN_backup").sqlite"
@@ -325,7 +351,8 @@ origin_apply() {
     [[ "$ORIGIN_timer_active" != 1 ]] || systemctl start it-laben-update.timer
     trap - ERR INT TERM HUP
     printf '\nOppsett ferdig: %s\nHTTP på 80 viser åpent innhold uten backend.\nSamme CA, database og publiserte main-versjon er beholdt.\nBackup: %s\n' "$ORIGIN_target" "$ORIGIN_backup"
-    printf 'Test DNS og HTTPS fra begge elevnett. Tillat TCP 80/443 i eventuelle brannmurer.\n'
+    printf 'IP-adressen virker også: http://%s/ og https://%s/ (ingen tvungen DNS-videresending).\n' "$ORIGIN_ip" "$ORIGIN_ip"
+    printf 'Test DNS og IP fra begge elevnett. Tillat TCP 80/443 i eventuelle brannmurer.\n'
     if [[ "$ORIGIN_timer_active" == 1 ]]; then printf 'Automatisk oppdatering fra main fortsetter.\n';
     else printf 'Oppdateringstimeren var pauset og er fortsatt pauset. Start den igjen når publiseringen er klar.\n'; fi
 }

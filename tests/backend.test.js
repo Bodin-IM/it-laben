@@ -63,12 +63,21 @@ function historicalDatabase(filename, count) {
 	return db;
 }
 
-async function fixture(t, { persistent = false, secure = false, limits = false } = {}) {
+async function fixture(
+	t,
+	{ persistent = false, secure = false, limits = false, aliases = '' } = {}
+) {
 	const dir = mkdtempSync(join(tmpdir(), 'itlab-test-'));
 	const filename = persistent ? join(dir, 'test.sqlite') : ':memory:';
 	let now = Date.now();
 	const config = readConfig(
-		secure ? { NODE_ENV: 'production', APP_ORIGIN: 'https://itlab.example.test' } : {}
+		secure
+			? {
+					NODE_ENV: 'production',
+					APP_ORIGIN: 'https://itlab.example.test',
+					APP_ORIGIN_ALIASES: aliases
+				}
+			: {}
 	);
 	const db = openDatabase(filename);
 	const server = createApp({ db, config, clock: () => now, limits }).listen(0, '127.0.0.1');
@@ -589,6 +598,65 @@ test('produksjon krever HTTPS og gir Secure-cookie; feil i forespørsler håndte
 			})
 		).status,
 		413
+	);
+});
+
+test('DNS og eksplisitt IP-alias gir tilgang til samme konto, med Origin, CSRF og HTTPS beholdt', async (t) => {
+	const origin = 'https://10.100.0.14';
+	const f = await fixture(t, { secure: true, aliases: origin });
+	const dns = f.client();
+	await dns.create();
+	const ip = f.client();
+	const login = await ip.request('/api/auth/key', { key: dns.key.key }, { origin });
+	assert.equal(login.status, 200);
+	assert.equal(ip.user.id, dns.user.id);
+	assert.match(login.headers.getSetCookie()[0], /; Secure/);
+	assert.doesNotMatch(login.headers.getSetCookie()[0], /; Domain=/i);
+	const missingCsrf = await ip.request('/api/me/lab', {}, { origin, csrf: false });
+	assert.equal(missingCsrf.status, 403);
+	assert.equal(missingCsrf.result.error.code, 'CSRF');
+	const allowed = await f.client().request('/api/me/lab', {}, { origin });
+	assert.equal(allowed.status, 401);
+	for (const foreign of [
+		'http://10.100.0.14',
+		'https://10.100.0.15',
+		'https://evil.test',
+		'https://10.100.0.14:8443'
+	]) {
+		const result = await ip.request('/api/me/lab', {}, { origin: foreign });
+		assert.equal(result.status, 403);
+		assert.equal(result.result.error.code, 'ORIGIN');
+	}
+	assert.equal((await fetch(f.base + '/api/health')).status, 400);
+});
+
+test('IP-aliaser er en eksplisitt liste med hele HTTPS-origins, ikke en åpen Origin-regel', () => {
+	const base = { NODE_ENV: 'production', APP_ORIGIN: 'https://itlab.im.local' };
+	assert.deepEqual([...readConfig(base).allowedOrigins], ['https://itlab.im.local']);
+	assert.deepEqual(
+		[
+			...readConfig({
+				...base,
+				APP_ORIGIN_ALIASES: ' https://10.100.0.14/,https://10.100.0.14,https://itlab.im.local '
+			}).allowedOrigins
+		],
+		['https://itlab.im.local', 'https://10.100.0.14']
+	);
+	for (const alias of [
+		'*',
+		'http://10.100.0.14',
+		'http://localhost',
+		'https://user:pass@10.100.0.14',
+		'https://10.100.0.14/path',
+		'https://10.100.0.14/?key=x',
+		'https://10.100.0.14/#x',
+		'https://10.100.0.14,'
+	])
+		assert.throws(() => readConfig({ ...base, APP_ORIGIN_ALIASES: alias }));
+	assert.throws(
+		() =>
+			readConfig({ APP_ORIGIN: 'http://localhost:5173', APP_ORIGIN_ALIASES: 'https://localhost' }),
+		/samme protokoll/
 	);
 });
 

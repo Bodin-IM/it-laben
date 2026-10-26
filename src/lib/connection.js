@@ -44,6 +44,15 @@ export function parseConnectionConfig(value) {
 		throw new Error('Invalid CA fingerprint');
 	return { httpsOrigin: url.origin, caSha256: fingerprint };
 }
+/** Keep the address the visitor can reach, including when local DNS is unavailable.
+ * @param {string} configuredOrigin
+ * @param {{protocol:string,origin:string,hostname:string}} location */
+export function resolveHttpsOrigin(configuredOrigin, location) {
+	if (location.protocol === 'https:') return location.origin;
+	const url = new URL(parseConnectionConfig({ httpsOrigin: configuredOrigin }).httpsOrigin);
+	url.hostname = location.hostname;
+	return url.origin;
+}
 /** @param {string} origin @param {typeof fetch} [request] */
 export async function checkHttps(origin, request = fetch) {
 	try {
@@ -103,7 +112,12 @@ export function initializeConnection() {
 			});
 			if (response.ok) {
 				const config = parseConnectionConfig(await response.json());
-				if (!disposed) state.update((value) => ({ ...value, ...config }));
+				if (!disposed)
+					state.update((value) => ({
+						...value,
+						...config,
+						httpsOrigin: resolveHttpsOrigin(config.httpsOrigin, location)
+					}));
 			}
 		} catch {
 			/* Older installations can still browse; no login API is contacted over HTTP. */
