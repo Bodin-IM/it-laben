@@ -6,7 +6,7 @@
 	 * @type {{frame:WalkthroughFrame, previous:WalkthroughFrame|null, index:number,
 	 * total:number, cases:Case[], caseIndex:number, source:string[], result:CaseResult|null,
 	 * onstep:(index:number)=>void, oncase:(index:number)=>void, onclose:()=>void,
-	 * ontestall:()=>void}}
+	 * ontestall:()=>void, actionLabel?:string}}
 	 */
 	let {
 		frame,
@@ -20,7 +20,8 @@
 		onstep,
 		oncase,
 		onclose,
-		ontestall
+		ontestall,
+		actionLabel = 'Test alle situasjonene →'
 	} = $props();
 	const id = $props.id();
 	let scenario = $derived(cases[caseIndex]);
@@ -192,7 +193,7 @@
 			<p class="single-only">
 				Dette er én situasjon. Hele prøverunden må bestås for å få reparasjonen godkjent.
 			</p>
-			<button type="button" class="test-all" onclick={ontestall}>Test alle situasjonene →</button>
+			<button type="button" class="test-all" onclick={ontestall}>{actionLabel}</button>
 		</div>
 	{:else}
 		<p class="walkthrough-help">
