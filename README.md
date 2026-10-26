@@ -73,6 +73,8 @@ På `/spill/redd-chatten/pilot/` kan eleven forutsi, undersøke, reparere og for
 
 ## Hvordan vi bygger undervisningssidene
 
+Det felles [pedagogiske grunnlaget](docs/pedagogisk-grunnlag.md) beskriver hvordan vi bruker forskning om interaktivitet, tilbakemeldinger og gamification i nye aktiviteter. Bruk [aktivitetsmalen](docs/aktivitetsmal.md) for å konkretisere mål, elevhandlinger, respons og ny anvendelse. [AGENTS.md](AGENTS.md) gir KI-assistenter instruksjoner om å lese og følge grunnlaget når de arbeider med repoet.
+
 Når vi lager og videreutvikler sider, legger vi vekt på å:
 
 - Ta utgangspunkt i et konkret spørsmål eller en liten funksjon.
