@@ -28,6 +28,13 @@
 		setLabPreferences({ companion: false });
 		document.getElementById('hovedinnhold')?.focus();
 	}
+	function openHelp() {
+		const panel = document.getElementById('labpartner-hjelp');
+		if (panel instanceof HTMLDetailsElement) {
+			panel.open = true;
+			panel.querySelector('summary')?.focus({ preventScroll: true });
+		}
+	}
 	$effect(() => {
 		setAvatarContext(
 			$lab.user?.id ?? '',
@@ -92,6 +99,9 @@
 		</button>
 		<div id="labpartner-message" class="message" hidden={!expanded}>
 			<p>{$avatarReaction.message || 'Ett steg av gangen. Prøv, utforsk og finn din løsning.'}</p>
+			{#if activity?.id === 'redd-chatten'}
+				<a class="ask-partner" href="#labpartner-hjelp" onclick={openHelp}>Spør om oppgaven →</a>
+			{/if}
 			<button
 				class="hide"
 				type="button"
@@ -176,7 +186,15 @@
 		text-underline-offset: 3px;
 		cursor: pointer;
 	}
-	button:focus-visible {
+	.ask-partner {
+		display: block;
+		color: var(--color-accent);
+		padding-block: 10px;
+		min-height: 44px;
+		box-sizing: border-box;
+	}
+	button:focus-visible,
+	a:focus-visible {
 		outline: 3px solid var(--color-focus);
 		outline-offset: 3px;
 	}

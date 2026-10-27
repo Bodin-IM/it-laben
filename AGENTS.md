@@ -56,3 +56,7 @@ You MUST use this tool whenever writing Svelte code before sending it to the use
 
 Generates a Svelte Playground link with the provided code.
 After completing the code, ask the user if they want a playground link. Only call this tool after user confirmation and NEVER if code was written to files in their project.
+
+## Labpartnerens KI-kontekst
+
+Ved arbeid med KI-veiledning: les [pilotens kontekst- og driftsbeskrivelse](docs/labpartner-ki-pilot.md). Oppgavegrunnlaget eies av backend og skal gjenbruke aktivitetens mål og kode. Registrer bare relevante, navngitte handlinger og send et avgrenset øyeblikksbilde når eleven spør. Knytt svar og testresultater til riktig oppdrag og kodeversjon. Hold kontohemmeligheter, andre elevers data og skjult vurderingsinnhold utenfor modellkonteksten. KI-veiledning skal ikke selv godkjenne oppgaver eller gi XP.

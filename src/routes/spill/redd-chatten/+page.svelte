@@ -3,6 +3,8 @@
 	import ModuleContext from '#lib/components/ModuleContext.svelte';
 	import { activityLab as account, learningContext, saveAttempt } from '#lib/lab.js';
 	import { avatarFeedback } from '#lib/avatarFeedback.js';
+	import LabPartnerPanel from '#lib/components/LabPartnerPanel.svelte';
+	import { PARTNER_ACTIVITY, PARTNER_VERSION, appendPartnerEvent } from '#lib/labPartner.js';
 	import { onMount, onDestroy, tick } from 'svelte';
 	import BackendRouteEditor from '#lib/components/BackendRouteEditor.svelte';
 	import RequestWalkthrough from '#lib/components/RequestWalkthrough.svelte';
@@ -168,6 +170,45 @@
 			: null
 	);
 	let fullCode = $derived(programCode(mission.id, program));
+	/** @type {import('#lib/labPartner.js').PartnerEvent[]} */
+	let partnerEvents = $state([]);
+	/** @type {{program:string[], caseId:string|null}|null} */
+	let partnerLastRun = $state(null);
+	const partnerScope = $derived(
+		`${$account.user?.id ?? ''}:${$learningContext.mode}:${$learningContext.openingId}:${mission.id}`
+	);
+	$effect(() => {
+		void partnerScope;
+		partnerEvents = [];
+		partnerLastRun = null;
+	});
+	/** @param {import('#lib/labPartner.js').PartnerEvent} event */
+	function recordPartnerEvent(event) {
+		partnerEvents = appendPartnerEvent(partnerEvents, event);
+	}
+	/** @type {import('#lib/labPartner.js').PartnerSnapshot} */
+	const partnerSnapshot = $derived.by(() => ({
+		version: PARTNER_VERSION,
+		activityId: PARTNER_ACTIVITY,
+		missionId: mission.id,
+		program: [...program],
+		caseId: scenario.id,
+		running,
+		lastRun:
+			currentTraceIndex < 0 && partnerLastRun
+				? partnerLastRun
+				: usingSample && sample
+					? { program: sample.programKey.split('|').filter(Boolean), caseId: sample.caseId }
+					: run
+						? { program: runKeys[missionIndex].split('|').filter(Boolean), caseId: null }
+						: null,
+		inspection: walkthrough
+			? { kind: 'walkthrough', index: walkthroughIndex }
+			: resultIsCurrent && currentTraceIndex >= 0
+				? { kind: 'trace', index: currentTraceIndex }
+				: null,
+		events: partnerEvents
+	}));
 
 	onMount(() => {
 		const mobile = window.matchMedia('(max-width: 900px)');
@@ -252,6 +293,7 @@
 			const next = walkthroughCase(mission.id, program, cases[selectedCaseIndex].id);
 			closeInspection();
 			walkthrough = next;
+			recordPartnerEvent({ type: 'walkthrough-started', caseId: scenario.id });
 			executionError = '';
 			announcement = 'Gjennomgangen er klar. Velg Neste for å utføre ett steg av gangen.';
 			void tick().then(() => {
@@ -270,12 +312,14 @@
 	function walkTo(index) {
 		if (!walkthrough || index < 0 || index >= walkthrough.frames.length) return;
 		walkthroughIndex = index;
+		recordPartnerEvent({ type: 'walkthrough-stepped', caseId: scenario.id, index });
 		revision += 1;
 	}
 	/** @param {number} index */
 	function chooseWalkthroughCase(index) {
 		if (index < 0 || index >= cases.length) return;
 		selectedCaseIndex = index;
+		recordPartnerEvent({ type: 'case-selected', caseId: cases[index].id });
 		startWalkthrough();
 	}
 	function endWalkthrough() {
@@ -289,6 +333,7 @@
 	/** @param {string[]} next @param {string} message */
 	function changeProgram(next, message) {
 		if (running) return;
+		recordPartnerEvent({ type: 'code-changed', before: [...program], after: [...next] });
 		programs[missionIndex] = [...next];
 		completed[missionIndex] =
 			Boolean(savedProgress?.objectives[missionIndex]?.completedAt) ||
@@ -301,6 +346,8 @@
 	}
 	function resetMission() {
 		if (running) return;
+		recordPartnerEvent({ type: 'reset' });
+		partnerLastRun = null;
 		programs[missionIndex] = initialProgram(mission.id);
 		runs[missionIndex] = null;
 		runKeys[missionIndex] = '';
@@ -335,9 +382,12 @@
 	function chooseCase(index) {
 		if (running) return;
 		selectedCaseIndex = index;
+		recordPartnerEvent({ type: 'case-selected', caseId: cases[index].id });
 		closeInspection();
 	}
-	function pauseForCode() {
+	/** @param {string} [lineId] */
+	function pauseForCode(lineId) {
+		if (lineId) recordPartnerEvent({ type: 'line-explained', lineId });
 		if (!running || paused) return;
 		clearTimer();
 		paused = true;
@@ -371,6 +421,7 @@
 		if (running) return;
 		try {
 			const attempt = evaluateProgram(mission.id, program);
+			recordPartnerEvent({ type: 'test-started' });
 			clearTimer();
 			previousScores[missionIndex] = run?.passed ?? null;
 			attempts[missionIndex] += 1;
@@ -407,6 +458,8 @@
 	function complete() {
 		clearTimer();
 		if (!pendingRun) return;
+		recordPartnerEvent({ type: 'test-completed' });
+		partnerLastRun = { program: [...program], caseId: null };
 		runs[missionIndex] = pendingRun;
 		runKeys[missionIndex] = programKey;
 		revealedCount = pendingRun.total;
@@ -433,6 +486,7 @@
 		if (running) complete();
 	}
 	function cancelRun() {
+		recordPartnerEvent({ type: 'test-cancelled' });
 		clearTimer();
 		running = false;
 		paused = false;
@@ -447,6 +501,8 @@
 		if (running) return;
 		try {
 			const result = evaluateCase(mission.id, program, scenario.id);
+			recordPartnerEvent({ type: 'test-completed', caseId: scenario.id });
+			partnerLastRun = { program: [...program], caseId: scenario.id };
 			sample = { caseId: scenario.id, programKey, result };
 			closeInspection();
 			executionError = '';
@@ -459,6 +515,8 @@
 	function inspectStep(index) {
 		if (running) return;
 		inspectedTraceIndex = inspectedTraceIndex === index ? -1 : index;
+		if (inspectedTraceIndex >= 0)
+			recordPartnerEvent({ type: 'trace-inspected', caseId: scenario.id, index });
 		revision += 1;
 	}
 	/** @param {number} index */
@@ -544,7 +602,10 @@
 					class="quiet"
 					aria-expanded={hintOpen}
 					aria-controls="mission-hint"
-					onclick={() => (hintOpen = !hintOpen)}
+					onclick={() => {
+						hintOpen = !hintOpen;
+						if (hintOpen) recordPartnerEvent({ type: 'hint-opened' });
+					}}
 					>{hintOpen ? 'Skjul hint' : 'Trenger du et hint?'}
 					<span aria-hidden="true">?</span></button
 				>
@@ -604,6 +665,17 @@
 				bind:this={explanationBoundary}
 				aria-label="Prøv og undersøk serverkoden"
 			>
+				{#key partnerScope}
+					<LabPartnerPanel
+						snapshot={partnerSnapshot}
+						accountId={$account.user?.id ?? null}
+						csrf={$account.csrfToken ?? ''}
+						avatarId={$account.summary?.lab.avatarId ?? 'robot'}
+						onreset={() => {
+							partnerEvents = [];
+						}}
+					/>
+				{/key}
 				<div class="test-panel" bind:this={testPanel}>
 					{#if walkthrough && walkthroughFrame}
 						<RequestWalkthrough
