@@ -74,7 +74,7 @@ export function createNightwatch(previous = null) {
 							'typeof verdi === "string" && verdi.trim().length > 0'
 						],
 						['present', 'Kontroller bare at feltet finnes', 'verdi !== undefined'],
-						['truthy', 'Kontroller bare truthy-verdi', 'Boolean(verdi)']
+						['truthy', 'Kontroller bare om verdien tolkes som true', 'Boolean(verdi)']
 					])
 				]
 			},
@@ -268,7 +268,7 @@ export function gradeNightwatch(snapshot, answers) {
 			check(
 				'Tom tekst og feil type avvises',
 				rejectsWhitespace,
-				'At et felt finnes eller er truthy, er ikke nok til å godkjenne teksten.'
+				'At et felt finnes eller tolkes som true i en betingelse, er ikke nok til å godkjenne teksten. Også en streng med bare mellomrom tolkes som true før trim().'
 			)
 		],
 		session: [

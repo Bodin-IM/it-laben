@@ -72,7 +72,7 @@ const BLOCKS = [
 		'Krev innhold i teksten',
 		'guard',
 		['if (!tekst) return res.status(400).json({ feil: "Skriv en melding" });'],
-		'En tom streng er falsy og gir 400. En streng med bare mellomrom er truthy før trim. Return stopper resten av ruten, men gjør ikke tidligere lagring ugjort.'
+		'En tom streng tolkes som false i en betingelse. Da blir !tekst true, og ruten svarer 400. En streng med bare mellomrom tolkes som true før trim(). return stopper resten av ruten, men gjør ikke tidligere lagring ugjort.'
 	),
 	block(
 		'guard-present',
@@ -781,9 +781,9 @@ function execute(id, runtime, req, oncheckpoint) {
 		case 'guard-text': {
 			if (!runtime.tekst) {
 				respond(runtime, 400, { feil: 'Skriv en melding' });
-				return 'Teksten er falsy. Ruten svarer 400 og stopper her.';
+				return 'Verdien tolkes som false. Derfor blir !tekst true, og ruten svarer 400 og stopper her.';
 			}
-			return 'Teksten er truthy, så kontrollen lar kjøringen fortsette.';
+			return 'Verdien tolkes som true. Derfor blir !tekst false, og kjøringen fortsetter.';
 		}
 		case 'guard-present': {
 			if (runtime.tekst === undefined) {
