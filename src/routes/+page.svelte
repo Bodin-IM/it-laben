@@ -6,7 +6,7 @@
 	import PersonalOverview from '#lib/components/PersonalOverview.svelte';
 	import ModuleCard from '#lib/components/ModuleCard.svelte';
 	import { moduler } from '#lib/moduler.js';
-	import { aktiviteter, fag, innholdsformat } from '#lib/innhold.js';
+	import { altElevinnhold as aktiviteter, fag, innholdsformat } from '#lib/innhold.js';
 	import { lab as account } from '#lib/lab.js';
 	import { hasTeacherRole } from '#lib/learning.js';
 
