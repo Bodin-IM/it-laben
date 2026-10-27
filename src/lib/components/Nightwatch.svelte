@@ -789,7 +789,7 @@
 		font:
 			400 15px/1.6 system-ui,
 			sans-serif;
-		padding: 0 32px;
+		padding: 0 min(32px, var(--layout-gutter));
 		overflow-wrap: anywhere;
 		color-scheme: dark;
 	}
@@ -918,7 +918,7 @@
 	}
 	.shift-hud {
 		position: sticky;
-		top: var(--lab-companion-space, 0px);
+		top: 0;
 		z-index: 20;
 		display: flex;
 		align-items: center;
@@ -1169,7 +1169,7 @@
 	}
 	.incident-nav {
 		position: sticky;
-		top: calc(84px + var(--lab-companion-space, 0px));
+		top: 84px;
 		border: 1px solid var(--line);
 		border-radius: 9px;
 		background: #101e19;

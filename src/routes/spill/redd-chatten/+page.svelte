@@ -1302,7 +1302,7 @@
 	}
 	.test-panel {
 		position: sticky;
-		top: max(16px, var(--lab-companion-space, 0px));
+		top: 16px;
 		scroll-margin-top: 18px;
 	}
 	.server-led {
