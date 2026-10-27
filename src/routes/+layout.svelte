@@ -7,6 +7,8 @@
 	import { hasTeacherRole } from '#lib/learning.js';
 	import { teachingPlans, presentationLessons } from '#lib/teaching.js';
 	import TeachingPresentation from '#lib/components/TeachingPresentation.svelte';
+	import { aktiviteter } from '#lib/innhold.js';
+	import { labPreferences } from '#lib/labPreferences.js';
 	import { initializeExperience } from '#lib/labPreferences.js';
 	import ActivityProgress from '#lib/components/ActivityProgress.svelte';
 	import RewardToast from '#lib/components/RewardToast.svelte';
@@ -31,6 +33,14 @@
 		if (presenting)
 			setLearningContext({ activityId: '', mode: 'normal', openingId: null, untimed: false });
 	});
+	const showStudentTools = $derived(!presentationRequested || ($lab.ready && !presenting));
+	const showCompanion = $derived(
+		showStudentTools &&
+			$lab.user?.role === 'student' &&
+			!!$lab.summary &&
+			$labPreferences.companion &&
+			aktiviteter.some((item) => item.href === page.url.pathname)
+	);
 	const plan = $derived(
 		teachingPlans.find(
 			(item) =>
@@ -55,13 +65,32 @@
 	<ConnectionBanner />
 	{#if presenting && activity}<TeachingPresentation {activity} {plan} />{:else}<LearningAccess
 		/>{/if}
-	{#if !presentationRequested || ($lab.ready && !presenting)}<AvatarCompanion />{/if}
-	{@render children()}
-	{#if !presentationRequested || ($lab.ready && !presenting)}<ActivityProgress /><RewardToast
-		/>{/if}
+	<div class="activity-layout" class:with-companion={showCompanion}>
+		{#if showStudentTools}<AvatarCompanion />{/if}
+		<div class="activity-content">
+			{@render children()}
+			{#if showStudentTools}<ActivityProgress /><RewardToast />{/if}
+		</div>
+	</div>
 </div>
 
 <style>
+	.activity-content {
+		min-width: 0;
+	}
+	@media (min-width: 1800px) {
+		.with-companion {
+			display: grid;
+			grid-template-columns: minmax(244px, 1fr) minmax(0, var(--layout-width)) minmax(244px, 1fr);
+		}
+		.with-companion > .activity-content {
+			grid-column: 2;
+			grid-row: 1;
+			/* The outer grid supplies the gutters; keep the activity's full reading width. */
+			--layout-gutter: 0px;
+		}
+	}
+
 	.presentation {
 		--font-body: 1.12rem;
 		--font-small: 0.98rem;

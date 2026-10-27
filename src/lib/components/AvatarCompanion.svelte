@@ -1,5 +1,6 @@
 <script>
 	import { page } from '$app/state';
+	import { MediaQuery } from 'svelte/reactivity';
 	import { aktiviteter } from '#lib/innhold.js';
 	import { lab, learningContext } from '#lib/lab.js';
 	import {
@@ -12,24 +13,28 @@
 	import Avatar from '#lib/components/Avatar.svelte';
 	const activity = $derived(aktiviteter.find((item) => item.href === page.url.pathname));
 	const active = $derived(!!activity && $lab.user?.role === 'student');
-	/** @type {HTMLElement|undefined} */
-	let companionElement = $state();
-	$effect(() => {
-		if (!companionElement) return;
-		const element = companionElement;
-		const measure = () =>
-			document.documentElement.style.setProperty(
-				'--lab-companion-space',
-				`${element.getBoundingClientRect().height + 20}px`
-			);
-		const observer = new ResizeObserver(measure);
-		observer.observe(element);
-		measure();
-		return () => {
-			observer.disconnect();
-			document.documentElement.style.removeProperty('--lab-companion-space');
-		};
-	});
+	const wide = new MediaQuery('(min-width: 1800px)', false);
+	const mobile = new MediaQuery('(max-width: 600px)', false);
+	let wideOpen = $state(true);
+	let regularOpen = $state(true);
+	let mobileOpen = $state(false);
+	const expanded = $derived(wide.current ? wideOpen : mobile.current ? mobileOpen : regularOpen);
+	function toggle() {
+		if (wide.current) wideOpen = !wideOpen;
+		else if (mobile.current) mobileOpen = !mobileOpen;
+		else regularOpen = !regularOpen;
+	}
+	function hide() {
+		setLabPreferences({ companion: false });
+		document.getElementById('hovedinnhold')?.focus();
+	}
+	function openHelp() {
+		const panel = document.getElementById('labpartner-hjelp');
+		if (panel instanceof HTMLDetailsElement) {
+			panel.open = true;
+			panel.querySelector('summary')?.focus({ preventScroll: true });
+		}
+	}
 	$effect(() => {
 		setAvatarContext(
 			$lab.user?.id ?? '',
@@ -74,84 +79,169 @@
 
 {#if active && $lab.summary && $labPreferences.companion}
 	<aside
-		bind:this={companionElement}
 		class="avatar-companion"
-		aria-label="Din avatar"
+		class:expanded
+		aria-label="Labpartner"
 		data-mood={$avatarReaction.mood}
 	>
-		<Avatar id={$lab.summary.lab.avatarId} mood={$avatarReaction.mood} size={54} />
-		<div>
-			<span class="eyebrow">DIN LABPARTNER</span>
-			<p>{$avatarReaction.message || 'Ett steg av gangen. Prøv, utforsk og finn din løsning.'}</p>
-		</div>
 		<button
+			class="disclosure"
 			type="button"
-			aria-label="Skjul labpartneren"
-			title="Kan slås på igjen i Min lab"
-			onclick={() => setLabPreferences({ companion: false })}>×</button
+			aria-expanded={expanded}
+			aria-controls="labpartner-message"
+			onclick={toggle}
 		>
+			<span class="figure"
+				><Avatar id={$lab.summary.lab.avatarId} mood={$avatarReaction.mood} size={64} /></span
+			>
+			<span class="title">Labpartner</span>
+			<span class="chevron" aria-hidden="true">{expanded ? '−' : '+'}</span>
+		</button>
+		<div id="labpartner-message" class="message" hidden={!expanded}>
+			<p>{$avatarReaction.message || 'Ett steg av gangen. Prøv, utforsk og finn din løsning.'}</p>
+			{#if activity?.id === 'redd-chatten'}
+				<a class="ask-partner" href="#labpartner-hjelp" onclick={openHelp}>Spør om oppgaven →</a>
+			{/if}
+			<button
+				class="hide"
+				type="button"
+				title="Kan slås på igjen i Min lab → Lyd og animasjoner"
+				onclick={hide}>Skjul labpartneren</button
+			>
+		</div>
 	</aside>
 {/if}
 
 <style>
-	:global(html) {
-		scroll-padding-top: var(--lab-companion-space, 0px);
-	}
 	.avatar-companion {
-		position: sticky;
-		top: 8px;
-		z-index: 30;
-		display: flex;
-		align-items: center;
-		gap: 13px;
+		display: grid;
+		grid-template-columns: auto minmax(0, 1fr);
+		align-items: start;
+		gap: 12px;
 		box-sizing: border-box;
-		width: min(720px, calc(100% - 32px));
-		margin: 12px auto;
-		padding: 9px 12px;
+		width: min(720px, calc(100% - 2 * var(--layout-gutter)));
+		max-width: calc(100% - 2 * var(--layout-gutter));
+		margin: 16px auto;
+		padding: 12px;
 		border: 1px solid var(--color-border-strong);
-		border-radius: 14px;
+		border-radius: var(--radius-card);
 		background: var(--color-surface);
 		color: var(--color-text);
-		box-shadow: 0 4px 16px var(--color-shadow);
-		font:
-			14px/1.45 system-ui,
-			sans-serif;
+		font: var(--font-small)/1.6 var(--font-ui);
 	}
-	.avatar-companion > div {
-		flex: 1;
+	.avatar-companion:not(.expanded) {
+		width: fit-content;
+		grid-template-columns: minmax(0, 1fr);
+	}
+	.disclosure {
+		display: flex;
+		position: relative;
+		align-items: center;
+		gap: 10px;
+		padding: 4px;
+		min-height: 44px;
 		min-width: 0;
-	}
-	.eyebrow {
-		font-size: 9px;
-		font-weight: 750;
-		letter-spacing: 0.12em;
-		color: var(--color-accent);
-	}
-	p {
-		margin: 2px 0 0;
-		overflow-wrap: anywhere;
-	}
-	button {
-		flex-shrink: 0;
-		align-self: flex-start;
 		border: 0;
+		border-radius: 6px;
 		background: transparent;
-		color: var(--color-text-muted);
-		min-width: 32px;
-		min-height: 32px;
-		font-size: 22px;
+		color: var(--color-text);
+		font: inherit;
+		font-weight: 700;
 		cursor: pointer;
 	}
-	button:focus-visible {
-		outline: 3px solid var(--color-focus);
-		outline-offset: 2px;
+	.figure {
+		width: 36px;
+		height: 36px;
+		flex-shrink: 0;
 	}
-	@media (max-width: 500px) {
+	.figure :global(svg) {
+		width: 100%;
+		height: 100%;
+	}
+	.title {
+		overflow-wrap: anywhere;
+		min-width: 0;
+	}
+	.chevron {
+		color: var(--color-accent);
+		margin-left: auto;
+		font-size: 1.25rem;
+	}
+	.message {
+		min-width: 0;
+	}
+	p {
+		margin: 0;
+		overflow-wrap: anywhere;
+	}
+	.hide {
+		min-height: 44px;
+		padding: 6px 0;
+		border: 0;
+		border-radius: 4px;
+		background: transparent;
+		color: var(--color-text-muted);
+		font: inherit;
+		text-decoration: underline;
+		text-underline-offset: 3px;
+		cursor: pointer;
+	}
+	.ask-partner {
+		display: block;
+		color: var(--color-accent);
+		padding-block: 10px;
+		min-height: 44px;
+		box-sizing: border-box;
+	}
+	button:focus-visible,
+	a:focus-visible {
+		outline: 3px solid var(--color-focus);
+		outline-offset: 3px;
+	}
+	@media (max-width: 600px) {
 		.avatar-companion {
-			top: 4px;
-			font-size: 12px;
-			gap: 8px;
-			padding: 8px;
+			grid-template-columns: minmax(0, 1fr);
+			margin-left: var(--layout-gutter);
+		}
+		.avatar-companion:not(.expanded) {
+			padding: 6px 10px;
+		}
+	}
+	@media (min-width: 1800px) {
+		.avatar-companion,
+		.avatar-companion:not(.expanded) {
+			grid-column: 1;
+			grid-row: 1;
+			align-self: start;
+			position: sticky;
+			top: 16px;
+			grid-template-columns: minmax(0, 1fr);
+			width: 220px;
+			max-width: none;
+			max-height: calc(100dvh - 32px);
+			overflow-y: auto;
+			margin: 16px 24px 16px auto;
+			padding: 16px;
+		}
+		.disclosure {
+			flex-direction: column;
+			width: 100%;
+			padding-top: 10px;
+		}
+		.figure {
+			width: 64px;
+			height: 64px;
+		}
+		.title {
+			font-size: var(--font-body);
+		}
+		.chevron {
+			position: absolute;
+			top: 0;
+			right: 4px;
+		}
+		.message p {
+			min-height: 7.5em;
 		}
 	}
 </style>

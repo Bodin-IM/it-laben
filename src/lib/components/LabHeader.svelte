@@ -225,28 +225,36 @@
 	}
 	@media (max-width: 1000px) {
 		.header-inner {
-			grid-template-columns: minmax(0, 1fr) auto;
+			display: flex;
+			flex-wrap: wrap;
 			gap: 8px 12px;
 			padding-block: 12px;
 		}
 		.brand {
-			grid-area: 1 / 1;
+			flex: 1 0 auto;
+			max-width: 100%;
+		}
+		.brand > span:last-child {
+			min-width: 0;
+			overflow-wrap: anywhere;
 		}
 		.account {
-			grid-area: 1 / 2;
+			order: 1;
+			margin-left: auto;
 		}
 		.menu-toggle {
 			display: inline-flex;
-			grid-area: 2 / 1;
-			justify-self: start;
+			order: 2;
 		}
 		.theme {
-			grid-area: 2 / 2;
-			justify-self: end;
+			order: 3;
+			margin-left: auto;
 		}
 		.main-nav {
 			display: none;
-			grid-area: 3 / 1 / auto / -1;
+			order: 4;
+			flex-basis: 100%;
+			min-width: 0;
 			border-top: 1px solid var(--color-border);
 			padding-top: 10px;
 		}

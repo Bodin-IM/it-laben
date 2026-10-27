@@ -4,6 +4,8 @@
 	import { lab, schoolRequest } from '#lib/lab.js';
 	import LeaderboardRow from '#lib/components/LeaderboardRow.svelte';
 	import LeaderboardPreference from '#lib/components/LeaderboardPreference.svelte';
+	import ClassMembership from '#lib/components/ClassMembership.svelte';
+	import ClassStandings from '#lib/components/ClassStandings.svelte';
 	import { connection, secureHref } from '#lib/connection.js';
 	const browser = typeof window !== 'undefined';
 	/** @type {import('#lib/school.js').Leaderboard|null} */
@@ -39,7 +41,7 @@
 			loading = false;
 			return;
 		}
-		const key = `${$lab.user?.id ?? 'guest'}:${$lab.user?.role}:${$lab.user?.leaderboardVisible}:${number}`;
+		const key = `${$lab.user?.id ?? 'guest'}:${$lab.user?.role}:${$lab.user?.leaderboardVisible}:${$lab.user?.classCode}:${number}`;
 		if (key === loadedKey) return;
 		loadedKey = key;
 		board = null;
@@ -84,6 +86,8 @@
 			</section>
 		{:else}
 			{#if error}<p class="notice" role="alert">{error}</p>{/if}
+			{#key $lab.user?.id}<ClassMembership />{/key}
+			{#if board?.classes}<ClassStandings classes={board.classes} />{/if}
 			<div class="board-heading">
 				<div>
 					<p class="eyebrow">SAMLET XP</p>
@@ -175,6 +179,7 @@
 		margin: 0 0 10px;
 	}
 	h1 {
+		overflow-wrap: anywhere;
 		font-size: clamp(2.8rem, 7vw, 4.8rem);
 		line-height: 1.05;
 		letter-spacing: -0.06em;
@@ -190,6 +195,7 @@
 	}
 	.board-heading {
 		display: flex;
+		flex-wrap: wrap;
 		align-items: center;
 		justify-content: space-between;
 		gap: 18px;

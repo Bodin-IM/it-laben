@@ -9,7 +9,7 @@
 	 * @typedef {{
 	 * blocks:Block[], program:string[], opening:string[], closing:string[], maxBlocks:number,
 	 * disabled?:boolean, disabledMessage?:string, onprogramchange:(program:string[], message:string)=>void,
-	 * onexplain?:()=>void, activeBlockId?:string|null, activeLineIds?:string[], executedBlockIds?:string[],
+	 * onexplain?:(lineId:string)=>void, activeBlockId?:string|null, activeLineIds?:string[], executedBlockIds?:string[],
 	 * skippedBlockIds?:string[], resetKey?:string, explanationBoundary?:HTMLElement|null
 	 * }} Props
 	 */
@@ -96,7 +96,7 @@
 			closeExplanation();
 			return;
 		}
-		onexplain?.();
+		onexplain?.(key.split(':')[1]);
 		selectedKey = key;
 		selectedAnchor = event.currentTarget;
 	}

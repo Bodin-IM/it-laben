@@ -125,7 +125,9 @@ Alle elevhandlinger krever ny kontroll av serverrollen, Origin, CSRF og aktøren
 
 Nye elevprofiler og kontoer som oppgraderes fra skoleversjonen uten tidligere innstilling er **synlige som standard**. **Skjul meg fra topplisten** fjerner deltakelsen uten å endre poeng eller progresjon. **Vis meg på topplisten** viser profilen igjen. Tidligere innstillinger fra `dev` beholdes, inkludert skjulte profiler. Valget finnes i **Min lab → Profil og nøkkelfil** og på topplistesiden.
 
-Den offentlige responsen inneholder bare plassering, tildelt brukernavn, XP, nivå, avatar, labfarge og et valgt opptjent merke. Konto-ID, aktivitetshistorikk, tidspunkt og nøkkel-/øktdata returneres ikke. En innlogget deltaker får i tillegg sin egen plassering, selv om profilen er utenfor siden som vises.
+Den offentlige responsen inneholder bare plassering, tildelt brukernavn, valgt klasse, XP, nivå, avatar, labfarge og et valgt opptjent merke, samt klassenes samlede XP og antall deltakere. Konto-ID, aktivitetshistorikk, tidspunkt og nøkkel-/øktdata returneres ikke. En innlogget deltaker får i tillegg sin egen plassering, selv om profilen er utenfor siden som vises.
+
+Eleven kan velge 2ITA eller 2ITB én gang. Topplisten viser hvilken klasse som leder etter samlet XP. Skjulte profiler bidrar ikke til klassepoengene. Se [klassevalg og klassenes toppliste](klasser-og-toppliste.md) for regler, kontroll og migrasjon 009.
 
 - Samlet XP hentes fra serverens ordinære belønningslogg.
 - Lærere, administratorer, deaktiverte og skjulte elever deltar ikke.
@@ -140,7 +142,7 @@ Migrasjon `006_students_and_leaderboard.sql` legger til kontostatus, navnetildel
 
 Oversiktene bruker den eksisterende aktivitetskatalogen og stabile aktivitets-ID-er. Nye leksjoner, spill og driftsaktiviteter kommer med automatisk. Elevlisten henter progresjon samlet per side fremfor å kjøre en komplett profilsammenstilling for hver elev; detaljvisningen laster én valgt profil.
 
-Daglig backup og backup før publisering inkluderer de nye feltene og tabellene. Før eventuell merge til `main`: kontroller navn/rolleovergangen, ta backup og bruk en API-versjon som forstår skjema 008 ved tilbakeføring.
+Daglig backup og backup før publisering inkluderer de nye feltene og tabellene. Før eventuell merge til `main`: kontroller navn/rolleovergangen, ta backup og bruk en API-versjon som forstår aktivt skjema ved tilbakeføring (009 etter klasseoppdateringen).
 
 Se [undervisningsmodus](undervisning.md) for migrasjon 007, separate læreropplegg, private lærernotater og de nye topplisteinnstillingene.
 

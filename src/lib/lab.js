@@ -4,7 +4,7 @@ import { createProgressQueue } from '#lib/progressQueue.js';
 import { avatarFeedback } from '#lib/avatarFeedback.js';
 import { backendDisabled } from '#lib/connection.js';
 
-/** @typedef {{id:string,nickname:string,createdAt:number,role:'student'|'teacher'|'admin',leaderboardVisible:boolean}} User */
+/** @typedef {{id:string,nickname:string,createdAt:number,role:'student'|'teacher'|'admin',leaderboardVisible:boolean,classCode:string|null}} User */
 /** @typedef {import('#lib/progression.js').ObjectiveProgress} Objective */
 /** @typedef {import('#lib/progression.js').ActivityProgress} Progress */
 /** @typedef {import('#lib/progression.js').AchievementState} Achievement */
@@ -334,6 +334,15 @@ export async function prepareRecoveryKey() {
 export async function rotateRecoveryKey(file) {
 	const userId = get(state).user?.id;
 	const result = await schoolRequest('/auth/rotate-key', { key: file.key, confirmed: true });
+	if (get(state).user?.id === userId) {
+		acceptSession(result);
+		broadcast();
+	}
+}
+/** @param {string} classCode */
+export async function chooseClass(classCode) {
+	const userId = get(state).user?.id;
+	const result = await schoolRequest('/me/class', { classCode, confirmed: true });
 	if (get(state).user?.id === userId) {
 		acceptSession(result);
 		broadcast();

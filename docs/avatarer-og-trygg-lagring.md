@@ -8,11 +8,23 @@ Denne versjonen utvikles på `dev`. Skoleserveren publiserer fremdeles bare `mai
 
 ![Valg av avatar og reaksjon](avatar-selection.png)
 
-Under elevaktiviteter vises en kompakt labpartner som følger skjermen. Den reagerer når eleven jobber, undersøker en forklaring, finner en feil eller løser en oppgave. Feil får en oppmuntrende reaksjon. Spillforsøk og serverbekreftede resultater gir egne tilbakemeldinger; avatarvalg og reaksjoner gir aldri XP. Historiske eller dupliserte serverkvitteringer utløser ingen ny resultatreaksjon.
+Under elevaktiviteter vises en kompakt labpartner. Den reagerer når eleven jobber, undersøker en forklaring, finner en feil eller løser en oppgave. Feil får en oppmuntrende reaksjon. Spillforsøk og serverbekreftede resultater gir egne tilbakemeldinger; avatarvalg og reaksjoner gir aldri XP. Historiske eller dupliserte serverkvitteringer utløser ingen ny resultatreaksjon.
 
-![Labpartner i en leksjon](avatar-companion.png)
+### Plassering og sammenlegging
 
-Animasjonene er korte og respekterer både **Rolige animasjoner** og PC-ens innstilling for redusert bevegelse. Labpartneren kan skjules med krysset og slås på igjen under **Min lab → Lyd og animasjoner**. Disse innstillingene gjelder nettleseren. Lærervisning og storskjermgjennomgang viser ikke elevens labpartner.
+- Fra **1800 CSS-piksler** i nettleservinduet står labpartneren i venstremargen og følger rullingen. Oppgaven beholder bredden og plasseringen sin. Panelet er 220 piksler bredt og kan rulles innvendig når forstørret tekst eller et lavt vindu krever det.
+- Mellom **601 og 1799 piksler** ligger den over aktiviteten og ruller bort sammen med siden.
+- På **600 piksler og smalere** starter den som en liten knapp over aktiviteten. Eleven åpner meldingen ved behov.
+
+Trykk **Labpartner** for å åpne eller slå sammen meldingen. Valget huskes separat for de tre skjermbreddene så lenge komponenten er montert; en ny melding åpner ikke et sammenlagt panel. Dette er lokale designvalg som gir plass til oppgaven, ikke bestemte bruddpunkter fra en standard.
+
+![Labpartner i venstremargen under arbeid med øving 5](designutkast/labpartner-venstre.jpg)
+
+![Sammenlagt labpartner på mobil](designutkast/labpartner-mobil.jpg)
+
+Animasjonene er korte og respekterer både **Rolige animasjoner** og PC-ens innstilling for redusert bevegelse. **Skjul labpartneren** slår den helt av og flytter tastaturfokus til hovedinnholdet. Den kan slås på igjen under **Min lab → Lyd og animasjoner**. Denne innstillingen gjelder nettleseren og beholdes ved omlasting. Lærervisning og storskjermgjennomgang viser ikke elevens labpartner.
+
+Plasseringen er kontrollert på alle 14 aktivitetssider ved 1920 pikslers bredde, med flere skjermbredder fra 320 til 1800 piksler på representative sider. Nettleserprøvene dekker rulling, tastatur, berøring, begge temaer, forstørret tekst på 200 %, tekstavstand, skjuling og gjenåpning. En avgrenset axe-kontroll av labpartneren ga ingen funn; dette er ikke en full tilgjengelighetsrevisjon. `npm run check`, `npm run build` og den eksisterende testen for avatarreaksjoner er bestått. Svelte MCP var ikke tilgjengelig; offisiell Svelte-dokumentasjon ble brukt. Brukertesting med elever gjenstår. Reaksjonene støtter elevens videre forsøk og dokumenterer ikke forståelse; aktivitetenes faglige kontroller er uendret.
 
 ![Avatarer på mobilens toppliste](avatar-leaderboard-mobile.png)
 

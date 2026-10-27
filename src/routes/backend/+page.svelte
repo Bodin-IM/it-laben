@@ -1450,7 +1450,7 @@
 		}
 		.kjorverktoy {
 			position: sticky;
-			top: var(--lab-companion-space, 0px);
+			top: 0;
 			z-index: 4;
 			background: #132f2c;
 			box-shadow: 0 3px 8px #10251b22;

@@ -18,7 +18,9 @@
 		<span class="avatar"><Avatar id={entry.avatarId} size={44} animate={false} /></span>
 		<div>
 			<strong>{entry.nickname}</strong><span class="level"
-				>Nivå {entry.level}{own ? ' · Din profil' : ''}</span
+				>{entry.classCode ? `${entry.classCode} · ` : ''}Nivå {entry.level}{own
+					? ' · Din profil'
+					: ''}</span
 			>
 		</div>
 	</div>
