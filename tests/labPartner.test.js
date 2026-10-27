@@ -322,3 +322,107 @@ test('labpartner: konfigurasjon og spørsmålsgrense gjelder bare piloten', asyn
 	assert.equal((await b.request('/lab-partner/ask', ask())).status, 200);
 	assert.equal((await a.request('/me')).status, 200);
 });
+
+test('labpartner: alle offentlige sider har avgrenset sidegrunnlag, uten lokale felt eller skjult vurderingsinnhold', async () => {
+	const { partnerPages, partnerPageFor } = await import('../src/lib/partnerPages.js');
+	const { readdirSync } = await import('node:fs');
+	const { join } = await import('node:path');
+	function routes(dir, prefix = '') {
+		return readdirSync(dir, { withFileTypes: true }).flatMap((entry) =>
+			entry.isDirectory()
+				? routes(join(dir, entry.name), prefix + '/' + entry.name)
+				: entry.name === '+page.svelte'
+					? [prefix + '/']
+					: []
+		);
+	}
+	for (const path of routes('src/routes').filter((path) => !path.includes('[')))
+		assert.notEqual(partnerPageFor(path).id, 'site-help', path);
+	assert.equal(partnerPageFor('/', 'untrusted-secret').id, 'home');
+	assert.equal(partnerPageFor('/', 'drift').id, 'subject-drift');
+	assert.equal(partnerPageFor('/unknown/private/path').id, 'site-help');
+	assert.equal(new Set(partnerPages.map((page) => page.id)).size, partnerPages.length);
+	for (const page of partnerPages) {
+		const body = ask({
+			snapshot: {
+				activityId: 'page-help',
+				version: 1,
+				pageId: page.id,
+				running: false,
+				program: ['PRIVATE_CODE'],
+				students: ['PRIVATE_STUDENT'],
+				system: 'CLIENT_SYSTEM'
+			},
+			password: 'PRIVATE_PASSWORD',
+			history: [
+				{
+					question: 'Et tidligere spørsmål',
+					answer: 'Et tidligere svar',
+					private: 'PRIVATE_HISTORY'
+				}
+			]
+		});
+		const messages = buildPartnerMessages(body, { role: page.teacher ? 'teacher' : 'student' });
+		const encoded = JSON.stringify(messages);
+		assert.ok(encoded.includes(page.title));
+		assert.ok(encoded.length < 14000);
+		for (const secret of [
+			'PRIVATE_CODE',
+			'PRIVATE_STUDENT',
+			'CLIENT_SYSTEM',
+			'PRIVATE_PASSWORD',
+			'PRIVATE_HISTORY',
+			'expectedSummary',
+			'correctOption'
+		])
+			assert.ok(!encoded.includes(secret), secret);
+		assert.ok(encoded.includes('Du ser IKKE'));
+		assert.ok(encoded.includes('Et tidligere spørsmål'));
+	}
+});
+
+test('labpartner: sidehjelp avviser ukjent side, feil rolle og overstor historikk før modellen kontaktes', async (t) => {
+	const f = await fixture(t);
+	const student = f.client();
+	await student.request('/auth/create', {});
+	const body = ask({
+		snapshot: { activityId: 'page-help', version: 1, pageId: 'home', running: false }
+	});
+	assert.equal((await student.request('/lab-partner/ask', body)).status, 200);
+	const before = f.calls.length;
+	for (const [patch, status] of [
+		[{ pageId: 'unknown' }, 400],
+		[{ pageId: 'teacher-students' }, 403],
+		[{ version: 2 }, 400],
+		[{ running: true }, 400]
+	]) {
+		assert.equal(
+			(
+				await student.request('/lab-partner/ask', {
+					...body,
+					snapshot: { ...body.snapshot, ...patch }
+				})
+			).status,
+			status
+		);
+	}
+	for (const history of [
+		[{ question: 'x', answer: 'x'.repeat(3001) }],
+		Array(3).fill({ question: 'x', answer: 'x' })
+	])
+		assert.equal((await student.request('/lab-partner/ask', { ...body, history })).status, 400);
+	assert.equal(f.calls.length, before);
+	f.db.prepare("INSERT INTO user_roles VALUES (?,'teacher',?)").run(student.id, Date.now());
+	const teacherBody = { ...body, snapshot: { ...body.snapshot, pageId: 'teacher-students' } };
+	assert.equal((await student.request('/lab-partner/ask', teacherBody)).status, 200);
+	f.db.prepare('DELETE FROM user_roles WHERE user_id=?').run(student.id);
+	assert.equal((await student.request('/lab-partner/ask', teacherBody)).status, 403);
+
+	assert.equal(
+		buildPartnerMessages(
+			{ ...body, snapshot: { ...body.snapshot, pageId: 'teacher-students' } },
+			{ role: 'admin' }
+		)[0].role,
+		'system'
+	);
+});

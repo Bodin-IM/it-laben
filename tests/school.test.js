@@ -192,13 +192,13 @@ test('avatar: kun forhåndslagde figurer, varig profilvalg, riktig toppliste og 
 	const c = f.client();
 	assert.equal(
 		(await c.request('/api/auth/key', { key: a.key.key })).result.summary.lab.avatarId,
-		'frog'
+		avatars.at(-1).id
 	);
 	// Older clients may save only color/badge; they must preserve the chosen avatar.
 	assert.equal(
 		(await c.request('/api/me/lab', { colorId: 'forest', featuredAchievementId: null })).result
 			.summary.lab.avatarId,
-		'frog'
+		avatars.at(-1).id
 	);
 	const backup = join(f.directory, 'avatar-backup.sqlite');
 	backupDatabase(f.filename, backup);
@@ -207,7 +207,7 @@ test('avatar: kun forhåndslagde figurer, varig profilvalg, riktig toppliste og 
 		assert.equal(
 			restored.prepare('SELECT avatar_id FROM lab_profiles WHERE user_id=?').get(a.user.id)
 				.avatar_id,
-			'frog'
+			avatars.at(-1).id
 		);
 	} finally {
 		restored.close();

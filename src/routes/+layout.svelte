@@ -7,13 +7,13 @@
 	import { hasTeacherRole } from '#lib/learning.js';
 	import { teachingPlans, presentationLessons } from '#lib/teaching.js';
 	import TeachingPresentation from '#lib/components/TeachingPresentation.svelte';
-	import { aktiviteter } from '#lib/innhold.js';
+
 	import { labPreferences } from '#lib/labPreferences.js';
 	import { initializeExperience } from '#lib/labPreferences.js';
 	import ActivityProgress from '#lib/components/ActivityProgress.svelte';
 	import RewardToast from '#lib/components/RewardToast.svelte';
 	import LearningAccess from '#lib/components/LearningAccess.svelte';
-	import AvatarCompanion from '#lib/components/AvatarCompanion.svelte';
+	import GlobalLabPartner from '#lib/components/GlobalLabPartner.svelte';
 	import '#lib/theme.css';
 	import { initializeConnection } from '#lib/connection.js';
 	import ConnectionBanner from '#lib/components/ConnectionBanner.svelte';
@@ -35,14 +35,7 @@
 	});
 	const showStudentTools = $derived(!presentationRequested || ($lab.ready && !presenting));
 	const localPartner = $derived(page.url.pathname.replace(/\/$/, '') === '/spill/redd-chatten');
-	const showCompanion = $derived(
-		!localPartner &&
-			showStudentTools &&
-			$lab.user?.role === 'student' &&
-			!!$lab.summary &&
-			$labPreferences.companion &&
-			aktiviteter.some((item) => item.href === page.url.pathname)
-	);
+	const showCompanion = $derived(!localPartner && showStudentTools && $labPreferences.companion);
 	const plan = $derived(
 		teachingPlans.find(
 			(item) =>
@@ -68,7 +61,7 @@
 	{#if presenting && activity}<TeachingPresentation {activity} {plan} />{:else}<LearningAccess
 		/>{/if}
 	<div class="activity-layout" class:with-companion={showCompanion}>
-		{#if showStudentTools && !localPartner}<AvatarCompanion />{/if}
+		{#if showCompanion}<GlobalLabPartner />{/if}
 		<div class="activity-content">
 			{@render children()}
 			{#if showStudentTools}<ActivityProgress /><RewardToast />{/if}
@@ -83,7 +76,7 @@
 	@media (min-width: 1800px) {
 		.with-companion {
 			display: grid;
-			grid-template-columns: minmax(244px, 1fr) minmax(0, var(--layout-width)) minmax(244px, 1fr);
+			grid-template-columns: minmax(408px, 1fr) minmax(0, var(--layout-width)) minmax(24px, 1fr);
 		}
 		.with-companion > .activity-content {
 			grid-column: 2;

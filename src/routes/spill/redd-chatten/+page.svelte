@@ -3,6 +3,7 @@
 	import ModuleContext from '#lib/components/ModuleContext.svelte';
 	import { activityLab as account, learningContext, saveAttempt } from '#lib/lab.js';
 	import { avatarFeedback } from '#lib/avatarFeedback.js';
+	import { labPreferences, setLabPreferences } from '#lib/labPreferences.js';
 	import LabPartnerPanel from '#lib/components/LabPartnerPanel.svelte';
 	import AvatarCompanion from '#lib/components/AvatarCompanion.svelte';
 	import { PARTNER_ACTIVITY, PARTNER_VERSION, appendPartnerEvent } from '#lib/labPartner.js';
@@ -603,7 +604,8 @@
 					href="#labpartner-hjelp"
 					onclick={(event) => {
 						event.preventDefault();
-						window.dispatchEvent(new Event('labpartner-open'));
+						setLabPreferences({ companion: true });
+						void tick().then(() => window.dispatchEvent(new Event('labpartner-open')));
 					}}>Spør labpartneren</a
 				>
 				<button
@@ -628,7 +630,7 @@
 			{#if hintOpen}<p class="hint" id="mission-hint">{mission.hint}</p>{/if}
 		</section>
 
-		<div class="workbench">
+		<div class="workbench" class:without-partner={!$labPreferences.companion}>
 			<section class="code-column" aria-labelledby="code-title">
 				<div class="section-heading">
 					<div>
@@ -999,22 +1001,25 @@
 					{/if}
 				</div>
 			</aside>
-			<aside class="partner-column" aria-label="Labpartner og KI-hjelp">
-				<div class="partner-position">
-					{#key partnerScope}
-						<LabPartnerPanel
-							snapshot={partnerSnapshot}
-							accountId={$account.user?.id ?? null}
-							csrf={$account.csrfToken ?? ''}
-							avatarId={$account.summary?.lab.avatarId ?? 'robot'}
-							onreset={() => {
-								partnerEvents = [];
-							}}
-						/>
-					{/key}
-					<AvatarCompanion embedded />
-				</div>
-			</aside>
+			{#if $labPreferences.companion}<aside
+					class="partner-column"
+					aria-label="Labpartner og KI-hjelp"
+				>
+					<div class="partner-position">
+						{#key partnerScope}
+							<LabPartnerPanel
+								snapshot={partnerSnapshot}
+								accountId={$account.user?.id ?? null}
+								csrf={$account.csrfToken ?? ''}
+								avatarId={$account.summary?.lab.avatarId ?? $labPreferences.partnerAvatar}
+								onreset={() => {
+									partnerEvents = [];
+								}}
+							/>
+						{/key}
+						<AvatarCompanion embedded />
+					</div>
+				</aside>{/if}
 		</div>
 
 		<details class="learn-more">
@@ -1356,6 +1361,15 @@
 	@media (min-width: 1800px) {
 		main {
 			width: min(1680px, calc(100% - 2 * var(--layout-gutter)));
+		}
+		.workbench.without-partner {
+			grid-template-columns: minmax(0, 1fr) 390px;
+		}
+		.workbench.without-partner .code-column {
+			grid-column: 1;
+		}
+		.workbench.without-partner .test-column {
+			grid-column: 2;
 		}
 		.workbench {
 			grid-template-columns: 360px minmax(0, 1fr) 390px;
