@@ -185,5 +185,19 @@ export const aktiviteter = [
 			sokeord: [lesson.intro, lesson.context, lesson.takeaway, 'Backend', 'Øving 5–10'],
 			symbol: String(lesson.number).padStart(2, '0')
 		})
-	)
+	),
+	{
+		id: 'drift-modul-1',
+		audience: 'student',
+		tracking: { kind: 'review' },
+		tittel: 'Modul 1: Nettverk',
+		beskrivelse: 'Utforsk nettverket på Siten: LAN og WAN, IP, MAC, utstyr og tjenesteporter.',
+		href: '/drift/',
+		fag: 'drift',
+		format: 'leksjon',
+		type: '7 interaktive grunnleksjoner',
+		emner: ['Nettverk', 'IP og MAC', 'TCP og UDP'],
+		sokeord: ['SMB', 'Site', 'LAN', 'WAN', 'ruter', 'switch', 'kabler', 'gateway', 'DHCP', 'DNS'],
+		symbol: '01'
+	}
 ];

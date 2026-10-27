@@ -1017,7 +1017,7 @@ test('oppgradering: gamle poeng beholdes, men gamle sjekkformat kan ikke gi nye 
 		.run(a.user.id, review.activityId, 'check-v1', Date.now(), Date.now(), '{"choice":"fetch"}');
 	const old = (await a.request('/api/me')).result.summary;
 	assert.equal(old.xp, 25);
-	assert.equal(old.maximumXp, 665);
+	assert.equal(old.maximumXp, 680); // Includes the new network lesson in the catalog.
 	assert.equal(
 		(
 			await a.event({
@@ -1044,7 +1044,7 @@ test('oppgradering: gamle poeng beholdes, men gamle sjekkformat kan ikke gi nye 
 	const passed = await passQuiz(f, a);
 	assert.equal(passed.result.summary.xp, 35);
 	assert.equal(passed.result.newRewards.length, 1);
-	assert.equal(passed.result.summary.maximumXp, 665);
+	assert.equal(passed.result.summary.maximumXp, 680);
 });
 
 test('fagsjekker: feil før commit ruller tilbake både forsøk, progresjon og XP', async (t) => {
@@ -1317,7 +1317,7 @@ test('nattvakt: samlet retting gir 50 XP og merke én gang, uendrede svar kan gj
 	assert.equal(status.active, null);
 	assert.equal(status.bestMs, 90000);
 	assert.equal(status.nextAttemptAt, run.row.started_at + 86400000);
-	assert.equal(first.result.summary.maximumXp, 655);
+	assert.equal(first.result.summary.maximumXp, 670); // Includes the new network lesson.
 });
 
 test('nattvakt: feil svar avslutter vakten; nye valg og nye hendelses-ID-er gir ikke flere forsøk', async (t) => {
