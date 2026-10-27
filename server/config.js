@@ -4,13 +4,25 @@ export function readConfig(env = process.env) {
 	const production = env.NODE_ENV === 'production';
 	if (production && !env.APP_ORIGIN)
 		throw new Error('APP_ORIGIN må settes til nettstedets HTTPS-adresse.');
-	const origin = new URL(env.APP_ORIGIN || 'http://localhost:5173');
-	if (origin.pathname !== '/' || origin.search || origin.hash || origin.username || origin.password)
-		throw new Error('APP_ORIGIN skal bare inneholde protokoll, vertsnavn og eventuell port.');
-	const local = ['localhost', '127.0.0.1', '[::1]', 'terminal.local'].includes(origin.hostname);
-	if (origin.protocol !== 'https:' && (production || !local || origin.protocol !== 'http:'))
-		throw new Error('HTTPS er påkrevd. HTTP tillates bare i lokal utvikling.');
+	function parseOrigin(value, setting) {
+		const url = new URL(value);
+		if (url.pathname !== '/' || url.search || url.hash || url.username || url.password)
+			throw new Error(`${setting} skal bare inneholde protokoll, vertsnavn og eventuell port.`);
+		const local = ['localhost', '127.0.0.1', '[::1]', 'terminal.local'].includes(url.hostname);
+		if (url.protocol !== 'https:' && (production || !local || url.protocol !== 'http:'))
+			throw new Error('HTTPS er påkrevd. HTTP tillates bare i lokal utvikling.');
+		return url;
+	}
+	const origin = parseOrigin(env.APP_ORIGIN || 'http://localhost:5173', 'APP_ORIGIN');
 	const allowedOrigins = new Set([origin.origin]);
+	if (env.APP_ORIGIN_ALIASES?.trim()) {
+		for (const value of env.APP_ORIGIN_ALIASES.split(',')) {
+			const alias = parseOrigin(value.trim(), 'APP_ORIGIN_ALIASES');
+			if (alias.protocol !== origin.protocol)
+				throw new Error('APP_ORIGIN_ALIASES må bruke samme protokoll som APP_ORIGIN.');
+			allowedOrigins.add(alias.origin);
+		}
+	}
 	if (!production && ['localhost', '127.0.0.1'].includes(origin.hostname)) {
 		const alternate = new URL(origin);
 		alternate.hostname = origin.hostname === 'localhost' ? '127.0.0.1' : 'localhost';

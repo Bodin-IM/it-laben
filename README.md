@@ -69,7 +69,13 @@ De viktigste kravene står synlig ved hvert oppdrag. Etter en bestått prøverun
 
 Spillene bruker faste startdata for å gjøre forsøkene sammenlignbare. Nettleserne, brukerne og backend er lokale simuleringer; spillene sender ingen ekte chatmeldinger mellom brukere.
 
+### Læringspilot i Redd chatten
+
+På `/spill/redd-chatten/pilot/` kan eleven forutsi, undersøke, reparere og forklare én valideringsfeil, før prinsippet brukes på et romnavn. Piloten har egne testdata, hint i tre nivåer, fire milepæler med pilotpoeng og et arbeidsnotat. Den bruker ikke ordinær XP eller begrensede forsøk. Se [lærerveiledningen](docs/redd-chatten-pilot.md) for mål, gjennomføring og utprøving.
+
 ## Hvordan vi bygger undervisningssidene
+
+Det felles [pedagogiske grunnlaget](docs/pedagogisk-grunnlag.md) beskriver hvordan vi bruker forskning om interaktivitet, tilbakemeldinger og gamification i nye aktiviteter. [Grunnlaget for webdesign og brukeropplevelse](docs/webdesign-og-brukeropplevelse.md) supplerer dette med prinsipper for struktur, lesbarhet, interaksjon, tilgjengelighet og brukertesting. Bruk [aktivitetsmalen](docs/aktivitetsmal.md) for å konkretisere mål, elevhandlinger, respons og ny anvendelse. [AGENTS.md](AGENTS.md) gir KI-assistenter instruksjoner om å lese og følge begge grunnlagene ved relevant arbeid i repoet.
 
 Når vi lager og videreutvikler sider, legger vi vekt på å:
 
