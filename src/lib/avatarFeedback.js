@@ -1,6 +1,6 @@
 import { writable, get } from 'svelte/store';
 
-/** @typedef {'idle'|'working'|'thinking'|'retry'|'success'|'celebrate'} AvatarMood */
+/** @typedef {'idle'|'working'|'thinking'|'retry'|'success'|'celebrate'|'greeting'} AvatarMood */
 /** @type {import('svelte/store').Writable<{key:string,activityId:string,userId:string,mood:AvatarMood,message:string,until:number,serial:number}>} */
 const state = writable({
 	key: '',

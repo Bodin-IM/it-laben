@@ -1,4 +1,6 @@
 <script>
+	import { tick } from 'svelte';
+	import { setLabPreferences } from '#lib/labPreferences.js';
 	import { afterNavigate } from '$app/navigation';
 	import { page } from '$app/state';
 	import ThemeToggle from '#lib/components/ThemeToggle.svelte';
@@ -16,6 +18,13 @@
 	let header;
 	const teacherPage = $derived(page.url.pathname.startsWith('/laerer/'));
 
+	async function openPartner() {
+		closeMenus();
+		setLabPreferences({ companion: true });
+		await tick();
+		menuButton?.focus({ preventScroll: true });
+		window.dispatchEvent(new Event('labpartner-open'));
+	}
 	function closeMenus() {
 		menuOpen = false;
 		if (subjectsMenu) subjectsMenu.open = false;
@@ -87,6 +96,7 @@
 						: undefined}>Lærerpanel</a
 				>
 			{/if}
+			<button class="partner-link" type="button" onclick={openPartner}>Labpartner</button>
 		</nav>
 		<div class="account"><AccountLink /></div>
 		<div class="theme"><ThemeToggle compact /></div>
@@ -94,6 +104,11 @@
 </header>
 
 <style>
+	.partner-link {
+		border: 0;
+		background: transparent;
+		text-align: left;
+	}
 	.lab-header {
 		position: relative;
 		z-index: 30;
@@ -145,6 +160,7 @@
 		flex-wrap: wrap;
 		align-items: center;
 	}
+	.partner-link,
 	.main-nav > a,
 	summary,
 	.menu-toggle {
@@ -160,6 +176,7 @@
 		box-sizing: border-box;
 		cursor: pointer;
 	}
+	.partner-link:hover,
 	.main-nav > a:hover,
 	summary:hover {
 		background: var(--color-surface-soft);
@@ -263,6 +280,7 @@
 			flex-direction: column;
 			align-items: stretch;
 		}
+		.partner-link,
 		.main-nav > a,
 		summary {
 			width: 100%;

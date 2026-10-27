@@ -20,7 +20,7 @@
 					type="checkbox"
 					checked={$labPreferences.companion}
 					onchange={(event) => setLabPreferences({ companion: event.currentTarget.checked })}
-				/>Vis labpartneren under oppgaver</label
+				/>Vis labpartneren på sidene</label
 			>
 			<p>Avataren følger arbeidet ditt med små reaksjoner.</p>
 		</div>

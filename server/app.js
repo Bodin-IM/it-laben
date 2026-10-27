@@ -146,7 +146,7 @@ export function createApp({ db, config, clock = Date.now, limits = true }) {
 		if (!req.labUser) return fail(res, 401, 'LOGIN_REQUIRED', 'Logg inn for å lagre fremgangen.');
 		next();
 	};
-	app.use('/api/lab-partner', labPartnerRouter({ config, authenticated, limits }));
+	app.use('/api/lab-partner', labPartnerRouter({ db, config, authenticated, limits }));
 	const cookieOptions = { httpOnly: true, secure: config.secure, sameSite: 'lax', path: '/' };
 	function newSession(userId, remember) {
 		const raw = token(),

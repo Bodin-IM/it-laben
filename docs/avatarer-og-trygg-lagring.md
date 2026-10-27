@@ -1,34 +1,32 @@
 # Avatarer og tryggere lagring
 
-Denne versjonen utvikles på `dev`. Skoleserveren publiserer fremdeles bare `main`.
-
 ## Velg en avatar
 
-Åpne **Min lab → Tilpass labkortet**. Velg mellom robot, rev, ugle, oter, katt og frosk, og trykk **Lagre labkort**. Alle seks er tilgjengelige fra start. Avataren følger kontoen ved ny pålogging og vises på labkortet, i Min lab-lenken og på topplisten, også på mobil.
+Åpne **Labpartner → Utseende** og velg robot, rev, ugle, oter, katt, frosk, pingvin, skilpadde, axolotl eller blekksprut. Alle ti er tilgjengelige fra start. Et trykk lagrer figuren på den innloggede profilen; gjester lagrer valget i nettleseren. **Min lab → Tilpass labkortet** har fortsatt det samme avatarvalget og sin vanlige lagreknapp. Profilfiguren følger kontoen ved ny pålogging og vises på labkortet, i Min lab-lenken og på topplisten.
 
-![Valg av avatar og reaksjon](avatar-selection.png)
+Under **Utseende** kan eleven også velge laboratorium, verdensrom eller hage som bakgrunn og slå animasjoner av eller på. Disse valgene gjelder nettleseren. Nye figurer bruker det eksisterende profilfeltet; utvidelsen krever ingen databasemigrasjon. Gamle ID-er og figurvalg beholdes. Et mislykket profilvalg viser en feil og beholder den lagrede figuren.
 
-Under elevaktiviteter vises en kompakt labpartner. Den reagerer når eleven jobber, undersøker en forklaring, finner en feil eller løser en oppgave. Feil får en oppmuntrende reaksjon. Spillforsøk og serverbekreftede resultater gir egne tilbakemeldinger; avatarvalg og reaksjoner gir aldri XP. Historiske eller dupliserte serverkvitteringer utløser ingen ny resultatreaksjon.
+![Labpartner og figurvalg ved siden av en øving](designutkast/labpartner-alle-sider-desktop.jpg)
 
-### Plassering og sammenlegging
+Figurene har skygge, lysdetaljer og korte reaksjoner ved åpning, arbeid, venting og svar. Blink, hilsen og bevegelser i finner og armer er avgrenset til noen sekunder, uten evige animasjonssløyfer. Eksisterende aktivitetstilbakemeldinger beholdes; avatarvalg og reaksjoner gir aldri XP. Historiske eller dupliserte serverkvitteringer utløser ingen ny resultatreaksjon. En smilende figur etter et KI-svar betyr at et svar er klart, ikke at det faglige innholdet er godkjent.
 
-- Fra **1800 CSS-piksler** i nettleservinduet står labpartneren i venstremargen og følger rullingen. Oppgaven beholder bredden og plasseringen sin. Panelet er 220 piksler bredt og kan rulles innvendig når forstørret tekst eller et lavt vindu krever det.
-- Mellom **601 og 1799 piksler** ligger den over aktiviteten og ruller bort sammen med siden.
-- På **600 piksler og smalere** starter den som en liten knapp over aktiviteten. Eleven åpner meldingen ved behov.
+### Tilgjengelighet og plassering
 
-Trykk **Labpartner** for å åpne eller slå sammen meldingen. Valget huskes separat for de tre skjermbreddene så lenge komponenten er montert; en ny melding åpner ikke et sammenlagt panel. Dette er lokale designvalg som gir plass til oppgaven, ikke bestemte bruddpunkter fra en standard.
+Labpartneren finnes på alle vanlige sider, også forsiden, modulene, Min lab og lærerpanelene. **Labpartner** i hovedmenyen åpner den også når den er skjult. Presentasjonsvisningen på storskjerm beholder den rolige visningen uten elevverktøy.
 
-![Labpartner i venstremargen under arbeid med øving 5](designutkast/labpartner-venstre.jpg)
+- Fra **1800 CSS-piksler** har den generelle labpartneren en 360 piksler bred venstrespalte med plass til innvendig rulling. Oppgaven beholder sin lesebredde, og panelet har luft til vinduskanten.
+- På mindre skjermer åpner den kompakte knappen en dialog. Fra 601 piksler er dialogen sentrert; på smalere skjermer fyller den skjermen. **Tilbake til siden** og Escape gjenoppretter fokus og rulleposisjon.
+- Redd chatten beholder sin lokale plassering ved kodearbeidet: egen venstrespalte på brede skjermer, under testområdet på vanlige skjermer og dialog på mobil.
 
-![Sammenlagt labpartner på mobil](designutkast/labpartner-mobil.jpg)
+Skrivefeltet står over svarene, og nyeste svar vises først. Se [labpartnerens sidehjelp og KI-kontekst](labpartner-ki-pilot.md). En ny melding åpner ikke et lukket panel. Samtalelengde skal ikke flytte oppgavens testkontroller. Bruddpunktene er lokale designvalg, ikke standardkrav.
 
-Animasjonene er korte og respekterer både **Rolige animasjoner** og PC-ens innstilling for redusert bevegelse. **Skjul labpartneren** slår den helt av og flytter tastaturfokus til hovedinnholdet. Den kan slås på igjen under **Min lab → Lyd og animasjoner**. Denne innstillingen gjelder nettleseren og beholdes ved omlasting. Lærervisning og storskjermgjennomgang viser ikke elevens labpartner.
+![Utseende på mobil](designutkast/labpartner-utseende-mobil.jpg)
 
-Plasseringen er kontrollert på alle 14 aktivitetssider ved 1920 pikslers bredde, med flere skjermbredder fra 320 til 1800 piksler på representative sider. Nettleserprøvene dekker rulling, tastatur, berøring, begge temaer, forstørret tekst på 200 %, tekstavstand, skjuling og gjenåpning. En avgrenset axe-kontroll av labpartneren ga ingen funn; dette er ikke en full tilgjengelighetsrevisjon. `npm run check`, `npm run build` og den eksisterende testen for avatarreaksjoner er bestått. Svelte MCP var ikke tilgjengelig; offisiell Svelte-dokumentasjon ble brukt. Brukertesting med elever gjenstår. Reaksjonene støtter elevens videre forsøk og dokumenterer ikke forståelse; aktivitetenes faglige kontroller er uendret.
+Animasjonene respekterer både **Rolige animasjoner / Animasjoner på** og enhetens innstilling for redusert bevegelse. **Min lab → Lyd og animasjoner → Vis labpartneren på sidene** styrer synligheten i nettleseren. Redd chattens eksisterende **Skjul labpartneren** flytter fokus til hovedinnholdet. Hovedmenyen kan alltid åpne den igjen.
 
-![Avatarer på mobilens toppliste](avatar-leaderboard-mobile.png)
+Figurene er lokale SVG-er uten eksterne bildefiler, opplastinger eller sporing. Stabile ID-er ligger i `src/lib/avatars.js`, tegning og animasjoner i `Avatar.svelte`, og reaksjonssignalene i `avatarFeedback.js`. `GlobalLabPartner` eier den generelle plasseringen, mens Redd chatten har sin lokale integrasjon og `AvatarCompanion`. Nye aktiviteter kan melde konkrete resultater med `avatarFeedback(activityId, mood, message)`. Slike reaksjoner lagres ikke som KI-kontekst på de generelle sidene.
 
-Figurene er lokale SVG-er uten eksterne bildefiler, opplastinger eller sporing. Stabile avatar-ID-er ligger i `src/lib/avatars.js`, tegning og animasjoner i `Avatar.svelte` og reaksjonssignalene i `avatarFeedback.js`. Nye aktiviteter bruker den samme `AvatarCompanion` og kan melde konkrete resultater med `avatarFeedback(activityId, mood, message)`. Eleven velger figur én gang; utviklings- og driftsinnhold bruker samme profilfelt. Behold gamle avatar-ID-er ved utvidelser.
+Grensesnittet kontrolleres med begge temaer, tastatur, berøring, 320–1920 CSS-piksler, 200 % tekst, økt tekstavstand og begge innstillinger for redusert bevegelse. Se kontrollresultatene i [KI-beskrivelsen](labpartner-ki-pilot.md#kontroll). Brukertesting med elever gjenstår. Reaksjonene støtter videre forsøk og dokumenterer ikke forståelse; aktivitetenes faglige kontroller er uendret.
 
 ## Bytt nøkkelfil uten å miste tilgang
 

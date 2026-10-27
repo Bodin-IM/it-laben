@@ -1,8 +1,16 @@
+import { avatars, defaultAvatarId } from '#lib/avatars.js';
 import { writable, get } from 'svelte/store';
 
-/** @typedef {{sound:boolean,volume:number,reduceMotion:boolean,companion:boolean}} Preferences */
+/** @typedef {{sound:boolean,volume:number,reduceMotion:boolean,companion:boolean,partnerAvatar:string,partnerScene:string}} Preferences */
 /** @type {Preferences} */
-const defaults = { sound: false, volume: 0.25, reduceMotion: false, companion: true };
+const defaults = {
+	sound: false,
+	volume: 0.25,
+	reduceMotion: false,
+	companion: true,
+	partnerAvatar: defaultAvatarId,
+	partnerScene: 'lab'
+};
 const state = writable(defaults);
 export const labPreferences = { subscribe: state.subscribe };
 export const reducedMotion = writable(false);
@@ -18,6 +26,12 @@ function sanitize(value) {
 	const item = /** @type {Partial<Preferences>|null} */ (value);
 	return {
 		companion: item?.companion !== false,
+		partnerAvatar: avatars.some((avatar) => avatar.id === item?.partnerAvatar)
+			? (item?.partnerAvatar ?? defaultAvatarId)
+			: defaultAvatarId,
+		partnerScene: ['lab', 'space', 'garden'].includes(item?.partnerScene ?? '')
+			? (item?.partnerScene ?? 'lab')
+			: 'lab',
 		sound: item?.sound === true,
 		volume:
 			typeof item?.volume === 'number' && Number.isFinite(item.volume)

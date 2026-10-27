@@ -23,6 +23,15 @@
 	<rect x="2" y="2" width="96" height="96" rx="29" fill={avatar.background} />
 	<circle cx="78" cy="19" r="9" fill={avatar.color} opacity=".12" />
 	<path d="M14 80h72" stroke={avatar.color} stroke-width="2" opacity=".16" stroke-linecap="round" />
+	<ellipse cx="50" cy="85" rx="28" ry="5" fill="#000" opacity=".16" />
+	<path
+		d="M15 38V27q0-12 12-12h20"
+		fill="none"
+		stroke="#fff"
+		stroke-width="2"
+		opacity=".09"
+		stroke-linecap="round"
+	/>
 	<g class="character">
 		{#if avatar.kind === 'robot'}
 			<path
@@ -75,6 +84,75 @@
 				stroke-linecap="round"
 			/>
 			<ellipse cx="50" cy="66" rx="17" ry="13" fill="#deedf5" />
+		{:else if avatar.kind === 'penguin'}
+			<ellipse cx="50" cy="53" rx="29" ry="34" fill={avatar.color} />
+			<path d="M24 47Q9 58 17 73l13-10m46-16q15 11 7 26L70 63" fill={avatar.color} />
+			<path d="M28 47q0-22 22-9 22-13 22 9v14q0 22-22 22T28 61z" fill="#edf2ed" />
+			<path
+				d="m44 59 6 7 6-7M28 85h15m14 0h15"
+				stroke="#edba76"
+				stroke-width="5"
+				stroke-linecap="round"
+				fill="#edba76"
+			/>
+		{:else if avatar.kind === 'turtle'}
+			<ellipse cx="50" cy="69" rx="36" ry="18" fill="#567d55" />
+			<path
+				d="m22 73 10-13h36l10 13M32 60l6 22m30-22-6 22M16 74h68"
+				fill="none"
+				stroke={avatar.color}
+				stroke-width="2"
+				opacity=".6"
+			/>
+			<ellipse cx="50" cy="49" rx="27" ry="29" fill={avatar.color} />
+			<ellipse cx="24" cy="83" rx="10" ry="5" fill={avatar.color} /><ellipse
+				cx="76"
+				cy="83"
+				rx="10"
+				ry="5"
+				fill={avatar.color}
+			/>
+			<path
+				d="M36 29q6-5 14-4"
+				stroke="#fff"
+				stroke-width="4"
+				opacity=".25"
+				stroke-linecap="round"
+			/>
+		{:else if avatar.kind === 'axolotl'}
+			<g class="frills" stroke="#d77ca5" stroke-width="6" stroke-linecap="round"
+				><path d="m27 39-13-12m13 20H10m17 8L13 66m60-27 13-12M73 47h17M73 55l14 11" /></g
+			>
+			<path d="M23 48q0-23 27-23t27 23v12q0 22-27 22T23 60z" fill={avatar.color} />
+			<ellipse cx="29" cy="61" rx="6" ry="3" fill="#d782a0" /><ellipse
+				cx="71"
+				cy="61"
+				rx="6"
+				ry="3"
+				fill="#d782a0"
+			/>
+			<path
+				d="M35 34q6-4 13-3"
+				stroke="#fff"
+				stroke-width="4"
+				opacity=".3"
+				stroke-linecap="round"
+			/>
+		{:else if avatar.kind === 'octopus'}
+			<path
+				class="tentacles"
+				d="M27 61q-15 8-10 19 6 9 13-3 1 17 13 4 7 15 14 0 12 13 13-4 7 12 13 3 5-11-10-19"
+				fill={avatar.color}
+			/>
+			<path d="M22 52q0-32 28-32t28 32v8q0 20-28 20T22 60z" fill={avatar.color} />
+			<path
+				d="M33 32q7-7 17-6"
+				stroke="#fff"
+				stroke-width="5"
+				opacity=".26"
+				stroke-linecap="round"
+			/>
+			<circle cx="28" cy="63" r="3" fill="#d98fae" /><circle cx="72" cy="63" r="3" fill="#d98fae" />
 		{:else}
 			<ellipse cx="50" cy="60" rx="33" ry="24" fill={avatar.color} />
 			<circle cx="33" cy="39" r="14" fill={avatar.color} /><circle
@@ -122,7 +200,7 @@
 					/>
 				{/if}
 			</g>
-			{#if avatar.kind !== 'robot' && avatar.kind !== 'frog' && avatar.kind !== 'owl'}<path
+			{#if ['fox', 'cat', 'otter'].includes(avatar.kind)}<path
 					d="M46 60q4-3 8 0l-4 4z"
 					stroke-width="1"
 				/>{/if}
@@ -154,6 +232,56 @@
 </svg>
 
 <style>
+	.animated[data-mood='greeting'] .character {
+		animation: hello 1.3s ease-in-out 2;
+	}
+	.animated[data-mood='greeting'] .eyes,
+	.animated[data-mood='idle'] .eyes {
+		transform-origin: center;
+		transform-box: fill-box;
+		animation: blink 3.6s ease-in-out 1;
+	}
+	.animated[data-mood='thinking'] .eyes {
+		animation: look 1.8s ease-in-out 2;
+	}
+	.animated[data-mood='greeting'] .frills,
+	.animated[data-mood='greeting'] .tentacles {
+		transform-origin: 50px 55px;
+		animation: wave 0.65s ease-in-out 4;
+	}
+	@keyframes hello {
+		25% {
+			transform: rotate(-5deg) translateY(-2px);
+		}
+		65% {
+			transform: rotate(5deg);
+		}
+		100% {
+			transform: rotate(0);
+		}
+	}
+	@keyframes blink {
+		0%,
+		40%,
+		46%,
+		100% {
+			transform: scaleY(1);
+		}
+		43% {
+			transform: scaleY(0.12);
+		}
+	}
+	@keyframes look {
+		50% {
+			transform: translateX(2px);
+		}
+	}
+	@keyframes wave {
+		50% {
+			transform: scaleX(1.07) rotate(2deg);
+		}
+	}
+
 	.lab-avatar {
 		display: block;
 		flex-shrink: 0;

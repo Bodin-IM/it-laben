@@ -1,14 +1,40 @@
 <script>
 	import { onMount, onDestroy, tick } from 'svelte';
 	import { MediaQuery } from 'svelte/reactivity';
+	import PartnerAppearance from '#lib/components/PartnerAppearance.svelte';
+	import PartnerStage from '#lib/components/PartnerStage.svelte';
+	import { partnerPageById, partnerPages } from '#lib/partnerPages.js';
 	import Avatar from '#lib/components/Avatar.svelte';
 	import { MISSIONS, casesFor, programCode } from '#lib/reddChatten.js';
 	import { partnerRequest, partnerSnapshotKey } from '#lib/labPartner.js';
-	/** @type {{snapshot:import('#lib/labPartner.js').PartnerSnapshot, accountId:string|null, csrf:string, avatarId?:string, onreset:()=>void}} */
-	let { snapshot, accountId, csrf, avatarId = 'robot', onreset } = $props();
+	/** @type {{snapshot:import('#lib/labPartner.js').PartnerSnapshot, accountId:string|null, csrf:string, avatarId?:string, onreset:()=>void, dialogBreakpoint?:number,reactionMood?:import('#lib/avatarFeedback.js').AvatarMood,reactionMessage?:string}} */
+	let {
+		snapshot,
+		accountId,
+		csrf,
+		avatarId = 'robot',
+		onreset,
+		dialogBreakpoint = 600,
+		reactionMood = 'idle',
+		reactionMessage = ''
+	} = $props();
 	/** @type {HTMLDetailsElement|undefined} */
 	let panel = $state();
-	const mobile = new MediaQuery('(max-width: 600px)', false);
+	const mobile = $derived(new MediaQuery(`(max-width: ${dialogBreakpoint}px)`, false));
+	let mode = $state('guide');
+	let modeChosen = false;
+	let tipIndex = $state(0);
+	const repair = $derived(snapshot.activityId === 'redd-chatten' ? snapshot : null);
+	const pageHelp = $derived(
+		partnerPageById(snapshot.activityId === 'page-help' ? snapshot.pageId : 'redd-chatten') ??
+			partnerPages[0]
+	);
+	/** @param {string} value */
+	function chooseMode(value) {
+		modeChosen = true;
+		mode = value;
+		if (value === 'ai') void checkStatus(true);
+	}
 	let expanded = $state(false);
 	/** @type {HTMLDialogElement|undefined} */
 	let dialog = $state();
@@ -42,13 +68,27 @@
 	let statusController = null;
 	let requestSerial = 0;
 	let disposed = false;
+	const mood = $derived(
+		busy
+			? 'thinking'
+			: error
+				? 'retry'
+				: latest
+					? 'success'
+					: reactionMood !== 'idle'
+						? reactionMood
+						: expanded
+							? 'greeting'
+							: 'idle'
+	);
+
 	const currentKey = $derived(partnerSnapshotKey(snapshot));
-	const mission = $derived(MISSIONS.find((item) => item.id === snapshot.missionId));
+	const mission = $derived(MISSIONS.find((item) => item.id === (repair?.missionId ?? 'tekst')));
 	const scenario = $derived(
-		casesFor(snapshot.missionId).find((item) => item.id === snapshot.caseId)
+		casesFor(repair?.missionId ?? 'tekst').find((item) => item.id === repair?.caseId)
 	);
 	const oldTest = $derived(
-		snapshot.lastRun !== null && snapshot.lastRun.program.join('|') !== snapshot.program.join('|')
+		repair?.lastRun != null && repair.lastRun.program.join('|') !== repair.program.join('|')
 	);
 	const canAsk = $derived(enabled === true && !busy && !snapshot.running);
 	const eventLabels = {
@@ -115,8 +155,8 @@
 		requestController?.abort();
 		statusController?.abort();
 	});
-	async function checkStatus() {
-		if (!accountId || checking || enabled !== null) return;
+	async function checkStatus(retry = false) {
+		if (!accountId || checking || (!retry && enabled !== null)) return;
 		checking = true;
 		error = '';
 		const controller = new AbortController();
@@ -127,10 +167,15 @@
 				csrf,
 				AbortSignal.any([controller.signal, AbortSignal.timeout(10000)])
 			);
-			if (!disposed) enabled = result.enabled === true;
+			if (!disposed) {
+				enabled = result.enabled === true;
+				if (enabled && !modeChosen) mode = 'ai';
+			}
 		} catch {
-			if (!disposed)
-				error = 'Kunne ikke kontakte labpartneren. Du kan fortsatt bruke oppgavens hint.';
+			if (!disposed) {
+				enabled = false;
+				error = 'Kunne ikke kontakte KI-tjenesten. Sidehjelpen virker fortsatt.';
+			}
 		} finally {
 			if (!disposed) checking = false;
 		}
@@ -229,21 +274,25 @@
 {/snippet}
 
 {#snippet body()}
-	<div class="partner-body" class:ready={enabled === true && !!accountId}>
-		{#if !accountId}
-			<p>
-				<a href="/min-lab/">Logg inn i Min lab</a> for å prøve KI-veiledningen. Oppgavens vanlige hint
-				er tilgjengelige uten innlogging.
-			</p>
-		{:else}
-			{#if checking}<p role="status">Kontakter labpartneren …</p>
-			{:else if enabled === false}<p class="availability">
-					KI-piloten er ikke åpnet ennå. Bruk oppgavens hint og kodelinjeforklaringer.
+	<div class="partner-body ready">
+		<div class="mode-switch" aria-label="Labpartnerens verktøy">
+			<button type="button" aria-pressed={mode === 'guide'} onclick={() => chooseMode('guide')}
+				>Sidehjelp</button
+			>
+			<button type="button" aria-pressed={mode === 'ai'} onclick={() => chooseMode('ai')}>KI</button
+			>
+			<button type="button" aria-pressed={mode === 'style'} onclick={() => chooseMode('style')}
+				>Utseende</button
+			>
+		</div>
+		{#if mode === 'ai'}
+			{#if checking}<p role="status">Sjekker KI-tilkoblingen …</p>{/if}
+			{#if !accountId}
+				<p class="availability">
+					<a href="/min-lab/">Logg inn i Min lab</a> for å bruke KI. Sidehjelp og utseende virker uten
+					innlogging.
 				</p>
-			{:else if enabled === null}<button type="button" class="secondary" onclick={checkStatus}
-					>Prøv tilkoblingen igjen</button
-				>{/if}
-			{#if enabled}
+			{:else if enabled}
 				<div class="composer">
 					<div class="quick-actions" aria-label="Be labpartneren om hjelp">
 						<button
@@ -258,15 +307,24 @@
 							class="secondary"
 							disabled={!canAsk}
 							aria-label="Forklar dette"
-							onclick={() => ask('Forklar steget eller koden jeg undersøker nå.')}>Forklar</button
+							onclick={() =>
+								ask(
+									repair
+										? 'Forklar steget eller koden jeg undersøker nå.'
+										: 'Forklar temaet på denne siden med et kort eksempel.'
+								)}>Forklar</button
 						>
 						<button
 							type="button"
 							class="secondary"
 							disabled={!canAsk}
-							aria-label="Hjelp med forsøket"
-							onclick={() => ask('Hjelp meg å forstå siste forsøk og hva jeg kan prøve videre.')}
-							>Siste forsøk</button
+							aria-label={repair ? 'Hjelp med forsøket' : 'Vis et eksempel'}
+							onclick={() =>
+								ask(
+									repair
+										? 'Hjelp meg å forstå siste forsøk og hva jeg kan prøve videre.'
+										: 'Vis et lite eksempel som forklarer et sentralt begrep på denne siden.'
+								)}>{repair ? 'Siste forsøk' : 'Eksempel'}</button
 						>
 					</div>
 					<form
@@ -293,7 +351,7 @@
 								>{/if}
 						</div>
 					</form>
-					<a class="test-return" href="#testomrade">Til testknappene ↑</a>
+					{#if repair}<a class="test-return" href="#testomrade">Til testknappene ↑</a>{/if}
 					<p class="status" role="status">
 						{busy
 							? 'Labpartneren arbeider …'
@@ -330,49 +388,104 @@
 								Be om et hint eller skriv et spørsmål. Svaret kommer her.
 							</p>{/if}
 					</div>
-					<details class="shared-context">
-						<summary>Dette følger med spørsmålet</summary>
-						<div>
-							<p>
-								<strong>Oppdrag:</strong>
-								{mission?.title}<br /><strong>Valgt situasjon:</strong>
-								{scenario?.name}
-							</p>
-							<p>
-								{snapshot.inspection
-									? `Du undersøker steg ${snapshot.inspection.index + 1}.`
-									: 'Ingen kjøringssteg er valgt.'}
-								{snapshot.lastRun
-									? oldTest
-										? 'Siste prøving gjelder en tidligere kodeversjon.'
-										: 'Siste prøving gjelder kodevalgene som vises nå.'
-									: 'Ingen ferdig prøving er valgt.'}
-							</p>
-							<pre aria-label="Kode som deles">{programCode(
-									snapshot.missionId,
-									snapshot.program
-								)}</pre>
-							{#if snapshot.events.length}<ol>
-									{#each snapshot.events as event}<li>
-											{eventLabels[event.type]}{event.index !== undefined
-												? ` · steg ${event.index + 1}`
-												: ''}
-										</li>{/each}
-								</ol>{:else}<p>Ingen handlinger er registrert i denne samtalen ennå.</p>{/if}
-							<p>
-								Inntil ti siste handlinger og to tidligere spørsmål og svar fra samme
-								oppgavetilstand følger med. Samtalen huskes bare mens denne siden er åpen og tømmes
-								ved bytte av oppdrag eller profil.
-							</p>
-						</div>
-					</details>
+					{#if repair}
+						<details class="shared-context">
+							<summary>Dette følger med spørsmålet</summary>
+							<div>
+								<p>
+									<strong>Oppdrag:</strong>
+									{mission?.title}<br /><strong>Valgt situasjon:</strong>
+									{scenario?.name}
+								</p>
+								<p>
+									{repair.inspection
+										? `Du undersøker steg ${repair.inspection.index + 1}.`
+										: 'Ingen kjøringssteg er valgt.'}
+									{repair.lastRun
+										? oldTest
+											? 'Siste prøving gjelder en tidligere kodeversjon.'
+											: 'Siste prøving gjelder kodevalgene som vises nå.'
+										: 'Ingen ferdig prøving er valgt.'}
+								</p>
+								<pre aria-label="Kode som deles">{programCode(
+										repair.missionId,
+										repair.program
+									)}</pre>
+								{#if repair.events.length}<ol>
+										{#each repair.events as event}<li>
+												{eventLabels[event.type]}{event.index !== undefined
+													? ` · steg ${event.index + 1}`
+													: ''}
+											</li>{/each}
+									</ol>{:else}<p>Ingen handlinger er registrert i denne samtalen ennå.</p>{/if}
+								<p>
+									Inntil ti siste handlinger og to tidligere spørsmål og svar fra samme
+									oppgavetilstand følger med. Samtalen huskes bare mens denne siden er åpen og
+									tømmes ved bytte av oppdrag eller profil.
+								</p>
+							</div>
+						</details>
 
-					<p class="fine">
-						Oppgaven og kodevalgene dine følger med når du spør. KI-svar kan være feil. Bruk
-						oppgavens tester til å undersøke forslaget. Hjelpen gir ingen poengtrekk.
-					</p>
+						<p class="fine">
+							Oppgaven og kodevalgene dine følger med når du spør. KI-svar kan være feil. Bruk
+							oppgavens tester til å undersøke forslaget. Hjelpen gir ingen poengtrekk.
+						</p>
+					{:else}
+						<details class="shared-context">
+							<summary>Dette følger med spørsmålet</summary>
+							<p><strong>{pageHelp.title}</strong>: {pageHelp.summary}</p>
+							<p>
+								Sidens godkjente temaer og inntil to tidligere spørsmål og svar følger med. KI-en
+								ser ikke kodevalg, forsøk, skjema eller andre elevers opplysninger på denne siden.
+								Samtalen tømmes når du bytter side eller profil.
+							</p>
+						</details>
+						<p class="fine">
+							KI-svar kan være feil. Undersøk forslaget med sidens forklaringer og tester. Hjelpen
+							vurderer ikke forståelsen din og gir ingen poengtrekk.
+						</p>
+					{/if}
 				</div>
-			{:else if error}<p class="error" role="alert">{error}</p>{/if}
+			{:else}
+				<p class="availability">KI er ikke tilgjengelig nå. Bruk Sidehjelp for tips om siden.</p>
+				{#if error}<p class="error" role="alert">{error}</p>{/if}
+				<button
+					type="button"
+					class="secondary"
+					disabled={checking}
+					onclick={() => checkStatus(true)}>Prøv KI igjen</button
+				>
+			{/if}
+		{:else}
+			<!-- svelte-ignore a11y_no_noninteractive_tabindex (Keyboard access to the scrollable help/settings region.) -->
+			<div
+				class="answer-scroll local-help"
+				role="region"
+				aria-label={mode === 'style' ? 'Utseende' : 'Sidehjelp'}
+				tabindex="0"
+			>
+				<PartnerStage {avatarId} {mood} />
+				{#if mode === 'style'}<PartnerAppearance />
+				{:else}
+					<p class="eyebrow">FAST SIDEHJELP · UTEN KI</p>
+					<h3>{pageHelp.title}</h3>
+					<p>{pageHelp.summary}</p>
+					{#if pageHelp.topics.length}<p class="fine">Tema: {pageHelp.topics.join(' · ')}</p>{/if}
+					<div class="guide-tip">
+						<strong>Forslag {tipIndex + 1} av {pageHelp.tips.length}</strong>
+						<p>{pageHelp.tips[tipIndex]}</p>
+					</div>
+					<button
+						type="button"
+						class="secondary"
+						onclick={() => (tipIndex = (tipIndex + 1) % pageHelp.tips.length)}>Et annet tips</button
+					>
+					<p class="fine guide-note">
+						Disse rådene er skrevet på forhånd. Velg KI for å stille egne spørsmål når tjenesten er
+						tilgjengelig.
+					</p>
+				{/if}
+			</div>
 		{/if}
 	</div>
 {/snippet}
@@ -385,7 +498,7 @@
 		aria-haspopup="dialog"
 		onclick={openPanel}
 	>
-		<Avatar id={avatarId} size={32} /><span
+		<Avatar id={avatarId} {mood} size={44} /><span
 			>Spør labpartneren{#if newAnswerReady}<small>Nytt svar klart</small>{/if}</span
 		><span aria-hidden="true">→</span>
 	</button>
@@ -399,8 +512,12 @@
 		}}
 	>
 		<div class="dialog-header">
-			<strong id="partner-dialog-title">Spør labpartneren</strong>
-			<button type="button" class="secondary" onclick={closeMobile}>← Tilbake til oppgaven</button>
+			<div class="dialog-title">
+				<Avatar id={avatarId} {mood} size={40} /><strong id="partner-dialog-title"
+					>Labpartneren</strong
+				>
+			</div>
+			<button type="button" class="secondary" onclick={closeMobile}>← Tilbake til siden</button>
 		</div>
 		{@render body()}
 	</dialog>
@@ -415,8 +532,10 @@
 		}}
 	>
 		<summary class="panel-heading"
-			><Avatar id={avatarId} size={32} /><span
-				><strong>Spør labpartneren</strong><small>KI-hjelp med dette oppdraget</small></span
+			><Avatar id={avatarId} {mood} size={44} /><span
+				><strong>Spør labpartneren</strong><small
+					>{reactionMessage || 'Sidehjelp · KI · Utseende'}</small
+				></span
 			></summary
 		>
 		{@render body()}
@@ -424,6 +543,51 @@
 {/if}
 
 <style>
+	.mode-switch {
+		display: grid;
+		grid-template-columns: repeat(3, minmax(0, 1fr));
+		gap: 6px;
+		margin: 0 0 12px;
+		flex: none;
+	}
+	.mode-switch button {
+		background: var(--color-surface-soft);
+		color: var(--color-text);
+	}
+	.mode-switch button[aria-pressed='true'] {
+		background: var(--color-accent-soft);
+		border-color: var(--color-accent);
+		color: var(--color-accent);
+		font-weight: 700;
+	}
+	.dialog-title {
+		display: flex;
+		align-items: center;
+		gap: 10px;
+	}
+	.guide-tip {
+		border-left: 3px solid var(--color-accent);
+		background: var(--color-surface-soft);
+		padding: 12px;
+		border-radius: 0 10px 10px 0;
+		margin-bottom: 12px;
+	}
+	.guide-tip p {
+		margin: 6px 0 0;
+	}
+	.guide-note {
+		margin-top: 14px;
+	}
+	.eyebrow {
+		font-size: 0.65rem;
+		font-weight: 700;
+		letter-spacing: 0.08em;
+		color: var(--color-text-muted);
+	}
+	.local-help {
+		border-top: 0;
+		padding-top: 0;
+	}
 	.partner-panel,
 	.partner-dialog,
 	.mobile-launch {
@@ -705,6 +869,18 @@
 		.partner-dialog .answer-scroll {
 			max-height: none;
 			overflow-y: visible;
+		}
+	}
+
+	@media (min-width: 601px) {
+		.partner-dialog {
+			width: min(560px, calc(100% - 48px));
+			height: min(850px, calc(100dvh - 48px));
+			max-height: calc(100dvh - 48px);
+			margin: auto;
+			border: 1px solid var(--color-border-strong);
+			border-radius: 20px;
+			box-shadow: 0 20px 80px var(--color-shadow);
 		}
 	}
 </style>
