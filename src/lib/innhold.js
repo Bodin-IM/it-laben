@@ -7,8 +7,8 @@ export const fag = [
 ];
 
 export const innholdsformater = [
-	{ id: 'leksjon', navn: 'Leksjoner', entall: 'Leksjon', sokeord: 'leksjon forklaring øvelse' },
-	{ id: 'spill', navn: 'Spill og utfordringer', entall: 'Spill', sokeord: 'spill utfordring' },
+	{ id: 'leksjon', navn: 'Øvinger', entall: 'Øving', sokeord: 'leksjon forklaring øvelse' },
+	{ id: 'spill', navn: 'Oppdrag og spill', entall: 'Oppdrag', sokeord: 'oppdrag spill utfordring' },
 	{ id: 'aktivitet', navn: 'Aktiviteter', entall: 'Aktivitet', sokeord: 'aktivitet oppgave' }
 ];
 

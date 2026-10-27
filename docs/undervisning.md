@@ -6,7 +6,7 @@ Eksempelvisninger: [undervisningsbibliotek](teaching-library.png), [lærerveiled
 
 ## To typer innhold
 
-**Elevleksjoner** er materialet på forsiden. Eleven kan lese, prøve forsøk, løse oppgaver og ta fagsjekker selv. Kortene er merket **Leksjon · Gjør selv**. Vanlige regler for progresjon og XP gjelder.
+**Elevleksjoner** er materialet på forsiden. Eleven kan lese, prøve forsøk, løse oppgaver og ta fagsjekker selv. Kortene er merket **Øving · Gjør selv**. Vanlige regler for progresjon og XP gjelder. [Moduler](moduler.md) samler undervisning og elevarbeid i en anbefalt rekkefølge; alle øvinger og spill er også tilgjengelige hver for seg under modulene.
 
 **Undervisningsopplegg** ligger under **Lærerpanel → Undervisning**, på `/laerer/undervisning/`. Et opplegg samler mål, tidsforslag, leksjonsrekkefølge, spørsmål til klassen, private lærernotater og forslag til selvarbeid etterpå. Oppleggene er egne innholdselementer og inngår ikke i elevenes aktivitetsliste, fullføringskrav eller XP.
 

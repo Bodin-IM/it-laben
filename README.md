@@ -1,5 +1,7 @@
 # IT-laben
 
+På `dev` vises [moduler](docs/moduler.md) først i hvert fag, med undervisning, øvinger og oppdrag samlet. Alle øvinger og spill kan fortsatt åpnes direkte lenger ned på fagsiden.
+
 Interaktive forklaringer, små øvelser og kodeeksempler for IT-fagene i videregående skole.
 
 IT-laben skal hjelpe elevene å se hvordan ting henger sammen: følge data, prøve en handling og forstå resultatet. Sidene kan brukes i felles gjennomgang eller som støtte når elevene arbeider med egne prosjekter.
