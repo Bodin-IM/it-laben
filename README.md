@@ -95,6 +95,8 @@ For den eksisterende serveren: [fast DNS-navn og standardportene 80/443](docs/dn
 
 Videreutviklingen på `dev` har elevoversikt, administratorverktøy, tildelte unike brukernavn og offentlig toppliste med mulighet til å skjule seg. [Avatarer og tryggere lagring](docs/avatarer-og-trygg-lagring.md) legger til seks figurer med reaksjoner, nøkkelbytte i to trinn og sikker lagringskø mellom faner. Se [oppsettet for elevadministrasjon](docs/elevadministrasjon.md) for lokal utprøving med egen database. Serverens automatiske publisering bruker fortsatt `main`.
 
+[Klassevalg og klassenes toppliste](docs/klasser-og-toppliste.md) lar eleven velge 2ITA eller 2ITB én gang og viser hvilken klasse som leder etter samlet XP. Klassevalget låses på serveren. Oppdateringen utvikles først på `dev` og bruker migrasjon 009.
+
 Branchen `backend` har en førsteversjon med brukerprofiler, nøkkelfil, varig progresjon, XP og achievements. Se [backendveiledningen](docs/backend.md) for lokal kjøring, API, sikkerhetsmodell, HTTPS-oppsett og backup. Undervisningssimuleringene er fremdeles separate fra ekte innlogging.
 
 På `backend` finnes også personlig fremdrift på forsiden, fire fagspor, ni merker, fagsjekker med ett forsøk per døgn og et eget labkort. [Progresjonsveiledningen](docs/progresjon.md) beskriver utvidelse med nye fag, aktiviteter, kontrollregler, merker og oppgavevarianter. Vanlige leksjoner og spill krever bestått fagsjekk for XP. [Nattevakten](docs/nattvakt.md) er en egen utfordring på åtte minutter med ett forsøk per døgn, økende lydbilde og en samlet kontroll av fire reparasjoner. Lydeffekter er valgfrie og av som standard.

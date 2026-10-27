@@ -49,6 +49,7 @@
 					kan skjule deg når du vil.{:else}Du er skjult fra topplisten. Poengene og fremgangen din
 					beholdes.{/if}
 			</p>
+			<p>Skjuler du profilen, tas poengene dine også ut av klassens sum. Klassevalget beholdes.</p>
 			<button type="button" disabled={busy} onclick={toggle}
 				>{busy
 					? 'Lagrer …'

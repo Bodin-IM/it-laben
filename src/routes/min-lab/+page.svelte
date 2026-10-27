@@ -9,6 +9,7 @@
 	import ExperienceSettings from '#lib/components/ExperienceSettings.svelte';
 	import AnimatedNumber from '#lib/components/AnimatedNumber.svelte';
 	import LeaderboardPreference from '#lib/components/LeaderboardPreference.svelte';
+	import ClassMembership from '#lib/components/ClassMembership.svelte';
 	import { hasTeacherRole } from '#lib/learning.js';
 	import { fag, innholdsformat } from '#lib/innhold.js';
 	import { rewardPolicy } from '#lib/progression.js';
@@ -276,6 +277,7 @@
 							</p>{/if}
 					</div>
 				</section>{/if}
+			{#key $lab.user?.id}<ClassMembership />{/key}
 			<section class="stats" aria-label="Din progresjon">
 				<div class="xp-card">
 					<span class="eyebrow">NIVÅ {$lab.summary.level}</span><strong

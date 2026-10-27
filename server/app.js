@@ -36,6 +36,7 @@ import {
 import { leaderboard } from './leaderboard.js';
 import { teachingLibrary } from './teaching.js';
 import { avatars } from '../src/lib/avatars.js';
+import { schoolClasses } from '../src/lib/classes.js';
 
 const DAY = 86400000;
 const hash = (value) => createHash('sha256').update(value).digest('hex');
@@ -89,7 +90,7 @@ export function createApp({ db, config, clock = Date.now, limits = true }) {
 					req.labSession = session;
 					req.labUser = db
 						.prepare(
-							'SELECT id,nickname,created_at AS createdAt,disabled_at AS disabledAt,leaderboard_visible AS leaderboardVisible FROM users WHERE id=?'
+							'SELECT id,nickname,created_at AS createdAt,disabled_at AS disabledAt,leaderboard_visible AS leaderboardVisible,class_code AS classCode FROM users WHERE id=?'
 						)
 						.get(session.user_id);
 					if (req.labUser?.disabledAt != null) {
@@ -193,7 +194,8 @@ export function createApp({ db, config, clock = Date.now, limits = true }) {
 				nickname: user.nickname,
 				createdAt: user.createdAt,
 				role: userRole(db, user.id),
-				leaderboardVisible: user.leaderboardVisible === 1
+				leaderboardVisible: user.leaderboardVisible === 1,
+				classCode: user.classCode ?? null
 			},
 			openings: activeOpenings(db, clock()),
 			csrfToken: session.csrf,
@@ -253,7 +255,7 @@ export function createApp({ db, config, clock = Date.now, limits = true }) {
 		const result = transaction(db, () => {
 			const user = db
 				.prepare(
-					'SELECT id,nickname,created_at AS createdAt,disabled_at AS disabledAt,leaderboard_visible AS leaderboardVisible FROM users WHERE id=?'
+					'SELECT id,nickname,created_at AS createdAt,disabled_at AS disabledAt,leaderboard_visible AS leaderboardVisible,class_code AS classCode FROM users WHERE id=?'
 				)
 				.get(credential.user_id);
 			if (user.disabledAt !== null)
@@ -361,6 +363,28 @@ export function createApp({ db, config, clock = Date.now, limits = true }) {
 	app.get('/api/leaderboard', (req, res) =>
 		res.json(leaderboard(db, req.labUser?.id, req.query.page ?? 1))
 	);
+	app.post('/api/me/class', authenticated, (req, res) => {
+		if (req.body.accountId !== req.labUser.id)
+			return fail(res, 409, 'ACCOUNT_CHANGED', 'En annen profil er pålogget.');
+		if (userRole(db, req.labUser.id) !== 'student')
+			return fail(res, 403, 'STAFF_NOT_RANKED', 'Bare elevprofiler kan velge klasse.');
+		const { classCode, confirmed } = req.body;
+		if (!schoolClasses.includes(classCode) || confirmed !== true)
+			return fail(res, 400, 'INVALID_CLASS', 'Velg 2ITA eller 2ITB og bekreft at valget låses.');
+		const saved = transaction(db, () => {
+			// The conditional write also protects against competing choices from other tabs/devices.
+			db.prepare('UPDATE users SET class_code=? WHERE id=? AND class_code IS NULL').run(
+				classCode,
+				req.labUser.id
+			);
+			return db.prepare('SELECT class_code AS classCode FROM users WHERE id=?').get(req.labUser.id)
+				.classCode;
+		});
+		if (saved !== classCode)
+			return fail(res, 409, 'CLASS_LOCKED', `Klassevalget er allerede låst til ${saved}.`);
+		// Repeating the same confirmed choice is safe after a lost response.
+		res.json(me({ ...req.labUser, classCode: saved }, req.labSession));
+	});
 	app.post('/api/me/leaderboard', authenticated, (req, res) => {
 		if (req.body.accountId !== req.labUser.id)
 			return fail(res, 409, 'ACCOUNT_CHANGED', 'En annen profil er pålogget.');

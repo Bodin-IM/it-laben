@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { once } from 'node:events';
 import { spawn, spawnSync } from 'node:child_process';
-import { mkdtempSync, rmSync, readFileSync, existsSync } from 'node:fs';
+import { mkdtempSync, rmSync, readFileSync, existsSync, readdirSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { randomUUID, createHash } from 'node:crypto';
@@ -39,6 +39,19 @@ const solutions = {
 		rom: ['noah-get-gaming']
 	}
 };
+
+function assertMigrationsApplied(db) {
+	const expected = readdirSync(new URL('../server/migrations/', import.meta.url))
+		.filter((name) => /^\d+_.*\.sql$/.test(name))
+		.sort();
+	assert.deepEqual(
+		db
+			.prepare('SELECT name FROM migrations ORDER BY name')
+			.all()
+			.map((row) => row.name),
+		expected
+	);
+}
 
 function historicalDatabase(filename, count) {
 	const db = new DatabaseSync(filename);
@@ -525,7 +538,7 @@ test('backup av aktiv database bevarer konto, økt, poeng og progresjon', async 
 		restored.close();
 	}
 	const restarted = openDatabase(f.filename);
-	assert.equal(restarted.prepare('SELECT count(*) AS n FROM migrations').get().n, 8);
+	assertMigrationsApplied(restarted);
 	restarted.close();
 });
 
@@ -794,7 +807,7 @@ test('oppgradering: nye merker etterregistreres for tidligere fullførte oppdrag
 	try {
 		assert.equal(summary(upgraded, a.user.id).xp, 0);
 		assert.equal(summary(upgraded, a.user.id).lab.colorId, 'forest');
-		assert.equal(upgraded.prepare('SELECT count(*) AS n FROM migrations').get().n, 8);
+		assertMigrationsApplied(upgraded);
 	} finally {
 		upgraded.close();
 	}
@@ -2060,7 +2073,7 @@ test('lærerdata: migrasjon fra versjon 4 bevarer vanlige forsøk, og øvingsdat
 			upgraded.prepare('SELECT opening_id FROM checkpoint_attempts').get().opening_id,
 			null
 		);
-		assert.equal(upgraded.prepare('SELECT count(*) AS n FROM migrations').get().n, 8);
+		assertMigrationsApplied(upgraded);
 	} finally {
 		upgraded.close();
 	}

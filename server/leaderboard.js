@@ -1,10 +1,11 @@
 import { labColors, achievementDefinitions, rewardPolicy } from '../src/lib/progression.js';
 import { avatarDefinition } from '../src/lib/avatars.js';
+import { schoolClasses } from '../src/lib/classes.js';
 
 const ranking = `WITH points AS (
  SELECT user_id,SUM(points) AS xp FROM rewards GROUP BY user_id
 ), eligible AS (
- SELECT u.id,u.nickname,COALESCE(p.xp,0) AS xp,l.color_id,l.featured_achievement_id,l.avatar_id,
+ SELECT u.id,u.nickname,u.class_code,COALESCE(p.xp,0) AS xp,l.color_id,l.featured_achievement_id,l.avatar_id,
  a.achievement_id AS earned_feature
  FROM users u LEFT JOIN points p ON p.user_id=u.id LEFT JOIN lab_profiles l ON l.user_id=u.id
  LEFT JOIN achievements a ON a.user_id=u.id AND a.achievement_id=l.featured_achievement_id
@@ -21,6 +22,7 @@ function entry(row) {
 	return {
 		rank: row.rank,
 		nickname: row.nickname,
+		classCode: row.class_code,
 		xp: Number(row.xp),
 		level: Math.floor(Number(row.xp) / rewardPolicy.xpPerLevel) + 1,
 		colorId: color.id,
@@ -40,5 +42,28 @@ export function leaderboard(db, userId, pageValue = 1) {
 		)
 		.all((page - 1) * 10);
 	const own = userId ? db.prepare(`${ranking} SELECT * FROM ranked WHERE id=?`).get(userId) : null;
-	return { page, pageSize: 10, total, entries: rows.map(entry), self: own ? entry(own) : null };
+	// Aggregate the entire eligible population, independently of the individual leaderboard page.
+	const totals = db
+		.prepare(
+			`${ranking}
+		SELECT class_code AS classCode,COUNT(*) AS participants,SUM(xp) AS xp
+		FROM eligible WHERE class_code IS NOT NULL GROUP BY class_code`
+		)
+		.all();
+	const classes = schoolClasses.map((classCode) => {
+		const result = totals.find((row) => row.classCode === classCode);
+		return {
+			classCode,
+			participants: Number(result?.participants ?? 0),
+			xp: Number(result?.xp ?? 0)
+		};
+	});
+	return {
+		page,
+		pageSize: 10,
+		total,
+		entries: rows.map(entry),
+		self: own ? entry(own) : null,
+		classes
+	};
 }

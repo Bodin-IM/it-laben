@@ -567,7 +567,7 @@ test('toppliste: på som standard, bare aktive elever, korrekt delt rangering og
 	for (const entry of publicResult.result.entries)
 		assert.deepEqual(
 			Object.keys(entry).sort(),
-			['rank', 'nickname', 'xp', 'level', 'colorId', 'avatarId', 'badge'].sort()
+			['rank', 'nickname', 'classCode', 'xp', 'level', 'colorId', 'avatarId', 'badge'].sort()
 		);
 	const own = await students[12].request('/api/leaderboard');
 	assert.equal(own.result.self.rank, 13);
