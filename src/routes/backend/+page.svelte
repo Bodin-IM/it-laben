@@ -1,4 +1,7 @@
 <script>
+	import PartnerContext from '#lib/components/PartnerContext.svelte';
+	import { textShape } from '#lib/partnerContext.js';
+
 	import PageLinks from '#lib/components/PageLinks.svelte';
 	import ModuleContext from '#lib/components/ModuleContext.svelte';
 	import { avatarFeedback } from '#lib/avatarFeedback.js';
@@ -181,6 +184,22 @@
 		return deler;
 	}
 </script>
+
+<PartnerContext
+	pageId="frontend-backend"
+	values={{
+		kind: handling,
+		side,
+		wrongKey: feilNokkel,
+		text: textShape(tekst),
+		sender: textShape(avsender),
+		step: steg,
+		status: aktuelt?.httpStatus ?? null,
+		serverCount: serverMeldinger.length,
+		clientCount: klientMeldinger.length,
+		selectedLine: kode.findIndex((line) => line.id === valgtId)
+	}}
+/>
 
 <svelte:head>
 	<title>Frontend møter backend · IT-laben</title>

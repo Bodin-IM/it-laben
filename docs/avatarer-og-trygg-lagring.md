@@ -12,7 +12,7 @@ Figurene har skygge, lysdetaljer og korte reaksjoner ved åpning, arbeid, ventin
 
 ### Tilgjengelighet og plassering
 
-Labpartneren finnes på alle vanlige sider, også forsiden, modulene, Min lab og lærerpanelene. **Labpartner** i hovedmenyen åpner den også når den er skjult. Presentasjonsvisningen på storskjerm beholder den rolige visningen uten elevverktøy.
+Labpartneren finnes på alle vanlige sider, også forsiden, modulene, Min lab og topplisten. Lærer- og administratorsider har ikke labpartner. **Labpartner** i hovedmenyen åpner den også når den er skjult. Presentasjonsvisningen på storskjerm beholder den rolige visningen uten elevverktøy.
 
 - Fra **1800 CSS-piksler** har den generelle labpartneren en 360 piksler bred venstrespalte med plass til innvendig rulling. Oppgaven beholder sin lesebredde, og panelet har luft til vinduskanten.
 - På mindre skjermer åpner den kompakte knappen en dialog. Fra 601 piksler er dialogen sentrert; på smalere skjermer fyller den skjermen. **Tilbake til siden** og Escape gjenoppretter fokus og rulleposisjon.

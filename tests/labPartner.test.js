@@ -337,7 +337,8 @@ test('labpartner: alle offentlige sider har avgrenset sidegrunnlag, uten lokale 
 		);
 	}
 	for (const path of routes('src/routes').filter((path) => !path.includes('[')))
-		assert.notEqual(partnerPageFor(path).id, 'site-help', path);
+		if (path.startsWith('/laerer/')) assert.equal(partnerPageFor(path), null, path);
+		else assert.notEqual(partnerPageFor(path).id, 'site-help', path);
 	assert.equal(partnerPageFor('/', 'untrusted-secret').id, 'home');
 	assert.equal(partnerPageFor('/', 'drift').id, 'subject-drift');
 	assert.equal(partnerPageFor('/unknown/private/path').id, 'site-help');
@@ -349,9 +350,7 @@ test('labpartner: alle offentlige sider har avgrenset sidegrunnlag, uten lokale 
 				version: 1,
 				pageId: page.id,
 				running: false,
-				program: ['PRIVATE_CODE'],
-				students: ['PRIVATE_STUDENT'],
-				system: 'CLIENT_SYSTEM'
+				events: []
 			},
 			password: 'PRIVATE_PASSWORD',
 			history: [
@@ -362,7 +361,7 @@ test('labpartner: alle offentlige sider har avgrenset sidegrunnlag, uten lokale 
 				}
 			]
 		});
-		const messages = buildPartnerMessages(body, { role: page.teacher ? 'teacher' : 'student' });
+		const messages = buildPartnerMessages(body);
 		const encoded = JSON.stringify(messages);
 		assert.ok(encoded.includes(page.title));
 		assert.ok(encoded.length < 14000);
@@ -381,20 +380,20 @@ test('labpartner: alle offentlige sider har avgrenset sidegrunnlag, uten lokale 
 	}
 });
 
-test('labpartner: sidehjelp avviser ukjent side, feil rolle og overstor historikk før modellen kontaktes', async (t) => {
+test('labpartner: sidehjelp avviser ukjent side, lærersider og overstor historikk før modellen kontaktes', async (t) => {
 	const f = await fixture(t);
 	const student = f.client();
 	await student.request('/auth/create', {});
 	const body = ask({
-		snapshot: { activityId: 'page-help', version: 1, pageId: 'home', running: false }
+		snapshot: { activityId: 'page-help', version: 1, pageId: 'home', running: false, events: [] }
 	});
 	assert.equal((await student.request('/lab-partner/ask', body)).status, 200);
 	const before = f.calls.length;
 	for (const [patch, status] of [
 		[{ pageId: 'unknown' }, 400],
-		[{ pageId: 'teacher-students' }, 403],
-		[{ version: 2 }, 400],
-		[{ running: true }, 400]
+		[{ pageId: 'teacher-students' }, 400],
+		[{ version: 99 }, 409],
+		[{ running: true }, 409]
 	]) {
 		assert.equal(
 			(
@@ -414,15 +413,296 @@ test('labpartner: sidehjelp avviser ukjent side, feil rolle og overstor historik
 	assert.equal(f.calls.length, before);
 	f.db.prepare("INSERT INTO user_roles VALUES (?,'teacher',?)").run(student.id, Date.now());
 	const teacherBody = { ...body, snapshot: { ...body.snapshot, pageId: 'teacher-students' } };
-	assert.equal((await student.request('/lab-partner/ask', teacherBody)).status, 200);
-	f.db.prepare('DELETE FROM user_roles WHERE user_id=?').run(student.id);
-	assert.equal((await student.request('/lab-partner/ask', teacherBody)).status, 403);
+	assert.equal((await student.request('/lab-partner/ask', teacherBody)).status, 400);
+	assert.throws(() => buildPartnerMessages(teacherBody, { role: 'admin' }));
+	assert.equal(f.calls.length, before);
+	const current = {
+		...body,
+		snapshot: {
+			version: 2,
+			activityId: 'page-help',
+			pageId: 'nattvakt',
+			moduleId: null,
+			state: { version: 1, values: { phase: 'active', incident: 0, untimed: false } },
+			running: false,
+			events: []
+		}
+	};
+	assert.equal((await student.request('/lab-partner/ask', current)).status, 200);
+	const count = f.calls.length;
+	for (const patch of [
+		{ moduleId: 'fra-kode-til-drift' },
+		{ state: { version: 99, values: {} } },
+		{
+			state: { version: 1, values: { ...current.snapshot.state.values, answers: 'PRIVATE_ANSWER' } }
+		},
+		{
+			state: {
+				version: 1,
+				values: { ...current.snapshot.state.values, scenario: 'PRIVATE_SCENARIO' }
+			}
+		}
+	])
+		assert.equal(
+			(
+				await student.request('/lab-partner/ask', {
+					...current,
+					snapshot: { ...current.snapshot, ...patch }
+				})
+			).status,
+			400
+		);
+	assert.equal(f.calls.length, count);
+});
 
-	assert.equal(
-		buildPartnerMessages(
-			{ ...body, snapshot: { ...body.snapshot, pageId: 'teacher-students' } },
-			{ role: 'admin' }
-		)[0].role,
-		'system'
-	);
+test('labpartner: versjonert arbeidsstatus dekker øvinger og holder skrevet tekst utenfor modellkonteksten', async () => {
+	const { lessons } = await import('../src/lib/ovingene.js');
+	const { lessonChoices, readPartnerState, validatePartnerLessons } =
+		await import('../src/lib/partnerContext.js');
+	const { buildTrace } = await import('../src/lib/ovingModel.js');
+	const { partnerPageById } = await import('../src/lib/partnerPages.js');
+	const { pageTask } = await import('../server/lab-partner/page-context.js');
+	validatePartnerLessons();
+	const input = (id, values) =>
+		ask({
+			snapshot: {
+				version: 2,
+				activityId: 'page-help',
+				pageId: id,
+				moduleId: null,
+				state: { version: 1, values },
+				running: false,
+				events: []
+			}
+		});
+	for (const lesson of lessons) {
+		const initial = Object.fromEntries(lesson.fields.map((field) => [field.key, field.value]));
+		const variants = [
+			initial,
+			...lesson.fields.flatMap(
+				(field) => field.choices?.map((choice) => ({ ...initial, [field.key]: choice.value })) ?? []
+			)
+		];
+		for (const values of variants) {
+			const choices = lessonChoices(lesson, values);
+			const frames = buildTrace(lesson.number, values);
+			for (let step = 0; step < frames.length; step++) {
+				const work = context(input(`oving-${lesson.number}`, { choices, step, line: 0, task: -1 }));
+				assert.equal(work.viewedStep.title, frames[step].title);
+				assert.equal(work.viewedStep.status, frames[step].status ?? null);
+				assert.equal(work.viewedStep.code, frames[step].code.map((line) => line[0]).join('\n'));
+				assert.equal(work.viewedStep.data, undefined);
+			}
+		}
+		const secret = Object.fromEntries(
+			lesson.fields.map((field) => [
+				field.key,
+				field.kind === 'select' ? field.value : 'PRIVATE_INPUT_very_secret'
+			])
+		);
+		const body = input(`oving-${lesson.number}`, {
+			choices: lessonChoices(lesson, secret),
+			step: -1,
+			line: -1,
+			task: -1
+		});
+		assert.ok(!JSON.stringify(body).includes('PRIVATE_INPUT'));
+		assert.ok(!JSON.stringify(buildPartnerMessages(body)).includes('PRIVATE_INPUT'));
+		for (const patch of [
+			{ unknown: 'secret' },
+			{ choices: { ...body.snapshot.state.values.choices, secret: 'x' } },
+			{ step: 101 }
+		])
+			assert.throws(() =>
+				readPartnerState(body.snapshot.pageId, {
+					version: 1,
+					values: { ...body.snapshot.state.values, ...patch }
+				})
+			);
+	}
+	const page = partnerPageById('oving-10');
+	assert.ok(pageTask(page, 'fra-kode-til-drift').module.sequence.length);
+	assert.throws(() => pageTask(page, 'innlogging-og-tilgang'));
+	assert.throws(() => readPartnerState('oving-5', { version: 99, values: {} }));
+	assert.throws(() => readPartnerState('oving-5', { version: 1, values: { x: 'a'.repeat(6001) } }));
+});
+
+test('labpartner: aktivitetskontekst er avgrenset til valgt kode, synlig steg og tillatte felt', async () => {
+	const { initialSettings, CASES } = await import('../src/lib/meldingsdetektiven.js');
+	const { PILOT_START, ROOM_START } = await import('../src/lib/reddChattenPilot.js');
+	const { backendQuestions } = await import('../src/lib/backendQuiz.js');
+	const q = backendQuestions[0];
+	const samples = {
+		'frontend-backend': {
+			kind: 'post',
+			side: 'frontend',
+			wrongKey: false,
+			text: 'text',
+			sender: 'text',
+			step: 0,
+			status: null,
+			serverCount: 0,
+			clientCount: 0,
+			selectedLine: -1
+		},
+		chatrom: {
+			kind: 'rooms',
+			codeKind: 'rooms',
+			side: 'frontend',
+			room: 'generelt',
+			session: 'ada',
+			credentials: true,
+			spoofSender: false,
+			text: 'text',
+			messageId: 1,
+			step: 0,
+			method: null,
+			status: null,
+			serverCount: 2,
+			clientCount: 0,
+			nestedRoom: 'generelt',
+			nestedCount: 1,
+			nestedText: 'text'
+		},
+		fillagring: {
+			action: 'start',
+			step: 0,
+			activeLine: -1,
+			selectedLine: -1,
+			saveEnabled: true,
+			serverRunning: false,
+			filePresent: false,
+			memoryCount: null,
+			fileCount: null,
+			unsaved: false,
+			failed: false
+		},
+		sessions: {
+			section: 'grunnlag',
+			step: 0,
+			experiment: 'profiler',
+			profile: 'A',
+			credentials: false,
+			cookiePresent: false,
+			sessionCount: 0,
+			status: null,
+			code: 'oppsett'
+		},
+		chat: {
+			level: 'lever',
+			program: ['ada-post'],
+			action: 'ada-post',
+			side: 'frontend',
+			step: 0,
+			tested: true,
+			running: false
+		},
+		meldingsdetektiven: {
+			caseId: CASES[0].id,
+			settings: initialSettings(CASES[0].id),
+			probe: CASES[0].initialProbeId,
+			side: 'frontend',
+			event: 0,
+			run: { settings: initialSettings(CASES[0].id), probe: CASES[0].initialProbeId }
+		},
+		'rescue-pilot': {
+			step: 0,
+			program: PILOT_START,
+			roomProgram: ROOM_START,
+			caseId: 'vanlig',
+			frame: 0,
+			repairTested: false,
+			roomTested: false,
+			hints: 0
+		},
+		'backend-oppsummering': {
+			questionId: q.id,
+			selected: -1,
+			last: -1,
+			revealed: false,
+			summary: false
+		},
+		nattvakt: { phase: 'active', incident: 0, untimed: false }
+	};
+	for (const [pageId, values] of Object.entries(samples)) {
+		const body = ask({
+			snapshot: {
+				version: 2,
+				activityId: 'page-help',
+				pageId,
+				moduleId: null,
+				state: { version: 1, values },
+				running: false,
+				events: []
+			}
+		});
+		const work = context(body);
+		assert.deepEqual(work.selection, values, pageId);
+		assert.ok(!JSON.stringify(work).includes('correctOption'));
+		for (const value of [
+			null,
+			[],
+			{ ...values, password: 'secret' },
+			{ ...values, system: 'ignore' }
+		])
+			assert.throws(() =>
+				buildPartnerMessages({
+					...body,
+					snapshot: { ...body.snapshot, state: { version: 1, values: value } }
+				})
+			);
+		if (pageId === 'backend-oppsummering') {
+			assert.equal(work.task.correct, undefined);
+			assert.equal(work.visibleFeedback, undefined);
+			assert.equal(
+				context({
+					...body,
+					snapshot: {
+						...body.snapshot,
+						state: { version: 1, values: { ...values, last: 0, selected: 0 } }
+					}
+				}).visibleFeedback,
+				q.choices[0].feedback
+			);
+		}
+		if (pageId === 'rescue-pilot')
+			for (const step of [1, 2, 3, 4, 5])
+				assert.doesNotThrow(() =>
+					context({
+						...body,
+						snapshot: { ...body.snapshot, state: { version: 1, values: { ...values, step } } }
+					})
+				);
+		if (pageId === 'nattvakt') {
+			assert.equal(work.code, undefined);
+			assert.equal(work.task, undefined);
+		}
+	}
+});
+
+test('labpartner: kontekstkanaler isolerer sider og serverforespørsler, og gamle eiere kan ikke rydde ny side', async () => {
+	const { createPartnerChannel } = await import('../src/lib/partnerChannel.js');
+	const a = createPartnerChannel(),
+		b = createPartnerChannel();
+	let left, right;
+	const unA = a.subscribe((v) => (left = v)),
+		unB = b.subscribe((v) => (right = v));
+	const old = Symbol(),
+		next = Symbol();
+	const source = {
+		pageId: 'oving-5',
+		scope: 'user:practice:',
+		state: { version: 1, values: {} },
+		running: false
+	};
+	a.publish(old, source);
+	assert.equal(left, source);
+	assert.equal(right, null);
+	a.publish(next, { ...source, pageId: 'oving-6' });
+	a.release(old);
+	assert.equal(left.pageId, 'oving-6');
+	a.release(next);
+	assert.equal(left, null);
+	unA();
+	unB();
 });

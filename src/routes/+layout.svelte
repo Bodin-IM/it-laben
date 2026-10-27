@@ -1,4 +1,7 @@
 <script>
+	import { setContext } from 'svelte';
+	import { createPartnerChannel, partnerChannelKey } from '#lib/partnerChannel.js';
+	import { partnerAllowed } from '#lib/partnerPages.js';
 	import { onMount } from 'svelte';
 	import { page } from '$app/state';
 	import favicon from '#lib/assets/favicon.svg';
@@ -21,6 +24,7 @@
 
 	/** @type {{children: import('svelte').Snippet}} */
 	let { children } = $props();
+	setContext(partnerChannelKey, createPartnerChannel());
 	const browser = typeof window !== 'undefined';
 	const activity = $derived(presentationLessons.find((item) => item.href === page.url.pathname));
 	const presentationRequested = $derived(
@@ -35,7 +39,12 @@
 	});
 	const showStudentTools = $derived(!presentationRequested || ($lab.ready && !presenting));
 	const localPartner = $derived(page.url.pathname.replace(/\/$/, '') === '/spill/redd-chatten');
-	const showCompanion = $derived(!localPartner && showStudentTools && $labPreferences.companion);
+	const showCompanion = $derived(
+		!localPartner &&
+			showStudentTools &&
+			partnerAllowed(page.url.pathname) &&
+			$labPreferences.companion
+	);
 	const plan = $derived(
 		teachingPlans.find(
 			(item) =>

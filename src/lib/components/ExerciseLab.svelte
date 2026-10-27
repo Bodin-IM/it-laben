@@ -1,4 +1,7 @@
 <script>
+	import PartnerContext from '#lib/components/PartnerContext.svelte';
+	import { lessonChoices } from '#lib/partnerContext.js';
+
 	import { onMount } from 'svelte';
 	import { page } from '$app/state';
 	import { moduleLink } from '#lib/moduleNavigation.js';
@@ -20,6 +23,7 @@
 	let trace = $state([]);
 	let index = $state(0);
 	let selectedLine = $state(0);
+	let partnerTask = $state(-1);
 	let current = $derived(trace[index]);
 	let finished = $derived(trace.length > 0 && index === trace.length - 1);
 	let previous = $derived(lessons.find((item) => item.number === lesson.number - 1));
@@ -74,6 +78,16 @@
 		return true;
 	}
 </script>
+
+<PartnerContext
+	pageId={`oving-${lesson.number}`}
+	values={{
+		choices: lessonChoices(lesson, values),
+		step: current ? index : -1,
+		line: current ? selectedLine : -1,
+		task: partnerTask
+	}}
+/>
 
 <svelte:head>
 	<title>Øving {lesson.number}: {lesson.title} – IT-laben</title>
@@ -282,7 +296,12 @@
 						<span class="task-number">0{i + 1}</span>
 						<h3>{task.title}</h3>
 						<p>{task.hint}</p>
-						<details>
+						<details
+							ontoggle={(event) => {
+								if (event.currentTarget.open) partnerTask = i;
+								else if (partnerTask === i) partnerTask = -1;
+							}}
+						>
 							<summary>Vis forklaring</summary>
 							<p>{task.answer}</p>
 						</details>
@@ -325,6 +344,7 @@
 
 <style>
 	.lesson-page {
+		overflow-wrap: anywhere;
 		font-family: var(--font-ui);
 		color: var(--color-text);
 	}
@@ -481,6 +501,10 @@
 		gap: 1rem;
 		border-bottom: 1px solid var(--color-border);
 	}
+	.lab-heading > div {
+		min-width: 0;
+		overflow-wrap: anywhere;
+	}
 	.lab-number {
 		font: 3rem/1 monospace;
 		color: var(--color-border-strong);
@@ -518,6 +542,8 @@
 		min-height: 90px;
 	}
 	.run {
+		flex-wrap: wrap;
+		overflow-wrap: anywhere;
 		width: 100%;
 		margin: 1.4rem 0 0.3rem;
 		display: flex;

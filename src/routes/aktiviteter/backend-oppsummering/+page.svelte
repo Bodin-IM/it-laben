@@ -1,4 +1,6 @@
 <script>
+	import PartnerContext from '#lib/components/PartnerContext.svelte';
+
 	import { tick } from 'svelte';
 	import {
 		backendQuestions as questions,
@@ -60,6 +62,17 @@
 		return a?.attempts.length ? 'Prøv igjen' : 'Ikke besvart';
 	}
 </script>
+
+<PartnerContext
+	pageId="backend-oppsummering"
+	values={{
+		questionId: question.id,
+		selected,
+		last: last ?? -1,
+		revealed: answer?.revealed ?? false,
+		summary: showSummary
+	}}
+/>
 
 <svelte:head>
 	<title>Backend: oppsummering av øving 1–10 – IT-laben</title>

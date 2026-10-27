@@ -1,6 +1,6 @@
 # Labpartner med sidehjelp og lokal KI
 
-Labpartneren er tilgjengelig på alle vanlige sider. KI-piloten startet i Redd chatten; den detaljerte koblingen til elevens kode og forsøk er fortsatt avgrenset til de tre ordinære reparasjonsoppdragene. Den separate læringspiloten på `/spill/redd-chatten/pilot/` får generell sidehjelp.
+Labpartneren er tilgjengelig på elevsidene. Lærer- og administratorsider er unntatt. Den detaljerte konteksten er utvidet til øvingene og aktivitetene, med felles støtte for videre innhold. Se [kontekstsystemet og oppskriften for nye sider](labpartner-kontekst.md).
 
 ## Sidehjelp, KI og utseende
 
@@ -10,9 +10,9 @@ Labpartneren er tilgjengelig på alle vanlige sider. KI-piloten startet i Redd c
 - **KI:** krever innlogging og konfigurert KI i IT-labens backend. Panelet undersøker konfigurasjonen ved åpning, og velger KI når den er tilgjengelig, med mindre eleven allerede har valgt en annen visning. **Prøv KI igjen** undersøker på nytt. En konfigurert modell kan fortsatt være utilgjengelig; et mislykket spørsmål beholdes, og Sidehjelp er fortsatt tilgjengelig. Statusruten er ingen Ollama-helsesjekk.
 - **Utseende:** ti figurer, tre bakgrunner og valg av animasjoner. Se [avatarer og lagring](avatarer-og-trygg-lagring.md).
 
-På de generelle sidene sender nettleseren bare `activityId: "page-help"`, versjon, en kjent `pageId`, `running: false` og en tom hendelsesliste, i tillegg til elevens spørsmål og inntil to tidligere spørsmål/svar. Backend slår opp godkjent innhold i `src/lib/partnerPages.js`. Vilkårlige nettadresser, søkefelt, skjema, lokale kodevalg, kontoopplysninger, elevresultater og DOM-innhold brukes ikke som sidekontekst. Lærer-ID-er krever lærer- eller administratorrolle i API-et og gir bare generell hjelp om verktøyene. Fritekst som brukeren selv skriver, sendes uendret.
+På elevsidene brukes `page-help` versjon 2 med kjent side-ID, eventuell validert modul og en avgrenset arbeidsstatus. Backend henter faglig grunnlag og kode fra IT-labens egne kilder. Nye øvingsark i felleskomponenten får koblingen automatisk. Se [delingsoversikten](labpartner-kontekst.md#hva-sidene-deler) for felter og begrensninger. Lærer-ID-er avvises også direkte i API-et.
 
-KI-instruksjonen på disse sidene sier uttrykkelig at modellen ikke har sett elevens forsøk. Panelet viser den samme begrensningen under **Dette følger med spørsmålet**. Ingen fagsjekkspørsmål eller fasit hentes inn. Modellen kan forklare begreper og foreslå en undersøkelse, men skal ikke godkjenne arbeid eller gi XP. KI-generert veiledning må fortsatt prøves faglig med den lokale modellen; en systeminstruksjon garanterer ikke gode svar.
+Panelet viser hva som følger med spørsmålet. Ingen fagsjekkspørsmål, Nattevakt-scenario eller vurderingsfasit hentes inn. Modellen kan forklare begreper og foreslå en undersøkelse, men skal ikke godkjenne arbeid eller gi XP. KI-generert veiledning må fortsatt prøves faglig med den lokale modellen; en systeminstruksjon garanterer ikke gode svar.
 
 Samtalen beholdes ved lukking og skjermbreddebytte, men tømmes ved bytte av sidegrunnlag, profil eller øvingskontekst. Pågående spørsmål avbrytes ved slikt bytte. Ukjente ruter får en generell navigasjonshjelp; bare kjente fagfiltre påvirker sidegrunnlaget. Ingen samtale lagres permanent. Presentasjonsvisningen beholder fraværet av elevverktøy.
 
@@ -63,7 +63,7 @@ Klientens opplysninger om klikk og tidligere prøving er rapporterte handlinger,
 
 Ved stegvis gjennomgang sendes bare det valgte steget og den synlige tilstanden, ikke simulatorens ferdig beregnede sluttresultat. Ved kodeendring er tidligere prøving uttrykkelig merket som gammel. Et automatisk valg av første feilende test registreres ikke som elevens eget valg.
 
-Oppgavegrunnlaget velges via en kjent aktivitets-ID på serveren. Versjon 1 av protokollen ligger i `src/lib/labPartner.js`. Inkompatibel versjon, ukjent aktivitet, ugyldige blokker, for store felt og en pågående prøverunde avvises før KI-kallet. Eldre samtale og hendelser utelates ved behov for å holde konteksten kort. Det er ikke lagt inn tekstsøk, vektordatabase eller permanent elevhistorikk.
+Oppgavegrunnlaget velges via en kjent aktivitets-ID på serveren. Redd chattens versjon 1 av protokollen ligger i `src/lib/labPartner.js`. Inkompatibel versjon, ukjent aktivitet, ugyldige blokker, for store felt og en pågående prøverunde avvises før KI-kallet. Eldre samtale og hendelser utelates ved behov for å holde konteksten kort. Det er ikke lagt inn tekstsøk, vektordatabase eller permanent elevhistorikk.
 
 ## Koble til lokal Ollama
 
@@ -103,18 +103,18 @@ API-et sender ingen verktøy til modellen og evaluerer ingen fri kode. Det finne
 
 ## Kontroll
 
-Åtte fokuserte testgrupper i `tests/labPartner.test.js` dekker riktig, feil og utdatert oppgavekontekst, visning av ett steg, innlogging/konto/Origin/CSRF, feltgrenser, tjenestefeil, tidsavbrudd, avbrudd, samtidighet og spørsmålsgrense. To av gruppene dekker i tillegg kjent sidegrunnlag, rutedekning, kontekstgrenser og roller. Den eksisterende avatargruppa prøver også de fire nye figurene, varig lagring og backup uten nye poeng. Nettleserprøvene bruker ekte lokal IT-laben-API og en kontrollert HTTP-testtjeneste med Ollamas kontrakt. Testsvarene er ikke produsert av en lokal KI-modell.
+Elleve fokuserte testgrupper i `tests/labPartner.test.js` dekker riktig, feil og utdatert oppgavekontekst, visning av ett steg, innlogging/konto/Origin/CSRF, feltgrenser, tjenestefeil, tidsavbrudd, avbrudd, samtidighet og spørsmålsgrense. To av gruppene dekker i tillegg kjent sidegrunnlag, rutedekning, kontekstgrenser og avvisning av lærersider. Den eksisterende avatargruppa prøver også de fire nye figurene, varig lagring og backup uten nye poeng. Nettleserprøvene bruker ekte lokal IT-laben-API og en kontrollert HTTP-testtjeneste med Ollamas kontrakt. Testsvarene er ikke produsert av en lokal KI-modell.
 
 Kontrollene omfatter spørsmål, oppfølging, kodeendring mens svaret ventes, avbrudd og nytt forsøk, tekstvisning av HTML-lignende modellsvar, oppgave-/profilbytte, vanlige hint ved utilgjengelig KI, tastatur, mobil, forstørret tekst og begge temaer. En avgrenset axe-kontroll gjelder det nye panelet, ikke hele nettstedets tilgjengelighet. Svelte MCP er ikke tilgjengelig; offisiell dokumentasjon, `npm run check`, bygg og nettleserprøver brukes.
 
 Grensesnittprøven etter omleggingen dekker tre svar på rad uten flytting av skrivefelt eller testknapper, nyeste svar først, lukket historikk, lesing mens nytt svar kommer, lange svar med tastaturrulling, sen respons under arbeid i oppgaven, feil og nytt forsøk, mobilens tilbakevei og bevart samtale ved breddebytte. Nettleseren prøves ved 320, 390, 900, 1440, 1800 og 1920 CSS-piksler, begge temaer og 200 % tekst med økt tekstavstand. En kort mobilvisning på 390 × 568 er også prøvd med langt svar, kontekstvisning og bevart utkast. Kontrollen av 200 % tekst avdekket eksisterende breddeproblemer i fagsjekkkortet og hopplenken; små CSS-rettinger lar disse omflytes uten horisontal siderulling. Ingen nye automatiserte testfiler er lagt til for denne visningsendringen.
 
-`npm test`: 166 beståtte tester, med to nye grupper for den generelle sidekonteksten. `npm run check`: ingen feil eller advarsler. `npm run build`: bestått. Nettleserprøvene over er bestått med en kontrollert HTTP-testtjeneste.
+`npm test`: 169 beståtte tester, med tre nye samlede grupper for arbeidsstatus, delingsgrenser og kanalisolasjon. `npm run check`: ingen feil eller advarsler. `npm run build`: bestått. Nettleserprøvene over er bestått med en kontrollert HTTP-testtjeneste.
 
 **Gjenstår før elevutprøving:** kontrollere modellens faglige svar i de tre grunnsituasjonene, og måle ventetid og kapasitet. Beståtte programtester dokumenterer funksjon, ikke kvaliteten på KI-veiledningen eller læringseffekt.
 
-Utvidelsen er prøvd på fagoversikt, fagfilter, modul, øvinger, spill, oppsummering, Min lab, toppliste og lærersider. Nettleserprøven undersøker sidebytte uten gammel samtale, avgrenset KI-kontekst, feil med bevart utkast, fast hjelp ved avslått tjeneste, tilkobling på nytt, profil- og gjesteavatar, bakgrunn, redusert bevegelse, skjuling og gjenåpning fra hovedmenyen. Grensesnittet er kontrollert med en lokal test-API og simulerte Ollama-svar. Driftsprøven mot skoleserverens modell gjenstår etter oppdatering.
+Utvidelsen er prøvd på fagoversikt, fagfilter, modul, øvinger, spill, oppsummering, Min lab, toppliste mens lærersidene nå kontrolleres uten labpartner. Nettleserprøven undersøker sidebytte uten gammel samtale, avgrenset KI-kontekst, feil med bevart utkast, fast hjelp ved avslått tjeneste, tilkobling på nytt, profil- og gjesteavatar, bakgrunn, redusert bevegelse, skjuling og gjenåpning fra hovedmenyen. Grensesnittet er kontrollert med en lokal test-API og simulerte Ollama-svar. Driftsprøven mot skoleserverens modell gjenstår etter oppdatering.
 
 ## Videreutvikling
 
-Nye sider får generell hjelp fra den offentlige katalogen. Mer presis veiledning om et konkret forsøk krever både et gjennomgått faglig grunnlag på serveren og en eksplisitt beskrivelse av hvilke tilstander/handlinger som kan deles. Gjenbruk innhold fra aktiviteten, og oppdater kontekstversjonen når kontrakten endres. Ikke send hele siden, hele repoet, lærerinnhold eller vurderingsfasit til modellen. Behold muligheten til å gi fast hjelp når KI ikke kan brukes.
+Nye moduler og leksjoner gjenbruker felles metadata og øvingskomponenter. Nye aktivitetstyper trenger en eksplisitt kontrakt for deling av arbeidsstatus. Følg [utvidelsesoppskriften](labpartner-kontekst.md#nye-moduler-øvinger-og-leksjoner), øk versjonen ved inkompatible endringer, og bevar fast hjelp når KI ikke kan brukes. Ikke send hele siden, repoet, lærerinnhold eller vurderingsfasit til modellen.

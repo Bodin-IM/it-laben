@@ -13,50 +13,12 @@
 	/** @type {'backend' | 'frontend'} */
 	let visning = $state('backend');
 
-	// Denne kilden er identisk før og etter innlogging, og i de ekstra /meg-forsøkene.
-	const megBackend = [
-		'app.get("/meg", (req, res) => {',
-		'  const bruker = req.session.bruker;',
-		'  if (!bruker) {',
-		'    return res.status(401).json({ beskjed: "Du er ikke logget inn." });',
-		'  }',
-		'  res.json({ bruker });',
-		'});'
-	];
-	const innloggingBackend = [
-		'req.session.regenerate((feil) => {',
-		'  if (feil) return next(feil);',
-		'  req.session.bruker = { id: bruker.id, navn: bruker.navn };',
-		'  req.session.save((feil) => {',
-		'    if (feil) return next(feil);',
-		'    res.json({ bruker: req.session.bruker });',
-		'  });',
-		'});'
-	];
-	const utloggingBackend = [
-		'app.post("/loggut", (req, res, next) => {',
-		'  req.session.destroy((feil) => {',
-		'    if (feil) return next(feil);',
-		'    res.clearCookie("itlab.sid", cookieOptions);',
-		'    res.sendStatus(204);',
-		'  });',
-		'});'
-	];
-	const utloggingFrontend = [
-		'async function loggUtOgSpor() {',
-		'  const ut = await fetch(API + "/loggut", {',
-		'    method: "POST", credentials: "include"',
-		'  });',
-		'  if (!ut.ok) throw new Error("Utlogging feilet");',
-		'  // 204 har ingen JSON-body.',
-		'  const meg = await fetch(API + "/meg", {',
-		'    credentials: "include"',
-		'  });',
-		'  if (meg.status === 401) return null;',
-		'  if (!meg.ok) throw new Error("Kunne ikke hente bruker");',
-		'  return (await meg.json()).bruker;',
-		'}'
-	];
+	import {
+		megBackend,
+		innloggingBackend,
+		utloggingBackend,
+		utloggingFrontend
+	} from '#lib/sessionLesson.js';
 
 	let cookieInnstilling = $derived(
 		ekstra && forsok === 'cookie' && !credentials ? 'same-origin' : 'include'

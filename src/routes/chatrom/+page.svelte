@@ -1,4 +1,7 @@
 <script>
+	import PartnerContext from '#lib/components/PartnerContext.svelte';
+	import { textShape } from '#lib/partnerContext.js';
+
 	import PageLinks from '#lib/components/PageLinks.svelte';
 	import ModuleContext from '#lib/components/ModuleContext.svelte';
 	import { avatarFeedback } from '#lib/avatarFeedback.js';
@@ -7,33 +10,7 @@
 
 	/** @typedef {'rooms' | 'session' | 'delete'} Kind */
 	/** @typedef {'frontend' | 'backend'} Side */
-	/** @type {{id: Kind, number: string, title: string, method: string, goal: string, question: string}[]} */
-	const modules = [
-		{
-			id: 'rooms',
-			number: '01',
-			title: 'Velg rom',
-			method: 'GET',
-			goal: 'Hent bare meldingene som tilhører rommet du har valgt.',
-			question: 'Hva må frontend sende for at backend skal vite hvilket rom du vil se?'
-		},
-		{
-			id: 'session',
-			number: '02',
-			title: 'Send som innlogget',
-			method: 'POST',
-			goal: 'La backend finne avsenderen i sessionen når en melding sendes.',
-			question: 'Kan noen bytte avsender ved å endre det som sendes fra nettleseren?'
-		},
-		{
-			id: 'delete',
-			number: '03',
-			title: 'Slett egen melding',
-			method: 'DELETE',
-			goal: 'Bruk meldings-ID og sjekk eierskap før backend sletter.',
-			question: 'Hva stopper en bruker fra å slette en annens melding?'
-		}
-	];
+	import { CHATROOM_LESSONS as modules } from '#lib/chatromLab.js';
 
 	/** @type {Kind} */
 	let kind = $state('rooms');
@@ -233,6 +210,29 @@
 		nestedStatus = `Lagt til i ${nestedSelected.navn}. Det andre rommet er uendret.`;
 	}
 </script>
+
+<PartnerContext
+	pageId="chatrom"
+	values={{
+		kind,
+		codeKind,
+		side,
+		room: options.room,
+		session,
+		credentials,
+		spoofSender,
+		text: textShape(text),
+		messageId: Number(options.messageId),
+		step,
+		method: current?.requestMethod ?? null,
+		status: current?.httpStatus ?? null,
+		serverCount: lab.serverMessages.length,
+		clientCount: lab.clientMessages.length,
+		nestedRoom,
+		nestedCount: nestedSelected?.meldinger.length ?? 0,
+		nestedText: textShape(nestedText)
+	}}
+/>
 
 <svelte:head>
 	<title>Bygg videre på chatten – IT-laben</title>
