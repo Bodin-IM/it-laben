@@ -145,7 +145,7 @@
 </script>
 
 <svelte:head>
-	<title>Nettverk – DRIFT / Modul 1</title>
+	<title>Fra bits til bytes – DRIFT / Modul 1</title>
 	<meta
 		name="description"
 		content="Utforsk LAN, WAN, IP, MAC, nettverksutstyr og tjenesteporter med interaktive forklaringer knyttet til Siten."
@@ -270,7 +270,7 @@
 		<section class="hero" aria-labelledby="module-title">
 			<div>
 				<p class="eyebrow">MODUL 01 <span>GRUNNLEGGENDE NETTVERK</span></p>
-				<h1 id="module-title">Fra kabel<br />til <span>kommunikasjon.</span></h1>
+				<h1 id="module-title">Fra bits <br />til <span>bytes</span></h1>
 				<p class="intro">
 					Hva skjer egentlig når maskinene på Siten snakker sammen? Utforsk nettverket, ett begrep
 					om gangen.

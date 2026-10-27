@@ -190,7 +190,7 @@ export const aktiviteter = [
 		id: 'drift-modul-1',
 		audience: 'student',
 		tracking: { kind: 'review' },
-		tittel: 'Modul 1: Nettverk',
+		tittel: 'Modul 1: Fra bits til bytes',
 		beskrivelse: 'Utforsk nettverket på Siten: LAN og WAN, IP, MAC, utstyr og tjenesteporter.',
 		href: '/drift/',
 		fag: 'drift',

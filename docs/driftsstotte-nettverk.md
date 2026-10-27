@@ -1,4 +1,4 @@
-# Driftsstøtte – Modul 1: Nettverk
+# Driftsstøtte – Modul 1: Fra bits til bytes
 
 Første import av nettverksopplegget fra `drift_web`. Siden ligger på `/drift/`
 og vises under Driftsstøtte på forsiden. Branchen heter `Driftsstøtte`.
