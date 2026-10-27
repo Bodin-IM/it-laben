@@ -4,7 +4,9 @@
 	import ThemeToggle from '#lib/components/ThemeToggle.svelte';
 	import AccountLink from '#lib/components/AccountLink.svelte';
 	import PersonalOverview from '#lib/components/PersonalOverview.svelte';
-	import { aktiviteter, fag, innholdsformat } from '#lib/innhold.js';
+	import ModuleCard from '#lib/components/ModuleCard.svelte';
+	import { moduler } from '#lib/moduler.js';
+	import { altElevinnhold as aktiviteter, fag, innholdsformat } from '#lib/innhold.js';
 	import { lab as account } from '#lib/lab.js';
 	import { hasTeacherRole } from '#lib/learning.js';
 
@@ -57,6 +59,15 @@
 	);
 	const viserTomtFag = $derived(
 		valgtFag !== 'alle' && !aktiviteter.some((aktivitet) => aktivitet.fag === valgtFag)
+	);
+	const modulGrupper = $derived(
+		fag
+			.filter((gruppe) => valgtFag === 'alle' || gruppe.id === valgtFag)
+			.map((gruppe) => ({
+				...gruppe,
+				moduler: moduler.filter((modul) => modul.subject === gruppe.id)
+			}))
+			.filter((gruppe) => gruppe.moduler.length)
 	);
 
 	function nullstillSok() {
@@ -111,12 +122,12 @@
 	<title>IT-laben – se hvordan det henger sammen</title>
 	<meta
 		name="description"
-		content="Utforsk leksjoner, spill og utfordringer i IT-fagene. Velg utvikling eller driftsstøtte, eller se alt innholdet samlet."
+		content="Velg en modul i utvikling eller driftsstøtte. Finn undervisning, øvinger og oppdrag samlet, eller åpne øvinger og spill hver for seg."
 	/>
 </svelte:head>
 
 <div class="forside">
-	<a class="hopp-til-innhold" href="#utforsk">Hopp til innholdet</a>
+	<a class="hopp-til-innhold" href="#moduler">Hopp til innholdet</a>
 	<header>
 		<a class="logo" href="/" aria-label="IT-laben – forside">
 			<span class="logo-symbol" aria-hidden="true">IT</span>IT-laben<span class="punkt">.</span>
@@ -137,7 +148,7 @@
 					<p class="overlinje">UTFORSK IT-LABEN</p>
 					<h1 id="sidetittel">Hva jobber du med <em>i dag?</em></h1>
 					<p class="ingress">
-						Velg et fag, eller utforsk alt. Se, prøv og finn ut hvordan IT fungerer.
+						Velg et fag og en modul, eller finn en øving eller et spill lenger ned.
 					</p>
 				</div>
 				<button
@@ -145,7 +156,7 @@
 					class="alle-fag"
 					class:valgt={valgtFag === 'alle'}
 					aria-pressed={valgtFag === 'alle'}
-					aria-controls="utforsk"
+					aria-controls="moduler utforsk"
 					onclick={() => (valgtFag = 'alle')}
 				>
 					<span class="valgt-prikk" aria-hidden="true"></span>Alle fag
@@ -159,7 +170,7 @@
 						class="fagkort"
 						class:valgt={valgtFag === gruppe.id}
 						aria-pressed={valgtFag === gruppe.id}
-						aria-controls="utforsk"
+						aria-controls="moduler utforsk"
 						onclick={() => (valgtFag = gruppe.id)}
 					>
 						<span class="fagsymbol" aria-hidden="true">{gruppe.symbol}</span>
@@ -175,8 +186,32 @@
 			</div>
 		</section>
 
+		<section id="moduler" class="moduloversikt" aria-labelledby="modultittel">
+			<div class="moduloverskrift">
+				<div>
+					<h2 id="modultittel">Moduler</h2>
+					<p>Undervisning, øvinger og oppdrag som hører sammen.</p>
+				</div>
+				<a href="#utforsk">Se øvinger og spill <span aria-hidden="true">↓</span></a>
+			</div>
+			{#each modulGrupper as gruppe (gruppe.id)}
+				<section class="modulgruppe" aria-label={`Moduler i ${gruppe.navn}`}>
+					{#if valgtFag === 'alle'}<p class="modulfag">{gruppe.navn}</p>{/if}
+					<div class="modulkortliste">
+						{#each gruppe.moduler as module (module.id)}<ModuleCard {module} />{/each}
+					</div>
+				</section>
+			{/each}
+			{#if !modulGrupper.length}<p>
+					Moduler for dette faget kommer. Utforsk innholdet nedenfor.
+				</p>{/if}
+		</section>
 		<PersonalOverview subject={valgtFag} />
-		<section id="utforsk" class="oversikt" aria-label="Leksjoner og spill">
+		<section id="utforsk" class="oversikt" aria-labelledby="enkelttittel">
+			<div class="enkeltoverskrift">
+				<h2 id="enkelttittel">Øvinger, oppdrag og spill</h2>
+				<p>Åpne innholdet direkte. Her finner du også delene som inngår i modulene.</p>
+			</div>
 			<div class="verktoylinje">
 				<div class="sokefelt">
 					<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" aria-hidden="true"
@@ -186,7 +221,7 @@
 					<input
 						id="innholdssok"
 						type="search"
-						placeholder="Søk etter tema, leksjon eller spill …"
+						placeholder="Søk etter tema, øving eller spill …"
 						bind:value={sok}
 						autocomplete="off"
 					/>
@@ -254,7 +289,9 @@
 											<span class="formatmerke"
 												>{innholdsformat(aktivitet.format).entall}{aktivitet.format === 'leksjon'
 													? ' · Gjør selv'
-													: ''}</span
+													: aktivitet.format === 'spill'
+														? ' · Spill'
+														: ''}</span
 											>
 											<span class="symbol" aria-hidden="true">{aktivitet.symbol}</span>
 										</div>
@@ -318,6 +355,60 @@
 </div>
 
 <style>
+	.moduloversikt {
+		margin: 4px 0 32px;
+		scroll-margin-top: 20px;
+	}
+	.moduloverskrift {
+		display: flex;
+		align-items: center;
+		justify-content: space-between;
+		flex-wrap: wrap;
+		gap: 10px 24px;
+		margin-bottom: 18px;
+	}
+	.moduloverskrift p,
+	.enkeltoverskrift p {
+		margin: 4px 0 0;
+		font-size: var(--font-small);
+		color: var(--color-text-muted);
+	}
+	.moduloverskrift > a {
+		color: var(--color-accent);
+		font-size: var(--font-small);
+		text-decoration: underline;
+		text-underline-offset: 3px;
+		padding-block: 8px;
+	}
+	.modulgruppe + .modulgruppe {
+		margin-top: 22px;
+	}
+	.modulfag {
+		margin: 0 0 10px;
+		font-size: var(--font-small);
+		font-weight: 700;
+		color: var(--color-text-muted);
+	}
+	.modulkortliste {
+		display: grid;
+		grid-template-columns: repeat(3, minmax(0, 1fr));
+		gap: 16px;
+	}
+	.enkeltoverskrift {
+		border-top: 1px solid var(--color-border);
+		padding-top: 25px;
+		margin-bottom: 18px;
+	}
+	@media (max-width: 850px) {
+		.modulkortliste {
+			grid-template-columns: repeat(2, minmax(0, 1fr));
+		}
+	}
+	@media (max-width: 550px) {
+		.modulkortliste {
+			grid-template-columns: 1fr;
+		}
+	}
 	.saved-status {
 		font-size: var(--font-meta);
 		color: var(--color-success);

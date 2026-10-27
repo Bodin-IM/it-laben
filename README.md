@@ -1,5 +1,7 @@
 # IT-laben
 
+På `dev` vises [moduler](docs/moduler.md) først i hvert fag, med undervisning, øvinger og oppdrag samlet. Alle øvinger og spill kan fortsatt åpnes direkte lenger ned på fagsiden.
+
 Interaktive forklaringer, små øvelser og kodeeksempler for IT-fagene i videregående skole.
 
 IT-laben skal hjelpe elevene å se hvordan ting henger sammen: følge data, prøve en handling og forstå resultatet. Sidene kan brukes i felles gjennomgang eller som støtte når elevene arbeider med egne prosjekter.
@@ -73,7 +75,7 @@ På `/spill/redd-chatten/pilot/` kan eleven forutsi, undersøke, reparere og for
 
 ## Hvordan vi bygger undervisningssidene
 
-Det felles [pedagogiske grunnlaget](docs/pedagogisk-grunnlag.md) beskriver hvordan vi bruker forskning om interaktivitet, tilbakemeldinger og gamification i nye aktiviteter. Bruk [aktivitetsmalen](docs/aktivitetsmal.md) for å konkretisere mål, elevhandlinger, respons og ny anvendelse. [AGENTS.md](AGENTS.md) gir KI-assistenter instruksjoner om å lese og følge grunnlaget når de arbeider med repoet.
+Det felles [pedagogiske grunnlaget](docs/pedagogisk-grunnlag.md) beskriver hvordan vi bruker forskning om interaktivitet, tilbakemeldinger og gamification i nye aktiviteter. [Grunnlaget for webdesign og brukeropplevelse](docs/webdesign-og-brukeropplevelse.md) supplerer dette med prinsipper for struktur, lesbarhet, interaksjon, tilgjengelighet og brukertesting. Bruk [aktivitetsmalen](docs/aktivitetsmal.md) for å konkretisere mål, elevhandlinger, respons og ny anvendelse. [AGENTS.md](AGENTS.md) gir KI-assistenter instruksjoner om å lese og følge begge grunnlagene ved relevant arbeid i repoet.
 
 Når vi lager og videreutvikler sider, legger vi vekt på å:
 

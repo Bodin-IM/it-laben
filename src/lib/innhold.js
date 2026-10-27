@@ -1,14 +1,14 @@
 import { lessons } from '#lib/ovingene.js';
 
-// Felles oversikt for forsiden. Legg nye leksjoner og spill til i aktiviteter.
+// Aktiviteter med serverlagret fremgang. Fri repetisjon legges til i repetisjonsaktiviteter.
 export const fag = [
 	{ id: 'utvikling', navn: 'Utvikling', beskrivelse: 'Kode, nettsider og data', symbol: '{ }' },
 	{ id: 'drift', navn: 'Driftsstøtte', beskrivelse: 'Nettverk, servere og systemer', symbol: '▤' }
 ];
 
 export const innholdsformater = [
-	{ id: 'leksjon', navn: 'Leksjoner', entall: 'Leksjon', sokeord: 'leksjon forklaring øvelse' },
-	{ id: 'spill', navn: 'Spill og utfordringer', entall: 'Spill', sokeord: 'spill utfordring' },
+	{ id: 'leksjon', navn: 'Øvinger', entall: 'Øving', sokeord: 'leksjon forklaring øvelse' },
+	{ id: 'spill', navn: 'Oppdrag og spill', entall: 'Oppdrag', sokeord: 'oppdrag spill utfordring' },
 	{ id: 'aktivitet', navn: 'Aktiviteter', entall: 'Aktivitet', sokeord: 'aktivitet oppgave' }
 ];
 
@@ -187,3 +187,35 @@ export const aktiviteter = [
 		})
 	)
 ];
+
+// Offentlig, formativ øving uten fagsjekk, opplåsing eller XP.
+// Behold den utenfor serverkatalogen og vis alt samlet i forsiden.
+export const repetisjonsaktiviteter = [
+	{
+		id: 'backend-oppsummering',
+		tittel: 'Backend: oppsummering av øving 1–10',
+		beskrivelse:
+			'Følg dataene fra første rute til drift. Velg svar, få forklaringer og prøv igjen.',
+		href: '/aktiviteter/backend-oppsummering/',
+		fag: 'utvikling',
+		audience: 'student',
+		format: 'aktivitet',
+		type: '20 flervalgsspørsmål',
+		emner: ['Backend', 'Repetisjon', 'Øving 1–10'],
+		sokeord: [
+			'quiz',
+			'multiple choice',
+			'flervalg',
+			'oppsummering',
+			'JSON',
+			'CRUD',
+			'session',
+			'innlogging',
+			'tilgang',
+			'drift'
+		],
+		symbol: '?'
+	}
+];
+
+export const altElevinnhold = [...aktiviteter, ...repetisjonsaktiviteter];

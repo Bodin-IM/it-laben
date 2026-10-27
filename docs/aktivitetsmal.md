@@ -31,4 +31,4 @@ Bruk denne sammen med [det pedagogiske grunnlaget](pedagogisk-grunnlag.md) ved n
 - **Pedagogisk utprøving:** Hva vil vi observere med elever? Skill forståelse, interesse og vansker med grensesnittet. Beskriv hva som fortsatt er uprøvd.
 - **Begrunnede avvik:** Eventuelle avklarte avvik fra grunnlaget, hvorfor de passer denne situasjonen, og hva som skal følges opp.
 
-Bruk til slutt [sjekklisten i grunnlaget](pedagogisk-grunnlag.md#9-sjekkliste-før-en-aktivitet-leveres). Et utfylt skjema er ikke i seg selv dokumentasjon på god pedagogikk eller læringseffekt.
+Bruk til slutt [den pedagogiske sjekklisten](pedagogisk-grunnlag.md#9-sjekkliste-før-en-aktivitet-leveres) og relevante punkter i [sjekklisten for webdesign og brukeropplevelse](webdesign-og-brukeropplevelse.md#7-sjekkliste-før-levering). Et utfylt skjema er ikke i seg selv dokumentasjon på god pedagogikk eller læringseffekt.

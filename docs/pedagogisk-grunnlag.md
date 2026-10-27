@@ -70,6 +70,8 @@ Eleven skal kunne be om hjelp uten poengtrekk. Tilby tydeligere støtte når ele
 
 ## 5. Visualisering og grensesnitt
 
+Bruk også [grunnlaget for webdesign og brukeropplevelse](webdesign-og-brukeropplevelse.md) ved arbeid med grensesnittet. Det utdyper struktur, lesbarhet, interaksjon, tilgjengelighet og brukertesting, mens dette dokumentet styrer læringsmål, elevhandlinger og faglig respons.
+
 Koble handling, aktuell kode, relevante data og resultat tydelig sammen [S8]. Vis hva som endres mellom steg, og plasser forklaringen ved det den gjelder. Eleven skal kunne undersøke en faglig sammenheng, for eksempel verdien i en betingelse eller tidspunktet en liste endres.
 
 For nye og endrede visninger skal vi:
