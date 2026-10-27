@@ -1,10 +1,16 @@
 # Labpartner med lokal KI – pilot i Redd chatten
 
-Piloten ligger på `dev`, på `/spill/redd-chatten/`. Den gjelder de tre ordinære reparasjonsoppdragene. Den separate læringspiloten på `/spill/redd-chatten/pilot/` er et annet opplegg.
+Piloten er publisert på `main`, på `/spill/redd-chatten/`. Den gjelder de tre ordinære reparasjonsoppdragene. Den separate læringspiloten på `/spill/redd-chatten/pilot/` er et annet opplegg.
 
 ## Elevens bruk
 
 Åpne **Spør labpartneren** ved kodearbeidet eller **Spør om oppgaven** i avatarens kort. Eleven må være innlogget. Velg **Gi meg et hint**, **Forklar dette**, **Hjelp med forsøket**, eller skriv et eget spørsmål. Vanlige hint og kodelinjeforklaringer virker også når KI-tjenesten er avslått eller utilgjengelig.
+
+På skjermer fra 1800 CSS-piksler har labpartneren en egen venstrespalte med plass til lesbar KI-veiledning. På vanlige skjermer står hjelpen under testområdet, med snarveien **Til testknappene** over svarene. Avatarens skiftende respons ligger under KI-panelet slik at den heller ikke flytter skrivefeltet. På mobil (inntil 600 CSS-piksler) åpner **Spør labpartneren** en egen dialog; **Tilbake til oppgaven** eller Escape lukker den og gjenoppretter fokus og arbeidsposisjon. Utkast, samtale og en pågående forespørsel beholdes ved lukking og endring av skjermbredde.
+
+Skrivefeltet og hurtigvalgene står over svarområdet. Nyeste spørsmål og svar vises først, mens **Tidligere svar** er lukket som standard. Bare svarområdet ruller ved vanlig skjermstørrelse; lange svar øker ikke panelets høyde. På svært lave skjermer får mobilvisningen rulle samlet slik at kontrollene forblir tilgjengelige. Leser eleven eldre innhold, beholdes leseposisjonen og **Nytt svar klart** lar eleven velge når det nye svaret skal vises. Modellen får fremdeles eventuell samtalehistorikk i kronologisk rekkefølge.
+
+Dette er lokale designvalg etter brukerens utprøving: svar og skrivefelt ble skjøvet ned, og KI-panelet fortrengte testknappene. Endringen følger designgrunnlagets punkt 4.3 om stabil responsplass og pedagogikkens krav om tilgjengelig støtte som eleven kan bruke i neste forsøk. Testkontrollene ligger uavhengig av samtalelengden. Varsling av svar flytter ikke tastaturfokus eller ruller hele siden.
 
 **Dette følger med spørsmålet** viser oppdrag, valgt testsituasjon, kode, testens aktualitet og de siste handlingene. Ingen modellforespørsel sendes før eleven spør. Panelet undersøker bare om piloten er konfigurert når det åpnes.
 
@@ -65,7 +71,7 @@ Proxyen må støtte **Ollamas chat-kontrakt**: `POST` med `model`, `messages`, `
 
 `LAB_PARTNER_THINK=false` kan brukes for modeller som støtter tenkemodus når kort ventetid prioriteres. Tom verdi utelater feltet og bruker modellens standard. Modeller som bruker mye tid på intern tenking kan nå tids- eller svargrensen før de gir et svar. Velg og prøv modell før klassebruk.
 
-Start API-prosessen på nytt etter endring. Lokalt starter `npm run dev:full` både frontend og API. Frontend kan bygges med `npm run build`; API-et må kjøre i tillegg. Den eksisterende tjenesten din og dens aktive modell/endepunkt er ikke verifisert eller konfigurert fra dette miljøet.
+Start API-prosessen på nytt etter endring. Lokalt starter `npm run dev:full` både frontend og API. Frontend kan bygges med `npm run build`; API-et må kjøre i tillegg. Tjenesten er ikke tilgjengelig fra utviklingsmiljøet. Brukeren har 27. oktober 2026 bekreftet at piloten svarer raskt mot lokal `qwen3.8:27b` etter at `LAB_PARTNER_THINK=false` ble satt på serveren. Dette er brukerens driftsprøve, ikke en selvstendig faglig evaluering av modellen.
 
 ## API og driftsgrenser
 
@@ -85,9 +91,11 @@ Seks fokuserte testgrupper i `tests/labPartner.test.js` dekker riktig, feil og u
 
 Kontrollene omfatter spørsmål, oppfølging, kodeendring mens svaret ventes, avbrudd og nytt forsøk, tekstvisning av HTML-lignende modellsvar, oppgave-/profilbytte, vanlige hint ved utilgjengelig KI, tastatur, mobil, forstørret tekst og begge temaer. En avgrenset axe-kontroll gjelder det nye panelet, ikke hele nettstedets tilgjengelighet. Svelte MCP er ikke tilgjengelig; offisiell dokumentasjon, `npm run check`, bygg og nettleserprøver brukes.
 
+Grensesnittprøven etter omleggingen dekker tre svar på rad uten flytting av skrivefelt eller testknapper, nyeste svar først, lukket historikk, lesing mens nytt svar kommer, lange svar med tastaturrulling, sen respons under arbeid i oppgaven, feil og nytt forsøk, mobilens tilbakevei og bevart samtale ved breddebytte. Nettleseren prøves ved 320, 390, 900, 1440, 1800 og 1920 CSS-piksler, begge temaer og 200 % tekst med økt tekstavstand. En kort mobilvisning på 390 × 568 er også prøvd med langt svar, kontekstvisning og bevart utkast. Kontrollen av 200 % tekst avdekket eksisterende breddeproblemer i fagsjekkkortet og hopplenken; små CSS-rettinger lar disse omflytes uten horisontal siderulling. Ingen nye automatiserte testfiler er lagt til for denne visningsendringen.
+
 `npm test`: 164 beståtte tester, inkludert de seks nye testgruppene. `npm run check`: ingen feil eller advarsler. `npm run build`: bestått. Nettleserprøvene over er bestått med en kontrollert HTTP-testtjeneste.
 
-**Gjenstår før elevutprøving:** konfigurere den faktiske lokale tjenesten, kontrollere modellens faglige svar i de tre grunnsituasjonene, og måle ventetid og kapasitet. Beståtte programtester dokumenterer funksjon, ikke kvaliteten på KI-veiledningen eller læringseffekt.
+**Gjenstår før elevutprøving:** kontrollere modellens faglige svar i de tre grunnsituasjonene, og måle ventetid og kapasitet. Beståtte programtester dokumenterer funksjon, ikke kvaliteten på KI-veiledningen eller læringseffekt.
 
 ## Videreutvikling
 

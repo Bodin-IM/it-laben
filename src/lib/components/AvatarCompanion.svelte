@@ -11,6 +11,8 @@
 	} from '#lib/avatarFeedback.js';
 	import { labPreferences, setLabPreferences } from '#lib/labPreferences.js';
 	import Avatar from '#lib/components/Avatar.svelte';
+	/** @type {{embedded?:boolean}} */
+	let { embedded = false } = $props();
 	const activity = $derived(aktiviteter.find((item) => item.href === page.url.pathname));
 	const active = $derived(!!activity && $lab.user?.role === 'student');
 	const wide = new MediaQuery('(min-width: 1800px)', false);
@@ -28,13 +30,11 @@
 		setLabPreferences({ companion: false });
 		document.getElementById('hovedinnhold')?.focus();
 	}
-	function openHelp() {
-		const panel = document.getElementById('labpartner-hjelp');
-		if (panel instanceof HTMLDetailsElement) {
-			panel.open = true;
-			panel.querySelector('summary')?.focus({ preventScroll: true });
-		}
+	function openHelp(/** @type {MouseEvent} */ event) {
+		event.preventDefault();
+		window.dispatchEvent(new Event('labpartner-open'));
 	}
+
 	$effect(() => {
 		setAvatarContext(
 			$lab.user?.id ?? '',
@@ -80,6 +80,7 @@
 {#if active && $lab.summary && $labPreferences.companion}
 	<aside
 		class="avatar-companion"
+		class:embedded
 		class:expanded
 		aria-label="Labpartner"
 		data-mood={$avatarReaction.mood}
@@ -243,5 +244,34 @@
 		.message p {
 			min-height: 7.5em;
 		}
+	}
+	.avatar-companion.embedded {
+		position: static;
+		width: 100%;
+		max-width: none;
+		max-height: none;
+		overflow: visible;
+		margin: 12px 0 0;
+		padding: 10px;
+		grid-template-columns: minmax(0, 1fr);
+		gap: 8px;
+	}
+	.embedded .disclosure {
+		flex-direction: row;
+		padding: 4px;
+	}
+	.embedded .figure {
+		width: 36px;
+		height: 36px;
+	}
+	.embedded .chevron {
+		position: static;
+		margin-left: auto;
+	}
+	.embedded .message p {
+		min-height: 0;
+	}
+	.embedded .ask-partner {
+		display: none;
 	}
 </style>
