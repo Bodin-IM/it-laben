@@ -2,7 +2,6 @@
 	import { connection } from '#lib/connection.js';
 	import SecureAccessGuide from '#lib/components/SecureAccessGuide.svelte';
 	import { onMount } from 'svelte';
-	import ThemeToggle from '#lib/components/ThemeToggle.svelte';
 	import PersonalOverview from '#lib/components/PersonalOverview.svelte';
 	import LabCustomizer from '#lib/components/LabCustomizer.svelte';
 	import TrackList from '#lib/components/TrackList.svelte';
@@ -174,15 +173,7 @@
 	/></svelte:head
 >
 <div class="profile-page">
-	<header>
-		<a class="brand" href="/"><span aria-hidden="true">IT</span>IT-laben.</a>
-		<div class="header-actions">
-			{#if hasTeacherRole($lab.user?.role)}<a href="/laerer/">Lærerpanel →</a>{/if}<a
-				href="/toppliste/">Toppliste →</a
-			><a href="/">Utforsk laben</a><ThemeToggle />
-		</div>
-	</header>
-	<main>
+	<main id="hovedinnhold" tabindex="-1">
 		{#if $connection.publicHttp}<SecureAccessGuide />
 		{:else if !$lab.ready}<p class="status" role="status">Henter profilen din …</p>
 		{:else if !$lab.user}
@@ -483,62 +474,23 @@
 <style>
 	.profile-page {
 		min-height: 100vh;
-		background: radial-gradient(ellipse at 85% 0%, var(--color-page-glow), transparent 50%);
-		font-family: Inter, system-ui, sans-serif;
+		background: var(--color-page);
+		font-family: var(--font-ui);
 		color: var(--color-text);
 	}
 	.profile-page,
 	.profile-page * {
 		box-sizing: border-box;
 	}
-	header,
 	main {
-		width: min(1120px, calc(100% - 48px));
+		width: min(var(--layout-width), calc(100% - 2 * var(--layout-gutter)));
 		margin-inline: auto;
 	}
-	header {
-		display: flex;
-		align-items: center;
-		justify-content: space-between;
-		gap: 16px;
-		flex-wrap: wrap;
-		min-height: 80px;
-		padding-block: 14px;
-		border-bottom: 1px solid var(--color-border);
-	}
+
 	a {
 		color: var(--color-accent);
 	}
-	.brand {
-		display: flex;
-		align-items: center;
-		gap: 10px;
-		color: var(--color-text);
-		font-weight: 750;
-		font-size: 19px;
-		text-decoration: none;
-	}
-	.brand span {
-		display: grid;
-		place-items: center;
-		width: 36px;
-		height: 36px;
-		border-radius: 10px;
-		background: var(--color-brand);
-		color: var(--color-on-brand);
-		font: 600 17px monospace;
-	}
-	.header-actions {
-		display: flex;
-		align-items: center;
-		flex-wrap: wrap;
-		gap: 20px;
-		margin-left: auto;
-	}
-	.header-actions > a {
-		font-size: var(--font-small);
-		text-decoration: none;
-	}
+
 	.intro {
 		padding: 44px 0 28px;
 		max-width: 680px;
@@ -623,7 +575,7 @@
 		place-items: center;
 		width: 44px;
 		height: 44px;
-		border-radius: 10px;
+		border-radius: var(--radius-card);
 		margin-bottom: 16px;
 		background: var(--color-accent-soft);
 		color: var(--color-accent);
@@ -943,9 +895,8 @@
 		}
 	}
 	@media (max-width: 480px) {
-		header,
 		main {
-			width: calc(100% - 32px);
+			width: min(var(--layout-width), calc(100% - 2 * var(--layout-gutter)));
 		}
 		.stats {
 			grid-template-columns: 1fr;

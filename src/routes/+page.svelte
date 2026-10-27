@@ -1,7 +1,6 @@
 <script>
 	import { onMount, tick } from 'svelte';
-	import { replaceState } from '$app/navigation';
-	import LabHeader from '#lib/components/LabHeader.svelte';
+	import { afterNavigate, replaceState } from '$app/navigation';
 	import PersonalOverview from '#lib/components/PersonalOverview.svelte';
 	import ModuleCard from '#lib/components/ModuleCard.svelte';
 	import ActivityCard from '#lib/components/ActivityCard.svelte';
@@ -38,16 +37,17 @@
 		searchInput?.focus();
 	}
 
+	function lesAdresse() {
+		const url = new URL(window.location.href);
+		const viserOvingene = url.hash === '#ovingene';
+		valgtFag = fag.find((gruppe) => gruppe.id === url.searchParams.get('fag'))?.id ?? 'alle';
+		valgtFormat =
+			formater.find((format) => format.id === url.searchParams.get('type'))?.id ??
+			(url.hash === '#spill' ? 'spill' : viserOvingene ? 'leksjon' : 'alle');
+		sok = url.searchParams.get('q') ?? (viserOvingene ? 'øving' : '');
+	}
+	afterNavigate(lesAdresse);
 	onMount(() => {
-		function lesAdresse() {
-			const url = new URL(window.location.href);
-			const viserOvingene = url.hash === '#ovingene';
-			valgtFag = fag.find((gruppe) => gruppe.id === url.searchParams.get('fag'))?.id ?? 'alle';
-			valgtFormat =
-				formater.find((format) => format.id === url.searchParams.get('type'))?.id ??
-				(url.hash === '#spill' ? 'spill' : viserOvingene ? 'leksjon' : 'alle');
-			sok = url.searchParams.get('q') ?? (viserOvingene ? 'øving' : '');
-		}
 		lesAdresse();
 		klar = true;
 		window.addEventListener('popstate', lesAdresse);
@@ -87,8 +87,6 @@
 </svelte:head>
 
 <div class="forside">
-	<a class="skip" href="#innhold">Hopp til innholdet</a>
-	<LabHeader current="catalogue" />
 	<div class="catalogue-layout">
 		<aside class="sidebar" aria-label="Velg fag og finn innhold">
 			<p class="nav-label" id="fag-label">Fag</p>
@@ -125,7 +123,7 @@
 			<p class="sidebar-note">Se sammenhengen.<br />Prøv selv.<br />Forstå mer.</p>
 		</aside>
 
-		<main id="innhold" tabindex="-1">
+		<main id="hovedinnhold" tabindex="-1">
 			<section class="intro" aria-labelledby="sidetittel">
 				<p class="eyebrow">Fagoversikt <span aria-hidden="true">/</span> {valgtFagnavn}</p>
 				<h1 id="sidetittel">{valgtFag === 'alle' ? 'Hva jobber du med i dag?' : valgtFagnavn}</h1>
@@ -587,7 +585,6 @@
 	button {
 		overflow-wrap: anywhere;
 	}
-	#innhold,
 	#moduler,
 	#utforsk,
 	.anker {
@@ -600,20 +597,7 @@
 		outline: 3px solid var(--color-focus);
 		outline-offset: 4px;
 	}
-	.skip {
-		position: fixed;
-		top: 10px;
-		left: 10px;
-		z-index: 100;
-		padding: 12px 20px;
-		background: var(--color-action);
-		color: var(--color-on-action);
-		border-radius: 8px;
-		transform: translateY(-200%);
-	}
-	.skip:focus {
-		transform: none;
-	}
+
 	@media (max-width: 1050px) {
 		.catalogue-layout {
 			grid-template-columns: 180px minmax(0, 1fr);

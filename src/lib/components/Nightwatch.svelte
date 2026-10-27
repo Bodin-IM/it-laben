@@ -1,6 +1,6 @@
 <script>
+	import PageLinks from '#lib/components/PageLinks.svelte';
 	import { onMount } from 'svelte';
-	import AccountLink from '#lib/components/AccountLink.svelte';
 	import BadgeIcon from '#lib/components/BadgeIcon.svelte';
 	import {
 		activityLab as lab,
@@ -357,14 +357,7 @@
 	class:running={!!active}
 	style:--remaining={`${Math.max(0, remaining / definition.durationMs) * 100}%`}
 >
-	<header class="site-header">
-		<a class="brand" href="/"
-			>IT<span>▧</span>LABEN<span class="separator">/</span><span class="subbrand">NATTEVAKTEN</span
-			></a
-		>
-		<div class="header-links"><a href="/">← Alle oppdrag</a><AccountLink /></div>
-	</header>
-	<main>
+	<main id="hovedinnhold" tabindex="-1">
 		<div class="dispatch-label">
 			<span class="live-dot"></span> OPERASJONSSENTRAL <span>UTVIKLING / Vg2 IT</span>
 		</div>
@@ -779,6 +772,7 @@
 				>En simulert produksjonsvakt. Prøv. Forstå. Ta med deg læringen.</span
 			>
 		</footer>
+		<PageLinks links={[{ href: '/#spill', label: 'Alle oppdrag og spill' }]} />
 	</main>
 </div>
 
@@ -802,52 +796,7 @@
 	.nightwatch * {
 		box-sizing: border-box;
 	}
-	.site-header {
-		max-width: 1240px;
-		margin: auto;
-		padding: 23px 0;
-		border-bottom: 1px solid var(--line);
-		display: flex;
-		justify-content: space-between;
-		align-items: center;
-		gap: 20px;
-		flex-wrap: wrap;
-	}
-	.brand {
-		display: flex;
-		align-items: center;
-		gap: 7px;
-		font-size: 15px;
-		font-weight: 800;
-		letter-spacing: 1px;
-		text-decoration: none;
-		color: var(--ink);
-	}
-	.brand > span:first-child {
-		color: var(--mint);
-		font-size: 21px;
-	}
-	.separator {
-		color: #50675d;
-		margin: 0 8px;
-	}
-	.subbrand {
-		font-size: 11px;
-		font-weight: 500;
-		letter-spacing: 2px;
-		color: var(--muted);
-	}
-	.header-links {
-		display: flex;
-		align-items: center;
-		gap: 24px;
-		flex-wrap: wrap;
-	}
-	.header-links > a {
-		color: var(--muted);
-		text-decoration: none;
-		font-size: 13px;
-	}
+
 	main {
 		max-width: 1240px;
 		margin: auto;
@@ -1699,20 +1648,7 @@
 		.nightwatch {
 			padding: 0 16px;
 		}
-		.site-header {
-			gap: 14px;
-			padding: 18px 0;
-		}
-		.header-links {
-			gap: 14px;
-		}
-		.header-links > a {
-			font-size: 11px;
-		}
-		.subbrand,
-		.separator {
-			display: none;
-		}
+
 		.hero {
 			grid-template-columns: 1fr;
 			gap: 24px;

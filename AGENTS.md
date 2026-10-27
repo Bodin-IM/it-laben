@@ -17,6 +17,7 @@ Disse instruksjonene gjelder hele repoet. IT-laben er et undervisningsverktøy f
 - Vurder gyldige løsninger etter faglig funksjon når det er mulig. Ikke godkjenn fritekst faglig bare fordi feltet er fylt ut.
 - Legg inn eller beskriv en beslektet oppgave med mindre støtte for å undersøke overføring. Den kan ligge i lærerens opplegg; hver liten side trenger ikke alle fasene.
 - Bruk felles komponenter og temavariabler. Sørg for lesbarhet, tastaturbetjening, mobilbruk, tydelig progresjon og hjelp som eleven kan åpne ved behov.
+- Hovedmenyen eies av `src/routes/+layout.svelte` og `LabHeader.svelte`. Nye sider skal arve denne, ikke lage en egen toppmeny, kontolenke eller temavelger. Lærersider bruker `TeacherShell.svelte`; lokale stegmenyer og relaterte lenker hører til sideinnholdet. Gi sidens eneste `main` element `id="hovedinnhold"` og `tabindex="-1"`, slik at den felles hopplenken virker. Se [felles navigasjon og design](docs/felles-navigasjon.md).
 - Gjør brukerens plassering, handlinger og systemets status forståelige. Bruk WCAG 2.2 nivå AA som arbeidsmål for nye og vesentlig endrede brukerflyter. Skill forskningsfunn, standardkrav og lokale designvalg; en bestemt kortfarge eller tekststørrelse er ikke et forskningskrav.
 - Bruk grunnlagene innenfor oppgavens omfang. Ikke endre andre aktiviteter, eksisterende XP-regler eller vurderingsordninger som en sideeffekt. Hvis brukeren ber om et annet pedagogisk valg eller designvalg, følg den avklarte retningen og dokumenter begrunnelsen kort.
 

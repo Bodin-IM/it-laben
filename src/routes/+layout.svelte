@@ -15,6 +15,7 @@
 	import '#lib/theme.css';
 	import { initializeConnection } from '#lib/connection.js';
 	import ConnectionBanner from '#lib/components/ConnectionBanner.svelte';
+	import LabHeader from '#lib/components/LabHeader.svelte';
 
 	/** @type {{children: import('svelte').Snippet}} */
 	let { children } = $props();
@@ -49,6 +50,8 @@
 </svelte:head>
 
 <div class:presentation={presenting}>
+	<a class="site-skip" href="#hovedinnhold">Hopp til hovedinnhold</a>
+	{#if !presenting}<LabHeader />{/if}
 	<ConnectionBanner />
 	{#if presenting && activity}<TeachingPresentation {activity} {plan} />{:else}<LearningAccess
 		/>{/if}
@@ -66,9 +69,6 @@
 		--font-code: 1rem;
 		--font-code-small: 0.94rem;
 	}
-	.presentation :global(.lab-header),
-	.presentation :global(.side > header),
-	.presentation :global(.lesson-page > header),
 	.presentation :global(.lesson-page .course),
 	.presentation :global(.lesson-page .lesson-footer),
 	.presentation :global(.lesson-page .tasks),

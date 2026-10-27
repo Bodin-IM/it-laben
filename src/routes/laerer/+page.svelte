@@ -147,10 +147,12 @@
 		margin: 26px 0 20px;
 	}
 	.metric {
+		min-width: 0;
+		overflow-wrap: anywhere;
 		padding: 22px;
 		background: var(--color-surface);
 		border: 1px solid var(--color-border);
-		border-radius: 10px;
+		border-radius: var(--radius-card);
 		display: flex;
 		flex-direction: column;
 		gap: 6px;
@@ -158,7 +160,7 @@
 		color: var(--color-text);
 	}
 	.metric span {
-		font-size: 14px;
+		font-size: var(--font-small);
 		font-weight: 650;
 		color: var(--color-text-muted);
 	}
@@ -204,6 +206,9 @@
 		}
 	}
 	@media (max-width: 430px) {
+		.metrics {
+			grid-template-columns: 1fr;
+		}
 		.metric {
 			padding: 16px 12px;
 		}

@@ -1,6 +1,5 @@
 <script>
 	import SecureAccessGuide from '#lib/components/SecureAccessGuide.svelte';
-	import ThemeToggle from '#lib/components/ThemeToggle.svelte';
 </script>
 
 <svelte:head
@@ -10,35 +9,21 @@
 	/></svelte:head
 >
 <div class="guide-page">
-	<header><a class="brand" href="/">IT-laben.</a><ThemeToggle /></header>
-	<main><SecureAccessGuide /></main>
+	<main id="hovedinnhold" tabindex="-1"><SecureAccessGuide /></main>
 </div>
 
 <style>
 	.guide-page {
 		min-height: 100vh;
-		background: radial-gradient(ellipse at 85% 0%, var(--color-page-glow), transparent 50%);
+		background: var(--color-page);
 		color: var(--color-text);
-		font-family: system-ui, sans-serif;
+		font-family: var(--font-ui);
 	}
-	header,
 	main {
-		width: min(1120px, calc(100% - 40px));
+		width: min(var(--layout-width), calc(100% - 2 * var(--layout-gutter)));
 		margin-inline: auto;
 	}
-	header {
-		display: flex;
-		justify-content: space-between;
-		align-items: center;
-		min-height: 80px;
-		border-bottom: 1px solid var(--color-border);
-	}
-	.brand {
-		font-size: 21px;
-		font-weight: 800;
-		color: var(--color-text);
-		text-decoration: none;
-	}
+
 	main {
 		padding: 24px 0 50px;
 	}

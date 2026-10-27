@@ -4,8 +4,7 @@
 		{ href: '/laerer/', label: 'Oversikt' },
 		{ href: '/laerer/undervisning/', label: 'Undervisning' },
 		{ href: '/laerer/elever/', label: 'Elever' },
-		{ href: '/laerer/aktiviteter/', label: 'Aktiviteter' },
-		{ href: '/toppliste/', label: 'Toppliste' }
+		{ href: '/laerer/aktiviteter/', label: 'Aktiviteter' }
 	];
 </script>
 
@@ -21,13 +20,16 @@
 		display: flex;
 		gap: 8px;
 		flex-wrap: wrap;
-		margin: 22px auto 0;
-		width: min(1120px, calc(100% - 40px));
-		font:
-			600 14px/1.4 system-ui,
-			sans-serif;
+		margin: 0 auto;
+		padding-block: 22px 0;
+		width: min(var(--layout-width), calc(100% - 2 * var(--layout-gutter)));
+		font: 600 var(--font-small)/1.4 var(--font-ui);
 	}
 	a {
+		display: inline-flex;
+		align-items: center;
+		min-height: 44px;
+		box-sizing: border-box;
 		padding: 10px 16px;
 		border: 1px solid var(--color-border);
 		border-radius: 7px;
@@ -36,9 +38,9 @@
 		background: var(--color-surface);
 	}
 	a[aria-current='page'] {
-		color: var(--color-on-action);
-		background: var(--color-action);
-		border-color: var(--color-action);
+		color: var(--color-accent);
+		background: var(--color-accent-soft);
+		border-color: var(--color-accent);
 	}
 	a:hover {
 		border-color: var(--color-accent);

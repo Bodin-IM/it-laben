@@ -1,6 +1,5 @@
 <script>
 	import { tick } from 'svelte';
-	import LabHeader from '#lib/components/LabHeader.svelte';
 	import {
 		backendQuestions as questions,
 		backendTopics as topics,
@@ -72,8 +71,7 @@
 
 <div class="quiz-page">
 	<a class="skip" href="#quiz">Hopp til spørsmålene</a>
-	<LabHeader />
-	<main>
+	<main id="hovedinnhold" tabindex="-1">
 		<a class="back" href="/?fag=utvikling#utforsk">← Tilbake til Utvikling</a>
 		<section class="intro" aria-labelledby="page-title">
 			<p class="eyebrow">AKTIVITET · FLERVALG</p>
@@ -302,7 +300,7 @@
 	}
 	main,
 	footer {
-		width: min(1120px, calc(100% - 40px));
+		width: min(var(--layout-width), calc(100% - 2 * var(--layout-gutter)));
 		margin-inline: auto;
 	}
 	footer {
@@ -688,7 +686,7 @@
 	@media (max-width: 480px) {
 		main,
 		footer {
-			width: calc(100% - 28px);
+			width: min(var(--layout-width), calc(100% - 2 * var(--layout-gutter)));
 		}
 		.question-nav {
 			grid-template-columns: repeat(5, minmax(0, 1fr));

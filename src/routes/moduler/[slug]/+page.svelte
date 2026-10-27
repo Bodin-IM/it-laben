@@ -1,5 +1,4 @@
 <script>
-	import LabHeader from '#lib/components/LabHeader.svelte';
 	import { moduleLink } from '#lib/moduleNavigation.js';
 	import { fag } from '#lib/innhold.js';
 	import { moduleContents, moduleTypes, moduleProgress, moduleSummary } from '#lib/moduler.js';
@@ -32,8 +31,7 @@
 
 <div class="module-page">
 	<a class="skip" href="#forlop">Hopp til modulens innhold</a>
-	<LabHeader />
-	<main>
+	<main id="hovedinnhold" tabindex="-1">
 		<nav class="breadcrumbs" aria-label="Brødsmuler">
 			<a href="/">Fagoversikt</a><span aria-hidden="true">/</span><a
 				href={`/?fag=${module.subject}`}>{subject?.navn}</a
@@ -168,7 +166,7 @@
 	}
 	main,
 	footer {
-		width: min(1160px, calc(100% - 2 * var(--layout-gutter)));
+		width: min(var(--layout-width), calc(100% - 2 * var(--layout-gutter)));
 		margin-inline: auto;
 	}
 	a {

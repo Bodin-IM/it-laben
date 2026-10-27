@@ -1,6 +1,8 @@
 # Designvurdering og nytt utkast for IT-laben
 
-**Dato:** 27. oktober 2026 · **Status:** Utkast på `dev`, til utprøving.
+**Dato:** 27. oktober 2026 · **Status:** Første utkast på `dev`, til utprøving.
+
+Navigasjonen er senere videreført til alle sider, også lærerpanel og Min lab. Se [felles navigasjon og design](felles-navigasjon.md) for gjeldende oppsett og nye kontroller. Skjermbildene og målingene nedenfor dokumenterer første utkast.
 
 ## Vurderingen
 
@@ -92,10 +94,10 @@ Gi 3–5 elever oppgavene uten å peke ut knapper eller menyer:
 
 Noter hvor eleven leter, om hen løser oppgaven uten hjelp, og hva hen forventet skulle skje. Se spesielt etter om forskjellen mellom moduler og aktiviteter er forståelig, om målene blir funnet bak «Mål og forkunnskaper», og om fagmenyen fungerer like godt på mobil. Spør også om tekst og kode er behagelige å lese. Hold faglige misforståelser atskilt fra navigasjonsproblemer.
 
-Et lite utvalg kan avdekke problemer, men dokumenterer ikke representativitet eller læringseffekt. Før en eventuell bredere innføring bør vi også undersøke de lengre aktivitetsflatene, fagsjekker, innlogging og lærerens arbeidsflyt. De eldre sidene har fortsatt enkelte egne toppmenyer og layoutmønstre som ikke er omarbeidet i dette utkastet.
+Et lite utvalg kan avdekke problemer, men dokumenterer ikke representativitet eller læringseffekt. Før en eventuell bredere innføring bør vi også undersøke de lengre aktivitetsflatene, fagsjekker, innlogging og lærerens arbeidsflyt. Ved første utkast hadde de eldre sidene fortsatt egne toppmenyer. Disse er senere erstattet med felles navigasjon; se oppfølgingsnotatet over.
 
 ## Ved videre arbeid
 
-Bruk `LabHeader.svelte`, `ModuleCard.svelte`, `ActivityCard.svelte`, `ModuleContext.svelte` og felles variabler i `theme.css` når tilsvarende utforming utvides. `catalogueSearch.js` holder søk i offentlig innhold samlet. `moduleNavigation.js` avgrenser hvilke lenker som kan ha modultilhørighet. Unngå nye lokale fargepaletter eller parallelle varianter av de samme kontrollene uten en konkret begrunnelse.
+Hovedmenyen arves nå fra rotlayouten. Bruk `ModuleCard.svelte`, `ActivityCard.svelte`, `ModuleContext.svelte` og felles variabler i `theme.css` når tilsvarende utforming utvides. `catalogueSearch.js` holder søk i offentlig innhold samlet. `moduleNavigation.js` avgrenser hvilke lenker som kan ha modultilhørighet. Unngå nye lokale fargepaletter eller parallelle varianter av de samme kontrollene uten en konkret begrunnelse.
 
 Endringer i oppgavens læringsmål, elevhandlinger eller faglige respons må fortsatt vurderes etter pedagogikkgrunnlaget. Dette utkastet organiserer og presenterer det eksisterende innholdet.

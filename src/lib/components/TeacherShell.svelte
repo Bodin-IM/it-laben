@@ -1,7 +1,6 @@
 <script>
 	import { lab, refreshLab } from '#lib/lab.js';
 	import { hasTeacherRole } from '#lib/learning.js';
-	import ThemeToggle from '#lib/components/ThemeToggle.svelte';
 	import TeacherNav from '#lib/components/TeacherNav.svelte';
 	import { connection, secureHref } from '#lib/connection.js';
 	import { page } from '$app/state';
@@ -16,12 +15,8 @@
 	/></svelte:head
 >
 <div class="teacher-shell">
-	<header>
-		<a class="brand" href="/">IT-laben.</a>
-		<div><a href="/min-lab/">Min lab →</a><ThemeToggle /></div>
-	</header>
 	{#if hasTeacherRole($lab.user?.role)}<TeacherNav />{/if}
-	<main>
+	<main id="hovedinnhold" tabindex="-1">
 		<p class="eyebrow">LÆRERPANEL</p>
 		<h1>{title}<span>.</span></h1>
 		{#if $connection.publicHttp}<section class="panel">
@@ -57,40 +52,18 @@
 <style>
 	.teacher-shell {
 		min-height: 100vh;
-		background: radial-gradient(ellipse at 85% 0%, var(--color-page-glow), transparent 50%);
-		font-family: Inter, system-ui, sans-serif;
+		background: var(--color-page);
+		font-family: var(--font-ui);
 		color: var(--color-text);
 	}
 	.teacher-shell :global(*) {
 		box-sizing: border-box;
 	}
-	header,
 	main {
-		width: min(1120px, calc(100% - 40px));
+		width: min(var(--layout-width), calc(100% - 2 * var(--layout-gutter)));
 		margin-inline: auto;
 	}
-	header {
-		min-height: 80px;
-		display: flex;
-		align-items: center;
-		justify-content: space-between;
-		gap: 12px;
-		flex-wrap: wrap;
-		border-bottom: 1px solid var(--color-border);
-		padding-block: 14px;
-	}
-	header > div {
-		display: flex;
-		align-items: center;
-		flex-wrap: wrap;
-		gap: 16px;
-	}
-	.brand {
-		color: var(--color-text);
-		font-size: 21px;
-		font-weight: 800;
-		text-decoration: none;
-	}
+
 	main {
 		padding: 30px 0 70px;
 	}
@@ -108,8 +81,7 @@
 		color: var(--color-text-muted);
 		margin-bottom: 26px;
 	}
-	.teacher-shell :global(main a),
-	header > div > a {
+	.teacher-shell :global(main a) {
 		color: var(--color-accent);
 	}
 	.teacher-shell :global(.eyebrow) {
@@ -122,7 +94,7 @@
 	.teacher-shell :global(.panel) {
 		padding: 24px;
 		border: 1px solid var(--color-border);
-		border-radius: 10px;
+		border-radius: var(--radius-card);
 		background: var(--color-surface);
 		margin-bottom: 20px;
 		min-width: 0;
@@ -157,9 +129,7 @@
 		gap: 8px;
 		padding: 11px 16px;
 		min-height: 44px;
-		font:
-			650 14px/1.4 system-ui,
-			sans-serif;
+		font: 650 var(--font-small)/1.4 var(--font-ui);
 		border: 1px solid var(--color-action);
 		border-radius: 6px;
 		background: var(--color-action);
@@ -181,7 +151,7 @@
 		border-color: var(--color-danger);
 		color: var(--color-surface);
 	}
-	.teacher-shell :global(input),
+	.teacher-shell :global(input:not([type='checkbox'])),
 	.teacher-shell :global(select) {
 		min-height: 44px;
 		border: 1px solid var(--color-border-strong);

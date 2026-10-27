@@ -110,3 +110,28 @@ body {
 	background: var(--color-accent);
 	color: var(--color-page);
 }
+
+/* One keyboard entry point, provided by the root layout on every route. */
+.site-skip {
+	position: fixed;
+	z-index: 1000;
+	top: 8px;
+	left: 8px;
+	transform: translateY(-180%);
+	padding: 12px 18px;
+	border: 2px solid var(--color-focus);
+	border-radius: 8px;
+	background: var(--color-surface);
+	color: var(--color-text);
+	font: 650 var(--font-small)/1.5 var(--font-ui);
+}
+.site-skip:focus {
+	transform: none;
+}
+#hovedinnhold {
+	scroll-margin-top: 16px;
+}
+#hovedinnhold:focus-visible {
+	outline: 3px solid var(--color-focus);
+	outline-offset: 5px;
+}

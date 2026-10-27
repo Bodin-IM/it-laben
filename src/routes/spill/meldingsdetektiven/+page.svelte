@@ -1,7 +1,6 @@
 <script>
+	import PageLinks from '#lib/components/PageLinks.svelte';
 	import ModuleContext from '#lib/components/ModuleContext.svelte';
-	import ThemeToggle from '#lib/components/ThemeToggle.svelte';
-	import AccountLink from '#lib/components/AccountLink.svelte';
 	import { activityLab as account, learningContext, saveAttempt } from '#lib/lab.js';
 	import { avatarFeedback } from '#lib/avatarFeedback.js';
 	import { onMount } from 'svelte';
@@ -285,16 +284,7 @@
 </svelte:head>
 
 <div class="detective-page">
-	<header class="topbar">
-		<a class="brand" href="/"
-			><span aria-hidden="true">IT</span>IT-laben<span class="brand-dot">.</span></a
-		>
-		<nav aria-label="Spillnavigasjon">
-			<a href="/spill/redd-chatten/">Redd chatten ↗</a><a href="/#spill">Alle spill</a>
-		</nav>
-		<div class="theme-control"><AccountLink /><ThemeToggle /></div>
-	</header>
-	<main>
+	<main id="hovedinnhold" tabindex="-1">
 		<ModuleContext />
 		<section class="intro" aria-labelledby="game-title">
 			<div>
@@ -592,6 +582,12 @@
 			>
 		</footer>
 		<p class="sr-only" aria-live="polite" aria-atomic="true">{announcement}</p>
+		<PageLinks
+			links={[
+				{ href: '/spill/redd-chatten/', label: 'Redd chatten' },
+				{ href: '/#spill', label: 'Alle oppdrag og spill' }
+			]}
+		/>
 	</main>
 </div>
 
@@ -619,9 +615,8 @@
 	.detective-page * {
 		box-sizing: border-box;
 	}
-	.topbar,
 	main {
-		width: min(1360px, calc(100% - 64px));
+		width: min(var(--layout-width), calc(100% - 2 * var(--layout-gutter)));
 		margin-inline: auto;
 	}
 	a {
@@ -645,49 +640,7 @@
 		outline: 3px solid var(--color-focus);
 		outline-offset: 3px;
 	}
-	.topbar {
-		display: flex;
-		align-items: center;
-		justify-content: space-between;
-		gap: 20px;
-		min-height: 68px;
-		border-bottom: 1px solid var(--line);
-	}
-	.brand {
-		display: flex;
-		align-items: center;
-		gap: 7px;
-		text-decoration: none;
-		font-size: 19px;
-		font-weight: 750;
-	}
-	.brand > span:first-child {
-		display: grid;
-		place-items: center;
-		width: 28px;
-		height: 28px;
-		border-radius: 5px;
-		background: var(--color-brand);
-		color: var(--color-on-brand);
-		font-size: var(--font-small);
-	}
-	.brand-dot {
-		color: var(--teal);
-		margin-left: -7px;
-	}
-	.topbar nav {
-		display: flex;
-		gap: 24px;
-		font-size: var(--font-small);
-		color: var(--muted);
-	}
-	.topbar nav a {
-		text-decoration: none;
-	}
-	.topbar nav a:hover {
-		text-decoration: underline;
-		color: var(--teal);
-	}
+
 	.intro {
 		display: flex;
 		align-items: center;
@@ -1449,9 +1402,8 @@
 		border: 0;
 	}
 	@media (max-width: 1150px) {
-		.topbar,
 		main {
-			width: calc(100% - 40px);
+			width: min(var(--layout-width), calc(100% - 2 * var(--layout-gutter)));
 		}
 		.workbench {
 			grid-template-columns: minmax(0, 1fr) 350px;
@@ -1530,29 +1482,10 @@
 		}
 	}
 	@media (max-width: 620px) {
-		.topbar,
 		main {
-			width: calc(100% - 28px);
+			width: min(var(--layout-width), calc(100% - 2 * var(--layout-gutter)));
 		}
-		.topbar {
-			min-height: 61px;
-			gap: 14px;
-		}
-		.brand {
-			font-size: 17px;
-		}
-		.brand > span:first-child {
-			width: 25px;
-			height: 25px;
-			font-size: var(--font-meta);
-		}
-		.topbar nav {
-			gap: 13px;
-			font-size: var(--font-small);
-		}
-		.topbar nav a:first-child {
-			display: none;
-		}
+
 		.intro {
 			padding: 24px 0 20px;
 			gap: 16px;
@@ -1830,44 +1763,6 @@
 		}
 	}
 
-	.topbar {
-		flex-wrap: wrap;
-	}
-	.topbar nav {
-		margin-left: auto;
-	}
-	@media (max-width: 620px) {
-		.topbar {
-			display: grid;
-			grid-template-columns: minmax(0, 1fr) auto;
-			gap: 8px 12px;
-			padding-block: 12px;
-		}
-		.topbar nav {
-			grid-column: 1 / -1;
-			grid-row: 2;
-			justify-self: end;
-			margin-left: 0;
-		}
-	}
-
-	.theme-control {
-		flex: 0 0 auto;
-		justify-self: end;
-	}
-	@media (max-width: 380px) {
-		.brand {
-			white-space: nowrap;
-		}
-		.topbar nav {
-			grid-column: 2;
-			grid-row: 1;
-		}
-		.theme-control {
-			grid-column: 1 / -1;
-			grid-row: 2;
-		}
-	}
 	@media (max-width: 900px) {
 		.case-tabs {
 			grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -1876,23 +1771,6 @@
 	@media (max-width: 480px) {
 		.case-tabs {
 			grid-template-columns: 1fr;
-		}
-	}
-
-	.theme-control {
-		display: flex;
-		align-items: center;
-		justify-content: flex-end;
-		flex-wrap: wrap;
-		gap: 8px;
-		min-width: 0;
-		max-width: 100%;
-	}
-	@media (max-width: 620px) {
-		.theme-control {
-			grid-column: 1 / -1;
-			grid-row: auto;
-			justify-self: stretch;
 		}
 	}
 </style>

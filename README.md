@@ -77,6 +77,8 @@ På `/spill/redd-chatten/pilot/` kan eleven forutsi, undersøke, reparere og for
 
 På `dev` prøver vi et nytt design for fagoversikt, moduler og navigasjon. [Designvurdering og utkast](docs/designvurdering-og-utkast.md) viser funn, skjermbilder, endringer og hva som er kontrollert.
 
+[Felles navigasjon og design](docs/felles-navigasjon.md) beskriver videreføringen til alle sider, inkludert lærerpanel, Min lab og spill. Hovedmenyen ligger i rotlayouten; nye sider skal ikke legge inn en egen toppmeny.
+
 Det felles [pedagogiske grunnlaget](docs/pedagogisk-grunnlag.md) beskriver hvordan vi bruker forskning om interaktivitet, tilbakemeldinger og gamification i nye aktiviteter. [Grunnlaget for webdesign og brukeropplevelse](docs/webdesign-og-brukeropplevelse.md) supplerer dette med prinsipper for struktur, lesbarhet, interaksjon, tilgjengelighet og brukertesting. Bruk [aktivitetsmalen](docs/aktivitetsmal.md) for å konkretisere mål, elevhandlinger, respons og ny anvendelse. [AGENTS.md](AGENTS.md) gir KI-assistenter instruksjoner om å lese og følge begge grunnlagene ved relevant arbeid i repoet.
 
 Når vi lager og videreutvikler sider, legger vi vekt på å:

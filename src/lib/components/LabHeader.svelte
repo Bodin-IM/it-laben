@@ -1,23 +1,92 @@
 <script>
+	import { afterNavigate } from '$app/navigation';
+	import { page } from '$app/state';
 	import ThemeToggle from '#lib/components/ThemeToggle.svelte';
 	import AccountLink from '#lib/components/AccountLink.svelte';
 	import { lab } from '#lib/lab.js';
 	import { hasTeacherRole } from '#lib/learning.js';
-	/** @type {{current?:'catalogue'|''}} */
-	let { current = '' } = $props();
+	import { fag } from '#lib/innhold.js';
+
+	let menuOpen = $state(false);
+	/** @type {HTMLButtonElement|undefined} */
+	let menuButton;
+	/** @type {HTMLDetailsElement|undefined} */
+	let subjectsMenu;
+	/** @type {HTMLElement|undefined} */
+	let header;
+	const teacherPage = $derived(page.url.pathname.startsWith('/laerer/'));
+
+	function closeMenus() {
+		menuOpen = false;
+		if (subjectsMenu) subjectsMenu.open = false;
+	}
+	afterNavigate(closeMenus);
+
+	function escapeMenu(/** @type {KeyboardEvent} */ event) {
+		if (event.key !== 'Escape') return;
+		if (subjectsMenu?.open) {
+			subjectsMenu.open = false;
+			subjectsMenu.querySelector('summary')?.focus();
+		} else if (menuOpen) {
+			menuOpen = false;
+			menuButton?.focus();
+		}
+	}
+	function outsideClick(/** @type {MouseEvent} */ event) {
+		if (event.target instanceof Node && !header?.contains(event.target)) closeMenus();
+	}
+	function leaveSubjects(/** @type {FocusEvent} */ event) {
+		if (event.relatedTarget instanceof Node && !subjectsMenu?.contains(event.relatedTarget)) {
+			if (subjectsMenu) subjectsMenu.open = false;
+		}
+	}
 </script>
 
-<header class="lab-header">
+<svelte:window onkeydown={escapeMenu} onclick={outsideClick} />
+
+<header class="lab-header" bind:this={header}>
 	<div class="header-inner">
 		<a class="brand" href="/" aria-label="IT-laben – forside">
 			<span class="brand-mark" aria-hidden="true">IT</span><span
 				>IT-laben<span class="brand-dot">.</span></span
 			>
 		</a>
-		<nav class="main-nav" aria-label="Hovedmeny">
-			<a href="/" aria-current={current === 'catalogue' ? 'page' : undefined}>Fagoversikt</a>
-			<a href="/toppliste/">Toppliste</a>
-			{#if hasTeacherRole($lab.user?.role)}<a href="/laerer/undervisning/">Undervisning</a>{/if}
+		<button
+			class="menu-toggle"
+			type="button"
+			bind:this={menuButton}
+			aria-expanded={menuOpen}
+			aria-controls="site-navigation"
+			onclick={() => (menuOpen = !menuOpen)}
+		>
+			<span aria-hidden="true">{menuOpen ? '×' : '☰'}</span>
+			{menuOpen ? 'Lukk meny' : 'Meny'}
+		</button>
+		<nav id="site-navigation" class="main-nav" class:open={menuOpen} aria-label="Hovedmeny">
+			<a href="/" aria-current={page.url.pathname === '/' ? 'page' : undefined}>Fagoversikt</a>
+			<details class="subjects" bind:this={subjectsMenu} onfocusout={leaveSubjects}>
+				<summary>Velg fag <span aria-hidden="true">⌄</span></summary>
+				<div class="subject-links">
+					{#each fag as subject (subject.id)}
+						<a href={`/?fag=${subject.id}`}
+							><strong>{subject.navn}</strong><span>{subject.beskrivelse}</span></a
+						>
+					{/each}
+				</div>
+			</details>
+			<a href="/toppliste/" aria-current={page.url.pathname === '/toppliste/' ? 'page' : undefined}
+				>Toppliste</a
+			>
+			{#if hasTeacherRole($lab.user?.role)}
+				<a
+					href="/laerer/"
+					aria-current={teacherPage
+						? page.url.pathname === '/laerer/'
+							? 'page'
+							: 'location'
+						: undefined}>Lærerpanel</a
+				>
+			{/if}
 		</nav>
 		<div class="account"><AccountLink /></div>
 		<div class="theme"><ThemeToggle compact /></div>
@@ -26,8 +95,11 @@
 
 <style>
 	.lab-header {
+		position: relative;
+		z-index: 30;
 		border-bottom: 1px solid var(--color-border);
 		background: var(--color-surface);
+		color: var(--color-text);
 		font-family: var(--font-ui);
 	}
 	.header-inner {
@@ -35,9 +107,9 @@
 		margin: auto;
 		min-height: 84px;
 		display: grid;
-		grid-template-columns: auto 1fr auto auto;
+		grid-template-columns: auto minmax(0, 1fr) auto auto;
 		align-items: center;
-		gap: 24px;
+		gap: 16px;
 		padding-block: 14px;
 		box-sizing: border-box;
 	}
@@ -50,6 +122,7 @@
 		letter-spacing: -0.04em;
 		color: var(--color-text);
 		text-decoration: none;
+		min-height: 44px;
 	}
 	.brand-mark {
 		display: grid;
@@ -61,37 +134,82 @@
 		color: var(--color-on-brand);
 		font: 700 1rem/1 monospace;
 		letter-spacing: -1px;
+		flex-shrink: 0;
 	}
 	.brand-dot {
 		color: var(--color-accent);
 	}
 	.main-nav {
 		display: flex;
-		gap: 6px;
+		gap: 4px;
 		flex-wrap: wrap;
-		margin-left: 20px;
+		align-items: center;
 	}
-	.main-nav a {
+	.main-nav > a,
+	summary,
+	.menu-toggle {
 		display: inline-flex;
 		align-items: center;
+		gap: 8px;
 		min-height: 44px;
-		padding: 0 12px;
+		padding: 8px 12px;
 		border-radius: 8px;
 		color: var(--color-text-muted);
-		font-size: var(--font-small);
-		font-weight: 600;
+		font: 600 var(--font-small)/1.4 var(--font-ui);
 		text-decoration: none;
 		box-sizing: border-box;
+		cursor: pointer;
 	}
-	.main-nav a:hover {
+	.main-nav > a:hover,
+	summary:hover {
 		background: var(--color-surface-soft);
 		color: var(--color-text);
 	}
-	.main-nav a[aria-current] {
+	.main-nav > a[aria-current],
+	details[open] summary {
 		color: var(--color-accent);
 		background: var(--color-accent-soft);
 	}
-	a:focus-visible {
+	.subjects {
+		position: relative;
+	}
+	summary {
+		list-style: none;
+	}
+	summary::-webkit-details-marker {
+		display: none;
+	}
+	.subject-links {
+		position: absolute;
+		left: 0;
+		top: calc(100% + 8px);
+		width: 280px;
+		padding: 8px;
+		border: 1px solid var(--color-border-strong);
+		border-radius: var(--radius-card);
+		background: var(--color-surface);
+		box-shadow: 0 10px 28px var(--color-shadow);
+		box-sizing: border-box;
+	}
+	.subject-links a {
+		display: grid;
+		gap: 2px;
+		padding: 12px;
+		border-radius: 8px;
+		color: var(--color-text);
+		text-decoration: none;
+	}
+	.subject-links a:hover {
+		background: var(--color-surface-soft);
+	}
+	.subject-links strong {
+		font-size: var(--font-small);
+	}
+	.subject-links span {
+		font-size: var(--font-meta);
+		color: var(--color-text-muted);
+	}
+	:is(a, button, summary):focus-visible {
 		outline: 3px solid var(--color-focus);
 		outline-offset: 3px;
 	}
@@ -99,7 +217,13 @@
 	.theme {
 		min-width: 0;
 	}
-	@media (max-width: 760px) {
+	.menu-toggle {
+		display: none;
+		border: 1px solid var(--color-border-strong);
+		background: var(--color-surface);
+		color: var(--color-text);
+	}
+	@media (max-width: 1000px) {
 		.header-inner {
 			grid-template-columns: minmax(0, 1fr) auto;
 			gap: 8px 12px;
@@ -111,17 +235,35 @@
 		.account {
 			grid-area: 1 / 2;
 		}
-		.main-nav {
+		.menu-toggle {
+			display: inline-flex;
 			grid-area: 2 / 1;
-			margin: 0;
-			gap: 0;
-		}
-		.main-nav a {
-			padding-inline: 8px;
+			justify-self: start;
 		}
 		.theme {
 			grid-area: 2 / 2;
 			justify-self: end;
+		}
+		.main-nav {
+			display: none;
+			grid-area: 3 / 1 / auto / -1;
+			border-top: 1px solid var(--color-border);
+			padding-top: 10px;
+		}
+		.main-nav.open {
+			display: flex;
+			flex-direction: column;
+			align-items: stretch;
+		}
+		.main-nav > a,
+		summary {
+			width: 100%;
+		}
+		.subject-links {
+			position: static;
+			width: 100%;
+			margin-top: 6px;
+			box-shadow: none;
 		}
 	}
 </style>

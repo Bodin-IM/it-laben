@@ -2,8 +2,6 @@
 	import { page } from '$app/state';
 	import { onMount } from 'svelte';
 	import { lab, schoolRequest } from '#lib/lab.js';
-	import { hasTeacherRole } from '#lib/learning.js';
-	import ThemeToggle from '#lib/components/ThemeToggle.svelte';
 	import LeaderboardRow from '#lib/components/LeaderboardRow.svelte';
 	import LeaderboardPreference from '#lib/components/LeaderboardPreference.svelte';
 	import { connection, secureHref } from '#lib/connection.js';
@@ -67,15 +65,7 @@
 	><title>Toppliste | IT-laben</title><meta name="robots" content="noindex" /></svelte:head
 >
 <div class="leaderboard-page">
-	<header>
-		<a class="brand" href="/">IT-laben.</a>
-		<nav>
-			{#if hasTeacherRole($lab.user?.role)}<a href="/laerer/">Lærerpanel →</a>{/if}<a
-				href="/min-lab/">Min lab →</a
-			><ThemeToggle />
-		</nav>
-	</header>
-	<main>
+	<main id="hovedinnhold" tabindex="-1">
 		<section class="intro">
 			<p class="eyebrow">SMÅ STEG. SYNLIG FREMGANG.</p>
 			<h1>Læring som<br /><em>setter spor.</em></h1>
@@ -147,29 +137,19 @@
 <style>
 	.leaderboard-page {
 		min-height: 100vh;
-		font-family: Inter, system-ui, sans-serif;
+		font-family: var(--font-ui);
 		color: var(--color-text);
-		background: radial-gradient(ellipse at 85% 0%, var(--color-page-glow), transparent 50%);
+		background: var(--color-page);
 	}
 	.leaderboard-page,
 	.leaderboard-page * {
 		box-sizing: border-box;
 	}
-	header,
 	main {
-		width: min(960px, calc(100% - 40px));
+		width: min(var(--layout-width), calc(100% - 2 * var(--layout-gutter)));
 		margin-inline: auto;
 	}
-	header {
-		min-height: 80px;
-		display: flex;
-		align-items: center;
-		justify-content: space-between;
-		flex-wrap: wrap;
-		gap: 12px;
-		padding-block: 14px;
-		border-bottom: 1px solid var(--color-border);
-	}
+
 	nav {
 		display: flex;
 		align-items: center;
@@ -179,16 +159,7 @@
 	a {
 		color: var(--color-accent);
 	}
-	.brand {
-		color: var(--color-text);
-		font-size: 21px;
-		font-weight: 800;
-		text-decoration: none;
-	}
-	header nav > a {
-		font-size: var(--font-small);
-		text-decoration: none;
-	}
+
 	main {
 		padding-bottom: 64px;
 	}
@@ -242,9 +213,7 @@
 		background: var(--color-surface);
 		color: var(--color-text);
 		cursor: pointer;
-		font:
-			650 14px/1.4 system-ui,
-			sans-serif;
+		font: 650 var(--font-small)/1.4 var(--font-ui);
 	}
 	button:disabled {
 		opacity: 0.55;
@@ -266,7 +235,7 @@
 		padding: 40px 24px;
 		text-align: center;
 		border: 1px dashed var(--color-border-strong);
-		border-radius: 10px;
+		border-radius: var(--radius-card);
 	}
 	.empty > span {
 		color: var(--color-accent);
@@ -286,7 +255,7 @@
 	.participation {
 		background: var(--color-surface);
 		border: 1px solid var(--color-border);
-		border-radius: 10px;
+		border-radius: var(--radius-card);
 		padding: 24px;
 		margin-top: 30px;
 	}

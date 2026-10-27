@@ -4,7 +4,6 @@
 	import { moduleLink } from '#lib/moduleNavigation.js';
 	import ModuleContext from '#lib/components/ModuleContext.svelte';
 	import { avatarFeedback } from '#lib/avatarFeedback.js';
-	import LabHeader from '#lib/components/LabHeader.svelte';
 	import { lessons } from '#lib/ovingene.js';
 	import { buildTrace } from '#lib/ovingModel.js';
 	let ready = $state(false);
@@ -83,8 +82,7 @@
 
 <div class="lesson-page">
 	<a class="skip" href="#forsok">Hopp til forsøket</a>
-	<LabHeader />
-	<main>
+	<main id="hovedinnhold" tabindex="-1">
 		<ModuleContext />
 		<nav class="course" aria-label="Backend · øving 5 til 10">
 			<span class="course-label">BACKEND /</span>
@@ -381,9 +379,9 @@
 		background: var(--color-action-hover);
 	}
 	main {
-		max-width: 1380px;
+		width: min(var(--layout-width), calc(100% - 2 * var(--layout-gutter)));
 		margin: auto;
-		padding: 0 2rem 3rem;
+		padding: 0 0 3rem;
 	}
 	.course {
 		display: flex;
@@ -851,7 +849,7 @@
 	}
 	@media (max-width: 760px) {
 		main {
-			padding: 0 1rem 2rem;
+			padding: 0 0 2rem;
 		}
 		.course {
 			gap: 0.3rem;
