@@ -114,6 +114,9 @@ body {
 /* One keyboard entry point, provided by the root layout on every route. */
 .site-skip {
 	position: fixed;
+	box-sizing: border-box;
+	max-width: calc(100% - 16px);
+	overflow-wrap: anywhere;
 	z-index: 1000;
 	top: 8px;
 	left: 8px;

@@ -94,6 +94,8 @@
 		width: min(1120px, calc(100% - 40px));
 		margin: 0 auto 36px;
 		display: grid;
+		grid-template-columns: minmax(0, 1fr);
+		overflow-wrap: anywhere;
 		gap: 16px;
 	}
 	.activity-progress {

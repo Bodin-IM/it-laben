@@ -34,8 +34,10 @@
 			setLearningContext({ activityId: '', mode: 'normal', openingId: null, untimed: false });
 	});
 	const showStudentTools = $derived(!presentationRequested || ($lab.ready && !presenting));
+	const localPartner = $derived(page.url.pathname.replace(/\/$/, '') === '/spill/redd-chatten');
 	const showCompanion = $derived(
-		showStudentTools &&
+		!localPartner &&
+			showStudentTools &&
 			$lab.user?.role === 'student' &&
 			!!$lab.summary &&
 			$labPreferences.companion &&
@@ -66,7 +68,7 @@
 	{#if presenting && activity}<TeachingPresentation {activity} {plan} />{:else}<LearningAccess
 		/>{/if}
 	<div class="activity-layout" class:with-companion={showCompanion}>
-		{#if showStudentTools}<AvatarCompanion />{/if}
+		{#if showStudentTools && !localPartner}<AvatarCompanion />{/if}
 		<div class="activity-content">
 			{@render children()}
 			{#if showStudentTools}<ActivityProgress /><RewardToast />{/if}

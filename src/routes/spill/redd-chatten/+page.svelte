@@ -4,6 +4,7 @@
 	import { activityLab as account, learningContext, saveAttempt } from '#lib/lab.js';
 	import { avatarFeedback } from '#lib/avatarFeedback.js';
 	import LabPartnerPanel from '#lib/components/LabPartnerPanel.svelte';
+	import AvatarCompanion from '#lib/components/AvatarCompanion.svelte';
 	import { PARTNER_ACTIVITY, PARTNER_VERSION, appendPartnerEvent } from '#lib/labPartner.js';
 	import { onMount, onDestroy, tick } from 'svelte';
 	import BackendRouteEditor from '#lib/components/BackendRouteEditor.svelte';
@@ -597,6 +598,14 @@
 				</ul>
 			</div>
 			<div class="mission-tools">
+				<a
+					class="partner-shortcut"
+					href="#labpartner-hjelp"
+					onclick={(event) => {
+						event.preventDefault();
+						window.dispatchEvent(new Event('labpartner-open'));
+					}}>Spør labpartneren</a
+				>
 				<button
 					type="button"
 					class="quiet"
@@ -662,20 +671,11 @@
 
 			<aside
 				class="test-column"
+				id="testomrade"
+				tabindex="-1"
 				bind:this={explanationBoundary}
 				aria-label="Prøv og undersøk serverkoden"
 			>
-				{#key partnerScope}
-					<LabPartnerPanel
-						snapshot={partnerSnapshot}
-						accountId={$account.user?.id ?? null}
-						csrf={$account.csrfToken ?? ''}
-						avatarId={$account.summary?.lab.avatarId ?? 'robot'}
-						onreset={() => {
-							partnerEvents = [];
-						}}
-					/>
-				{/key}
 				<div class="test-panel" bind:this={testPanel}>
 					{#if walkthrough && walkthroughFrame}
 						<RequestWalkthrough
@@ -999,6 +999,22 @@
 					{/if}
 				</div>
 			</aside>
+			<aside class="partner-column" aria-label="Labpartner og KI-hjelp">
+				<div class="partner-position">
+					{#key partnerScope}
+						<LabPartnerPanel
+							snapshot={partnerSnapshot}
+							accountId={$account.user?.id ?? null}
+							csrf={$account.csrfToken ?? ''}
+							avatarId={$account.summary?.lab.avatarId ?? 'robot'}
+							onreset={() => {
+								partnerEvents = [];
+							}}
+						/>
+					{/key}
+					<AvatarCompanion embedded />
+				</div>
+			</aside>
 		</div>
 
 		<details class="learn-more">
@@ -1307,8 +1323,62 @@
 	.workbench {
 		display: grid;
 		grid-template-columns: minmax(0, 1fr) 390px;
-		gap: 25px;
-		align-items: stretch;
+		grid-template-rows: auto 1fr;
+		gap: 20px 25px;
+		align-items: start;
+	}
+	.code-column {
+		grid-column: 1;
+		grid-row: 1 / span 2;
+	}
+	.test-column {
+		grid-column: 2;
+		grid-row: 1;
+	}
+	.partner-column {
+		grid-column: 2;
+		grid-row: 2;
+		min-width: 0;
+		align-self: stretch;
+	}
+	.partner-shortcut {
+		display: block;
+		min-height: 44px;
+		padding: 10px 0;
+		color: var(--color-accent);
+		font-size: var(--font-small);
+		font-weight: 650;
+	}
+	.partner-shortcut:focus-visible {
+		outline: 3px solid var(--color-focus);
+		outline-offset: 3px;
+	}
+	@media (min-width: 1800px) {
+		main {
+			width: min(1680px, calc(100% - 2 * var(--layout-gutter)));
+		}
+		.workbench {
+			grid-template-columns: 360px minmax(0, 1fr) 390px;
+			grid-template-rows: auto;
+		}
+		.partner-column {
+			grid-column: 1;
+			grid-row: 1;
+		}
+		.code-column {
+			grid-column: 2;
+			grid-row: 1;
+		}
+		.test-column {
+			grid-column: 3;
+			grid-row: 1;
+		}
+	}
+	@media (min-width: 1800px) and (min-height: 950px) {
+		.partner-position {
+			position: sticky;
+			top: 16px;
+		}
 	}
 	.code-column,
 	.test-column {
@@ -2062,6 +2132,12 @@
 		}
 	}
 	@media (max-width: 900px) {
+		.code-column,
+		.test-column,
+		.partner-column {
+			grid-column: 1;
+			grid-row: auto;
+		}
 		.workbench {
 			grid-template-columns: 1fr;
 			gap: 25px;
