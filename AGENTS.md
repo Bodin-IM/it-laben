@@ -17,6 +17,7 @@ Disse instruksjonene gjelder hele repoet. IT-laben er et undervisningsverktøy f
 - Vurder gyldige løsninger etter faglig funksjon når det er mulig. Ikke godkjenn fritekst faglig bare fordi feltet er fylt ut.
 - Legg inn eller beskriv en beslektet oppgave med mindre støtte for å undersøke overføring. Den kan ligge i lærerens opplegg; hver liten side trenger ikke alle fasene.
 - Bruk felles komponenter og temavariabler. Sørg for lesbarhet, tastaturbetjening, mobilbruk, tydelig progresjon og hjelp som eleven kan åpne ved behov.
+- Hovedmenyen eies av `src/routes/+layout.svelte` og `LabHeader.svelte`. Nye sider skal arve denne, ikke lage en egen toppmeny, kontolenke eller temavelger. Lærersider bruker `TeacherShell.svelte`; lokale stegmenyer og relaterte lenker hører til sideinnholdet. Gi sidens eneste `main` element `id="hovedinnhold"` og `tabindex="-1"`, slik at den felles hopplenken virker. Se [felles navigasjon og design](docs/felles-navigasjon.md).
 - Gjør brukerens plassering, handlinger og systemets status forståelige. Bruk WCAG 2.2 nivå AA som arbeidsmål for nye og vesentlig endrede brukerflyter. Skill forskningsfunn, standardkrav og lokale designvalg; en bestemt kortfarge eller tekststørrelse er ikke et forskningskrav.
 - Bruk grunnlagene innenfor oppgavens omfang. Ikke endre andre aktiviteter, eksisterende XP-regler eller vurderingsordninger som en sideeffekt. Hvis brukeren ber om et annet pedagogisk valg eller designvalg, følg den avklarte retningen og dokumenter begrunnelsen kort.
 
@@ -27,3 +28,31 @@ Disse instruksjonene gjelder hele repoet. IT-laben er et undervisningsverktøy f
 - Ved endringer i modeller eller vurderingslogikk: kjør relevante tester med `npm test`. Ved Svelte-/kodeendringer: kjør `npm run check` og `npm run build`, og prøv den endrede elevflyten i nettleseren. Kontroller både gyldige og ugyldige forsøk og muligheten for å prøve igjen.
 - Ved rene dokumentasjonsendringer: kontroller lenker, innhold og formatering; full bygging og tester er ikke nødvendig.
 - Oppdater aktivitetens dokumentasjon når mål, støtte eller vurdering endres. Påstå ikke dokumentert læringseffekt uten et egnet datagrunnlag.
+
+## Svelte 5 og SvelteKit – Svelte MCP
+
+Disse instruksjonene kommer i tillegg til det pedagogiske grunnlaget, designgrunnlaget og prosjektets egne kontroller ovenfor. De forutsetter at Svelte MCP-serveren er koblet til agentens miljø; denne filen kobler ikke til serveren. Hvis verktøyene ikke er tilgjengelige, oppgi begrensningen, bruk offisiell Svelte-/SvelteKit-dokumentasjon og kjør prosjektets relevante kontroller. Ikke påstå at MCP-verktøy er brukt når de ikke er tilgjengelige.
+
+You are able to use the Svelte MCP server, where you have access to comprehensive Svelte 5 and SvelteKit documentation. Here's how to use the available tools effectively:
+
+### Available Svelte MCP Tools:
+
+#### 1. list-sections
+
+Use this FIRST to discover all available documentation sections. Returns a structured list with titles, use_cases, and paths.
+When asked about Svelte or SvelteKit topics, ALWAYS use this tool at the start of the chat to find relevant sections.
+
+#### 2. get-documentation
+
+Retrieves full documentation content for specific sections. Accepts single or multiple sections.
+After calling the list-sections tool, you MUST analyze the returned documentation sections (especially the use_cases field) and then use the get-documentation tool to fetch ALL documentation sections that are relevant for the user's task.
+
+#### 3. svelte-autofixer
+
+Analyzes Svelte code and returns issues and suggestions.
+You MUST use this tool whenever writing Svelte code before sending it to the user. Keep calling it until no issues or suggestions are returned.
+
+#### 4. playground-link
+
+Generates a Svelte Playground link with the provided code.
+After completing the code, ask the user if they want a playground link. Only call this tool after user confirmation and NEVER if code was written to files in their project.

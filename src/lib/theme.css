@@ -1,30 +1,34 @@
 /* Shared UI roles. Pages keep their own layout and use these colors in both themes. */
 :root {
 	color-scheme: light;
+	--font-ui: Inter, system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+	--layout-width: 1280px;
+	--layout-gutter: clamp(16px, 4vw, 40px);
+	--radius-card: 14px;
 	/* Shared reading sizes. Keep these in rem so browser text preferences also apply. */
-	--font-body: 1rem;
-	--font-small: 0.875rem;
-	--font-meta: 0.8125rem;
-	--font-code: 0.9375rem;
-	--font-code-small: 0.875rem;
+	--font-body: 1.0625rem;
+	--font-small: 0.9375rem;
+	--font-meta: 0.875rem;
+	--font-code: 1rem;
+	--font-code-small: 0.9375rem;
 	--leading-body: 1.6;
 	--leading-code: 1.65;
-	--color-page: #f4f5ef;
-	--color-surface: #fffdf8;
+	--color-page: #f5f7f9;
+	--color-surface: #ffffff;
 	--color-surface-raised: #ffffff;
-	--color-surface-soft: #edf2e6;
-	--color-surface-hover: #e3ebda;
-	--color-surface-active: #dceacb;
-	--color-text: #193c3b;
-	--color-text-muted: #526c60;
-	--color-text-subtle: #566f5e;
-	--color-border: #d4dfcf;
-	--color-border-strong: #92ae94;
-	--color-accent: #08796f;
-	--color-accent-soft: #e0eee4;
-	--color-action: #176557;
-	--color-action-hover: #104f45;
-	--color-on-action: #f6f9f0;
+	--color-surface-soft: #edf1f4;
+	--color-surface-hover: #e5ecee;
+	--color-surface-active: #d6e9e3;
+	--color-text: #20343e;
+	--color-text-muted: #536570;
+	--color-text-subtle: #596b75;
+	--color-border: #d8e1e6;
+	--color-border-strong: #81959f;
+	--color-accent: #106f62;
+	--color-accent-soft: #e6f2ed;
+	--color-action: #146d5c;
+	--color-action-hover: #0d574a;
+	--color-on-action: #ffffff;
 	--color-success: #42672c;
 	--color-success-soft: #e5efd6;
 	--color-success-border: #a9c18f;
@@ -34,15 +38,15 @@
 	--color-danger: #a04435;
 	--color-danger-soft: #fae8e1;
 	--color-danger-border: #dfb2a4;
-	--color-info: #235f80;
-	--color-info-soft: #e3eef2;
-	--color-info-border: #a8c5d1;
+	--color-info: #2a5d8e;
+	--color-info-soft: #edf4fc;
+	--color-info-border: #bed2e8;
 	--color-violet: #6c4d87;
 	--color-violet-soft: #ede5f1;
-	--color-brand: #193c3b;
-	--color-on-brand: #f2f7ec;
-	--color-focus: #08796f;
-	--color-page-glow: #dfeee1;
+	--color-brand: #20343e;
+	--color-on-brand: #ffffff;
+	--color-focus: #106f62;
+	--color-page-glow: #edf2f5;
 	--color-shadow: rgb(25 60 59 / 13%);
 	/* Code examples retain a dark editor palette in both themes. */
 	--color-code-bg: #132f2c;
@@ -52,22 +56,22 @@
 
 :root[data-theme='dark'] {
 	color-scheme: dark;
-	--color-page: #101a18;
-	--color-surface: #192923;
-	--color-surface-raised: #263b31;
-	--color-surface-soft: #203129;
-	--color-surface-hover: #2a4135;
-	--color-surface-active: #314b39;
-	--color-text: #e6ede2;
-	--color-text-muted: #b3c4b5;
-	--color-text-subtle: #a5bba9;
-	--color-border: #385044;
-	--color-border-strong: #5b7564;
-	--color-accent: #8ad8bf;
-	--color-accent-soft: #213d31;
+	--color-page: #121c23;
+	--color-surface: #1b2932;
+	--color-surface-raised: #2a3b46;
+	--color-surface-soft: #22333d;
+	--color-surface-hover: #2b414b;
+	--color-surface-active: #29483e;
+	--color-text: #e8eff3;
+	--color-text-muted: #bac9d2;
+	--color-text-subtle: #adbec8;
+	--color-border: #3a4e5b;
+	--color-border-strong: #7d919e;
+	--color-accent: #8ddcc4;
+	--color-accent-soft: #203f38;
 	--color-action: #8acdb2;
 	--color-action-hover: #a4dec6;
-	--color-on-action: #102b24;
+	--color-on-action: #122d26;
 	--color-success: #acd88e;
 	--color-success-soft: #283d27;
 	--color-success-border: #526f41;
@@ -77,15 +81,15 @@
 	--color-danger: #f4b4a1;
 	--color-danger-soft: #3d2925;
 	--color-danger-border: #895f52;
-	--color-info: #a6d5e5;
-	--color-info-soft: #203743;
-	--color-info-border: #4a6c7e;
+	--color-info: #afd5fc;
+	--color-info-soft: #203447;
+	--color-info-border: #4e6c88;
 	--color-violet: #d1b8ec;
 	--color-violet-soft: #312b40;
 	--color-brand: #8acdb2;
-	--color-on-brand: #102b24;
+	--color-on-brand: #122d26;
 	--color-focus: #b7e889;
-	--color-page-glow: #233d2e;
+	--color-page-glow: #1b2c38;
 	--color-shadow: rgb(0 0 0 / 32%);
 }
 
@@ -97,6 +101,7 @@ body {
 
 body {
 	margin: 0;
+	font-family: var(--font-ui);
 	font-size: var(--font-body);
 	line-height: var(--leading-body);
 }
@@ -104,4 +109,29 @@ body {
 ::selection {
 	background: var(--color-accent);
 	color: var(--color-page);
+}
+
+/* One keyboard entry point, provided by the root layout on every route. */
+.site-skip {
+	position: fixed;
+	z-index: 1000;
+	top: 8px;
+	left: 8px;
+	transform: translateY(-180%);
+	padding: 12px 18px;
+	border: 2px solid var(--color-focus);
+	border-radius: 8px;
+	background: var(--color-surface);
+	color: var(--color-text);
+	font: 650 var(--font-small)/1.5 var(--font-ui);
+}
+.site-skip:focus {
+	transform: none;
+}
+#hovedinnhold {
+	scroll-margin-top: 16px;
+}
+#hovedinnhold:focus-visible {
+	outline: 3px solid var(--color-focus);
+	outline-offset: 5px;
 }

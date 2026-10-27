@@ -1,6 +1,6 @@
 <script>
+	import PageLinks from '#lib/components/PageLinks.svelte';
 	import { onMount, tick } from 'svelte';
-	import ThemeToggle from '#lib/components/ThemeToggle.svelte';
 	import BackendRouteEditor from '#lib/components/BackendRouteEditor.svelte';
 	import RequestWalkthrough from '#lib/components/RequestWalkthrough.svelte';
 	import {
@@ -349,12 +349,7 @@
 </svelte:head>
 
 <div class="pilot-page">
-	<header class="topbar">
-		<a class="brand" href="/">IT-laben<span>.</span></a>
-		<a class="back-link" href="/spill/redd-chatten/">← Redd chatten</a>
-		<ThemeToggle />
-	</header>
-	<main>
+	<main id="hovedinnhold" tabindex="-1">
 		<section class="hero" aria-labelledby="pilot-title">
 			<div>
 				<p class="eyebrow">REDD CHATTEN / LÆRINGSPILOT</p>
@@ -835,6 +830,7 @@
 				</footer>
 			</section>
 		</div>
+		<PageLinks links={[{ href: '/spill/redd-chatten/', label: 'Tilbake til Redd chatten' }]} />
 	</main>
 </div>
 
@@ -846,36 +842,15 @@
 		background:
 			radial-gradient(ellipse at 85% 0%, var(--color-page-glow), transparent 45%), var(--color-page);
 	}
-	.topbar {
-		max-width: 1460px;
-		margin: auto;
-		padding: 22px 32px;
-		display: flex;
-		align-items: center;
-		gap: 28px;
-		border-bottom: 1px solid var(--color-border);
-	}
+
 	a {
 		color: var(--color-accent);
 		text-underline-offset: 4px;
 	}
-	.brand {
-		font-size: 24px;
-		font-weight: 800;
-		letter-spacing: -0.8px;
-		color: var(--color-text);
-		text-decoration: none;
-	}
-	.brand span {
-		color: var(--color-accent);
-	}
-	.back-link {
-		margin-left: auto;
-		font-size: 15px;
-	}
+
 	main {
-		max-width: 1460px;
-		padding: 0 32px 50px;
+		width: min(var(--layout-width), calc(100% - 2 * var(--layout-gutter)));
+		padding: 0 0 50px;
 		margin: auto;
 	}
 	.hero {
@@ -1397,18 +1372,9 @@
 	}
 	@media (max-width: 700px) {
 		main {
-			padding: 0 16px 30px;
+			padding: 0 0 30px;
 		}
-		.topbar {
-			padding: 16px;
-			gap: 12px;
-		}
-		.brand {
-			font-size: 20px;
-		}
-		.back-link {
-			font-size: 12px;
-		}
+
 		.hero {
 			grid-template-columns: 1fr;
 			gap: 24px;

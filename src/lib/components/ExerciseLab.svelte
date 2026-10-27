@@ -1,9 +1,16 @@
 <script>
+	import { onMount } from 'svelte';
+	import { page } from '$app/state';
+	import { moduleLink } from '#lib/moduleNavigation.js';
+	import ModuleContext from '#lib/components/ModuleContext.svelte';
 	import { avatarFeedback } from '#lib/avatarFeedback.js';
-	import ThemeToggle from '#lib/components/ThemeToggle.svelte';
-	import AccountLink from '#lib/components/AccountLink.svelte';
 	import { lessons } from '#lib/ovingene.js';
 	import { buildTrace } from '#lib/ovingModel.js';
+	let ready = $state(false);
+	onMount(() => {
+		ready = true;
+	});
+	const moduleId = $derived(ready ? page.url.searchParams.get('modul') : null);
 
 	/** @type {{lesson: import('../ovingene.js').Lesson}} */
 	let { lesson } = $props();
@@ -75,19 +82,14 @@
 
 <div class="lesson-page">
 	<a class="skip" href="#forsok">Hopp til forsøket</a>
-	<header>
-		<a class="brand" href="/"><span aria-hidden="true">IT</span> IT-laben.</a>
-		<div class="header-right">
-			<a href="/#ovingene">Alle øvingene</a><AccountLink /><ThemeToggle />
-		</div>
-	</header>
-	<main>
+	<main id="hovedinnhold" tabindex="-1">
+		<ModuleContext />
 		<nav class="course" aria-label="Backend · øving 5 til 10">
 			<span class="course-label">BACKEND /</span>
 			{#each lessons as item}
 				<a
 					class:active={lesson.number === item.number}
-					href={`/oving-${item.number}/`}
+					href={moduleLink(`/oving-${item.number}/`, moduleId)}
 					aria-current={lesson.number === item.number ? 'page' : undefined}
 					aria-label={`Øving ${item.number}: ${item.title}`}
 				>
@@ -312,18 +314,18 @@
 			{#each lesson.related as related}<a href={related.href}>{related.label} →</a>{/each}
 		</details>
 		<nav class="lesson-footer" aria-label="Forrige og neste øving">
-			<a href={previous ? `/oving-${previous.number}/` : '/#ovingene'}
+			<a href={previous ? moduleLink(`/oving-${previous.number}/`, moduleId) : '/#ovingene'}
 				>← {previous ? `Øving ${previous.number}: ${previous.title}` : 'Til oversikten'}</a
-			>{#if next}<a href={`/oving-${next.number}/`}>Øving {next.number}: {next.title} →</a>{:else}<a
-					href="/#ovingene">Til oversikten →</a
-				>{/if}
+			>{#if next}<a href={moduleLink(`/oving-${next.number}/`, moduleId)}
+					>Øving {next.number}: {next.title} →</a
+				>{:else}<a href="/#ovingene">Til oversikten →</a>{/if}
 		</nav>
 	</main>
 </div>
 
 <style>
 	.lesson-page {
-		font-family: 'Trebuchet MS', 'Segoe UI', sans-serif;
+		font-family: var(--font-ui);
 		color: var(--color-text);
 	}
 	.lesson-page :global(*) {
@@ -376,50 +378,10 @@
 	.primary:hover:enabled {
 		background: var(--color-action-hover);
 	}
-	header {
-		max-width: 1440px;
-		margin: auto;
-		padding: 1.4rem 2rem;
-		display: flex;
-		align-items: center;
-		justify-content: space-between;
-		flex-wrap: wrap;
-		gap: 1rem;
-		border-bottom: 1px solid var(--color-border);
-	}
-	.brand {
-		display: flex;
-		align-items: center;
-		gap: 0.7rem;
-		font-size: 1.25rem;
-		font-weight: 800;
-		text-decoration: none;
-	}
-	.brand span {
-		display: grid;
-		place-items: center;
-		background: var(--color-brand);
-		color: var(--color-on-brand);
-		width: 2.5rem;
-		height: 2.5rem;
-		border-radius: 9px;
-		font-size: 1rem;
-	}
-	.header-right {
-		display: flex;
-		flex-wrap: wrap;
-		max-width: 100%;
-		margin-left: auto;
-		align-items: center;
-		gap: 1.25rem;
-	}
-	.header-right > a {
-		font-size: var(--font-small);
-	}
 	main {
-		max-width: 1380px;
+		width: min(var(--layout-width), calc(100% - 2 * var(--layout-gutter)));
 		margin: auto;
-		padding: 0 2rem 3rem;
+		padding: 0 0 3rem;
 	}
 	.course {
 		display: flex;
@@ -886,17 +848,8 @@
 		}
 	}
 	@media (max-width: 760px) {
-		header {
-			padding: 1rem;
-		}
 		main {
-			padding: 0 1rem 2rem;
-		}
-		.header-right {
-			gap: 0.6rem;
-		}
-		.header-right > a {
-			display: none;
+			padding: 0 0 2rem;
 		}
 		.course {
 			gap: 0.3rem;

@@ -1,11 +1,18 @@
 <script>
+	import { page } from '$app/state';
 	import { lab } from '#lib/lab.js';
 	import AnimatedNumber from '#lib/components/AnimatedNumber.svelte';
 	import Avatar from '#lib/components/Avatar.svelte';
 	import { connection } from '#lib/connection.js';
 </script>
 
-<a href={$connection.publicHttp ? '/kom-i-gang/' : '/min-lab/'} class="account-link">
+<a
+	href={$connection.publicHttp ? '/kom-i-gang/' : '/min-lab/'}
+	class="account-link"
+	aria-current={page.url.pathname === ($connection.publicHttp ? '/kom-i-gang/' : '/min-lab/')
+		? 'page'
+		: undefined}
+>
 	{#if $lab.user && $lab.summary}<Avatar
 			id={$lab.summary.lab.avatarId}
 			size={28}
@@ -31,7 +38,7 @@
 		align-items: center;
 		justify-content: center;
 		gap: 7px;
-		min-height: 40px;
+		min-height: 44px;
 		padding: 7px 11px;
 		border: 1px solid var(--color-border);
 		border-radius: 8px;
@@ -46,6 +53,10 @@
 	}
 	.account-link:hover {
 		background: var(--color-surface-hover);
+	}
+	.account-link[aria-current] {
+		background: var(--color-accent-soft);
+		border-color: var(--color-accent);
 	}
 	.account-link:focus-visible {
 		outline: 3px solid var(--color-focus);
@@ -63,5 +74,10 @@
 	}
 	.pending {
 		color: var(--color-warning);
+	}
+	@media (max-width: 600px) {
+		.xp {
+			display: none;
+		}
 	}
 </style>

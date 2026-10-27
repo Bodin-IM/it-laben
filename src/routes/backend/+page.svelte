@@ -1,7 +1,7 @@
 <script>
+	import PageLinks from '#lib/components/PageLinks.svelte';
+	import ModuleContext from '#lib/components/ModuleContext.svelte';
 	import { avatarFeedback } from '#lib/avatarFeedback.js';
-	import ThemeToggle from '#lib/components/ThemeToggle.svelte';
-	import AccountLink from '#lib/components/AccountLink.svelte';
 	import { onMount } from 'svelte';
 	import CodeExplanation from '#lib/components/CodeExplanation.svelte';
 	import { codeLines, makeRun, EXAMPLE_MESSAGE, CODE_CONTEXTS } from '#lib/frontendBackendLab.js';
@@ -191,16 +191,8 @@
 </svelte:head>
 
 <div class="side">
-	<header class="sidehode">
-		<a class="logo" href="/" aria-label="IT-laben – forside"
-			><span class="logoikon" aria-hidden="true">IT</span> IT-laben<span class="punkt">.</span></a
-		>
-		<div class="header-actions">
-			<a class="videre" href="/chatrom/">Videre til chatrom <span aria-hidden="true">↗</span></a>
-			<AccountLink /><ThemeToggle />
-		</div>
-	</header>
-	<main>
+	<main id="hovedinnhold" tabindex="-1">
+		<ModuleContext />
 		<section class="intro" aria-labelledby="tittel">
 			<p class="overlinje">UTVIKLING · Vg2 IT</p>
 			<h1 id="tittel">Frontend møter backend</h1>
@@ -560,6 +552,7 @@
 		<footer>
 			<a href="/">← Flere forsøk i IT-laben</a><span>Prøv. Les koden. Prøv igjen.</span>
 		</footer>
+		<PageLinks links={[{ href: '/chatrom/', label: 'Videre til chatrom →' }]} />
 	</main>
 </div>
 
@@ -617,62 +610,16 @@
 	pre {
 		font-family: 'SFMono-Regular', Consolas, 'Liberation Mono', monospace;
 	}
-	.sidehode,
 	main {
-		width: min(1240px, calc(100% - 64px));
+		width: min(var(--layout-width), calc(100% - 2 * var(--layout-gutter)));
 		margin-inline: auto;
 	}
-	.header-actions {
-		display: flex;
-		align-items: center;
-		justify-content: flex-end;
-		flex-wrap: wrap;
-		gap: 12px 20px;
-		margin-left: auto;
-		min-width: 0;
-	}
 
-	.sidehode {
-		flex-wrap: wrap;
-		row-gap: 12px;
-		display: flex;
-		align-items: center;
-		justify-content: space-between;
-		padding-block: 25px;
-		border-bottom: 1px solid var(--kant);
-	}
-	.logo {
-		display: inline-flex;
-		align-items: center;
-		gap: 8px;
-		font-size: 21px;
-		font-weight: 780;
-		text-decoration: none;
-		letter-spacing: -0.7px;
-	}
-	.logoikon {
-		display: grid;
-		place-items: center;
-		width: 30px;
-		height: 30px;
-		background: var(--color-brand);
-		color: var(--color-on-brand);
-		font-size: var(--font-small);
-		border-radius: 7px;
-		letter-spacing: -0.5px;
-	}
 	.punkt {
 		color: var(--gronn);
 		margin-left: -8px;
 	}
-	.videre {
-		font-size: var(--font-small);
-		text-decoration: none;
-		color: var(--color-text-muted);
-	}
-	.videre span {
-		margin-left: 6px;
-	}
+
 	.intro {
 		padding-block: 32px 27px;
 	}
@@ -1456,9 +1403,8 @@
 		text-decoration: none;
 	}
 	@media (max-width: 1100px) {
-		.sidehode,
 		main {
-			width: min(1240px, calc(100% - 40px));
+			width: min(var(--layout-width), calc(100% - 2 * var(--layout-gutter)));
 		}
 		.arbeidsflate {
 			grid-template-columns: minmax(0, 1fr) 290px;
@@ -1511,19 +1457,10 @@
 		}
 	}
 	@media (max-width: 620px) {
-		.sidehode,
 		main {
-			width: calc(100% - 28px);
+			width: min(var(--layout-width), calc(100% - 2 * var(--layout-gutter)));
 		}
-		.sidehode {
-			padding-block: 18px;
-		}
-		.logo {
-			font-size: 19px;
-		}
-		.videre {
-			font-size: var(--font-small);
-		}
+
 		.intro {
 			padding-block: 24px 22px;
 		}
@@ -1737,14 +1674,7 @@
 			text-align: right;
 		}
 	}
-	@media (max-width: 700px) {
-		.sidehode {
-			padding-block: 14px;
-		}
-		.header-actions {
-			gap: 10px 14px;
-		}
-	}
+
 	@media (max-width: 420px) {
 		.forsoksvalg {
 			flex-direction: column;

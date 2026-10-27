@@ -1,7 +1,6 @@
 <script>
+	import ModuleContext from '#lib/components/ModuleContext.svelte';
 	import { avatarFeedback } from '#lib/avatarFeedback.js';
-	import ThemeToggle from '#lib/components/ThemeToggle.svelte';
-	import AccountLink from '#lib/components/AccountLink.svelte';
 	import { createState, planRun, advance } from '#lib/fillagring.js';
 
 	/** @typedef {{ title: string, text: string, label: string, value: string }} Info */
@@ -249,15 +248,8 @@
 </svelte:head>
 
 <div class="fillab">
-	<header class="sidehode">
-		<a class="tilbake" href="/"><span aria-hidden="true">←</span> IT-laben</a>
-		<div class="header-actions">
-			<span class="emne">UTVIKLING <span aria-hidden="true">/</span> NODE & JSON</span>
-			<AccountLink /><ThemeToggle />
-		</div>
-	</header>
-
-	<main>
+	<main id="hovedinnhold" tabindex="-1">
+		<ModuleContext />
 		<section class="intro" aria-labelledby="tittel">
 			<div>
 				<p class="overlinje">FILLAGRING · KODEN I FOKUS</p>
@@ -652,51 +644,12 @@
 	a {
 		color: inherit;
 	}
-	.sidehode,
 	main,
 	footer {
-		width: min(1180px, calc(100% - 64px));
+		width: min(var(--layout-width), calc(100% - 2 * var(--layout-gutter)));
 		margin: 0 auto;
 	}
-	.header-actions {
-		display: flex;
-		align-items: center;
-		justify-content: flex-end;
-		flex-wrap: wrap;
-		gap: 12px 20px;
-		margin-left: auto;
-		min-width: 0;
-	}
 
-	.sidehode {
-		flex-wrap: wrap;
-		row-gap: 12px;
-		min-height: 68px;
-		display: flex;
-		align-items: center;
-		justify-content: space-between;
-		gap: 20px;
-		border-bottom: 1px solid var(--line);
-	}
-	.tilbake {
-		text-decoration: none;
-		font-size: var(--font-small);
-		font-weight: 750;
-	}
-	.tilbake span {
-		margin-right: 9px;
-	}
-	.emne {
-		color: var(--color-text-muted);
-		font:
-			var(--font-meta)/var(--leading-body) ui-monospace,
-			monospace;
-		letter-spacing: 1px;
-	}
-	.emne span {
-		color: var(--color-text-subtle);
-		margin: 0 8px;
-	}
 	.intro {
 		display: flex;
 		justify-content: space-between;
@@ -1406,10 +1359,9 @@
 	}
 
 	@media (max-width: 1050px) {
-		.sidehode,
 		main,
 		footer {
-			width: calc(100% - 42px);
+			width: min(var(--layout-width), calc(100% - 2 * var(--layout-gutter)));
 		}
 		.arbeidsflate.medverdier {
 			grid-template-columns: minmax(0, 1fr) 290px;
@@ -1465,24 +1417,11 @@
 		}
 	}
 	@media (max-width: 550px) {
-		.sidehode,
 		main,
 		footer {
-			width: calc(100% - 28px);
+			width: min(var(--layout-width), calc(100% - 2 * var(--layout-gutter)));
 		}
-		.sidehode {
-			min-height: 59px;
-		}
-		.emne {
-			font-size: var(--font-meta);
-			letter-spacing: 0.5px;
-		}
-		.emne span {
-			margin: 0 4px;
-		}
-		.tilbake {
-			font-size: var(--font-small);
-		}
+
 		.intro {
 			padding: 24px 0 21px;
 		}
@@ -1660,14 +1599,6 @@
 		*::before,
 		*::after {
 			scroll-behavior: auto !important;
-		}
-	}
-	@media (max-width: 700px) {
-		.sidehode {
-			padding-block: 14px;
-		}
-		.header-actions {
-			gap: 10px 14px;
 		}
 	}
 </style>

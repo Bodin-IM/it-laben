@@ -1,7 +1,5 @@
 <script>
 	import { tick } from 'svelte';
-	import ThemeToggle from '#lib/components/ThemeToggle.svelte';
-	import AccountLink from '#lib/components/AccountLink.svelte';
 	import {
 		backendQuestions as questions,
 		backendTopics as topics,
@@ -73,11 +71,7 @@
 
 <div class="quiz-page">
 	<a class="skip" href="#quiz">Hopp til spørsmålene</a>
-	<header>
-		<a class="brand" href="/">IT-laben<span>.</span></a>
-		<div class="header-actions"><AccountLink /><ThemeToggle /></div>
-	</header>
-	<main>
+	<main id="hovedinnhold" tabindex="-1">
 		<a class="back" href="/?fag=utvikling#utforsk">← Tilbake til Utvikling</a>
 		<section class="intro" aria-labelledby="page-title">
 			<p class="eyebrow">AKTIVITET · FLERVALG</p>
@@ -201,7 +195,11 @@
 					</div>
 					<h2 id="question-title" tabindex="-1" bind:this={heading}>{question.title}</h2>
 					<p id="question-prompt" class="prompt">{question.prompt}</p>
-					{#if question.code}<pre><code>{question.code}</code></pre>{/if}
+					{#if question.code}
+						<!-- svelte-ignore a11y_no_noninteractive_tabindex (The scrollable code region needs keyboard focus so arrow keys can reveal long lines.) -->
+						<pre tabindex="0" role="region" aria-label="Kodeutdrag til spørsmålet"><code
+								>{question.code}</code
+							></pre>{/if}
 					<form
 						onsubmit={(event) => {
 							event.preventDefault();
@@ -300,13 +298,11 @@
 	.quiz-page :global(*) {
 		box-sizing: border-box;
 	}
-	header,
 	main,
 	footer {
-		width: min(1120px, calc(100% - 40px));
+		width: min(var(--layout-width), calc(100% - 2 * var(--layout-gutter)));
 		margin-inline: auto;
 	}
-	header,
 	footer {
 		display: flex;
 		align-items: center;
@@ -315,25 +311,12 @@
 		gap: 18px;
 		padding-block: 22px;
 	}
-	header {
-		border-bottom: 1px solid var(--color-border);
-	}
-	.header-actions,
 	.answer-actions,
 	.navigation {
 		display: flex;
 		flex-wrap: wrap;
 		align-items: center;
 		gap: 12px;
-	}
-	.brand {
-		color: var(--color-text);
-		font-weight: 800;
-		font-size: 1.2rem;
-		text-decoration: none;
-	}
-	.brand span {
-		color: var(--color-accent);
 	}
 	main {
 		padding-block: 28px 48px;
@@ -662,6 +645,7 @@
 		padding-block: 10px;
 	}
 	button:focus-visible,
+	pre:focus-visible,
 	a:focus-visible,
 	summary:focus-visible,
 	h2:focus-visible {
@@ -700,13 +684,9 @@
 		}
 	}
 	@media (max-width: 480px) {
-		header,
 		main,
 		footer {
-			width: calc(100% - 28px);
-		}
-		.header-actions {
-			gap: 10px;
+			width: min(var(--layout-width), calc(100% - 2 * var(--layout-gutter)));
 		}
 		.question-nav {
 			grid-template-columns: repeat(5, minmax(0, 1fr));

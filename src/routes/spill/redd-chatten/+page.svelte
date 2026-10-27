@@ -1,6 +1,6 @@
 <script>
-	import ThemeToggle from '#lib/components/ThemeToggle.svelte';
-	import AccountLink from '#lib/components/AccountLink.svelte';
+	import PageLinks from '#lib/components/PageLinks.svelte';
+	import ModuleContext from '#lib/components/ModuleContext.svelte';
 	import { activityLab as account, learningContext, saveAttempt } from '#lib/lab.js';
 	import { avatarFeedback } from '#lib/avatarFeedback.js';
 	import { onMount, onDestroy, tick } from 'svelte';
@@ -493,22 +493,16 @@
 </svelte:head>
 
 <div class="rescue-page">
-	<header class="topbar">
-		<a class="brand" href="/"
-			><span aria-hidden="true">IT</span>IT-laben<span class="brand-dot">.</span></a
-		>
-		<nav aria-label="Spillnavigasjon">
-			<a href="/spill/redd-chatten/pilot/">Prøv læringspiloten ↗</a><a href="/#spill">Alle spill</a>
-		</nav>
-		<div class="theme-control"><AccountLink /><ThemeToggle /></div>
-	</header>
-	<main>
+	<main id="hovedinnhold" tabindex="-1">
+		<ModuleContext />
 		<div class="intro">
 			<div>
 				<p class="eyebrow">SPILL 02 <span>DU BYGGER BACKEND</span></p>
 				<h1>Redd <em>chatten.</em></h1>
 				<p>Reparer koden. Slipp inn brukerne. Se om den holder.</p>
-				<p><a href="/spill/redd-chatten/pilot/">Ny pilot: Forutsi, undersøk og reparer én feil →</a></p>
+				<p>
+					<a href="/spill/redd-chatten/pilot/">Ny pilot: Forutsi, undersøk og reparer én feil →</a>
+				</p>
 			</div>
 			<div class="campaign">
 				<span>{progressCount} av 3 reparasjoner løst</span>
@@ -968,6 +962,12 @@
 			>
 		</footer>
 		<p class="sr-only" aria-live="polite" aria-atomic="true">{announcement}</p>
+		<PageLinks
+			links={[
+				{ href: '/spill/redd-chatten/pilot/', label: 'Prøv læringspiloten' },
+				{ href: '/#spill', label: 'Alle oppdrag og spill' }
+			]}
+		/>
 	</main>
 </div>
 
@@ -997,9 +997,8 @@
 	.rescue-page * {
 		box-sizing: border-box;
 	}
-	.topbar,
 	main {
-		width: min(1320px, calc(100% - 64px));
+		width: min(var(--layout-width), calc(100% - 2 * var(--layout-gutter)));
 		margin: auto;
 	}
 	a {
@@ -1023,49 +1022,7 @@
 		outline: 3px solid var(--color-focus);
 		outline-offset: 3px;
 	}
-	.topbar {
-		min-height: 68px;
-		display: flex;
-		align-items: center;
-		justify-content: space-between;
-		gap: 20px;
-		border-bottom: 1px solid var(--line);
-	}
-	.brand {
-		display: flex;
-		align-items: center;
-		gap: 7px;
-		font-weight: 750;
-		text-decoration: none;
-		font-size: 19px;
-	}
-	.brand > span:first-child {
-		display: grid;
-		place-items: center;
-		width: 28px;
-		height: 28px;
-		border-radius: 5px;
-		background: var(--color-brand);
-		color: var(--color-on-brand);
-		font-size: var(--font-small);
-	}
-	.brand-dot {
-		color: var(--teal);
-		margin-left: -7px;
-	}
-	.topbar nav {
-		display: flex;
-		gap: 22px;
-		font-size: var(--font-small);
-		color: var(--muted);
-	}
-	.topbar nav a {
-		text-decoration: none;
-	}
-	.topbar nav a:hover {
-		color: var(--teal);
-		text-decoration: underline;
-	}
+
 	.intro {
 		display: flex;
 		align-items: center;
@@ -2014,9 +1971,8 @@
 		}
 	}
 	@media (max-width: 1100px) {
-		.topbar,
 		main {
-			width: calc(100% - 42px);
+			width: min(var(--layout-width), calc(100% - 2 * var(--layout-gutter)));
 		}
 		.workbench {
 			grid-template-columns: minmax(0, 1fr) 350px;
@@ -2088,31 +2044,10 @@
 		}
 	}
 	@media (max-width: 520px) {
-		.topbar,
 		main {
-			width: calc(100% - 28px);
+			width: min(var(--layout-width), calc(100% - 2 * var(--layout-gutter)));
 		}
-		.topbar {
-			min-height: 59px;
-			gap: 12px;
-		}
-		.brand {
-			font-size: var(--font-body);
-			gap: 6px;
-		}
-		.brand > span:first-child {
-			width: 25px;
-			height: 25px;
-			font-size: var(--font-small);
-		}
-		.topbar nav {
-			gap: 11px;
-			font-size: var(--font-small);
-		}
-		.topbar nav a:first-child {
-			max-width: 86px;
-			text-align: right;
-		}
+
 		.intro {
 			padding: 22px 0 19px;
 			gap: 18px;
@@ -2259,32 +2194,6 @@
 		}
 	}
 
-	.topbar {
-		flex-wrap: wrap;
-	}
-	.topbar nav {
-		margin-left: auto;
-	}
-	@media (max-width: 620px) {
-		.topbar {
-			display: grid;
-			grid-template-columns: minmax(0, 1fr) auto;
-			gap: 8px 12px;
-			padding-block: 12px;
-		}
-		.topbar nav {
-			grid-column: 1 / -1;
-			grid-row: 2;
-			justify-self: end;
-			margin-left: 0;
-		}
-	}
-
-	.theme-control {
-		flex: 0 0 auto;
-		justify-self: end;
-	}
-
 	.mission-requirements {
 		margin: 12px 0 0;
 		padding-left: 20px;
@@ -2410,27 +2319,6 @@
 		footer > span {
 			max-width: none;
 			text-align: left;
-		}
-		.topbar nav a:first-child {
-			max-width: none;
-			text-align: left;
-		}
-	}
-
-	.theme-control {
-		display: flex;
-		align-items: center;
-		justify-content: flex-end;
-		flex-wrap: wrap;
-		gap: 8px;
-		min-width: 0;
-		max-width: 100%;
-	}
-	@media (max-width: 620px) {
-		.theme-control {
-			grid-column: 1 / -1;
-			grid-row: auto;
-			justify-self: stretch;
 		}
 	}
 </style>

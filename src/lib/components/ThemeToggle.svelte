@@ -1,12 +1,21 @@
 <script>
 	import { theme, setTheme } from '#lib/theme.js';
+	/** @type {{compact?:boolean}} */
+	let { compact = false } = $props();
 </script>
 
-<div class="theme-toggle" role="group" aria-label="Fargetema" data-testid="theme-toggle">
+<div
+	class="theme-toggle"
+	class:compact
+	role="group"
+	aria-label="Fargetema"
+	data-testid="theme-toggle"
+>
 	<button
 		type="button"
 		data-theme-option="light"
 		aria-label="Lyst tema"
+		title="Lyst tema"
 		aria-pressed={$theme.ready ? $theme.mode === 'light' : undefined}
 		disabled={!$theme.ready}
 		onclick={() => setTheme('light')}
@@ -29,6 +38,7 @@
 		type="button"
 		data-theme-option="dark"
 		aria-label="Mørkt tema"
+		title="Mørkt tema"
 		aria-pressed={$theme.ready ? $theme.mode === 'dark' : undefined}
 		disabled={!$theme.ready}
 		onclick={() => setTheme('dark')}
@@ -60,12 +70,19 @@
 		font-family: inherit;
 		line-height: 1;
 	}
+	.compact button {
+		width: 44px;
+		padding: 10px;
+	}
+	.compact button span {
+		display: none;
+	}
 	button {
 		display: inline-flex;
 		align-items: center;
 		justify-content: center;
 		gap: 6px;
-		min-height: 40px;
+		min-height: 44px;
 		padding: 7px 11px;
 		border: 0;
 		border-radius: 999px;

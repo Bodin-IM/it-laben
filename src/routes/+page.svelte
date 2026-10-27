@@ -1,92 +1,53 @@
 <script>
-	import { onMount } from 'svelte';
-	import { replaceState } from '$app/navigation';
-	import ThemeToggle from '#lib/components/ThemeToggle.svelte';
-	import AccountLink from '#lib/components/AccountLink.svelte';
+	import { onMount, tick } from 'svelte';
+	import { afterNavigate, replaceState } from '$app/navigation';
 	import PersonalOverview from '#lib/components/PersonalOverview.svelte';
 	import ModuleCard from '#lib/components/ModuleCard.svelte';
-	import { moduler } from '#lib/moduler.js';
+	import ActivityCard from '#lib/components/ActivityCard.svelte';
 	import { altElevinnhold as aktiviteter, fag, innholdsformat } from '#lib/innhold.js';
-	import { lab as account } from '#lib/lab.js';
-	import { hasTeacherRole } from '#lib/learning.js';
+	import { searchCatalogue, normalizeSearch } from '#lib/catalogueSearch.js';
 
 	let valgtFag = $state('alle');
 	let valgtFormat = $state('alle');
 	let sok = $state('');
 	let klar = $state(false);
-
+	/** @type {HTMLInputElement|undefined} */
+	let searchInput = $state();
 	const formater = [
 		{ id: 'alle', navn: 'Alt innhold' },
 		...Array.from(new Set(aktiviteter.map((item) => item.format))).map(innholdsformat)
 	];
-
-	/** @param {string} tekst */
-	function normaliser(tekst) {
-		return tekst
-			.toLocaleLowerCase('nb-NO')
-			.normalize('NFD')
-			.replace(/\p{M}/gu, '')
-			.replaceAll('ø', 'o')
-			.replaceAll('æ', 'ae');
-	}
-
-	const sokeord = $derived(normaliser(sok).trim().split(/\s+/).filter(Boolean));
-	const synligeAktiviteter = $derived(
-		aktiviteter.filter((aktivitet) => {
-			if (valgtFag !== 'alle' && aktivitet.fag !== valgtFag) return false;
-			if (valgtFormat !== 'alle' && aktivitet.format !== valgtFormat) return false;
-			const soketekst = normaliser(
-				[
-					aktivitet.tittel,
-					aktivitet.beskrivelse,
-					aktivitet.type,
-					innholdsformat(aktivitet.format).sokeord,
-					...aktivitet.emner,
-					...aktivitet.sokeord
-				].join(' ')
-			);
-			return sokeord.every((ord) => soketekst.includes(ord));
-		})
+	const valgtFagnavn = $derived(fag.find((item) => item.id === valgtFag)?.navn ?? 'Alle fag');
+	const resultater = $derived(
+		searchCatalogue({ subject: valgtFag, format: valgtFormat, query: sok })
 	);
 	const fagGrupper = $derived(
 		fag
 			.filter((gruppe) => valgtFag === 'alle' || gruppe.id === valgtFag)
 			.map((gruppe) => ({
 				...gruppe,
-				aktiviteter: synligeAktiviteter.filter((aktivitet) => aktivitet.fag === gruppe.id),
-				harInnhold: aktiviteter.some((aktivitet) => aktivitet.fag === gruppe.id)
+				aktiviteter: resultater.activities.filter((activity) => activity.fag === gruppe.id)
 			}))
-	);
-	const viserTomtFag = $derived(
-		valgtFag !== 'alle' && !aktiviteter.some((aktivitet) => aktivitet.fag === valgtFag)
-	);
-	const modulGrupper = $derived(
-		fag
-			.filter((gruppe) => valgtFag === 'alle' || gruppe.id === valgtFag)
-			.map((gruppe) => ({
-				...gruppe,
-				moduler: moduler.filter((modul) => modul.subject === gruppe.id)
-			}))
-			.filter((gruppe) => gruppe.moduler.length)
 	);
 
-	function nullstillSok() {
+	async function nullstillSok() {
 		sok = '';
 		valgtFormat = 'alle';
+		await tick();
+		searchInput?.focus();
 	}
 
+	function lesAdresse() {
+		const url = new URL(window.location.href);
+		const viserOvingene = url.hash === '#ovingene';
+		valgtFag = fag.find((gruppe) => gruppe.id === url.searchParams.get('fag'))?.id ?? 'alle';
+		valgtFormat =
+			formater.find((format) => format.id === url.searchParams.get('type'))?.id ??
+			(url.hash === '#spill' ? 'spill' : viserOvingene ? 'leksjon' : 'alle');
+		sok = url.searchParams.get('q') ?? (viserOvingene ? 'øving' : '');
+	}
+	afterNavigate(lesAdresse);
 	onMount(() => {
-		function lesAdresse() {
-			const url = new URL(window.location.href);
-			const fagFraAdresse = url.searchParams.get('fag');
-			const formatFraAdresse = url.searchParams.get('type');
-			const viserOvingene = url.hash === '#ovingene';
-			valgtFag = fag.find((gruppe) => gruppe.id === fagFraAdresse)?.id ?? 'alle';
-			valgtFormat =
-				formater.find((format) => format.id === formatFraAdresse)?.id ??
-				(url.hash === '#spill' ? 'spill' : viserOvingene ? 'leksjon' : 'alle');
-			sok = url.searchParams.get('q') ?? (viserOvingene ? 'øving' : '');
-		}
 		lesAdresse();
 		klar = true;
 		window.addEventListener('popstate', lesAdresse);
@@ -96,22 +57,21 @@
 			window.removeEventListener('hashchange', lesAdresse);
 		};
 	});
-
 	$effect(() => {
 		if (!klar) return;
 		const url = new URL(window.location.href);
-		for (const [nokkel, verdi] of [
+		for (const [key, value] of [
 			['fag', valgtFag],
 			['type', valgtFormat],
 			['q', sok.trim()]
 		]) {
-			if (!verdi || (nokkel !== 'q' && verdi === 'alle')) url.searchParams.delete(nokkel);
-			else url.searchParams.set(nokkel, verdi);
+			if (!value || (key !== 'q' && value === 'alle')) url.searchParams.delete(key);
+			else url.searchParams.set(key, value);
 		}
 		if (url.hash === '#spill' && valgtFormat !== 'spill') url.hash = '';
 		if (
 			url.hash === '#ovingene' &&
-			(valgtFormat !== 'leksjon' || normaliser(sok).trim() !== 'oving')
+			(valgtFormat !== 'leksjon' || normalizeSearch(sok).trim() !== 'oving')
 		)
 			url.hash = '';
 		if (url.href !== window.location.href) replaceState(url, {});
@@ -119,51 +79,28 @@
 </script>
 
 <svelte:head>
-	<title>IT-laben – se hvordan det henger sammen</title>
+	<title>IT-laben – fag, moduler og aktiviteter</title>
 	<meta
 		name="description"
-		content="Velg en modul i utvikling eller driftsstøtte. Finn undervisning, øvinger og oppdrag samlet, eller åpne øvinger og spill hver for seg."
+		content="Utforsk utvikling og driftsstøtte. Finn moduler, undervisning, øvinger og spill, og prøv selv i IT-laben."
 	/>
 </svelte:head>
 
 <div class="forside">
-	<a class="hopp-til-innhold" href="#moduler">Hopp til innholdet</a>
-	<header>
-		<a class="logo" href="/" aria-label="IT-laben – forside">
-			<span class="logo-symbol" aria-hidden="true">IT</span>IT-laben<span class="punkt">.</span>
-		</a>
-		<div class="header-actions">
-			<span class="header-note">SE. PRØV. FORSTÅ.</span>
-			{#if hasTeacherRole($account.user?.role)}<a class="teaching-link" href="/laerer/undervisning/"
-					>Undervisning →</a
-				>{/if}
-			<a href="/toppliste/">Toppliste</a><AccountLink /><ThemeToggle />
-		</div>
-	</header>
-
-	<main>
-		<section class="fagvalg" aria-labelledby="sidetittel">
-			<div class="intro">
-				<div>
-					<p class="overlinje">UTFORSK IT-LABEN</p>
-					<h1 id="sidetittel">Hva jobber du med <em>i dag?</em></h1>
-					<p class="ingress">
-						Velg et fag og en modul, eller finn en øving eller et spill lenger ned.
-					</p>
-				</div>
+	<div class="catalogue-layout">
+		<aside class="sidebar" aria-label="Velg fag og finn innhold">
+			<p class="nav-label" id="fag-label">Fag</p>
+			<div class="fagliste" role="group" aria-labelledby="fag-label">
 				<button
 					type="button"
-					class="alle-fag"
+					class="fagkort"
 					class:valgt={valgtFag === 'alle'}
 					aria-pressed={valgtFag === 'alle'}
 					aria-controls="moduler utforsk"
 					onclick={() => (valgtFag = 'alle')}
 				>
-					<span class="valgt-prikk" aria-hidden="true"></span>Alle fag
+					<span class="fagsymbol" aria-hidden="true">◫</span><span>Alle fag</span>
 				</button>
-			</div>
-
-			<div class="fagliste" role="group" aria-label="Hva jobber du med i dag?">
 				{#each fag as gruppe (gruppe.id)}
 					<button
 						type="button"
@@ -173,269 +110,177 @@
 						aria-controls="moduler utforsk"
 						onclick={() => (valgtFag = gruppe.id)}
 					>
-						<span class="fagsymbol" aria-hidden="true">{gruppe.symbol}</span>
-						<span class="fagtekst">
-							<span class="fagnavn">{gruppe.navn}</span>
-							<span class="fagbeskrivelse">{gruppe.beskrivelse}</span>
-						</span>
-						<span class="fagkort-status" aria-hidden="true"
-							>{#if valgtFag === gruppe.id}✓{:else}→{/if}</span
-						>
+						<span class="fagsymbol" aria-hidden="true">{gruppe.symbol.replaceAll(' ', '')}</span
+						><span>{gruppe.navn}</span>
 					</button>
 				{/each}
 			</div>
-		</section>
+			<nav class="section-nav" aria-label="På denne siden">
+				<p class="nav-label">På denne siden</p>
+				<a href="#moduler">Moduler <span aria-hidden="true">↓</span></a>
+				<a href="#utforsk">Øvinger og aktiviteter <span aria-hidden="true">↓</span></a>
+			</nav>
+			<p class="sidebar-note">Se sammenhengen.<br />Prøv selv.<br />Forstå mer.</p>
+		</aside>
 
-		<section id="moduler" class="moduloversikt" aria-labelledby="modultittel">
-			<div class="moduloverskrift">
-				<div>
-					<h2 id="modultittel">Moduler</h2>
-					<p>Undervisning, øvinger og oppdrag som hører sammen.</p>
-				</div>
-				<a href="#utforsk">Se øvinger og spill <span aria-hidden="true">↓</span></a>
-			</div>
-			{#each modulGrupper as gruppe (gruppe.id)}
-				<section class="modulgruppe" aria-label={`Moduler i ${gruppe.navn}`}>
-					{#if valgtFag === 'alle'}<p class="modulfag">{gruppe.navn}</p>{/if}
-					<div class="modulkortliste">
-						{#each gruppe.moduler as module (module.id)}<ModuleCard {module} />{/each}
+		<main id="hovedinnhold" tabindex="-1">
+			<section class="intro" aria-labelledby="sidetittel">
+				<p class="eyebrow">Fagoversikt <span aria-hidden="true">/</span> {valgtFagnavn}</p>
+				<h1 id="sidetittel">{valgtFag === 'alle' ? 'Hva jobber du med i dag?' : valgtFagnavn}</h1>
+				<p class="lead">
+					{valgtFag === 'alle'
+						? 'Finn et tema, følg en modul eller gå rett til en aktivitet.'
+						: fag.find((item) => item.id === valgtFag)?.beskrivelse +
+							'. Utforsk sammenhengene og prøv selv.'}
+				</p>
+			</section>
+
+			<div class="search-tools">
+				<label for="innholdssok"
+					>{valgtFag === 'alle'
+						? 'Søk i alle fag'
+						: `Søk i ${valgtFagnavn.toLocaleLowerCase('nb-NO')}`}</label
+				>
+				<div class="search-row">
+					<div class="sokefelt">
+						<svg
+							viewBox="0 0 24 24"
+							fill="none"
+							stroke="currentColor"
+							stroke-width="1.7"
+							aria-hidden="true"
+							><circle cx="10.5" cy="10.5" r="6.5" /><path d="m16 16 4.5 4.5" /></svg
+						>
+						<input
+							id="innholdssok"
+							type="search"
+							placeholder="Tema, modul eller aktivitet …"
+							bind:value={sok}
+							bind:this={searchInput}
+							autocomplete="off"
+							aria-controls="moduler resultater"
+						/>
 					</div>
-				</section>
-			{/each}
-			{#if !modulGrupper.length}<p>
-					Moduler for dette faget kommer. Utforsk innholdet nedenfor.
-				</p>{/if}
-		</section>
-		<PersonalOverview subject={valgtFag} />
-		<section id="utforsk" class="oversikt" aria-labelledby="enkelttittel">
-			<div class="enkeltoverskrift">
-				<h2 id="enkelttittel">Øvinger, oppdrag og spill</h2>
-				<p>Åpne innholdet direkte. Her finner du også delene som inngår i modulene.</p>
-			</div>
-			<div class="verktoylinje">
-				<div class="sokefelt">
-					<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" aria-hidden="true"
-						><circle cx="10.5" cy="10.5" r="6.5" /><path d="m16 16 4.5 4.5" /></svg
-					>
-					<label class="kun-skjermleser" for="innholdssok">Søk i valgt innhold</label>
-					<input
-						id="innholdssok"
-						type="search"
-						placeholder="Søk etter tema, øving eller spill …"
-						bind:value={sok}
-						autocomplete="off"
-					/>
 				</div>
-				<div class="formatvalg" role="group" aria-label="Aktivitetstype">
-					{#each formater as format (format.id)}
-						<button
+				<div class="search-status">
+					<p role="status" aria-atomic="true">
+						{resultater.modules.length}
+						{resultater.modules.length === 1 ? 'modul' : 'moduler'}
+						<span aria-hidden="true">·</span>
+						{resultater.activities.length}
+						{resultater.activities.length === 1 ? 'aktivitet' : 'aktiviteter'}{sok.trim()
+							? ` for «${sok.trim()}»`
+							: ''}
+					</p>
+					<a class="jump" href="#utforsk">Til aktivitetene <span aria-hidden="true">↓</span></a>
+					{#if sok || valgtFormat !== 'alle'}<button
+							type="button"
+							class="text-button"
+							onclick={nullstillSok}>Nullstill søk og type</button
+						>{/if}
+				</div>
+			</div>
+
+			<section id="moduler" class="moduloversikt" aria-labelledby="modultittel">
+				<div class="section-heading">
+					<div>
+						<h2 id="modultittel">Moduler <span class="count">{resultater.modules.length}</span></h2>
+						<p>Undervisning og aktiviteter som hører sammen.</p>
+					</div>
+				</div>
+				<div class="modulkortliste">
+					{#each resultater.modules as module (module.id)}<ModuleCard {module} />{/each}
+				</div>
+				{#if !resultater.modules.length}<p class="empty-modules">
+						{sok.trim()
+							? 'Ingen moduler passer til søket. Se aktivitetene nedenfor, eller prøv et annet søkeord.'
+							: 'Moduler for dette faget kommer. Utforsk aktivitetene nedenfor.'}
+					</p>{/if}
+			</section>
+
+			{#if !sok.trim()}<PersonalOverview subject={valgtFag} />{/if}
+
+			<section id="utforsk" class="oversikt" aria-labelledby="aktivitetstittel">
+				<div class="section-heading">
+					<div>
+						<h2 id="aktivitetstittel">
+							Øvinger og aktiviteter <span class="count">{resultater.activities.length}</span>
+						</h2>
+						<p>Åpne en øving, et oppdrag eller et spill direkte.</p>
+					</div>
+				</div>
+				<div class="formatvalg" role="group" aria-label="Vis aktivitetstype">
+					{#each formater as format (format.id)}<button
 							type="button"
 							class:valgt={valgtFormat === format.id}
 							aria-pressed={valgtFormat === format.id}
 							aria-controls="resultater"
 							onclick={() => (valgtFormat = format.id)}>{format.navn}</button
-						>
+						>{/each}
+				</div>
+				<div id="spill" class="anker" aria-hidden="true"></div>
+				<div id="ovingene" class="anker" aria-hidden="true"></div>
+				<div id="resultater">
+					{#if !resultater.activities.length}<div class="tomt-resultat">
+							<h3>Ingen aktiviteter passer til søket</h3>
+							<p>Prøv et annet søkeord eller en annen aktivitetstype.</p>
+							<button type="button" class="handling" onclick={nullstillSok}
+								>Vis innholdet i valgt fag</button
+							>
+						</div>{/if}
+					{#each fagGrupper as gruppe (gruppe.id)}
+						{#if gruppe.aktiviteter.length}<section
+								class="faggruppe"
+								aria-label={`Aktiviteter i ${gruppe.navn}`}
+							>
+								{#if valgtFag === 'alle'}<h3 class="group-label">{gruppe.navn}</h3>{/if}
+								<div class="kortliste">
+									{#each gruppe.aktiviteter as activity (activity.id)}<ActivityCard
+											{activity}
+										/>{/each}
+								</div>
+							</section>{/if}
 					{/each}
 				</div>
-			</div>
-
-			<div class="resultatlinje">
-				<p class="resultatstatus" role="status" aria-atomic="true">
-					Viser <strong>{synligeAktiviteter.length}</strong>
-					{synligeAktiviteter.length === 1 ? 'aktivitet' : 'aktiviteter'}
-					{valgtFag === 'alle'
-						? 'fra alle fag'
-						: `i ${fag.find((gruppe) => gruppe.id === valgtFag)?.navn}`}
-				</p>
-				{#if sok || valgtFormat !== 'alle'}
-					<button type="button" class="nullstill" onclick={nullstillSok}
-						>Nullstill søk og type</button
-					>
-				{/if}
-			</div>
-
-			<div id="spill" class="anker" aria-hidden="true"></div>
-			<div id="ovingene" class="anker" aria-hidden="true"></div>
-			<div id="resultater">
-				{#if synligeAktiviteter.length === 0 && !viserTomtFag}
-					<div class="tomt-resultat">
-						<span class="tomt-symbol" aria-hidden="true">?</span>
-						<h2>Ingen aktiviteter passer til søket</h2>
-						<p>Prøv et annet søkeord eller en annen aktivitetstype.</p>
-						<button type="button" class="handling" onclick={nullstillSok}
-							>Vis innholdet i valgt fag</button
-						>
-					</div>
-				{/if}
-
-				{#each fagGrupper as gruppe (gruppe.id)}
-					{#if gruppe.aktiviteter.length > 0}
-						<section class="faggruppe" aria-labelledby={`fag-${gruppe.id}`}>
-							<div class="gruppetopp">
-								<h2 id={`fag-${gruppe.id}`}>{gruppe.navn}</h2>
-								<span
-									>{gruppe.aktiviteter.length}
-									{gruppe.aktiviteter.length === 1 ? 'aktivitet' : 'aktiviteter'}</span
-								>
-							</div>
-							<div class="kortliste">
-								{#each gruppe.aktiviteter as aktivitet (aktivitet.href)}
-									<a
-										class="sidekort"
-										class:spillkort={aktivitet.format === 'spill'}
-										href={aktivitet.href}
-									>
-										<div class="korttopp">
-											<span class="formatmerke"
-												>{innholdsformat(aktivitet.format).entall}{aktivitet.format === 'leksjon'
-													? ' · Gjør selv'
-													: aktivitet.format === 'spill'
-														? ' · Spill'
-														: ''}</span
-											>
-											<span class="symbol" aria-hidden="true">{aktivitet.symbol}</span>
-										</div>
-										<h3>{aktivitet.tittel}</h3>
-										{#if $account.summary?.progress.find((item) => item.id === aktivitet.id)?.status === 'reviewed'}<span
-												class="saved-status">✓ Gjennomgått</span
-											>{:else if $account.summary?.progress.find((item) => item.id === aktivitet.id)?.status === 'passed'}<span
-												class="saved-status">✓ Bestått</span
-											>{:else if $account.summary?.progress.find((item) => item.id === aktivitet.id)?.status === 'started'}<span
-												class="saved-status started">Påbegynt</span
-											>{/if}
-										<p class="beskrivelse">{aktivitet.beskrivelse}</p>
-										<ul class="emner" aria-label="Temaer">
-											{#each aktivitet.emner as emne}<li>{emne}</li>{/each}
-										</ul>
-										<div class="kortfot">
-											<span>{aktivitet.type}</span><svg
-												class="pil"
-												viewBox="0 0 24 24"
-												fill="none"
-												stroke="currentColor"
-												aria-hidden="true"><path d="M7 17 17 7M7 7h10v10" /></svg
-											>
-										</div>
-									</a>
-								{/each}
-							</div>
-						</section>
-					{:else if !gruppe.harInnhold && (valgtFag === gruppe.id || (!sok && valgtFormat === 'alle'))}
-						<aside
-							class="kommer"
-							class:valgt-tomt-fag={valgtFag === gruppe.id}
-							aria-label={gruppe.navn}
-						>
-							<span class="fagsymbol" aria-hidden="true">{gruppe.symbol}</span>
-							<div>
-								<h2>{gruppe.navn} kommer</h2>
-								<p>Her kommer leksjoner og spill om nettverk, servere og drift.</p>
-							</div>
-							{#if valgtFag === gruppe.id}
-								<button
-									type="button"
-									class="handling"
-									onclick={() => {
-										valgtFag = 'utvikling';
-										nullstillSok();
-									}}>Utforsk utvikling imens <span aria-hidden="true">→</span></button
-								>
-							{/if}
-						</aside>
-					{/if}
-				{/each}
-			</div>
-		</section>
-
-		<footer>
-			<span>IT-laben<span class="punkt">.</span></span>
-			<p>Ta ett steg om gangen. Prøv igjen når du trenger det.</p>
-		</footer>
-	</main>
+			</section>
+			<footer>
+				<span>IT-laben.</span>
+				<p>Ta ett steg om gangen. Prøv igjen når du trenger det.</p>
+			</footer>
+		</main>
+	</div>
 </div>
 
 <style>
-	.moduloversikt {
-		margin: 4px 0 32px;
-		scroll-margin-top: 20px;
-	}
-	.moduloverskrift {
-		display: flex;
-		align-items: center;
-		justify-content: space-between;
-		flex-wrap: wrap;
-		gap: 10px 24px;
-		margin-bottom: 18px;
-	}
-	.moduloverskrift p,
-	.enkeltoverskrift p {
-		margin: 4px 0 0;
-		font-size: var(--font-small);
-		color: var(--color-text-muted);
-	}
-	.moduloverskrift > a {
-		color: var(--color-accent);
-		font-size: var(--font-small);
-		text-decoration: underline;
-		text-underline-offset: 3px;
-		padding-block: 8px;
-	}
-	.modulgruppe + .modulgruppe {
-		margin-top: 22px;
-	}
-	.modulfag {
-		margin: 0 0 10px;
-		font-size: var(--font-small);
-		font-weight: 700;
-		color: var(--color-text-muted);
-	}
-	.modulkortliste {
-		display: grid;
-		grid-template-columns: repeat(3, minmax(0, 1fr));
-		gap: 16px;
-	}
-	.enkeltoverskrift {
-		border-top: 1px solid var(--color-border);
-		padding-top: 25px;
-		margin-bottom: 18px;
-	}
-	@media (max-width: 850px) {
-		.modulkortliste {
-			grid-template-columns: repeat(2, minmax(0, 1fr));
-		}
-	}
-	@media (max-width: 550px) {
-		.modulkortliste {
-			grid-template-columns: 1fr;
-		}
-	}
-	.saved-status {
-		font-size: var(--font-meta);
-		color: var(--color-success);
-		margin-bottom: 7px;
-		font-weight: 650;
-	}
-	.saved-status.started {
-		color: var(--color-text-muted);
-	}
 	.forside {
-		min-height: 100vh;
-		font-family:
-			Inter,
-			system-ui,
-			-apple-system,
-			BlinkMacSystemFont,
-			'Segoe UI',
-			sans-serif;
-		background: radial-gradient(ellipse at 83% 0%, var(--color-page-glow) 0, transparent 45%);
+		font-family: var(--font-ui);
 	}
 	.forside,
-	.forside * {
+	.forside :global(*) {
 		box-sizing: border-box;
 	}
-	a {
-		color: inherit;
-		text-decoration: none;
+	.catalogue-layout {
+		display: grid;
+		grid-template-columns: 210px minmax(0, 1fr);
+		gap: 48px;
+		width: min(var(--layout-width), calc(100% - 2 * var(--layout-gutter)));
+		margin: auto;
+		align-items: start;
+	}
+	.sidebar {
+		position: sticky;
+		top: 24px;
+		padding-top: 36px;
+	}
+	.nav-label {
+		font-size: var(--font-meta);
+		font-weight: 650;
+		color: var(--color-text-muted);
+		margin: 0 0 12px;
+	}
+	.fagliste {
+		display: grid;
+		gap: 6px;
 	}
 	button,
 	input {
@@ -444,480 +289,277 @@
 	button {
 		cursor: pointer;
 	}
-	h1,
-	h2,
-	h3,
-	.overlinje {
-		overflow-wrap: anywhere;
-	}
-	a:focus-visible,
-	button:focus-visible,
-	input:focus-visible {
-		outline: 3px solid var(--color-focus);
-		outline-offset: 4px;
-	}
-	header,
-	main {
-		width: min(1240px, calc(100% - 64px));
-		margin-inline: auto;
-	}
-	header {
-		min-height: 78px;
-		padding-block: 14px;
+	.fagkort {
 		display: flex;
 		align-items: center;
-		justify-content: space-between;
-		flex-wrap: wrap;
-		gap: 12px 24px;
-		border-bottom: 1px solid var(--color-border);
-	}
-	.logo {
-		display: flex;
-		align-items: center;
-		font-size: 19px;
-		font-weight: 750;
-		letter-spacing: -0.7px;
-	}
-	.logo-symbol {
-		display: grid;
-		place-items: center;
-		width: 36px;
-		height: 36px;
-		margin-right: 11px;
-		background: var(--color-brand);
-		color: var(--color-on-brand);
+		gap: 12px;
+		padding: 12px;
+		min-height: 48px;
+		border: 1px solid transparent;
 		border-radius: 10px;
-		font: 600 17px monospace;
-	}
-	.punkt {
-		color: var(--color-accent);
-	}
-	.header-actions {
-		display: flex;
-		align-items: center;
-		flex-wrap: wrap;
-		gap: 12px 24px;
-		margin-left: auto;
-		max-width: 100%;
-	}
-	.header-note {
-		font: var(--font-meta)/var(--leading-body) monospace;
-		letter-spacing: 1.8px;
 		color: var(--color-text-muted);
-	}
-	.fagvalg {
-		padding-block: 24px 20px;
-	}
-	.intro {
-		display: flex;
-		justify-content: space-between;
-		align-items: end;
-		gap: 20px;
-		margin-bottom: 16px;
-	}
-	.overlinje {
-		margin: 0 0 5px;
-		color: var(--color-accent);
-		font-size: var(--font-meta);
-		font-weight: 750;
-		letter-spacing: 1.55px;
-	}
-	h1 {
-		margin: 0 0 7px;
-		font-size: clamp(1.9rem, 3.4vw, 2.8rem);
-		font-weight: 760;
-		line-height: 1.2;
-		letter-spacing: -1.5px;
-	}
-	h1 em {
-		font-style: normal;
-		color: var(--color-accent);
-	}
-	.ingress {
-		margin: 0;
-		color: var(--color-text-muted);
-		font-size: var(--font-body);
-		line-height: var(--leading-body);
-	}
-	.alle-fag {
-		display: inline-flex;
-		align-items: center;
-		justify-content: center;
-		gap: 9px;
-		flex: 0 0 auto;
-		min-height: 44px;
-		padding: 9px 15px;
-		border: 1px solid var(--color-border);
-		border-radius: 8px;
-		background: var(--color-surface);
-		color: var(--color-text-muted);
+		background: transparent;
+		text-align: left;
 		font-size: var(--font-small);
-		font-weight: 650;
+		font-weight: 600;
 	}
-	.alle-fag.valgt {
+	.fagkort:hover {
+		background: var(--color-surface-soft);
+		color: var(--color-text);
+	}
+	.fagkort.valgt {
+		background: var(--color-accent-soft);
 		color: var(--color-accent);
 		border-color: var(--color-accent);
-		background: var(--color-accent-soft);
 	}
-	.valgt-prikk {
-		width: 8px;
-		height: 8px;
-		border: 1px solid currentColor;
-		border-radius: 50%;
+	.fagsymbol {
+		width: 22px;
+		flex-shrink: 0;
+		text-align: center;
+		font: 600 1.1rem/1 monospace;
 	}
-	.valgt .valgt-prikk {
-		background: currentColor;
+	.section-nav {
+		display: grid;
+		border-top: 1px solid var(--color-border);
+		margin-top: 28px;
+		padding-top: 24px;
 	}
-	.fagliste {
+	.section-nav a {
+		display: flex;
+		align-items: center;
+		justify-content: space-between;
+		gap: 8px;
+		min-height: 44px;
+		color: var(--color-text-muted);
+		font-size: var(--font-small);
+		text-decoration: none;
+	}
+	.section-nav a:hover {
+		color: var(--color-accent);
+		text-decoration: underline;
+		text-underline-offset: 4px;
+	}
+	.sidebar-note {
+		margin-top: 48px;
+		font-size: var(--font-small);
+		line-height: 1.8;
+		color: var(--color-text-muted);
+	}
+	main {
+		min-width: 0;
+		padding-top: 32px;
+	}
+	.intro {
+		margin-bottom: 26px;
+	}
+	.eyebrow {
+		margin: 0 0 12px;
+		font-size: var(--font-meta);
+		color: var(--color-text-muted);
+	}
+	.eyebrow span {
+		padding-inline: 7px;
+		color: var(--color-border-strong);
+	}
+	h1 {
+		margin: 0 0 12px;
+		font-size: clamp(1.9rem, 3.1vw, 2.65rem);
+		line-height: 1.16;
+		letter-spacing: -0.04em;
+		text-wrap: balance;
+	}
+	.lead {
+		margin: 0;
+		font-size: 1.125rem;
+		color: var(--color-text-muted);
+		max-width: 60ch;
+	}
+	.search-tools {
+		margin-bottom: 28px;
+	}
+	.search-tools label {
+		display: block;
+		margin-bottom: 8px;
+		font-size: var(--font-small);
+		font-weight: 600;
+	}
+	.search-row {
+		display: flex;
+		align-items: center;
+		gap: 20px;
+	}
+	.sokefelt {
+		position: relative;
+		flex: 1;
+		min-width: 0;
+	}
+	.sokefelt svg {
+		position: absolute;
+		top: 50%;
+		transform: translateY(-50%);
+		left: 16px;
+		width: 20px;
+		height: 20px;
+		color: var(--color-text-muted);
+		pointer-events: none;
+	}
+	input {
+		width: 100%;
+		min-height: 54px;
+		height: auto;
+		line-height: 1.4;
+		padding: 10px 16px 10px 46px;
+		color: var(--color-text);
+		background: var(--color-surface);
+		border: 1px solid var(--color-border-strong);
+		border-radius: 10px;
+	}
+	input::placeholder {
+		color: var(--color-text-muted);
+		opacity: 1;
+	}
+	.jump {
+		display: inline-flex;
+		align-items: center;
+		gap: 12px;
+		min-height: 44px;
+		color: var(--color-accent);
+		font-size: var(--font-small);
+		font-weight: 600;
+		text-underline-offset: 4px;
+	}
+	.search-status {
+		display: flex;
+		align-items: center;
+		justify-content: space-between;
+		flex-wrap: wrap;
+		gap: 4px 16px;
+		min-height: 42px;
+		padding-top: 4px;
+	}
+	.search-status p {
+		margin: 0;
+		font-size: var(--font-meta);
+		color: var(--color-text-muted);
+		overflow-wrap: anywhere;
+	}
+	.search-status p span {
+		margin-inline: 8px;
+	}
+	.text-button {
+		min-height: 40px;
+		padding: 4px 0;
+		border: 0;
+		background: transparent;
+		color: var(--color-accent);
+		font-size: var(--font-small);
+		text-decoration: underline;
+		text-underline-offset: 4px;
+	}
+	.section-heading {
+		display: flex;
+		align-items: center;
+		justify-content: space-between;
+		gap: 16px;
+		margin-bottom: 18px;
+	}
+	h2 {
+		display: flex;
+		align-items: center;
+		flex-wrap: wrap;
+		gap: 10px;
+		margin: 0;
+		font-size: 1.4rem;
+		line-height: 1.4;
+		letter-spacing: -0.025em;
+	}
+	.count {
+		display: inline-grid;
+		place-items: center;
+		min-width: 26px;
+		padding: 1px 7px;
+		border-radius: 7px;
+		background: var(--color-surface-soft);
+		color: var(--color-text-muted);
+		font-size: var(--font-meta);
+		font-weight: 600;
+	}
+	.section-heading p {
+		margin: 5px 0 0;
+		color: var(--color-text-muted);
+		font-size: var(--font-small);
+	}
+	.modulkortliste,
+	.kortliste {
 		display: grid;
 		grid-template-columns: repeat(2, minmax(0, 1fr));
 		gap: 16px;
 	}
-	.fagkort {
-		display: flex;
-		align-items: center;
-		gap: 15px;
-		width: 100%;
-		min-width: 0;
-		padding: 17px 20px;
-		border: 1px solid var(--color-border);
-		border-radius: 12px;
-		background: var(--color-surface);
-		color: var(--color-text);
-		text-align: left;
-		transition:
-			background 0.15s,
-			border-color 0.15s;
+	.moduloversikt {
+		margin-bottom: 40px;
 	}
-	.fagkort:hover,
-	.alle-fag:hover {
-		border-color: var(--color-accent);
-		background: var(--color-surface-hover);
-	}
-	.fagkort.valgt {
-		border-color: var(--color-accent);
-		background: var(--color-accent-soft);
-		box-shadow: inset 0 0 0 1px var(--color-accent);
-	}
-	.fagsymbol {
-		display: grid;
-		place-items: center;
-		flex: 0 0 44px;
-		width: 44px;
-		height: 44px;
-		border: 1px solid var(--color-border);
-		border-radius: 9px;
-		background: var(--color-surface-soft);
-		color: var(--color-accent);
-		font: 600 20px monospace;
-	}
-	.fagtekst {
-		display: grid;
-		gap: 1px;
-		min-width: 0;
-		overflow-wrap: anywhere;
-	}
-	.fagnavn {
-		font-size: 1.125rem;
-		font-weight: 700;
-		letter-spacing: -0.3px;
-	}
-	.fagbeskrivelse {
-		color: var(--color-text-muted);
-		font-size: var(--font-small);
-	}
-	.fagkort-status {
-		margin-left: auto;
-		color: var(--color-accent);
-		font-size: 22px;
-	}
-	.oversikt,
-	.anker {
-		scroll-margin-top: 20px;
-	}
-	.verktoylinje {
-		display: flex;
-		align-items: center;
-		flex-wrap: wrap;
-		gap: 12px 20px;
-	}
-	.sokefelt {
-		display: flex;
-		align-items: center;
-		flex: 1 1 340px;
-		min-width: 0;
-		position: relative;
-	}
-	.sokefelt svg {
-		position: absolute;
-		left: 15px;
-		width: 19px;
-		height: 19px;
-		stroke-width: 1.8;
-		stroke-linecap: round;
-		color: var(--color-text-muted);
-		pointer-events: none;
-	}
-	.sokefelt input {
-		width: 100%;
-		min-height: 48px;
-		padding: 11px 14px 11px 44px;
-		border: 1px solid var(--color-border);
-		border-radius: 8px;
-		background: var(--color-surface);
-		color: var(--color-text);
-		font-size: var(--font-body);
-	}
-	.sokefelt input::placeholder {
-		color: var(--color-text-muted);
-		opacity: 1;
+	.oversikt {
+		border-top: 1px solid var(--color-border);
+		padding-top: 32px;
 	}
 	.formatvalg {
 		display: flex;
 		flex-wrap: wrap;
-		gap: 3px;
-		padding: 3px;
-		border: 1px solid var(--color-border);
-		border-radius: 9px;
-		background: var(--color-surface-soft);
+		gap: 8px;
+		margin: 0 0 24px;
 	}
 	.formatvalg button {
-		min-height: 40px;
-		padding: 8px 12px;
-		border: 0;
-		border-radius: 6px;
-		background: transparent;
+		min-height: 44px;
+		padding: 9px 16px;
+		border: 1px solid var(--color-border-strong);
+		border-radius: 8px;
+		background: var(--color-surface);
 		color: var(--color-text-muted);
 		font-size: var(--font-small);
 		font-weight: 600;
 	}
 	.formatvalg button:hover {
-		color: var(--color-text);
-		background: var(--color-surface-hover);
+		background: var(--color-surface-soft);
 	}
 	.formatvalg button.valgt {
-		background: var(--color-surface-raised);
-		color: var(--color-accent);
-		box-shadow: 0 1px 3px var(--color-shadow);
+		color: var(--color-on-action);
+		background: var(--color-action);
+		border-color: var(--color-action);
 	}
-	.resultatlinje {
-		display: flex;
-		align-items: center;
-		justify-content: space-between;
-		flex-wrap: wrap;
-		gap: 6px 16px;
-		min-height: 44px;
-		padding-block: 9px;
-	}
-	.resultatstatus {
-		margin: 0;
+	.group-label {
 		color: var(--color-text-muted);
-		font-size: var(--font-meta);
-	}
-	.resultatstatus strong {
-		font-weight: 650;
-	}
-	.nullstill {
-		padding: 2px 0;
-		border: 0;
-		background: transparent;
-		color: var(--color-accent);
-		text-decoration: underline;
-		text-underline-offset: 3px;
 		font-size: var(--font-small);
+		font-weight: 650;
+		margin: 0 0 12px;
 	}
 	.faggruppe + .faggruppe {
 		margin-top: 28px;
 	}
-	.gruppetopp {
-		display: flex;
-		flex-wrap: wrap;
-		justify-content: space-between;
-		align-items: center;
-		gap: 16px;
-		margin: 5px 0 12px;
-	}
-	h2 {
-		margin: 0;
-		font-size: 1.25rem;
-		font-weight: 700;
-		letter-spacing: -0.5px;
-		line-height: 1.4;
-	}
-	.gruppetopp > span {
-		color: var(--color-text-muted);
-		font-size: var(--font-meta);
-	}
-	.kortliste {
-		display: grid;
-		grid-template-columns: repeat(4, minmax(0, 1fr));
-		gap: 16px;
-	}
-	.sidekort {
-		display: flex;
-		flex-direction: column;
-		min-width: 0;
-		padding: 18px;
-		border: 1px solid var(--color-border);
-		border-radius: 12px;
-		background: var(--color-surface);
-		transition:
-			transform 0.15s,
-			border-color 0.15s,
-			box-shadow 0.15s;
-	}
-	.sidekort:hover {
-		transform: translateY(-3px);
-		border-color: var(--color-border-strong);
-		box-shadow: 0 10px 24px var(--color-shadow);
-	}
-	.spillkort {
-		background: var(--color-surface-soft);
-	}
-	.korttopp {
-		display: flex;
-		justify-content: space-between;
-		align-items: center;
-		gap: 12px;
-		margin-bottom: 12px;
-	}
-	.formatmerke {
-		padding: 3px 8px;
-		border-radius: 4px;
-		background: var(--color-accent-soft);
-		color: var(--color-accent);
-		font-size: var(--font-meta);
-		font-weight: 650;
-	}
-	.spillkort .formatmerke {
-		background: var(--color-success-soft);
-		color: var(--color-success);
-	}
-	.symbol {
-		display: grid;
-		place-items: center;
-		width: 28px;
-		height: 28px;
-		color: var(--color-accent);
-		font: 600 18px monospace;
-	}
-	h3 {
-		margin: 0 0 9px;
-		font-size: 1.125rem;
-		font-weight: 700;
-		letter-spacing: -0.4px;
-		line-height: 1.35;
-	}
-	.beskrivelse {
-		margin: 0 0 14px;
-		color: var(--color-text-muted);
-		font-size: var(--font-body);
-		line-height: 1.5;
-	}
-	.emner {
-		display: flex;
-		flex-wrap: wrap;
-		gap: 4px 10px;
-		padding: 0;
-		margin: auto 0 12px;
-		list-style: none;
-	}
-	.emner li {
-		color: var(--color-text-muted);
-		font: var(--font-meta)/var(--leading-body) monospace;
-	}
-	.emner li + li::before {
-		content: '·';
-		margin-right: 10px;
-		color: var(--color-border-strong);
-	}
-	.kortfot {
-		display: flex;
-		justify-content: space-between;
-		align-items: center;
-		gap: 10px;
-		padding-top: 10px;
-		border-top: 1px solid var(--color-border);
-		color: var(--color-text-muted);
-		font-size: var(--font-meta);
-	}
-	.pil {
-		color: var(--color-accent);
-		width: 20px;
-		height: 20px;
-		flex: 0 0 20px;
-		stroke-width: 1.8;
-		stroke-linecap: round;
-		stroke-linejoin: round;
-	}
-	.kommer {
-		display: flex;
-		align-items: center;
-		gap: 15px;
-		padding: 18px 20px;
-		margin-top: 24px;
-		border: 1px dashed var(--color-border-strong);
-		border-radius: 12px;
-	}
-	.kommer h2 {
-		color: var(--color-text-muted);
-		font-size: var(--font-body);
-	}
-	.kommer p {
-		margin: 2px 0 0;
+	.empty-modules {
 		color: var(--color-text-muted);
 		font-size: var(--font-small);
-		line-height: var(--leading-body);
-	}
-	.kommer.valgt-tomt-fag {
-		flex-wrap: wrap;
-		padding: 28px;
-		margin-top: 10px;
-	}
-	.valgt-tomt-fag h2 {
-		color: var(--color-text);
-		font-size: 1.25rem;
-	}
-	.handling {
-		display: inline-flex;
-		align-items: center;
-		justify-content: center;
-		gap: 10px;
-		min-height: 44px;
-		padding: 10px 16px;
-		border: 1px solid var(--color-action);
-		border-radius: 7px;
-		background: var(--color-action);
-		color: var(--color-on-action);
-		font-size: var(--font-small);
-		font-weight: 600;
-	}
-	.handling:hover {
-		background: var(--color-action-hover);
-	}
-	.kommer .handling {
-		margin-left: auto;
 	}
 	.tomt-resultat {
-		padding: 34px 20px;
 		border: 1px dashed var(--color-border-strong);
-		border-radius: 12px;
-		text-align: center;
+		border-radius: var(--radius-card);
+		padding: 28px;
+		background: var(--color-surface);
+	}
+	.tomt-resultat h3 {
+		margin: 0;
+		font-size: 1.2rem;
 	}
 	.tomt-resultat p {
 		color: var(--color-text-muted);
-		font-size: var(--font-body);
 	}
-	.tomt-symbol {
-		display: inline-grid;
-		place-items: center;
-		width: 40px;
-		height: 40px;
-		margin-bottom: 12px;
-		border-radius: 50%;
-		background: var(--color-accent-soft);
-		color: var(--color-accent);
-		font: 600 22px monospace;
+	.handling {
+		padding: 10px 16px;
+		min-height: 44px;
+		background: var(--color-action);
+		color: var(--color-on-action);
+		border: 1px solid var(--color-action);
+		border-radius: 8px;
+		font-weight: 600;
 	}
 	footer {
 		display: flex;
@@ -925,194 +567,107 @@
 		align-items: center;
 		flex-wrap: wrap;
 		gap: 8px 20px;
-		padding: 22px 0 30px;
-		margin-top: 32px;
+		padding-block: 28px;
+		margin-top: 40px;
 		border-top: 1px solid var(--color-border);
 		color: var(--color-text-muted);
-	}
-	footer > span {
-		font-size: var(--font-small);
-		font-weight: 700;
+		font-size: var(--font-meta);
 	}
 	footer p {
 		margin: 0;
-		font-size: var(--font-meta);
 	}
-	.kun-skjermleser {
-		position: absolute;
-		width: 1px;
-		height: 1px;
-		padding: 0;
-		margin: -1px;
-		overflow: hidden;
-		clip-path: inset(50%);
-		white-space: nowrap;
-		border: 0;
+	footer > span {
+		font-weight: 750;
 	}
-	.hopp-til-innhold {
-		position: fixed;
-		top: 12px;
-		left: 12px;
-		z-index: 10;
-		padding: 10px 16px;
-		border-radius: 6px;
-		background: var(--color-action);
-		color: var(--color-on-action);
-		transform: translateY(-200%);
+	h1,
+	h2,
+	h3,
+	button {
+		overflow-wrap: anywhere;
 	}
-	.hopp-til-innhold:focus {
-		transform: translateY(0);
+	#moduler,
+	#utforsk,
+	.anker {
+		scroll-margin-top: 24px;
 	}
-	@media (max-width: 1150px) {
-		.kortliste {
-			grid-template-columns: repeat(3, minmax(0, 1fr));
-		}
+	a:focus-visible,
+	button:focus-visible,
+	input:focus-visible,
+	main:focus-visible {
+		outline: 3px solid var(--color-focus);
+		outline-offset: 4px;
 	}
-	@media (max-width: 850px) {
-		header,
-		main {
-			width: calc(100% - 40px);
+
+	@media (max-width: 1050px) {
+		.catalogue-layout {
+			grid-template-columns: 180px minmax(0, 1fr);
+			gap: 28px;
 		}
-		.kortliste {
-			grid-template-columns: repeat(2, minmax(0, 1fr));
-		}
-		.header-note {
-			display: none;
-		}
-		.fagkort {
-			padding: 15px;
-			gap: 12px;
-		}
-		.fagbeskrivelse {
-			font-size: var(--font-meta);
-		}
-		.verktoylinje {
-			gap: 10px;
+		.search-row {
+			flex-wrap: wrap;
+			gap: 4px 20px;
 		}
 		.sokefelt {
 			flex-basis: 100%;
 		}
-	}
-	@media (max-width: 550px) {
-		header,
-		main {
-			width: calc(100% - 32px);
-		}
-		header {
-			min-height: 72px;
-			gap: 8px;
-		}
-		.header-actions {
-			gap: 0;
-		}
-		.logo {
-			font-size: 17px;
-		}
-		.logo-symbol {
-			width: 30px;
-			height: 30px;
-			margin-right: 8px;
-			font-size: 15px;
-		}
-		.fagvalg {
-			padding-block: 22px 18px;
-		}
-		.intro {
-			display: grid;
-			grid-template-columns: minmax(0, 1fr) auto;
-			align-items: center;
-			gap: 8px 12px;
-			margin-bottom: 12px;
-		}
-		.intro > div {
-			display: contents;
-		}
-		.overlinje {
-			grid-column: 1;
-			grid-row: 1;
-			margin: 0;
-		}
-		h1 {
-			grid-column: 1 / -1;
-			margin: 0;
-			font-size: 1.9rem;
-			letter-spacing: -1px;
-		}
-		.ingress {
-			grid-column: 1 / -1;
-			font-size: var(--font-small);
-		}
-		.alle-fag {
-			grid-column: 2;
-			grid-row: 1;
-			padding-block: 7px;
-		}
-		.fagliste {
-			gap: 10px;
-		}
-		.fagkort {
-			align-items: center;
-			padding: 13px 12px;
-			gap: 8px;
-		}
-		.fagkort .fagsymbol {
-			flex-basis: 30px;
-			width: 30px;
-			height: 30px;
-			font-size: 15px;
-		}
-		.fagtekst {
-			flex: 1 1 0;
-		}
-		.fagnavn {
-			font-size: var(--font-body);
-		}
-		.fagkort-status,
-		.fagbeskrivelse {
-			display: none;
-		}
-		.sokefelt input {
-			padding-right: 8px;
-			font-size: var(--font-small);
-		}
-		.formatvalg {
-			width: 100%;
-		}
-		.formatvalg button {
-			flex: 1 1 auto;
-			padding-inline: 8px;
-		}
 		.kortliste {
 			grid-template-columns: 1fr;
-			gap: 12px;
-		}
-		.sidekort {
-			padding: 17px 18px;
-		}
-		.korttopp {
-			margin-bottom: 8px;
-		}
-		.kommer {
-			align-items: start;
-			padding: 16px;
-		}
-		.kommer.valgt-tomt-fag {
-			padding: 20px;
-		}
-		.kommer .handling {
-			margin-left: 0;
-		}
-		footer {
-			margin-top: 24px;
 		}
 	}
-	@media (prefers-reduced-motion: reduce) {
-		.fagkort,
-		.sidekort {
-			transition: none;
+	@media (max-width: 800px) {
+		.catalogue-layout {
+			grid-template-columns: 1fr;
+			gap: 0;
 		}
-		.sidekort:hover {
-			transform: none;
+		.sidebar {
+			position: static;
+			padding-top: 22px;
+		}
+		.nav-label {
+			margin-bottom: 8px;
+		}
+		.fagliste {
+			display: flex;
+			flex-wrap: wrap;
+			gap: 8px;
+		}
+		.fagkort {
+			border-color: var(--color-border-strong);
+			padding: 9px 12px;
+			min-height: 44px;
+		}
+		.fagsymbol {
+			display: none;
+		}
+		.section-nav,
+		.sidebar-note {
+			display: none;
+		}
+		main {
+			padding-top: 26px;
+		}
+		.eyebrow {
+			display: none;
+		}
+		.intro {
+			margin-bottom: 22px;
+		}
+	}
+	@media (max-width: 550px) {
+		.modulkortliste {
+			grid-template-columns: 1fr;
+		}
+		.intro h1 {
+			max-width: 18ch;
+		}
+		.moduloversikt {
+			margin-bottom: 32px;
+		}
+		.formatvalg {
+			gap: 7px;
+		}
+		.formatvalg button {
+			padding-inline: 12px;
 		}
 	}
 </style>

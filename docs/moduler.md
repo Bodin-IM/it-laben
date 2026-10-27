@@ -1,6 +1,6 @@
 # Fag, moduler og enkeltinnhold
 
-Utprøving på `dev`: Når brukeren velger et fag, vises moduler først. Kortene har en dempet blåfarge i begge temaer og tekstmerket **Modul**. Under modulene ligger fortsatt alle fagets øvinger, oppdrag og spill, også innhold som er lenket fra en modul. Søk og typefilter gjelder denne listen. Fagvalget gjelder begge oversiktene.
+Utprøving på `dev`: Når brukeren velger et fag, vises moduler først. Kortene har en dempet blåfarge i begge temaer og tekstmerket **Modul**. Under modulene ligger fortsatt alle fagets øvinger, oppdrag og spill, også innhold som er lenket fra en modul. Søket øverst finner både moduler og enkeltaktiviteter. Typefilteret under aktivitetene gjelder bare denne listen. Fagvalget gjelder begge oversiktene. Se [designvurderingen og utkastet](designvurdering-og-utkast.md) for utformingen som nå prøves på `dev`.
 
 ## Innholdstyper
 
@@ -23,7 +23,7 @@ Nattevakten ligger fortsatt tilgjengelig blant enkeltspillene. Moduler må ikke 
 
 ## Modulsiden
 
-Hver modul har mål, forkunnskaper, anbefalt rekkefølge og eventuelle repetisjonsressurser. Gjennomgang og elevarbeid kan bruke samme side i ulike sammenhenger. Innholdet til gjennomgangen kan åpnes uten lærerrolle; private notater hentes fortsatt bare gjennom det beskyttede lærer-API-et.
+Hver modul har mål, forkunnskaper, anbefalt rekkefølge og eventuelle repetisjonsressurser. Mål og forkunnskaper åpnes rett under introduksjonen. På mobil vises arbeidsrekkefølgen før ekstraressursene. Lenker til modulens aktiviteter tar med `modul` i adressen, slik at eleven får en tilbakevei også etter oppfrisking. Tilhørighet vises bare for sider som faktisk er del av eller lenket fra modulen. Gjennomgang og elevarbeid kan bruke samme side i ulike sammenhenger. Innholdet til gjennomgangen kan åpnes uten lærerrolle; private notater hentes fortsatt bare gjennom det beskyttede lærer-API-et.
 
 Modulens status viser antall unike elevaktiviteter som API-et allerede har merket **Gjennomgått** eller **Bestått**. Undervisning, åpning av modulsiden og bare påbegynt arbeid teller ikke som fullføring. Modulen tildeler ingen nye poeng eller merker, og status kalles ikke dokumentert forståelse. Uten innlogging eller tilgjengelig progresjon vises ingen personlig status.
 

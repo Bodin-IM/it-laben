@@ -1,7 +1,7 @@
 <script>
+	import PageLinks from '#lib/components/PageLinks.svelte';
+	import ModuleContext from '#lib/components/ModuleContext.svelte';
 	import { avatarFeedback } from '#lib/avatarFeedback.js';
-	import ThemeToggle from '#lib/components/ThemeToggle.svelte';
-	import AccountLink from '#lib/components/AccountLink.svelte';
 	import InteractiveCode from '#lib/components/InteractiveCode.svelte';
 	import { initState, codeLines, planRun, USERS, ROOMS, DEFAULT_OPTIONS } from '#lib/chatromLab.js';
 
@@ -243,21 +243,8 @@
 </svelte:head>
 
 <div class="side">
-	<header class="sidehode">
-		<a class="logo" href="/"
-			><span class="logosymbol" aria-hidden="true">IT</span> IT-laben<span class="punkt">.</span></a
-		>
-		<div class="header-actions">
-			<nav aria-label="Relaterte forklaringer">
-				<a href="/backend/">Frontend og backend <span aria-hidden="true">↗</span></a><a
-					href="/sessions/">Sessions <span aria-hidden="true">↗</span></a
-				>
-			</nav>
-			<AccountLink /><ThemeToggle />
-		</div>
-	</header>
-
-	<main>
+	<main id="hovedinnhold" tabindex="-1">
+		<ModuleContext />
 		<section class="intro" aria-labelledby="sidetittel">
 			<p class="overlinje"><span></span> BYGG VIDERE PÅ CHATTEN</p>
 			<h1 id="sidetittel">Samme chat.<br class="mobilbrudd" /> <em>Flere muligheter.</em></h1>
@@ -685,6 +672,12 @@
 			<a href="/">← Tilbake til IT-laben</a>
 			<p>Ta ett steg om gangen. Klikk når du lurer.</p>
 		</footer>
+		<PageLinks
+			links={[
+				{ href: '/backend/', label: 'Frontend og backend' },
+				{ href: '/sessions/', label: 'Sessions' }
+			]}
+		/>
 	</main>
 </div>
 
@@ -713,69 +706,16 @@
 	.side * {
 		box-sizing: border-box;
 	}
-	.sidehode,
 	main {
-		width: min(1240px, calc(100% - 64px));
+		width: min(var(--layout-width), calc(100% - 2 * var(--layout-gutter)));
 		margin: 0 auto;
 	}
-	.header-actions {
-		display: flex;
-		align-items: center;
-		justify-content: flex-end;
-		flex-wrap: wrap;
-		gap: 12px 20px;
-		margin-left: auto;
-		min-width: 0;
-	}
 
-	.sidehode {
-		flex-wrap: wrap;
-		row-gap: 12px;
-		min-height: 90px;
-		display: flex;
-		justify-content: space-between;
-		align-items: center;
-		gap: 24px;
-		border-bottom: 1px solid var(--kant);
-	}
 	a {
 		color: var(--gronn);
 		text-underline-offset: 3px;
 	}
-	.logo {
-		display: inline-flex;
-		align-items: center;
-		gap: 8px;
-		color: var(--blekk);
-		text-decoration: none;
-		font-weight: 760;
-		font-size: 21px;
-		white-space: nowrap;
-	}
-	.logosymbol {
-		display: grid;
-		place-items: center;
-		width: 31px;
-		height: 31px;
-		border-radius: 5px;
-		background: var(--color-brand);
-		color: var(--color-on-brand);
-		font-size: var(--font-body);
-		letter-spacing: -0.5px;
-	}
-	.punkt {
-		color: var(--gronn);
-		margin-left: -7px;
-	}
-	nav {
-		display: flex;
-		gap: 24px;
-		font-size: var(--font-small);
-	}
-	nav a {
-		text-decoration: none;
-	}
-	nav a:hover,
+
 	footer a:hover {
 		text-decoration: underline;
 	}
@@ -1412,9 +1352,8 @@
 		margin: 0;
 	}
 	@media (max-width: 1000px) {
-		.sidehode,
 		main {
-			width: calc(100% - 48px);
+			width: min(var(--layout-width), calc(100% - 2 * var(--layout-gutter)));
 		}
 		.modulvalg button {
 			padding: 15px;
@@ -1428,25 +1367,10 @@
 		}
 	}
 	@media (max-width: 700px) {
-		.sidehode,
 		main {
-			width: calc(100% - 28px);
+			width: min(var(--layout-width), calc(100% - 2 * var(--layout-gutter)));
 		}
-		.sidehode {
-			min-height: 72px;
-			gap: 12px;
-		}
-		.logo {
-			font-size: 18px;
-			gap: 6px;
-		}
-		nav {
-			gap: 12px;
-			font-size: var(--font-small);
-		}
-		nav a:first-child {
-			display: none;
-		}
+
 		.intro {
 			padding: 27px 0 24px;
 		}
@@ -1591,14 +1515,6 @@
 	@media (prefers-reduced-motion: reduce) {
 		summary > span:last-child {
 			transition: none;
-		}
-	}
-	@media (max-width: 700px) {
-		.sidehode {
-			padding-block: 14px;
-		}
-		.header-actions {
-			gap: 10px 14px;
 		}
 	}
 </style>

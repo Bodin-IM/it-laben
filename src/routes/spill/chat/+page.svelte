@@ -1,6 +1,6 @@
 <script>
-	import ThemeToggle from '#lib/components/ThemeToggle.svelte';
-	import AccountLink from '#lib/components/AccountLink.svelte';
+	import PageLinks from '#lib/components/PageLinks.svelte';
+	import ModuleContext from '#lib/components/ModuleContext.svelte';
 	import { activityLab as account, learningContext, saveAttempt } from '#lib/lab.js';
 	import { avatarFeedback } from '#lib/avatarFeedback.js';
 	import { onMount, onDestroy } from 'svelte';
@@ -428,14 +428,8 @@
 </svelte:head>
 
 <div class="spill-side">
-	<header class="sidehode">
-		<a class="logo" href="/"
-			><span class="logoikon" aria-hidden="true">IT</span>IT-laben<span class="punkt">.</span></a
-		>
-		<a class="tilbake" href="/#spill">← Spill og utfordringer</a>
-		<div class="theme-control"><AccountLink /><ThemeToggle /></div>
-	</header>
-	<main>
+	<main id="hovedinnhold" tabindex="-1">
+		<ModuleContext />
 		<div class="spillintro">
 			<div>
 				<p class="overlinje"><span aria-hidden="true">◆</span> KODEPUSLESPILL / 01</p>
@@ -880,6 +874,7 @@
 			>
 		</footer>
 		<p class="sr-only" aria-live="polite" aria-atomic="true">{announcement}</p>
+		<PageLinks links={[{ href: '/#spill', label: 'Alle oppdrag og spill' }]} />
 	</main>
 </div>
 
@@ -909,53 +904,16 @@
 	.spill-side * {
 		box-sizing: border-box;
 	}
-	.sidehode,
 	main {
-		width: min(1240px, calc(100% - 64px));
+		width: min(var(--layout-width), calc(100% - 2 * var(--layout-gutter)));
 		margin: 0 auto;
 	}
-	.sidehode {
-		min-height: 76px;
-		display: flex;
-		justify-content: space-between;
-		align-items: center;
-		gap: 18px;
-		border-bottom: 1px solid var(--line);
-	}
+
 	a {
 		color: var(--teal);
 		text-underline-offset: 3px;
 	}
-	.logo {
-		display: inline-flex;
-		align-items: center;
-		gap: 7px;
-		font-size: 20px;
-		font-weight: 760;
-		text-decoration: none;
-		color: var(--ink);
-	}
-	.logoikon {
-		display: grid;
-		place-items: center;
-		width: 30px;
-		height: 30px;
-		background: var(--color-brand);
-		color: var(--color-on-brand);
-		border-radius: 5px;
-		font-size: var(--font-small);
-	}
-	.punkt {
-		color: var(--teal);
-		margin-left: -7px;
-	}
-	.tilbake {
-		font-size: var(--font-small);
-		text-decoration: none;
-	}
-	.tilbake:hover {
-		text-decoration: underline;
-	}
+
 	.spillintro {
 		display: flex;
 		justify-content: space-between;
@@ -1920,9 +1878,8 @@
 		border: 0;
 	}
 	@media (max-width: 1000px) {
-		.sidehode,
 		main {
-			width: calc(100% - 40px);
+			width: min(var(--layout-width), calc(100% - 2 * var(--layout-gutter)));
 		}
 		.byggegrid {
 			grid-template-columns: minmax(0, 1fr) minmax(0, 1.05fr);
@@ -1955,19 +1912,10 @@
 		}
 	}
 	@media (max-width: 700px) {
-		.sidehode,
 		main {
-			width: calc(100% - 28px);
+			width: min(var(--layout-width), calc(100% - 2 * var(--layout-gutter)));
 		}
-		.sidehode {
-			min-height: 65px;
-		}
-		.logo {
-			font-size: 18px;
-		}
-		.tilbake {
-			font-size: var(--font-small);
-		}
+
 		.spillintro {
 			align-items: flex-start;
 			flex-direction: column;
@@ -2250,62 +2198,6 @@
 			transition: none !important;
 			animation: none !important;
 			scroll-behavior: auto !important;
-		}
-	}
-
-	.sidehode {
-		flex-wrap: wrap;
-	}
-	.tilbake {
-		margin-left: auto;
-	}
-	@media (max-width: 620px) {
-		.sidehode {
-			display: grid;
-			grid-template-columns: minmax(0, 1fr) auto;
-			gap: 8px 12px;
-			padding-block: 12px;
-		}
-		.tilbake {
-			grid-column: 1 / -1;
-			grid-row: 2;
-			justify-self: end;
-			margin-left: 0;
-		}
-	}
-
-	.theme-control {
-		flex: 0 0 auto;
-		justify-self: end;
-	}
-	@media (max-width: 380px) {
-		.logo {
-			white-space: nowrap;
-		}
-		.tilbake {
-			grid-column: 2;
-			grid-row: 1;
-		}
-		.theme-control {
-			grid-column: 1 / -1;
-			grid-row: 2;
-		}
-	}
-
-	.theme-control {
-		display: flex;
-		align-items: center;
-		justify-content: flex-end;
-		flex-wrap: wrap;
-		gap: 8px;
-		min-width: 0;
-		max-width: 100%;
-	}
-	@media (max-width: 620px) {
-		.theme-control {
-			grid-column: 1 / -1;
-			grid-row: auto;
-			justify-self: stretch;
 		}
 	}
 </style>

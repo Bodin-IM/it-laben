@@ -1,7 +1,7 @@
 <script>
+	import PageLinks from '#lib/components/PageLinks.svelte';
+	import ModuleContext from '#lib/components/ModuleContext.svelte';
 	import { avatarFeedback } from '#lib/avatarFeedback.js';
-	import ThemeToggle from '#lib/components/ThemeToggle.svelte';
-	import AccountLink from '#lib/components/AccountLink.svelte';
 	import SessionStepCode from '#lib/components/SessionStepCode.svelte';
 
 	// En lokal undervisningsmodell. Ingen cookies, innlogging eller nettverkskall opprettes.
@@ -430,14 +430,8 @@
 </svelte:head>
 
 <div class="side">
-	<header class="ramme">
-		<a class="tilbake" href="/"><span aria-hidden="true">←</span> IT-laben</a>
-		<div class="headerhoyre">
-			<a href="/backend/">Frontend møter backend <span aria-hidden="true">↗</span></a>
-			<AccountLink /><ThemeToggle />
-		</div>
-	</header>
-	<main class="ramme">
+	<main id="hovedinnhold" tabindex="-1" class="ramme">
+		<ModuleContext />
 		<section class="intro" aria-labelledby="sidetittel">
 			<div>
 				<p class="overlinje">UTVIKLING · Vg2 IT</p>
@@ -784,6 +778,7 @@
 		<footer>
 			<a href="/">← Flere forsøk i IT-laben</a><span>Ett spørsmål om gangen</span>
 		</footer>
+		<PageLinks links={[{ href: '/backend/', label: 'Frontend og backend' }]} />
 	</main>
 </div>
 
@@ -821,19 +816,10 @@
 		box-sizing: border-box;
 	}
 	.ramme {
-		width: min(1080px, calc(100% - 64px));
+		width: min(var(--layout-width), calc(100% - 2 * var(--layout-gutter)));
 		margin-inline: auto;
 	}
-	header {
-		flex-wrap: wrap;
-		row-gap: 12px;
-		min-height: 76px;
-		display: flex;
-		align-items: center;
-		justify-content: space-between;
-		gap: 20px;
-		border-bottom: 1px solid var(--border);
-	}
+
 	a {
 		color: inherit;
 		text-decoration: none;
@@ -841,25 +827,7 @@
 	a:hover {
 		color: var(--teal);
 	}
-	.tilbake {
-		font-size: var(--font-small);
-		font-weight: 750;
-		white-space: nowrap;
-	}
-	.tilbake > span {
-		margin-right: 7px;
-	}
-	.headerhoyre {
-		flex-wrap: wrap;
-		justify-content: flex-end;
-		margin-left: auto;
-		display: flex;
-		align-items: center;
-		gap: 20px;
-	}
-	.headerhoyre > a {
-		font-size: var(--font-small);
-	}
+
 	h1,
 	h2,
 	h3,
@@ -1547,7 +1515,7 @@
 	}
 	@media (max-width: 900px) {
 		.ramme {
-			width: calc(100% - 40px);
+			width: min(var(--layout-width), calc(100% - 2 * var(--layout-gutter)));
 		}
 		.intromerke {
 			display: none;
@@ -1574,21 +1542,9 @@
 	}
 	@media (max-width: 650px) {
 		.ramme {
-			width: calc(100% - 28px);
+			width: min(var(--layout-width), calc(100% - 2 * var(--layout-gutter)));
 		}
-		header {
-			min-height: 67px;
-			gap: 12px;
-		}
-		.headerhoyre {
-			gap: 12px;
-		}
-		.headerhoyre > a {
-			font-size: var(--font-small);
-		}
-		.tilbake {
-			font-size: var(--font-small);
-		}
+
 		.intro {
 			padding: 27px 0 23px;
 		}
@@ -1778,14 +1734,7 @@
 			transition: none;
 		}
 	}
-	@media (max-width: 700px) {
-		header {
-			padding-block: 14px;
-		}
-		.headerhoyre {
-			gap: 10px 14px;
-		}
-	}
+
 	@media (max-width: 650px) {
 		.hovedvalg {
 			grid-template-columns: 1fr;
