@@ -1,4 +1,5 @@
 <script>
+	import ModuleContext from '#lib/components/ModuleContext.svelte';
 	import ThemeToggle from '#lib/components/ThemeToggle.svelte';
 	import AccountLink from '#lib/components/AccountLink.svelte';
 	import { activityLab as account, learningContext, saveAttempt } from '#lib/lab.js';
@@ -436,6 +437,7 @@
 		<div class="theme-control"><AccountLink /><ThemeToggle /></div>
 	</header>
 	<main>
+		<ModuleContext />
 		<div class="spillintro">
 			<div>
 				<p class="overlinje"><span aria-hidden="true">◆</span> KODEPUSLESPILL / 01</p>

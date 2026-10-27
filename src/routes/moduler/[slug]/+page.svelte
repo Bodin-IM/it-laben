@@ -1,6 +1,6 @@
 <script>
-	import ThemeToggle from '#lib/components/ThemeToggle.svelte';
-	import AccountLink from '#lib/components/AccountLink.svelte';
+	import LabHeader from '#lib/components/LabHeader.svelte';
+	import { moduleLink } from '#lib/moduleNavigation.js';
 	import { fag } from '#lib/innhold.js';
 	import { moduleContents, moduleTypes, moduleProgress, moduleSummary } from '#lib/moduler.js';
 	import { lab } from '#lib/lab.js';
@@ -32,69 +32,94 @@
 
 <div class="module-page">
 	<a class="skip" href="#forlop">Hopp til modulens innhold</a>
-	<header>
-		<a class="brand" href="/">IT-laben<span>.</span></a>
-		<div class="actions"><AccountLink /><ThemeToggle /></div>
-	</header>
+	<LabHeader />
 	<main>
 		<nav class="breadcrumbs" aria-label="Brødsmuler">
-			<a href="/">Fag</a><span aria-hidden="true">/</span><a href={`/?fag=${module.subject}`}
-				>{subject?.navn}</a
+			<a href="/">Fagoversikt</a><span aria-hidden="true">/</span><a
+				href={`/?fag=${module.subject}`}>{subject?.navn}</a
 			><span aria-hidden="true">/</span><span aria-current="page">{module.title}</span>
 		</nav>
 		<section class="hero" aria-labelledby="module-title">
-			<p class="eyebrow">MODUL · {subject?.navn}</p>
-			<h1 id="module-title">{module.title}</h1>
-			<p class="intro">{module.description}</p>
-			<p class="summary">{moduleSummary(module)}</p>
+			<div class="hero-copy">
+				<p class="eyebrow">Modul · {subject?.navn}</p>
+				<h1 id="module-title">{module.title}</h1>
+				<p class="intro">{module.description}</p>
+				<p class="summary">{moduleSummary(module)}</p>
+			</div>
 			<a class="primary" href="#forlop">Se modulens innhold <span aria-hidden="true">↓</span></a>
 		</section>
-		<div class="layout">
-			<section id="forlop" aria-labelledby="forlop-title">
-				<h2 id="forlop-title">Dette skal vi jobbe med</h2>
-				<p class="muted">Følg den anbefalte rekkefølgen, eller åpne delen du trenger.</p>
-				<ol class="steps">
-					{#each contents as step, index (`${step.kind}:${step.id}`)}
-						<li class:teaching={step.kind === 'undervisning'}>
-							<div class="step-top">
-								<span class="step-type"
-									>{String(index + 1).padStart(2, '0')} · {moduleTypes[step.kind]
-										.label}{step.format === 'spill' ? ' · Spill' : ''}</span
-								>{#if step.kind !== 'undervisning' && status(step.id)}<span class="status"
-										>{status(step.id)}</span
-									>{/if}
-							</div>
-							<h3>{step.title}</h3>
-							<p>{step.description}</p>
-							{#if step.kind === 'undervisning'}
-								<p class="muted">Felles gjennomgang · ca. {step.minutes} min</p>
-								<details>
-									<summary>Innhold til gjennomgang og repetisjon</summary>
-									<ul>
-										{#each step.lessons as lesson}<li>
-												<a href={lesson.href}>{lesson.title} →</a>
-											</li>{/each}
-									</ul>
-								</details>
-								{#if hasTeacherRole($lab.user?.role)}<a class="step-link" href={step.teacherHref}
-										>Åpne læreropplegget →</a
-									>{/if}
-							{:else}<a class="step-link" href={step.href}
-									>{step.kind === 'oving' ? 'Åpne øvingen' : 'Åpne oppdraget'} →</a
-								>{/if}
-						</li>
-					{/each}
-				</ol>
-			</section>
-			<aside aria-label="Om modulen">
-				<section class="panel">
+		<details class="module-guide">
+			<summary>Mål og forkunnskaper</summary>
+			<div class="guide-content">
+				<div>
 					<h2>Målet med modulen</h2>
 					<ul>
 						{#each module.goals as goal}<li>{goal}</li>{/each}
 					</ul>
-					<h3>Før du begynner</h3>
+				</div>
+				<div>
+					<h2>Før du begynner</h2>
 					<p>{module.prerequisites}</p>
-				</section>
+				</div>
+			</div>
+		</details>
+		<div class="layout">
+			<section id="forlop" aria-labelledby="forlop-title" tabindex="-1">
+				<div class="section-heading">
+					<h2 id="forlop-title">Dette skal vi jobbe med</h2>
+					<p class="muted">Følg rekkefølgen, eller åpne delen du trenger.</p>
+				</div>
+				<ol class="steps">
+					{#each contents as step, index (`${step.kind}:${step.id}`)}
+						<li id={`del-${index + 1}`} tabindex="-1" class:teaching={step.kind === 'undervisning'}>
+							<span class="step-number" aria-hidden="true"
+								>{String(index + 1).padStart(2, '0')}</span
+							>
+							<div class="step-content">
+								<div class="step-top">
+									<span class="step-type"
+										>{moduleTypes[step.kind].label}{step.format === 'spill' ? ' · Spill' : ''}</span
+									>{#if step.kind !== 'undervisning' && status(step.id)}<span class="status"
+											>{status(step.id)}</span
+										>{/if}
+								</div>
+								<h3>{step.title}</h3>
+								<p class="step-description">{step.description}</p>
+								{#if step.kind === 'undervisning'}
+									<p class="muted">Felles gjennomgang · ca. {step.minutes} min</p>
+									<details class="lesson-links">
+										<summary>Innhold til gjennomgang og repetisjon</summary>
+										<ul>
+											{#each step.lessons as lesson}<li>
+													<a href={moduleLink(lesson.href, module.id)}
+														>{lesson.title} <span aria-hidden="true">→</span></a
+													>
+												</li>{/each}
+										</ul>
+									</details>
+									{#if hasTeacherRole($lab.user?.role)}<a class="step-link" href={step.teacherHref}
+											>Åpne læreropplegget <span aria-hidden="true">→</span></a
+										>{/if}
+								{:else}<a class="step-link" href={moduleLink(step.href, module.id)}
+										>{step.kind === 'oving' ? 'Åpne øvingen' : 'Åpne oppdraget'}
+										<span aria-hidden="true">→</span></a
+									>{/if}
+							</div>
+						</li>
+					{/each}
+				</ol>
+			</section>
+			<aside aria-label="Oversikt og ressurser">
+				<nav class="outline panel" aria-label="Hopp til en del i modulen">
+					<h2>I denne modulen</h2>
+					<ol>
+						{#each contents as step, index}<li>
+								<a href={`#del-${index + 1}`}
+									><span aria-hidden="true">{index + 1}</span>{step.title}</a
+								>
+							</li>{/each}
+					</ol>
+				</nav>
 				{#if $lab.user && $lab.summary}<section class="panel">
 						<h2>Ditt arbeid</h2>
 						<p>
@@ -113,12 +138,15 @@
 						<h2>Ressurser og repetisjon</h2>
 						<ul>
 							{#each module.resources as resource}<li>
-									<a href={resource.href}>{resource.label} →</a>
+									<a href={moduleLink(resource.href, module.id)}
+										>{resource.label} <span aria-hidden="true">→</span></a
+									>
 								</li>{/each}
 						</ul>
 					</section>{/if}
 				<a class="back-link" href={`/?fag=${module.subject}#utforsk`}
-					>Alle øvinger og spill i {subject?.navn.toLocaleLowerCase('nb-NO')} →</a
+					>Alle øvinger og spill i {subject?.navn.toLocaleLowerCase('nb-NO')}
+					<span aria-hidden="true">→</span></a
 				>
 			</aside>
 		</div>
@@ -132,88 +160,75 @@
 
 <style>
 	.module-page {
-		font-family: system-ui, sans-serif;
+		font-family: var(--font-ui);
 		color: var(--color-text);
 	}
 	.module-page :global(*) {
 		box-sizing: border-box;
 	}
-	header,
 	main,
 	footer {
-		width: min(1160px, calc(100% - 48px));
+		width: min(1160px, calc(100% - 2 * var(--layout-gutter)));
 		margin-inline: auto;
-	}
-	header,
-	footer {
-		display: flex;
-		align-items: center;
-		justify-content: space-between;
-		gap: 16px;
-		flex-wrap: wrap;
-		padding-block: 20px;
-	}
-	header {
-		border-bottom: 1px solid var(--color-border);
-	}
-	.brand {
-		font-weight: 800;
-		font-size: 1.2rem;
-		text-decoration: none;
-		color: var(--color-text);
-	}
-	.brand span {
-		color: var(--color-accent);
-	}
-	.actions {
-		display: flex;
-		align-items: center;
-		gap: 18px;
 	}
 	a {
 		color: var(--color-accent);
-		text-underline-offset: 3px;
+		text-underline-offset: 4px;
 	}
 	a:focus-visible,
-	summary:focus-visible {
+	summary:focus-visible,
+	:is(section, li)[tabindex]:focus-visible {
 		outline: 3px solid var(--color-focus);
 		outline-offset: 4px;
 	}
 	.breadcrumbs {
 		display: flex;
+		align-items: center;
 		flex-wrap: wrap;
-		gap: 10px;
-		margin-block: 22px;
-		font-size: var(--font-small);
+		gap: 6px 10px;
+		padding-block: 22px;
+		font-size: var(--font-meta);
+		color: var(--color-text-muted);
+	}
+	.breadcrumbs a {
+		padding-block: 5px;
 	}
 	.hero {
-		background: var(--color-info-soft);
+		display: flex;
+		align-items: center;
+		justify-content: space-between;
+		gap: 24px;
+		border-radius: var(--radius-card);
+		padding: 28px 32px;
 		border: 1px solid var(--color-info-border);
-		border-top: 3px solid var(--color-info);
-		border-radius: 14px;
-		padding: clamp(22px, 4vw, 38px);
+		background: var(--color-info-soft);
+	}
+	.hero-copy {
+		max-width: 64ch;
 	}
 	.eyebrow {
 		color: var(--color-info);
-		letter-spacing: 1px;
-		font-weight: 750;
+		font-weight: 650;
 		font-size: var(--font-small);
-		margin: 0 0 8px;
+		margin: 0 0 10px;
 	}
 	h1 {
-		font-size: clamp(1.8rem, 4vw, 2.8rem);
-		line-height: 1.2;
-		margin: 0 0 14px;
+		font-size: clamp(1.85rem, 3.5vw, 2.65rem);
+		letter-spacing: -0.035em;
+		line-height: 1.15;
+		margin: 0 0 12px;
 	}
 	h2 {
-		font-size: 1.25rem;
-		line-height: 1.4;
+		font-size: 1.35rem;
+		line-height: 1.35;
 		margin: 0 0 8px;
+		letter-spacing: -0.02em;
 	}
 	h3 {
-		font-size: 1.125rem;
+		font-size: 1.25rem;
 		line-height: 1.4;
-		margin: 8px 0;
+		margin: 5px 0 10px;
+		letter-spacing: -0.02em;
 	}
 	h1,
 	h2,
@@ -225,89 +240,148 @@
 		margin: 8px 0 14px;
 	}
 	.intro {
-		max-width: 720px;
 		font-size: 1.125rem;
+		margin: 0 0 12px;
 	}
 	.summary {
-		color: var(--color-info);
-		font-size: var(--font-small);
+		color: var(--color-text-muted);
+		font-size: var(--font-meta);
+		margin: 0;
 	}
 	.primary {
 		display: inline-flex;
-		gap: 20px;
-		padding: 10px 16px;
-		margin-top: 4px;
-		border-radius: 7px;
+		align-items: center;
+		justify-content: space-between;
+		gap: 14px;
+		padding: 12px 18px;
+		min-height: 48px;
+		border-radius: 9px;
 		background: var(--color-action);
 		color: var(--color-on-action);
+		font-size: var(--font-small);
 		font-weight: 650;
 		text-decoration: none;
+		flex-shrink: 0;
+	}
+	.primary:hover {
+		background: var(--color-action-hover);
+	}
+	.module-guide {
+		margin-top: 12px;
+		border: 1px solid var(--color-border);
+		border-radius: 10px;
+		background: var(--color-surface);
+	}
+	.module-guide > summary {
+		padding: 14px 20px;
+		color: var(--color-text);
+		font-weight: 600;
+	}
+	.guide-content {
+		display: grid;
+		grid-template-columns: 1fr 1fr;
+		gap: 28px;
+		padding: 4px 24px 18px;
+	}
+	.guide-content h2 {
+		font-size: 1.125rem;
 	}
 	.layout {
 		display: grid;
-		grid-template-columns: minmax(0, 1.8fr) minmax(260px, 1fr);
-		gap: 28px;
+		grid-template-columns: minmax(0, 1fr) 280px;
+		gap: 36px;
 		padding-block: 32px;
 		align-items: start;
 	}
 	#forlop {
-		scroll-margin-top: 24px;
 		min-width: 0;
+		scroll-margin-top: 24px;
 	}
 	.muted {
 		color: var(--color-text-muted);
 		font-size: var(--font-small);
 	}
+	.section-heading .muted {
+		margin-bottom: 20px;
+	}
 	.steps {
 		list-style: none;
 		padding: 0;
-		margin: 20px 0 0;
+		margin: 0;
 		display: grid;
 		gap: 16px;
 	}
 	.steps > li {
+		display: grid;
+		grid-template-columns: 42px minmax(0, 1fr);
+		gap: 18px;
 		background: var(--color-surface);
-		padding: 22px;
+		padding: 24px;
 		border: 1px solid var(--color-border);
-		border-radius: 12px;
+		border-radius: var(--radius-card);
+		scroll-margin-top: 24px;
 	}
-	.steps > li.teaching {
-		border-left: 3px solid var(--color-info);
+	.step-number {
+		display: grid;
+		place-items: center;
+		width: 42px;
+		height: 42px;
+		background: var(--color-surface-soft);
+		color: var(--color-text-muted);
+		border-radius: 50%;
+		font: 600 0.9375rem/1 monospace;
+	}
+	.teaching .step-number {
+		background: var(--color-info-soft);
+		color: var(--color-info);
 	}
 	.step-top {
 		display: flex;
 		flex-wrap: wrap;
 		gap: 8px 20px;
 		justify-content: space-between;
-		font-size: var(--font-small);
+		font-size: var(--font-meta);
 	}
 	.step-type {
-		color: var(--color-accent);
-		font-weight: 700;
+		color: var(--color-text-muted);
+		font-weight: 600;
 	}
 	.status {
 		color: var(--color-success);
 		font-weight: 650;
 	}
-	.step-link {
-		display: inline-block;
-		padding-block: 10px;
-		font-weight: 700;
+	.step-description {
+		max-width: 65ch;
 	}
-	details {
+	.step-link {
+		display: inline-flex;
+		align-items: center;
+		gap: 12px;
+		min-height: 44px;
+		padding: 8px 0;
+		font-weight: 700;
+		font-size: var(--font-small);
+	}
+	.lesson-links {
 		border-top: 1px solid var(--color-border);
-		padding-top: 12px;
+		padding-top: 8px;
 	}
 	summary {
 		cursor: pointer;
 		color: var(--color-accent);
-		padding-block: 6px;
+		padding-block: 10px;
+		font-size: var(--font-small);
 	}
 	ul {
 		padding-left: 22px;
 	}
-	li + li {
+	ul li + li {
 		margin-top: 8px;
+	}
+	.lesson-links a,
+	.panel li a {
+		display: inline-block;
+		padding-block: 7px;
 	}
 	aside {
 		display: grid;
@@ -316,15 +390,39 @@
 	}
 	.panel {
 		border: 1px solid var(--color-border);
-		border-radius: 12px;
-		background: var(--color-surface-soft);
+		border-radius: var(--radius-card);
+		background: var(--color-surface);
 		padding: 22px;
+	}
+	.panel h2 {
+		font-size: 1.125rem;
 	}
 	.panel p:last-child {
 		margin-bottom: 0;
 	}
-	.panel h3 {
-		margin-top: 22px;
+	.panel ul {
+		margin-bottom: 0;
+	}
+	.outline ol {
+		list-style: none;
+		padding: 0;
+		margin: 12px 0 0;
+	}
+	.outline a {
+		display: flex;
+		align-items: baseline;
+		gap: 10px;
+		padding-block: 8px;
+		font-size: var(--font-small);
+		color: var(--color-text-muted);
+		text-decoration: none;
+	}
+	.outline a:hover {
+		color: var(--color-accent);
+		text-decoration: underline;
+	}
+	.outline a span {
+		font: 500 var(--font-meta)/1 monospace;
 	}
 	progress {
 		width: 100%;
@@ -332,11 +430,17 @@
 		height: 9px;
 	}
 	.back-link {
-		padding: 10px 0;
+		padding-block: 10px;
 		font-size: var(--font-small);
 	}
 	footer {
+		display: flex;
+		align-items: center;
+		justify-content: space-between;
+		gap: 16px;
+		flex-wrap: wrap;
 		border-top: 1px solid var(--color-border);
+		padding-block: 24px;
 		color: var(--color-text-muted);
 		font-size: var(--font-small);
 	}
@@ -344,32 +448,48 @@
 		position: fixed;
 		top: 10px;
 		left: 10px;
-		z-index: 20;
-		padding: 10px;
-		background: var(--color-surface);
+		z-index: 100;
+		padding: 12px 20px;
+		background: var(--color-action);
+		color: var(--color-on-action);
+		border-radius: 8px;
 		transform: translateY(-200%);
 	}
 	.skip:focus {
 		transform: none;
 	}
+	@media (max-width: 900px) {
+		.hero {
+			flex-wrap: wrap;
+		}
+		.layout {
+			grid-template-columns: minmax(0, 1fr) 250px;
+			gap: 24px;
+		}
+	}
 	@media (max-width: 750px) {
 		.layout {
 			grid-template-columns: 1fr;
 		}
-		aside {
-			grid-row: 1;
+		.outline {
+			display: none;
 		}
-		header,
-		main,
-		footer {
-			width: calc(100% - 32px);
+		.guide-content {
+			grid-template-columns: 1fr;
+			gap: 14px;
 		}
-		.actions {
-			gap: 10px;
+		.hero {
+			padding: 22px;
+			gap: 18px;
 		}
-		.steps > li,
-		.panel {
-			padding: 18px;
+		.steps > li {
+			grid-template-columns: 32px minmax(0, 1fr);
+			padding: 20px 16px;
+			gap: 12px;
+		}
+		.step-number {
+			width: 32px;
+			height: 32px;
 		}
 	}
 </style>

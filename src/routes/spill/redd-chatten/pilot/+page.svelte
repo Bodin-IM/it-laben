@@ -851,6 +851,7 @@
 		margin: auto;
 		padding: 22px 32px;
 		display: flex;
+		flex-wrap: wrap;
 		align-items: center;
 		gap: 28px;
 		border-bottom: 1px solid var(--color-border);
@@ -860,6 +861,7 @@
 		text-underline-offset: 4px;
 	}
 	.brand {
+		flex-shrink: 0;
 		font-size: 24px;
 		font-weight: 800;
 		letter-spacing: -0.8px;

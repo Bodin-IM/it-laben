@@ -1,4 +1,5 @@
 <script>
+	import ModuleContext from '#lib/components/ModuleContext.svelte';
 	import { avatarFeedback } from '#lib/avatarFeedback.js';
 	import ThemeToggle from '#lib/components/ThemeToggle.svelte';
 	import AccountLink from '#lib/components/AccountLink.svelte';
@@ -258,6 +259,7 @@
 	</header>
 
 	<main>
+		<ModuleContext />
 		<section class="intro" aria-labelledby="tittel">
 			<div>
 				<p class="overlinje">FILLAGRING · KODEN I FOKUS</p>

@@ -1,4 +1,5 @@
 <script>
+	import ModuleContext from '#lib/components/ModuleContext.svelte';
 	import { avatarFeedback } from '#lib/avatarFeedback.js';
 	import ThemeToggle from '#lib/components/ThemeToggle.svelte';
 	import AccountLink from '#lib/components/AccountLink.svelte';
@@ -438,6 +439,7 @@
 		</div>
 	</header>
 	<main class="ramme">
+		<ModuleContext />
 		<section class="intro" aria-labelledby="sidetittel">
 			<div>
 				<p class="overlinje">UTVIKLING · Vg2 IT</p>

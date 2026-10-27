@@ -20,7 +20,7 @@ Innholdet handler foreløpig om webutvikling. Laben skal også kunne romme drift
 
 De nyeste frontend/backend- og sessions-visningene er hovedversjonene på de vanlige adressene. Forsiden har én inngang til hvert tema.
 
-På forsiden spør vi **«Hva jobber du med i dag?»**. Alt innhold er synlig fra start. Fagvalgene **Utvikling** og **Driftsstøtte** filtrerer den samme oversikten, og **Alle fag** viser begge igjen. Leksjoner og spill har kompakte kort, gruppert per fag, med søk og et eget valg av aktivitetstype. Fag uten publisert innhold viser en kommer-melding.
+På forsiden spør vi **«Hva jobber du med i dag?»**. Alt innhold er synlig fra start. Fagvalgene **Utvikling** og **Driftsstøtte** filtrerer den samme oversikten, og **Alle fag** viser begge igjen. Moduler vises først, med øvinger, oppdrag og spill nedenfor. Søket øverst finner både moduler og aktiviteter. Et eget typefilter avgrenser enkeltaktivitetene. Fag uten publisert innhold viser en kommer-melding.
 
 Søket bruker titler, beskrivelser, emner og ekstra søkeord, slik at for eksempel «innlogging» også finner sessions. Valgt fag, aktivitetstype og søk følger nettadressen, for eksempel `/?fag=utvikling&type=spill&q=session`, og gjenopprettes ved oppfrisking eller retur fra en aktivitet. Vanlige besøk på `/` starter med alle fag. Eldre lenker til `/#spill` åpner spillfilteret, og `/#ovingene` viser øving 5–10 samlet.
 
@@ -74,6 +74,8 @@ Spillene bruker faste startdata for å gjøre forsøkene sammenlignbare. Nettles
 På `/spill/redd-chatten/pilot/` kan eleven forutsi, undersøke, reparere og forklare én valideringsfeil, før prinsippet brukes på et romnavn. Piloten har egne testdata, hint i tre nivåer, fire milepæler med pilotpoeng og et arbeidsnotat. Den bruker ikke ordinær XP eller begrensede forsøk. Se [lærerveiledningen](docs/redd-chatten-pilot.md) for mål, gjennomføring og utprøving.
 
 ## Hvordan vi bygger undervisningssidene
+
+På `dev` prøver vi et nytt design for fagoversikt, moduler og navigasjon. [Designvurdering og utkast](docs/designvurdering-og-utkast.md) viser funn, skjermbilder, endringer og hva som er kontrollert.
 
 Det felles [pedagogiske grunnlaget](docs/pedagogisk-grunnlag.md) beskriver hvordan vi bruker forskning om interaktivitet, tilbakemeldinger og gamification i nye aktiviteter. [Grunnlaget for webdesign og brukeropplevelse](docs/webdesign-og-brukeropplevelse.md) supplerer dette med prinsipper for struktur, lesbarhet, interaksjon, tilgjengelighet og brukertesting. Bruk [aktivitetsmalen](docs/aktivitetsmal.md) for å konkretisere mål, elevhandlinger, respons og ny anvendelse. [AGENTS.md](AGENTS.md) gir KI-assistenter instruksjoner om å lese og følge begge grunnlagene ved relevant arbeid i repoet.
 

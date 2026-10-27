@@ -1,26 +1,33 @@
 <script>
 	import { moduleSummary, moduleProgress } from '#lib/moduler.js';
+	import { fag } from '#lib/innhold.js';
 	import { lab } from '#lib/lab.js';
 	/** @type {{module:import('#lib/moduler.js').Module}} */
 	let { module } = $props();
 	const progress = $derived(moduleProgress(module, $lab.summary?.progress));
+	const subject = $derived(fag.find((item) => item.id === module.subject));
 </script>
 
 <a class="module-card" href={`/moduler/${module.id}/`}>
-	<div class="top"><span class="badge">Modul</span><span aria-hidden="true">▤</span></div>
+	<div class="top">
+		<span class="module-icon" aria-hidden="true"
+			><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"
+				><rect x="4" y="4" width="16" height="16" rx="3" /><path d="M9 4v16m3-11h5m-5 4h5" /></svg
+			></span
+		>
+		<span class="badge">Modul <span aria-hidden="true">·</span> {subject?.navn}</span>
+	</div>
 	<h3>{module.title}</h3>
 	<p class="description">{module.description}</p>
-	<p class="contents">{moduleSummary(module)}</p>
+	<div class="bottom">
+		<p class="contents">{moduleSummary(module)}</p>
+		<span class="open">Åpne modul <span aria-hidden="true">→</span></span>
+	</div>
 	{#if $lab.user && $lab.summary}
 		<p class="progress">
 			{progress.completed} av {progress.total} elevaktiviteter gjennomgått eller bestått
 		</p>
 	{/if}
-	<div class="bottom">
-		<span>{progress.started ? 'Åpne modulen' : 'Utforsk modulen'}</span><span aria-hidden="true"
-			>→</span
-		>
-	</div>
 </a>
 
 <style>
@@ -28,10 +35,9 @@
 		display: flex;
 		flex-direction: column;
 		min-width: 0;
-		padding: 22px;
+		padding: 24px;
 		border: 1px solid var(--color-info-border);
-		border-top: 3px solid var(--color-info);
-		border-radius: 12px;
+		border-radius: var(--radius-card);
 		background: var(--color-info-soft);
 		color: var(--color-text);
 		text-decoration: none;
@@ -41,31 +47,40 @@
 	}
 	.module-card:hover {
 		border-color: var(--color-info);
-		box-shadow: 0 5px 18px var(--color-shadow);
+		box-shadow: 0 4px 16px var(--color-shadow);
 	}
 	.module-card:focus-visible {
 		outline: 3px solid var(--color-focus);
 		outline-offset: 4px;
 	}
-	.top,
-	.bottom {
+	.top {
 		display: flex;
 		align-items: center;
-		justify-content: space-between;
-		gap: 12px;
+		gap: 10px;
+		margin-bottom: 18px;
 		color: var(--color-info);
 	}
-	.top {
-		margin-bottom: 14px;
+	.module-icon {
+		display: grid;
+		place-items: center;
+		width: 36px;
+		height: 36px;
+		border-radius: 9px;
+		background: var(--color-surface);
+	}
+	svg {
+		width: 23px;
+		height: 23px;
 	}
 	.badge {
-		font-size: var(--font-small);
-		font-weight: 750;
+		font-size: var(--font-meta);
+		font-weight: 650;
 	}
 	h3 {
 		margin: 0 0 8px;
-		font-size: 1.25rem;
-		line-height: 1.35;
+		font-size: 1.375rem;
+		line-height: 1.3;
+		letter-spacing: -0.025em;
 		overflow-wrap: anywhere;
 	}
 	p {
@@ -73,23 +88,40 @@
 	}
 	.description {
 		font-size: var(--font-body);
-		margin-bottom: 18px;
-	}
-	.contents {
-		margin-top: auto;
-		font-size: var(--font-small);
-		color: var(--color-info);
-	}
-	.progress {
-		font-size: var(--font-small);
-		margin-top: 8px;
+		line-height: 1.55;
+		margin-bottom: 22px;
 	}
 	.bottom {
-		border-top: 1px solid var(--color-info-border);
-		margin-top: 15px;
-		padding-top: 12px;
-		font-weight: 650;
+		margin-top: auto;
+		display: flex;
+		align-items: end;
+		flex-wrap: wrap;
+		gap: 10px 16px;
+		justify-content: space-between;
+	}
+	.contents {
+		font-size: var(--font-meta);
+		color: var(--color-text-muted);
+	}
+	.open {
+		display: flex;
+		align-items: center;
+		gap: 12px;
+		color: var(--color-info);
+		font-weight: 700;
 		font-size: var(--font-small);
+	}
+	.progress {
+		font-size: var(--font-meta);
+		border-top: 1px solid var(--color-info-border);
+		padding-top: 10px;
+		margin-top: 14px;
+		color: var(--color-info);
+	}
+	@media (max-width: 550px) {
+		.module-card {
+			padding: 20px;
+		}
 	}
 	@media (prefers-reduced-motion: reduce) {
 		.module-card {

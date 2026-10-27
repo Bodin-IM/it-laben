@@ -1,4 +1,5 @@
 <script>
+	import ModuleContext from '#lib/components/ModuleContext.svelte';
 	import { avatarFeedback } from '#lib/avatarFeedback.js';
 	import ThemeToggle from '#lib/components/ThemeToggle.svelte';
 	import AccountLink from '#lib/components/AccountLink.svelte';
@@ -201,6 +202,7 @@
 		</div>
 	</header>
 	<main>
+		<ModuleContext />
 		<section class="intro" aria-labelledby="tittel">
 			<p class="overlinje">UTVIKLING · Vg2 IT</p>
 			<h1 id="tittel">Frontend møter backend</h1>

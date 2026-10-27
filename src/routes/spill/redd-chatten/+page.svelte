@@ -1,4 +1,5 @@
 <script>
+	import ModuleContext from '#lib/components/ModuleContext.svelte';
 	import ThemeToggle from '#lib/components/ThemeToggle.svelte';
 	import AccountLink from '#lib/components/AccountLink.svelte';
 	import { activityLab as account, learningContext, saveAttempt } from '#lib/lab.js';
@@ -503,12 +504,15 @@
 		<div class="theme-control"><AccountLink /><ThemeToggle /></div>
 	</header>
 	<main>
+		<ModuleContext />
 		<div class="intro">
 			<div>
 				<p class="eyebrow">SPILL 02 <span>DU BYGGER BACKEND</span></p>
 				<h1>Redd <em>chatten.</em></h1>
 				<p>Reparer koden. Slipp inn brukerne. Se om den holder.</p>
-				<p><a href="/spill/redd-chatten/pilot/">Ny pilot: Forutsi, undersøk og reparer én feil →</a></p>
+				<p>
+					<a href="/spill/redd-chatten/pilot/">Ny pilot: Forutsi, undersøk og reparer én feil →</a>
+				</p>
 			</div>
 			<div class="campaign">
 				<span>{progressCount} av 3 reparasjoner løst</span>

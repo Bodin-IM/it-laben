@@ -31,7 +31,7 @@
 		align-items: center;
 		justify-content: center;
 		gap: 7px;
-		min-height: 40px;
+		min-height: 44px;
 		padding: 7px 11px;
 		border: 1px solid var(--color-border);
 		border-radius: 8px;

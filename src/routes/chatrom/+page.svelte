@@ -1,4 +1,5 @@
 <script>
+	import ModuleContext from '#lib/components/ModuleContext.svelte';
 	import { avatarFeedback } from '#lib/avatarFeedback.js';
 	import ThemeToggle from '#lib/components/ThemeToggle.svelte';
 	import AccountLink from '#lib/components/AccountLink.svelte';
@@ -258,6 +259,7 @@
 	</header>
 
 	<main>
+		<ModuleContext />
 		<section class="intro" aria-labelledby="sidetittel">
 			<p class="overlinje"><span></span> BYGG VIDERE PÅ CHATTEN</p>
 			<h1 id="sidetittel">Samme chat.<br class="mobilbrudd" /> <em>Flere muligheter.</em></h1>

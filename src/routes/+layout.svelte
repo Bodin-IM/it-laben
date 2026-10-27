@@ -66,6 +66,7 @@
 		--font-code: 1rem;
 		--font-code-small: 0.94rem;
 	}
+	.presentation :global(.lab-header),
 	.presentation :global(.side > header),
 	.presentation :global(.lesson-page > header),
 	.presentation :global(.lesson-page .course),
