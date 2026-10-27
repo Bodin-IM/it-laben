@@ -1,4 +1,6 @@
 <script>
+	import PartnerContext from '#lib/components/PartnerContext.svelte';
+
 	import PageLinks from '#lib/components/PageLinks.svelte';
 	import ModuleContext from '#lib/components/ModuleContext.svelte';
 	import { activityLab as account, learningContext, saveAttempt } from '#lib/lab.js';
@@ -27,6 +29,8 @@
 	let selectedProbes = $state(CASES.map((item) => item.initialProbeId));
 	/** @type {(ProbeRun|null)[]} */
 	let runs = $state(CASES.map(() => null));
+	/** @type {(Record<string,string>|null)[]} */
+	let partnerRunSettings = $state(CASES.map(() => null));
 	let runKeys = $state(CASES.map(() => ''));
 	/** @type {('experiment'|'check')[]} */
 	let runSources = $state(CASES.map(() => 'experiment'));
@@ -175,6 +179,7 @@
 	function inspectRun(result, source = 'experiment') {
 		runs[caseIndex] = result;
 		runKeys[caseIndex] = key;
+		partnerRunSettings[caseIndex] = { ...currentSettings };
 		runSources[caseIndex] = source;
 		selectedProbes[caseIndex] = result.probeId;
 		eventIndex = result.events.length - 1;
@@ -274,6 +279,18 @@
 		announcement = `Sak ${index + 1}: ${CASES[index].title}. En ny kodebase venter.`;
 	}
 </script>
+
+<PartnerContext
+	pageId="meldingsdetektiven"
+	values={{
+		caseId: currentCase.id,
+		settings: currentSettings,
+		probe: selectedProbe.id,
+		side,
+		event: eventIndex,
+		run: currentRun ? { settings: partnerRunSettings[caseIndex], probe: currentRun.probeId } : null
+	}}
+/>
 
 <svelte:head>
 	<title>Meldingsdetektiven – finn feilen i chatten | IT-laben</title>

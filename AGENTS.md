@@ -60,3 +60,5 @@ After completing the code, ask the user if they want a playground link. Only cal
 ## Labpartnerens KI-kontekst
 
 Ved arbeid med KI-veiledning: les [pilotens kontekst- og driftsbeskrivelse](docs/labpartner-ki-pilot.md). Oppgavegrunnlaget eies av backend og skal gjenbruke aktivitetens mål og kode. Registrer bare relevante, navngitte handlinger og send et avgrenset øyeblikksbilde når eleven spør. Knytt svar og testresultater til riktig oppdrag og kodeversjon. Hold kontohemmeligheter, andre elevers data og skjult vurderingsinnhold utenfor modellkonteksten. KI-veiledning skal ikke selv godkjenne oppgaver eller gi XP.
+
+Ved nye moduler, øvinger og leksjoner: følg [det felles kontekstsystemet](docs/labpartner-kontekst.md). Gjenbruk innholdsmetadata og `PartnerContext` i felleskomponentene. Nye aktivitetstyper må ha en versjonert, validert delingskontrakt og servereid kontekstbygger. Ikke send rå fritekst eller DOM. Lærer-/administratorsider har ikke labpartner; fagsjekker og Nattevakten deler ikke vurderingsinnhold.

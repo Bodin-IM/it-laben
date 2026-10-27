@@ -1,4 +1,6 @@
 <script>
+	import PartnerContext from '#lib/components/PartnerContext.svelte';
+
 	import PageLinks from '#lib/components/PageLinks.svelte';
 	import ModuleContext from '#lib/components/ModuleContext.svelte';
 	import { activityLab as account, learningContext, saveAttempt } from '#lib/lab.js';
@@ -418,6 +420,20 @@
 		];
 	}
 </script>
+
+<PartnerContext
+	pageId="chat"
+	values={{
+		level: level.id,
+		program: program.map((item) => item.actionId),
+		action: selectedCard.id,
+		side,
+		step: traceIndex,
+		tested: trace.length > 0,
+		running: running && !paused
+	}}
+	running={running && !paused}
+/>
 
 <svelte:head>
 	<title>To nettlesere, én chat – Spill i IT-laben</title>

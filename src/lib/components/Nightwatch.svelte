@@ -1,4 +1,6 @@
 <script>
+	import PartnerContext from '#lib/components/PartnerContext.svelte';
+
 	import PageLinks from '#lib/components/PageLinks.svelte';
 	import { onMount } from 'svelte';
 	import BadgeIcon from '#lib/components/BadgeIcon.svelte';
@@ -350,6 +352,15 @@
 		};
 	});
 </script>
+
+<PartnerContext
+	pageId="nattvakt"
+	values={{
+		phase: active ? 'active' : report ? 'finished' : 'not-started',
+		incident: active ? selected : -1,
+		untimed
+	}}
+/>
 
 <div
 	class="nightwatch"

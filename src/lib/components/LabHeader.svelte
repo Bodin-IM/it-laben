@@ -7,6 +7,7 @@
 	import AccountLink from '#lib/components/AccountLink.svelte';
 	import { lab } from '#lib/lab.js';
 	import { hasTeacherRole } from '#lib/learning.js';
+	import { partnerAllowed } from '#lib/partnerPages.js';
 	import { fag } from '#lib/innhold.js';
 
 	let menuOpen = $state(false);
@@ -96,7 +97,11 @@
 						: undefined}>Lærerpanel</a
 				>
 			{/if}
-			<button class="partner-link" type="button" onclick={openPartner}>Labpartner</button>
+			{#if partnerAllowed(page.url.pathname)}<button
+					class="partner-link"
+					type="button"
+					onclick={openPartner}>Labpartner</button
+				>{/if}
 		</nav>
 		<div class="account"><AccountLink /></div>
 		<div class="theme"><ThemeToggle compact /></div>

@@ -1396,3 +1396,31 @@ export function planRun(state, kind, options = {}) {
 	refreshAfterMutation('delete', 'Meldingen er slettet.');
 	return steps;
 }
+
+/** @type {{id: Kind, number: string, title: string, method: string, goal: string, question: string}[]} */
+export const CHATROOM_LESSONS = [
+	{
+		id: 'rooms',
+		number: '01',
+		title: 'Velg rom',
+		method: 'GET',
+		goal: 'Hent bare meldingene som tilhører rommet du har valgt.',
+		question: 'Hva må frontend sende for at backend skal vite hvilket rom du vil se?'
+	},
+	{
+		id: 'session',
+		number: '02',
+		title: 'Send som innlogget',
+		method: 'POST',
+		goal: 'La backend finne avsenderen i sessionen når en melding sendes.',
+		question: 'Kan noen bytte avsender ved å endre det som sendes fra nettleseren?'
+	},
+	{
+		id: 'delete',
+		number: '03',
+		title: 'Slett egen melding',
+		method: 'DELETE',
+		goal: 'Bruk meldings-ID og sjekk eierskap før backend sletter.',
+		question: 'Hva stopper en bruker fra å slette en annens melding?'
+	}
+];

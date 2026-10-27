@@ -1,9 +1,22 @@
 // Public, curated help only. Never add assessment answers, account data or DOM content.
 import { altElevinnhold, fag } from '#lib/innhold.js';
-import { moduler } from '#lib/moduler.js';
+import { moduler, moduleContents } from '#lib/moduler.js';
 import { lessons } from '#lib/ovingene.js';
 
-/** @typedef {{id:string,path:string,title:string,summary:string,topics:string[],tips:string[],teacher?:boolean}} PartnerPage */
+/** @type {Record<string,string>} */
+const kinds = {
+	'frontend-backend': 'backend',
+	chatrom: 'chatroom',
+	fillagring: 'storage',
+	sessions: 'session',
+	chat: 'chat',
+	meldingsdetektiven: 'detective',
+	'redd-chatten': 'repair',
+	nattvakt: 'challenge',
+	'backend-oppsummering': 'quiz'
+};
+
+/** @typedef {{id:string,path:string,title:string,summary:string,topics:string[],tips:string[],kind?:string,contents?:{title:string,description:string,links:{title:string,href:string}[]}[]}} PartnerPage */
 /** @type {PartnerPage[]} */
 export const partnerPages = [
 	{
@@ -75,6 +88,12 @@ export const partnerPages = [
 	})),
 	...moduler.map((module) => ({
 		id: `module-${module.id}`,
+		kind: 'overview',
+		contents: moduleContents(module).map((step) => ({
+			title: step.title,
+			description: step.description,
+			links: step.href ? [{ title: step.title, href: step.href }] : step.lessons
+		})),
 		path: `/moduler/${module.id}/`,
 		title: module.title,
 		summary: module.description,
@@ -88,6 +107,7 @@ export const partnerPages = [
 		const lesson = lessons.find((item) => `oving-${item.number}` === activity.id);
 		return {
 			id: activity.id,
+			kind: lesson ? 'lesson' : (kinds[activity.id] ?? 'overview'),
 			path: activity.href,
 			title: activity.tittel,
 			summary: lesson?.intro ?? activity.beskrivelse,
@@ -100,45 +120,9 @@ export const partnerPages = [
 					]
 		};
 	}),
-	...[
-		[
-			'teacher',
-			'/laerer/',
-			'Lærerpanel',
-			'Velg undervisning, administrer åpne aktiviteter og følg opp elevgruppen.'
-		],
-		[
-			'teacher-activities',
-			'/laerer/aktiviteter/',
-			'Aktiviteter for læreren',
-			'Velg og åpne aktiviteter for elevene. Kontroller innstillingene før du åpner en økt.'
-		],
-		[
-			'teacher-lessons',
-			'/laerer/undervisning/',
-			'Undervisning',
-			'Finn undervisningsopplegg og presentasjonsvisning. Knytt øvingen til målet og en felles samtale.'
-		],
-		[
-			'teacher-students',
-			'/laerer/elever/',
-			'Elevoversikt',
-			'Bruk elevoversikten til oppfølging. Aktivitet og poeng må tolkes sammen med elevenes forklaringer.'
-		]
-	].map(([id, path, title, summary]) => ({
-		id,
-		path,
-		title,
-		summary,
-		topics: ['Lærerverktøy'],
-		tips: [
-			summary,
-			'Labpartneren får bare generell hjelp om siden. Den ser ikke elevlisten, resultater, navn eller kontoinformasjon.'
-		],
-		teacher: true
-	})),
 	{
 		id: 'rescue-pilot',
+		kind: 'pilot',
 		path: '/spill/redd-chatten/pilot/',
 		title: 'Redd chatten: pilot',
 		summary: 'Utforsk og reparer meldingsflyt.',
@@ -156,8 +140,14 @@ export function partnerPageById(id) {
 /** Only recognised routes and subject filters are sent; arbitrary query values are excluded.
  * @param {string} pathname @param {string|null} [subject] */
 export function partnerPageFor(pathname, subject = null) {
+	if (!partnerAllowed(pathname)) return null;
 	const path = pathname.replace(/\/$/, '') + '/';
 	if (path === '/' && fag.some((item) => item.id === subject))
 		return partnerPageById(`subject-${subject}`) ?? partnerPages[0];
 	return partnerPages.find((item) => item.path === path) ?? partnerPages[0];
+}
+
+/** Lærer- og administrasjonssider skal ikke ha KI-veiledning. @param {string} pathname */
+export function partnerAllowed(pathname) {
+	return !/^\/(laerer|admin)(\/|$)/.test(pathname);
 }

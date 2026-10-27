@@ -1,4 +1,3 @@
-import { userRole } from '../learning-access.js';
 import { Router } from 'express';
 import { rateLimit } from 'express-rate-limit';
 import { buildPartnerMessages, partnerError } from './context.js';
@@ -86,7 +85,7 @@ export function labPartnerRouter({ db, config, authenticated, limits }) {
 				'PARTNER_DISABLED',
 				'KI-piloten er ikke åpnet ennå. Du kan fortsatt bruke oppgavens hint og forklaringer.'
 			);
-		const messages = buildPartnerMessages(req.body, { role: userRole(db, req.labUser.id) });
+		const messages = buildPartnerMessages(req.body);
 		const account = req.labUser.id;
 		if (active.has(account))
 			throw partnerError(

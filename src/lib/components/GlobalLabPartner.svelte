@@ -9,6 +9,12 @@
 	import { page } from '$app/state';
 	import { lab, learningContext } from '#lib/lab.js';
 	import { labPreferences } from '#lib/labPreferences.js';
+	import { getContext } from 'svelte';
+	import { partnerChannelKey } from '#lib/partnerChannel.js';
+	import { readPartnerState, PAGE_CONTEXT_VERSION } from '#lib/partnerContext.js';
+	import { moduleContext } from '#lib/moduleNavigation.js';
+	/** @type {ReturnType<import('#lib/partnerChannel.js').createPartnerChannel>} */
+	const channel = getContext(partnerChannelKey);
 	import { partnerPageFor } from '#lib/partnerPages.js';
 	import LabPartnerPanel from '#lib/components/LabPartnerPanel.svelte';
 	const current = $derived(
@@ -17,15 +23,47 @@
 			typeof window !== 'undefined' ? page.url.searchParams.get('fag') : null
 		)
 	);
+
+	const scope = $derived(
+		`${$lab.user?.id ?? 'guest'}:${$learningContext.mode}:${$learningContext.openingId ?? ''}`
+	);
+	const source = $derived(
+		$channel?.pageId === current?.id && $channel?.scope === scope ? $channel : null
+	);
+	const context = $derived.by(() => {
+		try {
+			return { state: readPartnerState(current?.id ?? '', source?.state ?? null), error: '' };
+		} catch {
+			return {
+				state: null,
+				error: 'Sidekonteksten kunne ikke leses. Last siden på nytt, eller bruk Sidehjelp.'
+			};
+		}
+	});
+	const moduleId = $derived(
+		current && typeof window !== 'undefined'
+			? (moduleContext(current.path, page.url.searchParams.get('modul'))?.module.id ?? null)
+			: null
+	);
+	const taskKey = $derived(
+		current?.kind === 'pilot'
+			? (context.state?.values?.step ?? '')
+			: (context.state?.values?.level ??
+					context.state?.values?.caseId ??
+					context.state?.values?.questionId ??
+					'')
+	);
 	/** @type {import('#lib/labPartner.js').PagePartnerSnapshot} */
 	const snapshot = $derived({
-		version: 1,
+		version: PAGE_CONTEXT_VERSION,
 		activityId: 'page-help',
-		pageId: current.id,
-		running: false,
+		pageId: current?.id ?? 'site-help',
+		moduleId,
+		state: context.state,
+		running: source?.running ?? false,
 		events: []
 	});
-	const activity = $derived(aktiviteter.find((item) => item.id === current.id));
+	const activity = $derived(aktiviteter.find((item) => item.id === current?.id));
 	$effect(() =>
 		setAvatarContext(
 			$lab.user?.id ?? '',
@@ -54,20 +92,23 @@
 </script>
 
 <svelte:document oninput={interact} />
-<aside class="global-partner" aria-label="Labpartner">
-	{#key `${$lab.user?.id ?? 'guest'}:${current.id}:${$learningContext.mode}:${$learningContext.openingId ?? ''}`}
-		<LabPartnerPanel
-			{snapshot}
-			accountId={$lab.user?.id ?? null}
-			csrf={$lab.csrfToken ?? ''}
-			avatarId={$lab.summary?.lab.avatarId ?? $labPreferences.partnerAvatar}
-			dialogBreakpoint={1799}
-			reactionMood={$avatarReaction.mood}
-			reactionMessage={$avatarReaction.message}
-			onreset={() => {}}
-		/>
-	{/key}
-</aside>
+{#if current}
+	<aside class="global-partner" aria-label="Labpartner">
+		{#key `${scope}:${current.id}:${moduleId ?? ''}:${taskKey}`}
+			<LabPartnerPanel
+				{snapshot}
+				contextError={context.error}
+				accountId={$lab.user?.id ?? null}
+				csrf={$lab.csrfToken ?? ''}
+				avatarId={$lab.summary?.lab.avatarId ?? $labPreferences.partnerAvatar}
+				dialogBreakpoint={1799}
+				reactionMood={$avatarReaction.mood}
+				reactionMessage={$avatarReaction.message}
+				onreset={() => {}}
+			/>
+		{/key}
+	</aside>
+{/if}
 
 <style>
 	.global-partner {

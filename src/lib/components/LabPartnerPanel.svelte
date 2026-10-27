@@ -7,9 +7,10 @@
 	import Avatar from '#lib/components/Avatar.svelte';
 	import { MISSIONS, casesFor, programCode } from '#lib/reddChatten.js';
 	import { partnerRequest, partnerSnapshotKey } from '#lib/labPartner.js';
-	/** @type {{snapshot:import('#lib/labPartner.js').PartnerSnapshot, accountId:string|null, csrf:string, avatarId?:string, onreset:()=>void, dialogBreakpoint?:number,reactionMood?:import('#lib/avatarFeedback.js').AvatarMood,reactionMessage?:string}} */
+	/** @type {{snapshot:import('#lib/labPartner.js').PartnerSnapshot, accountId:string|null, csrf:string, avatarId?:string, onreset:()=>void, contextError?:string, dialogBreakpoint?:number,reactionMood?:import('#lib/avatarFeedback.js').AvatarMood,reactionMessage?:string}} */
 	let {
 		snapshot,
+		contextError = '',
 		accountId,
 		csrf,
 		avatarId = 'robot',
@@ -24,11 +25,14 @@
 	let mode = $state('guide');
 	let modeChosen = false;
 	let tipIndex = $state(0);
+	const pageState = $derived(snapshot.activityId === 'page-help' ? snapshot.state : null);
+
 	const repair = $derived(snapshot.activityId === 'redd-chatten' ? snapshot : null);
 	const pageHelp = $derived(
 		partnerPageById(snapshot.activityId === 'page-help' ? snapshot.pageId : 'redd-chatten') ??
 			partnerPages[0]
 	);
+	const workContext = $derived(!!pageState && pageHelp.kind !== 'challenge');
 	/** @param {string} value */
 	function chooseMode(value) {
 		modeChosen = true;
@@ -90,7 +94,7 @@
 	const oldTest = $derived(
 		repair?.lastRun != null && repair.lastRun.program.join('|') !== repair.program.join('|')
 	);
-	const canAsk = $derived(enabled === true && !busy && !snapshot.running);
+	const canAsk = $derived(enabled === true && !busy && !snapshot.running && !contextError);
 	const eventLabels = {
 		'code-changed': 'Endret kode',
 		'case-selected': 'Valgte testsituasjon',
@@ -309,7 +313,7 @@
 							aria-label="Forklar dette"
 							onclick={() =>
 								ask(
-									repair
+									repair || workContext
 										? 'Forklar steget eller koden jeg undersøker nå.'
 										: 'Forklar temaet på denne siden med et kort eksempel.'
 								)}>Forklar</button
@@ -318,13 +322,13 @@
 							type="button"
 							class="secondary"
 							disabled={!canAsk}
-							aria-label={repair ? 'Hjelp med forsøket' : 'Vis et eksempel'}
+							aria-label={repair || workContext ? 'Hjelp med forsøket' : 'Vis et eksempel'}
 							onclick={() =>
 								ask(
-									repair
-										? 'Hjelp meg å forstå siste forsøk og hva jeg kan prøve videre.'
+									repair || workContext
+										? 'Hjelp meg å forstå valgene og steget jeg ser på, og hva jeg kan undersøke videre.'
 										: 'Vis et lite eksempel som forklarer et sentralt begrep på denne siden.'
-								)}>{repair ? 'Siste forsøk' : 'Eksempel'}</button
+								)}>{repair ? 'Siste forsøk' : workContext ? 'Arbeidet mitt' : 'Eksempel'}</button
 						>
 					</div>
 					<form
@@ -359,7 +363,7 @@
 								? 'Fullfør eller avbryt prøverunden før du spør.'
 								: notice}
 					</p>
-					{#if error}<p class="error" role="alert">{error}</p>{/if}
+					{#if error || contextError}<p class="error" role="alert">{error || contextError}</p>{/if}
 					{#if newAnswerReady}<button
 							type="button"
 							class="new-answer"
@@ -435,10 +439,25 @@
 							<summary>Dette følger med spørsmålet</summary>
 							<p><strong>{pageHelp.title}</strong>: {pageHelp.summary}</p>
 							<p>
-								Sidens godkjente temaer og inntil to tidligere spørsmål og svar følger med. KI-en
-								ser ikke kodevalg, forsøk, skjema eller andre elevers opplysninger på denne siden.
-								Samtalen tømmes når du bytter side eller profil.
+								Sidens faglige grunnlag, eventuell modul og inntil to tidligere spørsmål og svar fra
+								samme arbeidsstatus følger med når du spør. Samtalen tømmes ved bytte av side,
+								oppdrag eller profil.
+								{#if pageState}
+									{pageHelp.kind === 'challenge'
+										? 'I Nattevakten deles bare arbeidsfasen. KI-en ser ikke oppgavetekst, svar eller vurderingsinnhold.'
+										: 'Valg, synlig steg og avgrenset status fra øvingen følger også med. Tekstfelt beskrives med egenskaper som tom eller utfylt; innholdet du skriver i øvingen deles ikke automatisk.'}
+								{:else}KI-en ser bare sidegrunnlaget, ikke klikk eller arbeidsstatus på denne siden.{/if}
+								Andre elevers opplysninger, passord og profilinformasjon følger ikke med. Spørsmålet du
+								skriver til labpartneren sendes som tekst.
 							</p>
+							{#if pageState}<details>
+									<summary>Se de delte feltene</summary>
+									<pre aria-label="Delt arbeidsstatus">{JSON.stringify(
+											pageState.values,
+											null,
+											2
+										)}</pre>
+								</details>{/if}
 						</details>
 						<p class="fine">
 							KI-svar kan være feil. Undersøk forslaget med sidens forklaringer og tester. Hjelpen
@@ -448,7 +467,7 @@
 				</div>
 			{:else}
 				<p class="availability">KI er ikke tilgjengelig nå. Bruk Sidehjelp for tips om siden.</p>
-				{#if error}<p class="error" role="alert">{error}</p>{/if}
+				{#if error || contextError}<p class="error" role="alert">{error || contextError}</p>{/if}
 				<button
 					type="button"
 					class="secondary"
@@ -545,7 +564,7 @@
 <style>
 	.mode-switch {
 		display: grid;
-		grid-template-columns: repeat(3, minmax(0, 1fr));
+		grid-template-columns: repeat(auto-fit, minmax(min(100%, 5.5rem), 1fr));
 		gap: 6px;
 		margin: 0 0 12px;
 		flex: none;
@@ -656,7 +675,7 @@
 	}
 	.quick-actions {
 		display: grid;
-		grid-template-columns: repeat(3, minmax(0, 1fr));
+		grid-template-columns: repeat(auto-fit, minmax(min(100%, 5.5rem), 1fr));
 		gap: 6px;
 		margin-bottom: 12px;
 	}

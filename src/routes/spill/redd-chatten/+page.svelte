@@ -1,4 +1,12 @@
 <script>
+	import { page } from '$app/state';
+	import { moduleContext } from '#lib/moduleNavigation.js';
+	const partnerModule = $derived(
+		typeof window !== 'undefined'
+			? (moduleContext('/spill/redd-chatten/', page.url.searchParams.get('modul'))?.module.id ??
+					null)
+			: null
+	);
 	import PageLinks from '#lib/components/PageLinks.svelte';
 	import ModuleContext from '#lib/components/ModuleContext.svelte';
 	import { activityLab as account, learningContext, saveAttempt } from '#lib/lab.js';
@@ -177,7 +185,7 @@
 	/** @type {{program:string[], caseId:string|null}|null} */
 	let partnerLastRun = $state(null);
 	const partnerScope = $derived(
-		`${$account.user?.id ?? ''}:${$learningContext.mode}:${$learningContext.openingId}:${mission.id}`
+		`${$account.user?.id ?? ''}:${$learningContext.mode}:${$learningContext.openingId}:${mission.id}:${partnerModule ?? ''}`
 	);
 	$effect(() => {
 		void partnerScope;
@@ -193,6 +201,7 @@
 		version: PARTNER_VERSION,
 		activityId: PARTNER_ACTIVITY,
 		missionId: mission.id,
+		moduleId: partnerModule,
 		program: [...program],
 		caseId: scenario.id,
 		running,

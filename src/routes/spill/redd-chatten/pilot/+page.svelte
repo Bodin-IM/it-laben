@@ -1,4 +1,6 @@
 <script>
+	import PartnerContext from '#lib/components/PartnerContext.svelte';
+
 	import PageLinks from '#lib/components/PageLinks.svelte';
 	import { onMount, tick } from 'svelte';
 	import BackendRouteEditor from '#lib/components/BackendRouteEditor.svelte';
@@ -339,6 +341,20 @@
 		return JSON.stringify(value, null, 2) ?? 'undefined';
 	}
 </script>
+
+<PartnerContext
+	pageId="rescue-pilot"
+	values={{
+		step,
+		program,
+		roomProgram,
+		caseId: traceCases[traceCaseIndex].id,
+		frame: Math.min(frameIndex, walkthrough.frames.length - 1),
+		repairTested: repairRun !== null,
+		roomTested: roomResults !== null,
+		hints: hintCount
+	}}
+/>
 
 <svelte:head>
 	<title>Redd chatten · læringspilot | IT-laben</title>
