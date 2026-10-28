@@ -6,6 +6,7 @@ import { CASES, patchesFor, probesFor } from '#lib/meldingsdetektiven.js';
 import { PILOT_BLOCKS, ROOM_BLOCKS, STEPS } from '#lib/reddChattenPilot.js';
 import { casesFor } from '#lib/reddChatten.js';
 import { backendQuestions } from '#lib/backendQuiz.js';
+import { queryTasks, queryOptions, equipment, databasePhases } from '#lib/databaseCourse.js';
 export const PAGE_CONTEXT_VERSION = 2;
 export const ADAPTER_VERSION = 1;
 export const MAX_CONTEXT_BYTES = 6000;
@@ -123,7 +124,35 @@ export function readPartnerState(pageId, raw) {
 	const v = wrap.values;
 	/** @type {Record<string,Rule>} */
 	let shape;
-	if (page.kind === 'lesson') {
+	if (page.kind === 'database-theory') shape = { section: choice(['dokument', 'typer', 'filter']) };
+	else if (page.kind === 'database-practice') shape = { phase: choice(databasePhases) };
+	else if (page.kind === 'database-query') {
+		const choices = record(
+			Object.fromEntries(
+				Object.entries(queryOptions).map(([key, options]) => [
+					key,
+					choice(options.map((option) => option.value))
+				])
+			)
+		);
+		const ids = array(choice(equipment.map((item) => item._id)), equipment.length);
+		shape = {
+			taskId: choice(queryTasks.map((task) => task.id)),
+			choices,
+			prediction: ids,
+			run: nullable(record({ choices, prediction: ids })),
+			inspectedId: choice(equipment.map((item) => item._id)),
+			action: choice([
+				'opened',
+				'task-selected',
+				'filter-changed',
+				'query-run',
+				'document-inspected',
+				'hint-opened'
+			]),
+			hintCount: integer(0, 2)
+		};
+	} else if (page.kind === 'lesson') {
 		const lesson = lessons.find((item) => `oving-${item.number}` === pageId);
 		if (!lesson) return invalidContext();
 		shape = {

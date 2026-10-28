@@ -30,11 +30,13 @@ Dette er styring av navigasjon og undervisningstempo. **Kommende** er ingen sikk
 
 ## Innholdstyper
 
-| Type         | Bruk                                                                                                                                                   |
-| ------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| Undervisning | Eksisterende opplegg for felles gjennomgang. Elever får lenker til åpent repetisjonsinnhold. Innloggede lærere får i tillegg lenke til læreropplegget. |
-| Øving        | Veiledet arbeid eleven kan gjøre selv. Tilsvarer den eksisterende tekniske kategorien `leksjon`.                                                       |
-| Oppdrag      | Anvendelse og feilsøking. Eksisterende spill vises med merket **Oppdrag · Spill**.                                                                     |
+| Type              | Bruk                                                                                                                                                   |
+| ----------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| Undervisning      | Eksisterende opplegg for felles gjennomgang. Elever får lenker til åpent repetisjonsinnhold. Innloggede lærere får i tillegg lenke til læreropplegget. |
+| Teori og eksempel | Kort faglig innføring før øving, som tabeller og dokumenter i databasemodulen.                                                                         |
+| Øving             | Veiledet arbeid eleven kan gjøre selv. Tilsvarer den eksisterende tekniske kategorien `leksjon`.                                                       |
+| Oppdrag           | Anvendelse og feilsøking. Eksisterende spill vises med merket **Oppdrag · Spill**.                                                                     |
+| På egen maskin    | Praktisk kodeoppgave med oppsett, startprosjekt og testkriterier. Arbeidet vurderes utenfor IT-laben.                                                  |
 
 Modulen er en samling, ikke en ny aktivitetstype som gir XP. «Aktiviteter» er fortsatt et samlebegrep. Betegnelser i oversikten endrer ikke aktivitetenes ID-er, URL-er, tester, forsøk eller belønninger. Gamification bestemmer ikke innholdets pedagogiske rolle.
 
@@ -45,7 +47,7 @@ Modulen er en samling, ikke en ny aktivitetstype som gir XP. «Aktiviteter» er 
 - **Innlogging og tilgang:** gjennomgang, sessions, Øving 8–9, chatrom og de to feilsøkingsspillene. Forutsetter tidligere arbeid med dataflyt og lagring.
 - **Fra kode til drift:** det eksisterende tverrfaglige opplegget «Fra kode til tjeneste», Øving 10 og repetisjonslenker. Dette er en første samling av eksisterende stoff, ikke et komplett driftskurs.
 
-Nattevakten ligger fortsatt tilgjengelig blant enkeltspillene. Moduler må ikke ha alle tre innholdstypene, og elever kan alltid åpne enkeltdeler direkte.
+Nattevakten ligger fortsatt tilgjengelig blant enkeltspillene. Moduler må ikke ha alle innholdstypene, og elever kan alltid åpne enkeltdeler direkte.
 
 ## Modulsiden
 
@@ -62,6 +64,8 @@ Aktive moduler først og synlig lagringsstatus følger prosjektets anvendelse av
 Statusnavnene, rekkefølgen og plasseringen av forslag er lokale designvalg. Endringen organiserer eksisterende innhold og innfører ingen nye læreplanmål eller vurderingsregler. Faktisk bruk med elever og lærere må vise om organiseringen er forståelig.
 
 ## Videre innhold og pedagogisk avgrensning
+
+Databasemodulen har en første ferdig runde med teori, tre søkeøvinger og en praktisk Node.js-oppgave. Modulen starter som kommende og aktiveres fra lærerens undervisningspanel. Videre runder er merket som planlagt. Se [opplegg, læreplan og avgrensninger](databasemodul.md). Denne modulen bruker lokal øvingsstatus uten XP; den eksisterende serverstatusen teller bare aktiviteter i progresjonskatalogen. `teori` og `praksis` er egne stegtyper, og moduler kan hente offentlig øvingsinnhold fra `altElevinnhold` uten å opprette poengaktiviteter.
 
 Ved nye eller vesentlig endrede Vg2-moduler brukes [læreplangrunnlaget](laereplangrunnlag.md) og [aktivitetsmalen](aktivitetsmal.md). Oppgi relevante programfag og kompetansemål i modulens veiledning eller arbeidsplan, og beskriv hvordan undervisning, øving og ny anvendelse bidrar til dem. De korte elevmålene på modulsiden skal konkretisere opplegget; de skal ikke fremstilles som ordrette kompetansemål. Gjør avgrensninger og videre arbeid synlig.
 

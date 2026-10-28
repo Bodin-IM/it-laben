@@ -1,4 +1,5 @@
 import { lessons } from '#lib/ovingene.js';
+import { databaseActivities } from '#lib/databaseCourse.js';
 
 // Aktiviteter med serverlagret fremgang. Fri repetisjon legges til i repetisjonsaktiviteter.
 export const fag = [
@@ -218,4 +219,4 @@ export const repetisjonsaktiviteter = [
 	}
 ];
 
-export const altElevinnhold = [...aktiviteter, ...repetisjonsaktiviteter];
+export const altElevinnhold = [...aktiviteter, ...repetisjonsaktiviteter, ...databaseActivities];

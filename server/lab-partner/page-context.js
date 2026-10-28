@@ -33,6 +33,17 @@ import {
 } from '../../src/lib/reddChattenPilot.js';
 import { programCode, walkthroughCase } from '../../src/lib/reddChatten.js';
 import { backendQuestions } from '../../src/lib/backendQuiz.js';
+import {
+	databaseTheory,
+	equipment,
+	queryTasks,
+	queryCode,
+	inspectQuery,
+	sameQuery,
+	practicalRequirements,
+	practiceChecks,
+	starterCode
+} from '../../src/lib/databaseCourse.js';
 
 const selected = (items, index) => items[index] ?? invalidContext();
 const codeText = (lines) =>
@@ -96,6 +107,26 @@ export function pageTask(page, moduleId) {
 		tips: page.tips,
 		contents: page.contents,
 		module,
+		...(page.kind?.startsWith('database-')
+			? {
+					learningGoals: databaseTheory.goals,
+					framework: databaseTheory.principles,
+					...(page.kind === 'database-query'
+						? {
+								dataset: equipment,
+								modelLimit:
+									'Avgrenset øvingsmodell for likhet, implisitt AND og $lte. Ikke en kjørende MongoDB.'
+							}
+						: {}),
+					...(page.kind === 'database-practice'
+						? {
+								requirements: practicalRequirements,
+								limit:
+									'Du ser IKKE elevens lokale kode, tilkoblingsstreng, database eller terminal. Ikke anta at oppsettet fungerer. Be om en kort beskrivelse uten hemmeligheter.'
+							}
+						: {})
+				}
+			: {}),
 		...(lesson
 			? {
 					learningQuestion: lesson.question,
@@ -115,7 +146,32 @@ export function pageWork(page, raw) {
 			'Avgrenset status rapportert av nettleseren, ikke dokumentasjon på forståelse. Kode og forklaringer hentes fra IT-labens undervisningsmodeller. Tekstfelt er bare kategorier; eksempler er ikke elevens faktiske tekst.',
 		selection: v
 	};
-	if (page.kind === 'lesson') {
+	if (page.kind === 'database-theory') {
+		work.topic = v.section;
+	} else if (page.kind === 'database-practice') {
+		work.phase = v.phase;
+		if (v.phase === 'kode') work.referenceCode = starterCode;
+		if (v.phase === 'forklar') work.visibleChecks = practiceChecks;
+		work.limit =
+			'Status angir bare hvilket oppgavesteg som er åpnet. Ingen lokal kode, terminalutskrift eller bekreftelse på gjennomføring er delt.';
+	} else if (page.kind === 'database-query') {
+		const task = queryTasks.find((item) => item.id === v.taskId);
+		work.task = { title: task.title, brief: task.brief, goal: task.goal };
+		work.code = queryCode(v.choices);
+		work.openHints = task.hints.slice(0, v.hintCount);
+		if (v.run) {
+			const rows = inspectQuery(v.run.choices);
+			work.oldRun = !sameQuery(v.choices, v.run.choices);
+			work.lastRun = {
+				code: queryCode(v.run.choices),
+				prediction: v.run.prediction,
+				result: rows.filter((row) => row.matches).map((row) => row.document._id)
+			};
+			work.inspectedDocument = rows.find((row) => row.document._id === v.inspectedId);
+		}
+		work.limit =
+			'Resultatet er rekonstruert fra kjente filtervalg. En bestått søkeøving er ikke en vurdering av forståelse. Gi hjelp som kan brukes i neste forsøk; ikke finn opp støtte for andre operatorer i simulatoren.';
+	} else if (page.kind === 'lesson') {
 		const lesson = lessons.find((item) => `oving-${item.number}` === page.id);
 		const frame =
 			v.step < 0

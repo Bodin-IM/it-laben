@@ -36,7 +36,7 @@
 		<p class="contents">{moduleSummary(module)}</p>
 		<span class="open">Åpne modul <span aria-hidden="true">→</span></span>
 	</div>
-	{#if $lab.user && $lab.summary}
+	{#if $lab.user && $lab.summary && progress.total > 0}
 		<p class="progress">
 			{progress.completed} av {progress.total} elevaktiviteter gjennomgått eller bestått
 		</p>

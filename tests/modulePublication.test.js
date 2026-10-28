@@ -14,6 +14,21 @@ import { modulePublications } from '../server/modules.js';
 import { moduler } from '../src/lib/moduler.js';
 import { publicationFor, orderedModules, visibleModules } from '../src/lib/modulePublication.js';
 
+// Migration 010 preserves these existing modules; later additions start upcoming.
+const migratedModuleIds = new Set([
+	'meldingens-reise',
+	'data-og-lagring',
+	'innlogging-og-tilgang',
+	'fra-kode-til-drift'
+]);
+const initialPublications = () =>
+	moduler.map((module) => ({
+		id: module.id,
+		status: migratedModuleIds.has(module.id) ? 'active' : 'upcoming',
+		revision: 0,
+		updatedAt: null
+	}));
+
 async function fixture(t, { env = {}, prepare } = {}) {
 	const directory = mkdtempSync(join(tmpdir(), 'itlab-module-publication-'));
 	const filename = join(directory, 'test.sqlite');
@@ -112,15 +127,7 @@ test('modulpublisering: offentlig lesing røper bare status, bruker aldri elevø
 	assert.equal(result.headers.get('set-cookie'), null);
 	assert.equal(result.headers.get('vary'), null);
 	assert.deepEqual(f.db.prepare('SELECT * FROM sessions').all(), sessions);
-	assert.deepEqual(
-		result.modules,
-		moduler.map((module) => ({
-			id: module.id,
-			status: 'active',
-			revision: 0,
-			updatedAt: null
-		}))
-	);
+	assert.deepEqual(result.modules, initialPublications());
 	for (const row of result.modules)
 		assert.deepEqual(Object.keys(row).sort(), ['id', 'revision', 'status', 'updatedAt']);
 	assert.ok(!JSON.stringify(result.modules).includes(student.id));
@@ -277,7 +284,10 @@ test('modulpublisering: oppgradering bevarer elever, og status overlever omstart
 	assert.equal(student.class_code, '2ITA');
 	assert.equal(student.leaderboard_visible, 0);
 	assert.equal(student.nickname, 'Eksisterende profil');
-	assert.ok(modulePublications(f.db).modules.every((module) => module.status === 'active'));
+	assert.deepEqual(
+		modulePublications(f.db).modules.map((module) => ({ ...module })),
+		initialPublications()
+	);
 	const teacher = await f.staff();
 	await teacher.set('data-og-lagring', 'completed', 0);
 	const expected = modulePublications(f.db);

@@ -1,8 +1,8 @@
-import { aktiviteter, fag } from '#lib/innhold.js';
+import { aktiviteter, altElevinnhold, fag } from '#lib/innhold.js';
 import { teachingPlans } from '#lib/teaching.js';
 
-/** @typedef {{kind:'undervisning'|'oving'|'oppdrag',id:string}} ModuleStep */
-/** @typedef {{id:string,title:string,description:string,subject:string,goals:string[],prerequisites:string,steps:ModuleStep[],resources:{label:string,href:string}[]}} Module */
+/** @typedef {{kind:'undervisning'|'teori'|'oving'|'oppdrag'|'praksis',id:string}} ModuleStep */
+/** @typedef {{id:string,title:string,description:string,subject:string,goals:string[],prerequisites:string,steps:ModuleStep[],resources:{label:string,href:string}[],continuation?:{title:string,description:string}[]}} Module */
 
 // Modules group existing content. Activity IDs, assessment rules and XP stay in their own catalogues.
 /** @type {Module[]} */
@@ -68,6 +68,42 @@ export const moduler = [
 		resources: [{ label: 'Repeter validering', href: '/oving-7/' }]
 	},
 	{
+		id: 'databaser',
+		title: 'Databaser – fra tabeller til dokumenter',
+		description:
+			'Lær MongoDB gjennom Utstyrsboden. Undersøk data i IT-laben, og bruk det du lærer i egen kode. Første runde er klar.',
+		subject: 'utvikling',
+		goals: [
+			'Sammenligne en enkel tabellmodell med dokumenter i MongoDB.',
+			'Lage filtre og forklare hvorfor dokumenter blir med i resultatet.',
+			'Hente data fra en ekte database med Node.js.'
+		],
+		prerequisites:
+			'Du har møtt MySQL på Vg1 og kjenner objekter og lister i JavaScript. Kodeoppgaven bruker Node.js og await; et startprosjekt og tilkoblingshjelp følger med.',
+		steps: [
+			{ kind: 'teori', id: 'database-grunnlag' },
+			{ kind: 'oving', id: 'database-finn' },
+			{ kind: 'praksis', id: 'database-praksis' }
+		],
+		resources: [{ label: 'Repeter JSON og lagring', href: '/fillagring/' }],
+		continuation: [
+			{
+				title: 'Runde 2 · Endre data kontrollert',
+				description:
+					'Øv på innsetting, oppdatering, sletting og validering. Bygg deretter disse funksjonene i eget register.'
+			},
+			{
+				title: 'Runde 3 · Fra database til nettside',
+				description: 'Undersøk dataflyten, og koble MongoDB til Express og Svelte.'
+			},
+			{
+				title: 'Runde 4 · Nye behov og egen datamodell',
+				description:
+					'Sammenlign innebygde dokumenter og referanser. Utvid med utlån, og prøv en ny oppgave med mindre støtte.'
+			}
+		]
+	},
+	{
 		id: 'fra-kode-til-drift',
 		title: 'Fra kode til drift',
 		description:
@@ -92,8 +128,10 @@ export const moduler = [
 
 export const moduleTypes = {
 	undervisning: { label: 'Undervisning', plural: 'gjennomganger', singular: 'gjennomgang' },
+	teori: { label: 'Teori og eksempel', plural: 'teorideler', singular: 'teoridel' },
 	oving: { label: 'Øving', plural: 'øvinger', singular: 'øving' },
-	oppdrag: { label: 'Oppdrag', plural: 'oppdrag', singular: 'oppdrag' }
+	oppdrag: { label: 'Oppdrag', plural: 'oppdrag', singular: 'oppdrag' },
+	praksis: { label: 'På egen maskin', plural: 'kodeoppgaver', singular: 'kodeoppgave' }
 };
 
 /** @param {Module} module */
@@ -116,7 +154,7 @@ export function moduleContents(module) {
 				minutes: plan.minutes
 			};
 		}
-		const activity = aktiviteter.find((item) => item.id === step.id);
+		const activity = altElevinnhold.find((item) => item.id === step.id);
 		if (!activity) throw new Error(`Ukjent modulaktivitet: ${step.id}`);
 		return {
 			...step,
@@ -147,7 +185,14 @@ export function moduleSummary(module) {
  */
 export function moduleProgress(module, progress = []) {
 	const ids = [
-		...new Set(module.steps.filter((step) => step.kind !== 'undervisning').map((step) => step.id))
+		...new Set(
+			module.steps
+				.filter(
+					(step) =>
+						step.kind !== 'undervisning' && aktiviteter.some((activity) => activity.id === step.id)
+				)
+				.map((step) => step.id)
+		)
 	];
 	const done = (/** @type {string} */ id) =>
 		progress.some((item) => item.id === id && ['reviewed', 'passed'].includes(item.status));
@@ -181,18 +226,22 @@ export function validateModules(modules = moduler) {
 				throw new Error(`Ugyldig modulsteg: ${key}`);
 			steps.add(key);
 			if (step.kind !== 'undervisning') {
-				const activity = aktiviteter.find((item) => item.id === step.id);
+				const activity = altElevinnhold.find((item) => item.id === step.id);
 				if (
 					!activity ||
 					activity.fag !== module.subject ||
-					(step.kind === 'oving') !== (activity.format === 'leksjon')
+					(['oving', 'teori'].includes(step.kind)
+						? activity.format !== 'leksjon'
+						: step.kind === 'praksis'
+							? activity.format !== 'aktivitet'
+							: activity.format !== 'spill')
 				)
 					throw new Error(`Feil innholdstype eller fag: ${key}`);
 			}
 		}
 		moduleContents(module);
 		for (const resource of module.resources)
-			if (!aktiviteter.some((item) => item.href === resource.href))
+			if (!altElevinnhold.some((item) => item.href === resource.href))
 				throw new Error(`Ukjent modulressurs: ${resource.href}`);
 	}
 }

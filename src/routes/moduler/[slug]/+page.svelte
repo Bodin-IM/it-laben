@@ -240,13 +240,27 @@
 												>Åpne læreropplegget <span aria-hidden="true">→</span></a
 											>{/if}
 									{:else}<a class="step-link" href={moduleLink(step.href, module.id)}
-											>{step.kind === 'oving' ? 'Åpne øvingen' : 'Åpne oppdraget'}
+											>{step.kind === 'oving'
+												? 'Åpne øvingen'
+												: step.kind === 'teori'
+													? 'Start med teorien'
+													: step.kind === 'praksis'
+														? 'Se kodeoppgaven'
+														: 'Åpne oppdraget'}
 											<span aria-hidden="true">→</span></a
 										>{/if}
 								</div>
 							</li>
 						{/each}
 					</ol>
+					{#if module.continuation?.length}
+						<section class="panel continuation" aria-labelledby="continuation-title">
+							<h2 id="continuation-title">Videre i modulen</h2>
+							<p class="muted">Planlagt videre arbeid. Disse rundene er ikke publisert ennå.</p>
+							{#each module.continuation as part}<h3>{part.title}</h3>
+								<p>{part.description}</p>{/each}
+						</section>
+					{/if}
 				</section>
 				<aside aria-label="Oversikt og ressurser">
 					<nav class="outline panel" aria-label="Hopp til en del i modulen">
@@ -259,7 +273,7 @@
 								</li>{/each}
 						</ol>
 					</nav>
-					{#if !teacher && $lab.user && $lab.summary}<section class="panel">
+					{#if !teacher && $lab.user && $lab.summary && progress.total > 0}<section class="panel">
 							<h2>Ditt arbeid</h2>
 							<p>
 								{progress.completed} av {progress.total} elevaktiviteter er gjennomgått eller bestått.
@@ -299,6 +313,9 @@
 </div>
 
 <style>
+	.continuation {
+		margin-top: 24px;
+	}
 	.module-page {
 		font-family: var(--font-ui);
 		color: var(--color-text);
