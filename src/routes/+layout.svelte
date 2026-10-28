@@ -19,6 +19,7 @@
 	import GlobalLabPartner from '#lib/components/GlobalLabPartner.svelte';
 	import '#lib/theme.css';
 	import { initializeConnection } from '#lib/connection.js';
+	import { initializeModulePublication } from '#lib/modulePublicationStore.js';
 	import ConnectionBanner from '#lib/components/ConnectionBanner.svelte';
 	import LabHeader from '#lib/components/LabHeader.svelte';
 
@@ -55,6 +56,7 @@
 
 	onMount(initializeTheme);
 	onMount(initializeConnection);
+	onMount(initializeModulePublication);
 	onMount(initializeLab);
 	onMount(initializeExperience);
 </script>

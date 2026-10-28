@@ -2,22 +2,35 @@
 	import { moduleSummary, moduleProgress } from '#lib/moduler.js';
 	import { fag } from '#lib/innhold.js';
 	import { lab } from '#lib/lab.js';
-	/** @type {{module:import('#lib/moduler.js').Module}} */
-	let { module } = $props();
+	/** @type {{module:import('#lib/moduler.js').Module,publication?:import('#lib/modulePublication.js').ModulePublication,headingLevel?:3|4}} */
+	let { module, publication, headingLevel = 3 } = $props();
 	const progress = $derived(moduleProgress(module, $lab.summary?.progress));
 	const subject = $derived(fag.find((item) => item.id === module.subject));
 </script>
 
-<a class="module-card" href={`/moduler/${module.id}/`}>
+<a
+	class="module-card"
+	class:completed={publication?.status === 'completed'}
+	href={`/moduler/${module.id}/`}
+>
 	<div class="top">
 		<span class="module-icon" aria-hidden="true"
 			><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"
 				><rect x="4" y="4" width="16" height="16" rx="3" /><path d="M9 4v16m3-11h5m-5 4h5" /></svg
 			></span
 		>
-		<span class="badge">Modul <span aria-hidden="true">·</span> {subject?.navn}</span>
+		<span class="badge"
+			>{publication?.status === 'active'
+				? 'Aktiv modul'
+				: publication?.status === 'completed'
+					? 'Tidligere modul'
+					: 'Modul'} <span aria-hidden="true">·</span>
+			{subject?.navn}</span
+		>
 	</div>
-	<h3>{module.title}</h3>
+	<svelte:element this={headingLevel === 4 ? 'h4' : 'h3'} class="title"
+		>{module.title}</svelte:element
+	>
 	<p class="description">{module.description}</p>
 	<div class="bottom">
 		<p class="contents">{moduleSummary(module)}</p>
@@ -49,6 +62,13 @@
 		border-color: var(--color-info);
 		box-shadow: 0 4px 16px var(--color-shadow);
 	}
+	.module-card.completed {
+		background: var(--color-surface);
+		border-color: var(--color-border-strong);
+	}
+	.module-card.completed:hover {
+		border-color: var(--color-info);
+	}
 	.module-card:focus-visible {
 		outline: 3px solid var(--color-focus);
 		outline-offset: 4px;
@@ -76,7 +96,7 @@
 		font-size: var(--font-meta);
 		font-weight: 650;
 	}
-	h3 {
+	.title {
 		margin: 0 0 8px;
 		font-size: 1.375rem;
 		line-height: 1.3;

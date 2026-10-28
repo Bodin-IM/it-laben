@@ -1,15 +1,55 @@
 <script>
+	import { page } from '$app/state';
+	import { tick } from 'svelte';
 	import { moduleLink } from '#lib/moduleNavigation.js';
 	import { fag } from '#lib/innhold.js';
 	import { moduleContents, moduleTypes, moduleProgress, moduleSummary } from '#lib/moduler.js';
 	import { lab } from '#lib/lab.js';
 	import { hasTeacherRole } from '#lib/learning.js';
+	import { connection, secureHref } from '#lib/connection.js';
+	import { publicationFor } from '#lib/modulePublication.js';
+	import { modulePublication, refreshModulePublication } from '#lib/modulePublicationStore.js';
+	import ModuleAdministration from '#lib/components/ModuleAdministration.svelte';
+	import ModuleTeachingSuggestions from '#lib/components/ModuleTeachingSuggestions.svelte';
 	/** @type {{data:{module:import('#lib/moduler.js').Module}}} */
 	let { data } = $props();
 	const module = $derived(data.module);
 	const subject = $derived(fag.find((item) => item.id === module.subject));
 	const contents = $derived(moduleContents(module));
 	const progress = $derived(moduleProgress(module, $lab.summary?.progress));
+	const teacher = $derived(hasTeacherRole($lab.user?.role));
+	const publication = $derived(publicationFor(module.id, $modulePublication.modules));
+	const canView = $derived(
+		teacher ||
+			($modulePublication.ready && !$connection.publicHttp && publication.status !== 'upcoming')
+	);
+	const studentOverview = $derived(`/?visning=elev&fag=${module.subject}`);
+	let publicationError = $state('');
+	let restoredAnchor = '';
+	$effect(() => {
+		const hash = page.url.hash,
+			key = `${module.id}:${hash}`;
+		if (!canView || restoredAnchor === key || !/^#(?:forlop|del-\d+)$/.test(hash)) return;
+		restoredAnchor = key;
+		// The initial publication request may finish after the browser tried to follow this anchor.
+		void tick().then(() => {
+			if (!canView || restoredAnchor !== key) return;
+			const focused = document.activeElement;
+			if (focused && focused !== document.body && focused.id !== 'hovedinnhold') return;
+			const target = document.getElementById(hash.slice(1));
+			target?.focus({ preventScroll: true });
+			target?.scrollIntoView({ block: 'start' });
+		});
+	});
+	async function refreshPublication() {
+		publicationError = '';
+		try {
+			await refreshModulePublication();
+		} catch (problem) {
+			publicationError =
+				problem instanceof Error ? problem.message : 'Kunne ikke hente modulstatusen.';
+		}
+	}
 	function status(/** @type {string} */ id) {
 		const value = $lab.summary?.progress.find((item) => item.id === id)?.status;
 		return value === 'passed'
@@ -30,129 +70,231 @@
 >
 
 <div class="module-page">
-	<a class="skip" href="#forlop">Hopp til modulens innhold</a>
+	{#if canView}<a class="skip" href="#forlop">Hopp til modulens innhold</a>{/if}
 	<main id="hovedinnhold" tabindex="-1">
 		<nav class="breadcrumbs" aria-label="Brødsmuler">
-			<a href="/">Fagoversikt</a><span aria-hidden="true">/</span><a
-				href={`/?fag=${module.subject}`}>{subject?.navn}</a
-			><span aria-hidden="true">/</span><span aria-current="page">{module.title}</span>
+			{#if teacher}<a href="/laerer/undervisning/">Undervisning</a>
+			{:else}<a href="/?visning=elev">Fagoversikt</a><span aria-hidden="true">/</span><a
+					href={studentOverview}>{subject?.navn}</a
+				>{/if}<span aria-hidden="true">/</span><span aria-current="page">{module.title}</span>
 		</nav>
 		<section class="hero" aria-labelledby="module-title">
 			<div class="hero-copy">
 				<p class="eyebrow">Modul · {subject?.navn}</p>
 				<h1 id="module-title">{module.title}</h1>
-				<p class="intro">{module.description}</p>
-				<p class="summary">{moduleSummary(module)}</p>
+				{#if $modulePublication.ready && !$connection.publicHttp}
+					<p class="publication-status" class:active={publication.status === 'active'}>
+						{publication.status === 'active'
+							? 'Aktiv modul'
+							: publication.status === 'completed'
+								? 'Ferdig i undervisningen · åpen for repetisjon'
+								: 'Kommende modul · ikke åpnet for elever'}
+					</p>
+				{/if}
+				{#if canView}<p class="intro">{module.description}</p>
+					<p class="summary">{moduleSummary(module)}</p>{/if}
 			</div>
-			<a class="primary" href="#forlop">Se modulens innhold <span aria-hidden="true">↓</span></a>
+			{#if canView}<a class="primary" href="#forlop"
+					>Se modulens innhold <span aria-hidden="true">↓</span></a
+				>{/if}
 		</section>
-		<details class="module-guide">
-			<summary>Mål og forkunnskaper</summary>
-			<div class="guide-content">
-				<div>
-					<h2>Målet med modulen</h2>
-					<ul>
-						{#each module.goals as goal}<li>{goal}</li>{/each}
-					</ul>
+		{#if teacher}
+			<section class="panel teacher-controls" aria-labelledby="module-management-title">
+				<h2 id="module-management-title">Styr synligheten for elevene</h2>
+				<p class="muted">
+					Aktive moduler vises først. Ferdige moduler blir liggende åpne for repetisjon.
+				</p>
+				{#if $modulePublication.error || publicationError}
+					<p class="load-error" role="alert">{$modulePublication.error || publicationError}</p>
+					<button
+						class="retry"
+						type="button"
+						disabled={$modulePublication.loading}
+						onclick={refreshPublication}>Hent modulstatus på nytt</button
+					>
+				{:else if !$modulePublication.ready}<p role="status">
+						Henter lagret modulstatus … Du kan se gjennom innholdet imens.
+					</p>{/if}
+				<ModuleAdministration moduleId={module.id} title={module.title} />
+			</section>
+		{:else if $connection.publicHttp}
+			<section class="panel availability" aria-labelledby="availability-title">
+				<h2 id="availability-title">Åpne modulen på HTTPS</h2>
+				<p>Den sikre adressen viser modulene som læreren har åpnet for klassen.</p>
+				<a
+					class="primary"
+					href={secureHref(
+						$connection.httpsOrigin,
+						page.url.pathname + page.url.search + page.url.hash
+					)}>Åpne modulen på HTTPS →</a
+				>
+				<p><a href="/kom-i-gang/">Hjelp til tilkobling →</a></p>
+			</section>
+		{:else if !$modulePublication.ready}
+			<section class="panel availability" aria-labelledby="availability-title">
+				{#if $modulePublication.error || publicationError}
+					<h2 id="availability-title">Kunne ikke hente modulstatusen</h2>
+					<p class="load-error" role="alert">{$modulePublication.error || publicationError}</p>
+					<p>Prøv igjen for å se om modulen er åpen.</p>
+					<button
+						class="retry"
+						type="button"
+						disabled={$modulePublication.loading}
+						onclick={refreshPublication}
+						>{$modulePublication.loading ? 'Henter status …' : 'Prøv igjen'}</button
+					>
+				{:else}<h2 id="availability-title">Henter modulstatus …</h2>
+					<p role="status">Sjekker om modulen er åpen for klassen.</p>{/if}
+				<p><a href={studentOverview}>← Til moduloversikten</a></p>
+			</section>
+		{:else if publication.status === 'upcoming'}
+			<section class="panel availability" aria-labelledby="availability-title">
+				<h2 id="availability-title">Modulen er ikke åpnet ennå</h2>
+				<p>Læreren gjør modulen tilgjengelig når dere skal begynne.</p>
+				{#if $modulePublication.error || publicationError}
+					<p class="load-error" role="alert">{$modulePublication.error || publicationError}</p>
+					<p>Viser sist hentede modulstatus. Prøv igjen for å se om modulen er åpnet.</p>
+					<button
+						class="retry"
+						type="button"
+						disabled={$modulePublication.loading}
+						onclick={refreshPublication}
+						>{$modulePublication.loading ? 'Henter status …' : 'Prøv igjen'}</button
+					>
+				{/if}
+				<p>
+					<a class="primary" href={studentOverview}>Til de åpne modulene →</a>
+				</p>
+			</section>
+		{/if}
+		{#if canView}
+			{#if !teacher && ($modulePublication.error || publicationError)}
+				<div class="panel availability">
+					<p class="load-error" role="alert">{$modulePublication.error || publicationError}</p>
+					<p>Viser sist hentede modulstatus.</p>
+					<button
+						class="retry"
+						type="button"
+						disabled={$modulePublication.loading}
+						onclick={refreshPublication}>Oppdater status</button
+					>
 				</div>
-				<div>
-					<h2>Før du begynner</h2>
-					<p>{module.prerequisites}</p>
+			{/if}
+			<details class="module-guide">
+				<summary>Mål og forkunnskaper</summary>
+				<div class="guide-content">
+					<div>
+						<h2>Målet med modulen</h2>
+						<ul>
+							{#each module.goals as goal}<li>{goal}</li>{/each}
+						</ul>
+					</div>
+					<div>
+						<h2>Før du begynner</h2>
+						<p>{module.prerequisites}</p>
+					</div>
 				</div>
-			</div>
-		</details>
-		<div class="layout">
-			<section id="forlop" aria-labelledby="forlop-title" tabindex="-1">
-				<div class="section-heading">
-					<h2 id="forlop-title">Dette skal vi jobbe med</h2>
-					<p class="muted">Følg rekkefølgen, eller åpne delen du trenger.</p>
-				</div>
-				<ol class="steps">
-					{#each contents as step, index (`${step.kind}:${step.id}`)}
-						<li id={`del-${index + 1}`} tabindex="-1" class:teaching={step.kind === 'undervisning'}>
-							<span class="step-number" aria-hidden="true"
-								>{String(index + 1).padStart(2, '0')}</span
+			</details>
+			{#if teacher}<ModuleTeachingSuggestions {module} />{/if}
+			<div class="layout">
+				<section id="forlop" aria-labelledby="forlop-title" tabindex="-1">
+					<div class="section-heading">
+						<h2 id="forlop-title">Dette skal vi jobbe med</h2>
+						<p class="muted">Følg rekkefølgen, eller åpne delen du trenger.</p>
+					</div>
+					<ol class="steps">
+						{#each contents as step, index (`${step.kind}:${step.id}`)}
+							<li
+								id={`del-${index + 1}`}
+								tabindex="-1"
+								class:teaching={step.kind === 'undervisning'}
 							>
-							<div class="step-content">
-								<div class="step-top">
-									<span class="step-type"
-										>{moduleTypes[step.kind].label}{step.format === 'spill' ? ' · Spill' : ''}</span
-									>{#if step.kind !== 'undervisning' && status(step.id)}<span class="status"
-											>{status(step.id)}</span
+								<span class="step-number" aria-hidden="true"
+									>{String(index + 1).padStart(2, '0')}</span
+								>
+								<div class="step-content">
+									<div class="step-top">
+										<span class="step-type"
+											>{moduleTypes[step.kind].label}{step.format === 'spill'
+												? ' · Spill'
+												: ''}</span
+										>{#if step.kind !== 'undervisning' && status(step.id)}<span class="status"
+												>{status(step.id)}</span
+											>{/if}
+									</div>
+									<h3>{step.title}</h3>
+									<p class="step-description">{step.description}</p>
+									{#if step.kind === 'undervisning'}
+										<p class="muted">Felles gjennomgang · ca. {step.minutes} min</p>
+										<details class="lesson-links">
+											<summary>Innhold til gjennomgang og repetisjon</summary>
+											<ul>
+												{#each step.lessons as lesson}<li>
+														<a href={moduleLink(lesson.href, module.id)}
+															>{lesson.title} <span aria-hidden="true">→</span></a
+														>
+													</li>{/each}
+											</ul>
+										</details>
+										{#if teacher}<a class="step-link" href={step.teacherHref}
+												>Åpne læreropplegget <span aria-hidden="true">→</span></a
+											>{/if}
+									{:else}<a class="step-link" href={moduleLink(step.href, module.id)}
+											>{step.kind === 'oving' ? 'Åpne øvingen' : 'Åpne oppdraget'}
+											<span aria-hidden="true">→</span></a
 										>{/if}
 								</div>
-								<h3>{step.title}</h3>
-								<p class="step-description">{step.description}</p>
-								{#if step.kind === 'undervisning'}
-									<p class="muted">Felles gjennomgang · ca. {step.minutes} min</p>
-									<details class="lesson-links">
-										<summary>Innhold til gjennomgang og repetisjon</summary>
-										<ul>
-											{#each step.lessons as lesson}<li>
-													<a href={moduleLink(lesson.href, module.id)}
-														>{lesson.title} <span aria-hidden="true">→</span></a
-													>
-												</li>{/each}
-										</ul>
-									</details>
-									{#if hasTeacherRole($lab.user?.role)}<a class="step-link" href={step.teacherHref}
-											>Åpne læreropplegget <span aria-hidden="true">→</span></a
-										>{/if}
-								{:else}<a class="step-link" href={moduleLink(step.href, module.id)}
-										>{step.kind === 'oving' ? 'Åpne øvingen' : 'Åpne oppdraget'}
-										<span aria-hidden="true">→</span></a
-									>{/if}
-							</div>
-						</li>
-					{/each}
-				</ol>
-			</section>
-			<aside aria-label="Oversikt og ressurser">
-				<nav class="outline panel" aria-label="Hopp til en del i modulen">
-					<h2>I denne modulen</h2>
-					<ol>
-						{#each contents as step, index}<li>
-								<a href={`#del-${index + 1}`}
-									><span aria-hidden="true">{index + 1}</span>{step.title}</a
-								>
-							</li>{/each}
+							</li>
+						{/each}
 					</ol>
-				</nav>
-				{#if $lab.user && $lab.summary}<section class="panel">
-						<h2>Ditt arbeid</h2>
-						<p>
-							{progress.completed} av {progress.total} elevaktiviteter er gjennomgått eller bestått.
-						</p>
-						<progress
-							value={progress.completed}
-							max={progress.total}
-							aria-label="Elevaktiviteter gjennomgått eller bestått"
-						></progress>
-						<p class="muted">
-							Status hentes fra øvingene og oppdragene. Felles gjennomgang telles ikke med.
-						</p>
-					</section>{/if}
-				{#if module.resources.length}<section class="panel">
-						<h2>Ressurser og repetisjon</h2>
-						<ul>
-							{#each module.resources as resource}<li>
-									<a href={moduleLink(resource.href, module.id)}
-										>{resource.label} <span aria-hidden="true">→</span></a
+				</section>
+				<aside aria-label="Oversikt og ressurser">
+					<nav class="outline panel" aria-label="Hopp til en del i modulen">
+						<h2>I denne modulen</h2>
+						<ol>
+							{#each contents as step, index}<li>
+									<a href={`#del-${index + 1}`}
+										><span aria-hidden="true">{index + 1}</span>{step.title}</a
 									>
 								</li>{/each}
-						</ul>
-					</section>{/if}
-				<a class="back-link" href={`/?fag=${module.subject}#utforsk`}
-					>Alle øvinger og spill i {subject?.navn.toLocaleLowerCase('nb-NO')}
-					<span aria-hidden="true">→</span></a
-				>
-			</aside>
-		</div>
+						</ol>
+					</nav>
+					{#if !teacher && $lab.user && $lab.summary}<section class="panel">
+							<h2>Ditt arbeid</h2>
+							<p>
+								{progress.completed} av {progress.total} elevaktiviteter er gjennomgått eller bestått.
+							</p>
+							<progress
+								value={progress.completed}
+								max={progress.total}
+								aria-label="Elevaktiviteter gjennomgått eller bestått"
+							></progress>
+							<p class="muted">
+								Status hentes fra øvingene og oppdragene. Felles gjennomgang telles ikke med.
+							</p>
+						</section>{/if}
+					{#if module.resources.length}<section class="panel">
+							<h2>Ressurser og repetisjon</h2>
+							<ul>
+								{#each module.resources as resource}<li>
+										<a href={moduleLink(resource.href, module.id)}
+											>{resource.label} <span aria-hidden="true">→</span></a
+										>
+									</li>{/each}
+							</ul>
+						</section>{/if}
+					<a class="back-link" href={`${studentOverview}#utforsk`}
+						>Alle øvinger og spill i {subject?.navn.toLocaleLowerCase('nb-NO')}
+						<span aria-hidden="true">→</span></a
+					>
+				</aside>
+			</div>
+		{/if}
 	</main>
 	<footer>
-		<a href={`/?fag=${module.subject}`}>← Tilbake til {subject?.navn}</a><span
-			>IT-laben · Se. Prøv. Forstå.</span
-		>
+		<a href={teacher ? '/laerer/undervisning/' : studentOverview}
+			>← Tilbake til {teacher ? 'undervisningen' : subject?.navn}</a
+		><span>IT-laben · Se. Prøv. Forstå.</span>
 	</footer>
 </div>
 
@@ -174,6 +316,7 @@
 		text-underline-offset: 4px;
 	}
 	a:focus-visible,
+	button:focus-visible,
 	summary:focus-visible,
 	:is(section, li)[tabindex]:focus-visible {
 		outline: 3px solid var(--color-focus);
@@ -245,6 +388,49 @@
 		color: var(--color-text-muted);
 		font-size: var(--font-meta);
 		margin: 0;
+	}
+	.publication-status {
+		display: inline-block;
+		margin: 0 0 14px;
+		padding: 4px 10px;
+		border: 1px solid var(--color-border-strong);
+		border-radius: 6px;
+		background: var(--color-surface);
+		color: var(--color-text);
+		font-weight: 650;
+		font-size: var(--font-meta);
+	}
+	.publication-status.active {
+		border-color: var(--color-info-border);
+		color: var(--color-info);
+	}
+	.teacher-controls,
+	.availability {
+		margin-top: 20px;
+	}
+	.availability {
+		margin-bottom: 30px;
+	}
+	.load-error {
+		padding: 12px 16px;
+		border: 1px solid var(--color-danger-border);
+		border-radius: 7px;
+		color: var(--color-danger);
+		background: var(--color-danger-soft);
+	}
+	.retry {
+		min-height: 44px;
+		padding: 10px 16px;
+		border: 1px solid var(--color-border-strong);
+		border-radius: 7px;
+		color: var(--color-text);
+		background: var(--color-surface);
+		font: 650 var(--font-small)/1.4 var(--font-ui);
+		cursor: pointer;
+	}
+	.retry:disabled {
+		cursor: default;
+		opacity: 0.65;
 	}
 	.primary {
 		display: inline-flex;

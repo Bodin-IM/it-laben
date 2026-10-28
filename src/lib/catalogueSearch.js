@@ -1,5 +1,6 @@
 import { altElevinnhold, innholdsformat } from '#lib/innhold.js';
 import { moduler, moduleContents } from '#lib/moduler.js';
+import { visibleModules } from '#lib/modulePublication.js';
 
 /** @param {string} text */
 export function normalizeSearch(text) {
@@ -12,16 +13,22 @@ export function normalizeSearch(text) {
 }
 
 /** Search only public catalogue content. Activity type never hides matching modules.
- * @param {{subject?:string, format?:string, query?:string}} [filters]
+ * Pass confirmed publications (or [] while loading) for the student-facing catalogue.
+ * @param {{subject?:string, format?:string, query?:string, publications?:import('#lib/modulePublication.js').ModulePublication[]}} [filters]
  */
-export function searchCatalogue({ subject = 'alle', format = 'alle', query = '' } = {}) {
+export function searchCatalogue({
+	subject = 'alle',
+	format = 'alle',
+	query = '',
+	publications
+} = {}) {
 	const words = normalizeSearch(query).trim().split(/\s+/).filter(Boolean);
 	const matches = (/** @type {string[]} */ text) => {
 		const normalized = normalizeSearch(text.join(' '));
 		return words.every((word) => normalized.includes(word));
 	};
 	return {
-		modules: moduler.filter(
+		modules: (publications === undefined ? moduler : visibleModules(moduler, publications)).filter(
 			(module) =>
 				(subject === 'alle' || module.subject === subject) &&
 				matches([

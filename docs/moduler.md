@@ -1,6 +1,32 @@
 # Fag, moduler og enkeltinnhold
 
-Utprøving på `dev`: Når brukeren velger et fag, vises moduler først. Kortene har en dempet blåfarge i begge temaer og tekstmerket **Modul**. Under modulene ligger fortsatt alle fagets øvinger, oppdrag og spill, også innhold som er lenket fra en modul. Søket øverst finner både moduler og enkeltaktiviteter. Typefilteret under aktivitetene gjelder bare denne listen. Fagvalget gjelder begge oversiktene. Se [designvurderingen og utkastet](designvurdering-og-utkast.md) for utformingen som nå prøves på `dev`.
+Moduler samler undervisning, øvinger og oppdrag. I elevens fagoversikt vises aktive moduler først og ferdige moduler etterpå. Kommende moduler er skjult fra elevoversikten til læreren aktiverer dem. Kortene har tekstmerket **Modul** og en tydelig status. Under modulene ligger fortsatt alle fagets enkeltøvinger, oppdrag og spill, også innhold som er lenket fra en modul. Søket finner både synlige moduler og enkeltaktiviteter. Typefilteret gjelder enkeltaktivitetene, mens fagvalget gjelder begge oversiktene. [Designvurderingen og utkastet](designvurdering-og-utkast.md) dokumenterer den første utformingen.
+
+## Modulstatus og lærerens styring
+
+Lærere og administratorer kan endre status fra **Lærerpanel → Undervisning** og inne på hver modul. Statusen er felles for **2ITA og 2ITB**; klassene har ikke separate modulplaner.
+
+| Status   | Hva eleven ser                                                                                        | Lærerens bruk                                                 |
+| -------- | ----------------------------------------------------------------------------------------------------- | ------------------------------------------------------------- |
+| Kommende | Modulen er skjult fra elevoversikten. En direktelenke til modulsiden viser at den ikke er åpnet ennå. | Forbered innholdet før klassen skal bruke det.                |
+| Aktiv    | Modulen vises først i oversikten.                                                                     | Vis hva klassen arbeider med nå.                              |
+| Ferdig   | Modulen er synlig etter de aktive og kan åpnes igjen.                                                 | Behold forløpet tilgjengelig for repetisjon og videre arbeid. |
+
+Læreren velger status og lagrer med **Aktiver modulen**, **Marker som ferdig** eller **Skjul som kommende**. Flere moduler kan være aktive samtidig. Å aktivere én modul avslutter ingen andre; læreren velger selv når en modul er ferdig eller skal bli kommende igjen. Innenfor hver statusgruppe beholdes modulenes innholdsrekkefølge.
+
+**Ferdig** betyr at undervisningsforløpet er avsluttet av læreren. Det endrer ikke elevenes gjennomføring, vurdering, forsøk, lagrede løsninger eller XP. En elev kan fortsatt arbeide i en ferdig modul og bruke aktivitetenes vanlige progresjonsregler.
+
+### Lagring og tilgang
+
+Status lagres i backendens SQLite-database og følger med ved omstart og vanlig databasebackup. Migrasjon `010_module_publication.sql` setter de fire eksisterende modulene til aktive for å bevare tidligere tilgjengelighet. Nye katalogmoduler uten lagret status starter som kommende.
+
+Hver endring bruker en revisjon. Hvis en annen lærer eller fane har endret modulen siden statusen ble hentet, avvises en motstridende lagring med `MODULE_CONFLICT`. Hent siste lagrede status og velg endringen på nytt. Identisk gjentakelse av den siste endringen etter et tapt svar oppretter ikke en ekstra endring. Grensesnittet bekrefter lagring først etter svar fra serveren.
+
+`GET /api/modules` gir bare modul-ID, status, revisjon og oppdateringstid, uten innlogging eller elevdata. Lesekallet bruker ingen sesjonscookie. Endringer via `POST /api/teacher/modules/:moduleId` krever lærer-/administratorrolle, riktig konto og de vanlige Origin- og CSRF-kontrollene. API-et krever HTTPS i produksjon.
+
+På skolens åpne HTTP-adresse er enkeltleksjoner, øvinger og spill fortsatt tilgjengelige. Den administrerte moduloversikten og modulsidene peker videre til HTTPS, der statusen kan hentes. Dersom status ikke kan hentes første gang, vises en feilmelding med mulighet til å prøve igjen; systemet antar ikke at alle moduler er aktive. En tidligere hentet status kan vises med melding om at den ikke er oppdatert.
+
+Dette er styring av navigasjon og undervisningstempo. **Kommende** er ingen sikkerhetssperre rundt de statiske leksjonene: enkeltaktivitetene kan fortsatt åpnes direkte. Private lærernotater og administrasjon har egne kontroller på serveren.
 
 ## Innholdstyper
 
@@ -25,7 +51,15 @@ Nattevakten ligger fortsatt tilgjengelig blant enkeltspillene. Moduler må ikke 
 
 Hver modul har mål, forkunnskaper, anbefalt rekkefølge og eventuelle repetisjonsressurser. Mål og forkunnskaper åpnes rett under introduksjonen. På mobil vises arbeidsrekkefølgen før ekstraressursene. Lenker til modulens aktiviteter tar med `modul` i adressen, slik at eleven får en tilbakevei også etter oppfrisking. Tilhørighet vises bare for sider som faktisk er del av eller lenket fra modulen. Gjennomgang og elevarbeid kan bruke samme side i ulike sammenhenger. Innholdet til gjennomgangen kan åpnes uten lærerrolle; private notater hentes fortsatt bare gjennom det beskyttede lærer-API-et.
 
-Modulens status viser antall unike elevaktiviteter som API-et allerede har merket **Gjennomgått** eller **Bestått**. Undervisning, åpning av modulsiden og bare påbegynt arbeid teller ikke som fullføring. Modulen tildeler ingen nye poeng eller merker, og status kalles ikke dokumentert forståelse. Uten innlogging eller tilgjengelig progresjon vises ingen personlig status.
+Under **Ditt arbeid** ser eleven antall unike elevaktiviteter som API-et allerede har merket **Gjennomgått** eller **Bestått**. Dette er elevens personlige progresjon, atskilt fra lærerens modulstatus. Undervisning, åpning av modulsiden og bare påbegynt arbeid teller ikke som fullføring. Modulen tildeler ingen nye poeng eller merker, og progresjonen kalles ikke dokumentert forståelse. Uten innlogging eller tilgjengelig progresjon vises ingen personlig status.
+
+Læreren får statuskontroll og relevante forslag til gjennomgang inne i modulen. Forslagene leder til eksisterende læreropplegg og storskjermvisning. Hele biblioteket er fortsatt tilgjengelig fra mindre lenker under modulene på undervisningssiden. Se [undervisningsveiledningen](undervisning.md).
+
+## Begrunnelse for organiseringen
+
+Aktive moduler først og synlig lagringsstatus følger prosjektets anvendelse av U1 og U6 i [designgrunnlaget](webdesign-og-brukeropplevelse.md): gjør dagens arbeid lett å finne, vis hva en handling førte til, og plasser støtte i en forståelig sammenheng. Å beholde ferdige moduler tilgjengelige støtter muligheten til å gå tilbake og styre eget arbeid i [det pedagogiske grunnlagets del 3](pedagogisk-grunnlag.md#3-progresjon-støtte-og-elevens-styring). Skillet mellom undervisningsstatus og elevprogresjon viderefører [del 7](pedagogisk-grunnlag.md#7-vurdering-og-lærerens-rolle): gjennomføring dokumenterer ikke alene forståelse.
+
+Statusnavnene, rekkefølgen og plasseringen av forslag er lokale designvalg. Endringen organiserer eksisterende innhold og innfører ingen nye læreplanmål eller vurderingsregler. Faktisk bruk med elever og lærere må vise om organiseringen er forståelig.
 
 ## Videre innhold og pedagogisk avgrensning
 
@@ -37,6 +71,8 @@ Registrer moduler i `src/lib/moduler.js`. Bruk stabile aktivitets-ID-er fra `inn
 
 Ved utprøving: sjekk om elever finner riktig modul, forstår forskjellen på gjennomgang og elevarbeid, og finner igjen et spill uten å gå gjennom modulen først. Vurder pedagogisk effekt separat fra teknisk navigasjon.
 
-## Teknisk kontroll av første versjon
+## Teknisk kontroll av første modulversjon – historikk
 
 `npm run check`, `npm run build` og 127 tester bestod. Nettleserprøven kontrollerte fagvalg, modulrekkefølge, søk og typefilter, gamle `#spill`-/`#ovingene`-lenker, alle modulrutene, oppfrisking, tilbakeknapp og lenker til enkeltsider. Elev-/lærervisning og progresjon ble prøvd med simulerte API-svar. Ingen progresjonsskriving ble utløst ved modulnavigasjon. Lyst/mørkt tema, tastatur og bredder på 1440, 390 og 320 piksler er kontrollert. Pedagogisk utprøving med elever gjenstår.
+
+Denne kontrolloggen gjelder den første modulversjonen, før læreradministrert modulstatus. Den dokumenterer ikke nettleserprøving av de nye statuskontrollene eller den endrede lærerinngangen. Slik nettleserprøving er ikke gjennomført i denne arbeidsøkten og gjenstår, sammen med utprøving med elever og lærere.
