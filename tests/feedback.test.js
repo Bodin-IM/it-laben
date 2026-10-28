@@ -80,6 +80,11 @@ test('feedback: kjent side og fag/modul/steg beholdes, vilkårlige parametre og 
 		feedbackPage('/oving-5/?modul=data-og-lagring&key=hemmelig').href,
 		'/oving-5/?modul=backend'
 	);
+	assert.deepEqual(feedbackPage('/oving-10/?modul=fra-kode-til-drift&token=hemmelig'), {
+		path: '/oving-10/',
+		href: '/oving-10/?modul=backend',
+		title: 'Øving 10: Fra kode til kjørende tjeneste · Backend'
+	});
 	for (const value of [
 		'https://example.com/backend/',
 		'//example.com/backend/',

@@ -46,17 +46,19 @@ test('tutorial: konteksten skiller gamle resultater og avviser råtekst og falsk
 	}
 });
 
-test('backend: samler alle eksisterende utviklingsoppgaver uten å flytte drift eller databaser', () => {
+test('backend: samler utviklingsoppgavene og Øving 10, mens databaser har egen modul', () => {
 	const backend = moduler.find((item) => item.id === 'backend');
 	const ids = backend.steps.map((step) => step.id);
 	for (const activity of altElevinnhold.filter(
 		(item) => item.fag === 'utvikling' && !item.id.startsWith('database-')
 	))
 		assert.ok(ids.includes(activity.id), activity.id);
-	assert.ok(!ids.includes('oving-10'));
+	assert.ok(ids.includes('oving-10'));
+	assert.equal(altElevinnhold.find((item) => item.id === 'oving-10').fag, 'drift');
+	assert.ok(!ids.some((id) => id.startsWith('database-')));
 	assert.deepEqual(
 		moduler.map((item) => item.id),
-		['backend', 'databaser', 'fra-kode-til-drift']
+		['backend', 'databaser']
 	);
 });
 

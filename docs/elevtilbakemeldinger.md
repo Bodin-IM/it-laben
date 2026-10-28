@@ -57,7 +57,7 @@ Svelte MCP er ikke tilgjengelig i arbeidsmiljøet. Offisiell Svelte-dokumentasjo
 
 Utført kontroll med midlertidig database og oppdiktede meldinger:
 
-- 205 automatiske tester bestått. `npm run check` uten feil eller advarsler og produksjonsbygg bestått.
+- 206 automatiske tester bestått. `npm run check` uten feil eller advarsler og produksjonsbygg bestått.
 - Produksjonsbygget er prøvd fra elevknapp til database og admininnboks: kjent figur, side ved åpning, utkast etter navigasjon, ugyldig/tom melding, bekreftet sending og ny innsending.
 - Feilet lagring og tapt serversvar: teksten beholdes, og gjentakelsen gir én rad. Kontobytte fjerner privat utkast; samme konto beholder det. Utilgjengelig API og blokkert lokal lagring er prøvd.
 - Elev, gjest og lærer avvises fra innboksen. Administrator kan filtrere, markere behandlet/ny og følge sidelenken. Tilbakekalt tilgang fjerner en allerede hentet liste ved neste forespørsel. Innsendt HTML vises som tekst.

@@ -1,7 +1,7 @@
 import { aktiviteter, altElevinnhold, fag } from '#lib/innhold.js';
 import { teachingPlans } from '#lib/teaching.js';
 
-/** @typedef {{kind:'undervisning'|'teori'|'oving'|'oppdrag'|'praksis'|'repetisjon',id:string,section?:string}} ModuleStep */
+/** @typedef {{kind:'undervisning'|'teori'|'oving'|'oppdrag'|'praksis'|'repetisjon',id:string,section?:string,subject?:string}} ModuleStep */
 /** @typedef {{id:string,title:string,description:string,subject:string,goals:string[],prerequisites:string,steps:ModuleStep[],resources:{label:string,href:string}[],continuation?:{title:string,description:string}[]}} Module */
 
 // Modules group existing content. Activity IDs, assessment rules and XP stay in their own catalogues.
@@ -102,36 +102,16 @@ const originalModules = [
 					'Sammenlign innebygde dokumenter og referanser. Utvid med utlån, og prøv en ny oppgave med mindre støtte.'
 			}
 		]
-	},
-	{
-		id: 'fra-kode-til-drift',
-		title: 'Fra kode til drift',
-		description:
-			'Fra kildekode til en kjørende tjeneste. Undersøk publisering, omstart, localhost og backup.',
-		subject: 'drift',
-		goals: [
-			'Skille mellom kildekode, frontendbygg og kjørende serverprosess.',
-			'Forklare hva som skjer ved publisering, omstart og gjenoppretting.'
-		],
-		prerequisites:
-			'Du kjenner frontend, backend, fillagring og innlogging fra utvikling. Gjennomgangen henter eksempler derfra.',
-		steps: [
-			{ kind: 'undervisning', id: 'fra-kode-til-tjeneste' },
-			{ kind: 'oving', id: 'oving-10' }
-		],
-		resources: [
-			{ label: 'Repeter minne og fillagring', href: '/fillagring/' },
-			{ label: 'Repeter sessions', href: '/sessions/' }
-		]
 	}
 ];
 
-// The old URLs remain valid; the three former modules are now sections of Backend.
+// The old URLs remain valid; the former modules are now sections of Backend.
 /** @type {Readonly<Record<string,{id:string,start:number}>>} */
 export const moduleAliases = Object.freeze({
 	'meldingens-reise': { id: 'backend', start: 1 },
 	'data-og-lagring': { id: 'backend', start: 4 },
-	'innlogging-og-tilgang': { id: 'backend', start: 9 }
+	'innlogging-og-tilgang': { id: 'backend', start: 9 },
+	'fra-kode-til-drift': { id: 'backend', start: 16 }
 });
 
 /** @type {Module[]} */
@@ -140,12 +120,14 @@ export const moduler = [
 		id: 'backend',
 		title: 'Backend',
 		description:
-			'Fra første forespørsel til en chat med lagring og innlogging. Følg delene, prøv koden og bruk det du lærer i oppdragene.',
+			'Fra første forespørsel til en chat med lagring, innlogging og publisering. Følg delene, prøv koden og bruk det du lærer i oppdragene.',
 		subject: 'utvikling',
 		goals: [
 			'Forklare dataflyten mellom frontend og backend med GET og POST.',
 			'Undersøke validering, CRUD og lagring i JSON-fil.',
-			'Forklare og teste innlogging, avsender og tilgang på serveren.'
+			'Forklare og teste innlogging, avsender og tilgang på serveren.',
+			'Skille mellom kildekode, frontendbygg og kjørende serverprosess.',
+			'Forklare hva som skjer ved publisering, omstart og gjenoppretting.'
 		],
 		prerequisites:
 			'Du kjenner variabler, objekter, lister og funksjoner i JavaScript. Start med Meldingens reise hvis frontend og backend er nytt for deg.',
@@ -156,6 +138,12 @@ export const moduler = [
 					...(index === 0 ? { section: module.title } : {})
 				}))
 			),
+			{
+				kind: 'oving',
+				id: 'oving-10',
+				subject: 'drift',
+				section: 'Publisering og drift'
+			},
 			{
 				kind: 'repetisjon',
 				id: 'backend-oppsummering',
@@ -265,14 +253,18 @@ export function validateModules(modules = moduler) {
 		const steps = new Set();
 		for (const step of module.steps) {
 			const key = `${step.kind}:${step.id}`;
-			if (!(step.kind in moduleTypes) || steps.has(key))
+			if (
+				!(step.kind in moduleTypes) ||
+				steps.has(key) ||
+				(step.subject !== undefined && !fag.some((item) => item.id === step.subject))
+			)
 				throw new Error(`Ugyldig modulsteg: ${key}`);
 			steps.add(key);
 			if (step.kind !== 'undervisning') {
 				const activity = altElevinnhold.find((item) => item.id === step.id);
 				if (
 					!activity ||
-					activity.fag !== module.subject ||
+					activity.fag !== (step.subject ?? module.subject) ||
 					(['oving', 'teori'].includes(step.kind)
 						? activity.format !== 'leksjon'
 						: ['praksis', 'repetisjon'].includes(step.kind)

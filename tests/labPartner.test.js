@@ -342,6 +342,7 @@ test('labpartner: alle offentlige sider har avgrenset sidegrunnlag, uten lokale 
 	assert.equal(partnerPageFor('/', 'untrusted-secret').id, 'home');
 	assert.equal(partnerPageFor('/', 'drift').id, 'subject-drift');
 	assert.equal(partnerPageFor('/unknown/private/path').id, 'site-help');
+	assert.ok(!partnerPages.some((page) => page.id === 'module-fra-kode-til-drift'));
 	assert.equal(new Set(partnerPages.map((page) => page.id)).size, partnerPages.length);
 	for (const page of partnerPages) {
 		const body = ask({
@@ -391,6 +392,7 @@ test('labpartner: sidehjelp avviser ukjent side, lærersider og overstor histori
 	const before = f.calls.length;
 	for (const [patch, status] of [
 		[{ pageId: 'unknown' }, 400],
+		[{ pageId: 'module-fra-kode-til-drift' }, 400],
 		[{ pageId: 'teacher-students' }, 400],
 		[{ version: 99 }, 409],
 		[{ running: true }, 409]
@@ -429,9 +431,18 @@ test('labpartner: sidehjelp avviser ukjent side, lærersider og overstor histori
 		}
 	};
 	assert.equal((await student.request('/lab-partner/ask', current)).status, 200);
+	assert.equal(
+		(
+			await student.request('/lab-partner/ask', {
+				...current,
+				snapshot: { ...current.snapshot, moduleId: 'fra-kode-til-drift' }
+			})
+		).status,
+		200
+	);
 	const count = f.calls.length;
 	for (const patch of [
-		{ moduleId: 'fra-kode-til-drift' },
+		{ moduleId: 'databaser' },
 		{ state: { version: 99, values: {} } },
 		{
 			state: { version: 1, values: { ...current.snapshot.state.values, answers: 'PRIVATE_ANSWER' } }
@@ -521,8 +532,15 @@ test('labpartner: versjonert arbeidsstatus dekker øvinger og holder skrevet tek
 			);
 	}
 	const page = partnerPageById('oving-10');
-	assert.ok(pageTask(page, 'fra-kode-til-drift').module.sequence.length);
-	assert.throws(() => pageTask(page, 'innlogging-og-tilgang'));
+	for (const id of ['backend', 'fra-kode-til-drift', 'innlogging-og-tilgang']) {
+		const task = pageTask(page, id);
+		assert.equal(task.module.title, 'Backend');
+		assert.ok(
+			task.module.sequence.some((step) => step.links.some((link) => link.href === '/oving-10/'))
+		);
+		assert.ok(!task.module.sequence.some((step) => step.title === 'Fra kode til tjeneste'));
+	}
+	assert.throws(() => pageTask(page, 'databaser'));
 	assert.throws(() => readPartnerState('oving-5', { version: 99, values: {} }));
 	assert.throws(() => readPartnerState('oving-5', { version: 1, values: { x: 'a'.repeat(6001) } }));
 });

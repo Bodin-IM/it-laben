@@ -8,10 +8,7 @@ test('felles søk viser hele katalogen og beholder bare valgt fag', () => {
 	assert.equal(searchCatalogue().modules.length, moduler.length);
 	assert.equal(searchCatalogue().activities.length, altElevinnhold.length);
 	const drift = searchCatalogue({ subject: 'drift' });
-	assert.deepEqual(
-		drift.modules.map((x) => x.id),
-		['fra-kode-til-drift']
-	);
+	assert.deepEqual(drift.modules, []);
 	assert.deepEqual(
 		drift.activities.map((x) => x.id),
 		['oving-10']
@@ -20,6 +17,10 @@ test('felles søk viser hele katalogen og beholder bare valgt fag', () => {
 test('søk finner moduler via innholdet og aktiviteter via norske eller normaliserte ord', () => {
 	assert.ok(searchCatalogue({ query: 'SESSION' }).modules.some((x) => x.id === 'backend'));
 	assert.deepEqual(searchCatalogue({ query: 'øving 10' }), searchCatalogue({ query: 'oving 10' }));
+	assert.deepEqual(
+		searchCatalogue({ query: 'øving 10' }).modules.map((module) => module.id),
+		['backend']
+	);
 	assert.equal(
 		searchCatalogue({ query: '  multiple  choice  ' }).activities[0].id,
 		'backend-oppsummering'
@@ -45,8 +46,7 @@ test('søk krever alle ordene og håndterer tomme treff uten å endre katalogen'
 test('elevenes søk skjuler kommende moduler og viser aktive før tidligere, også ved fagvalg', () => {
 	const statusById = {
 		backend: 'completed',
-		databaser: 'upcoming',
-		'fra-kode-til-drift': 'active'
+		databaser: 'active'
 	};
 	const publications = moduler.map((module) => ({
 		id: module.id,
@@ -57,13 +57,15 @@ test('elevenes søk skjuler kommende moduler og viser aktive før tidligere, ogs
 	const result = searchCatalogue({ publications });
 	assert.deepEqual(
 		result.modules.map((module) => module.id),
-		['fra-kode-til-drift', 'backend']
+		['databaser', 'backend']
 	);
 	assert.deepEqual(
 		searchCatalogue({ publications, subject: 'utvikling' }).modules.map((module) => module.id),
-		['backend']
+		['databaser', 'backend']
 	);
-	assert.deepEqual(searchCatalogue({ publications, query: 'MongoDB' }).modules, []);
+	const upcoming = publications.map((record) => ({ ...record, status: 'upcoming' }));
+	assert.deepEqual(searchCatalogue({ publications: upcoming, query: 'MongoDB' }).modules, []);
+	assert.deepEqual(searchCatalogue({ publications: upcoming, query: 'øving 10' }).modules, []);
 	assert.deepEqual(result.activities, searchCatalogue().activities);
 	assert.deepEqual(searchCatalogue({ publications: [] }).modules, []);
 });

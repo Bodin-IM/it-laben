@@ -132,54 +132,6 @@ export const teachingGuides = [
 			'Bruk fem minutter på en felles forklaring av en trygg lagringsrekkefølge.',
 			'Elevene prøver flere situasjoner i Øving 5 og 6 på egen hånd.'
 		]
-	},
-	{
-		planId: 'fra-kode-til-tjeneste',
-		preparation: [
-			'Kontroller at elevene kjenner POST, session og fillagring.',
-			'For drift av selve IT-laben brukes prosjektets docs/serverdrift.md; det er separat fra elevenes øvingsapp.'
-		],
-		steps: [
-			{
-				activityId: 'oving-7',
-				minutes: 10,
-				focus: 'Avvis ugyldige data før lagring.',
-				questions: [
-					'Hva er forskjellen på ugyldig JSON og et ugyldig tekstfelt?',
-					'Hva kan klienten vite etter en nettverksfeil?'
-				],
-				notes: [
-					'Vis én valideringsfeil og én nettverksfeil.',
-					'Be klassen skille mellom HTTP-svar og manglende svar.'
-				]
-			},
-			{
-				activityId: 'oving-9',
-				minutes: 10,
-				focus: 'Kontroller hvem som får endre data.',
-				questions: ['Hvilken kontroll må serveren utføre hver gang?'],
-				notes: ['Bruk et eksempel der brukeren er innlogget, men ikke eier meldingen.']
-			},
-			{
-				activityId: 'oving-10',
-				minutes: 20,
-				focus: 'Fra kildekode til en tjeneste som starter igjen.',
-				questions: [
-					'Hva bygger vi, og hva publiserer vi?',
-					'Hva gjør systemd?',
-					'Hva beskytter en databasebackup mot?'
-				],
-				notes: [
-					'Skill mellom frontendbygget og API-prosessen.',
-					'IT-laben bruker SvelteKit med build/; andre Svelte/Vite-prosjekter kan bruke dist/.',
-					'Knytt hvert driftssteg til en konkret feil som eleven kan oppdage og rette.'
-				]
-			}
-		],
-		wrapUp: [
-			'La elevene foreslå en kontroll etter publisering.',
-			'Nattevakten kan brukes etter forberedelsene, med de vanlige forsøksreglene eller en læreråpning.'
-		]
 	}
 ];
 
