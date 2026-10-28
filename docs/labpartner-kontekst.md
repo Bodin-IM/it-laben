@@ -33,6 +33,8 @@ En kanal er lokal for én layout, også ved serverrendering. En komponent som fo
 
 Fagsjekker har ingen kontekstkobling. Labpartneren får eventuelt grunnlaget for den omkringliggende øvingen, ikke fagsjekkens spørsmål eller svar.
 
+**Databaser:** Teoridelen deler valgt forklaring. Søkeøvingen deler oppdrag, kjente filtervalg, prediksjon, forrige kjøringsvalg og undersøkt dokument; backend rekonstruerer resultatet og merker gamle kjøringer. Praksisdelen deler bare valgt oppgavesteg, uten lokale filer, terminal eller tilkoblingsopplysninger. Se [databasemodulen](databasemodul.md#labpartner).
+
 ## Deling og grenser
 
 Panelets **Dette følger med spørsmålet** beskriver delingen og lar eleven åpne de faktiske statusfeltene. Øvingens fritekst klassifiseres lokalt, for eksempel som tom, bare mellomrom, utfylt eller for lang. Registreringsøvingens passord deles bare som lengdekategori; brukernavn som gyldig/ugyldig. Selvskrevet tekst i **spørsmålet til labpartneren** sendes uendret.

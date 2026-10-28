@@ -13,7 +13,10 @@ const kinds = {
 	meldingsdetektiven: 'detective',
 	'redd-chatten': 'repair',
 	nattvakt: 'challenge',
-	'backend-oppsummering': 'quiz'
+	'backend-oppsummering': 'quiz',
+	'database-grunnlag': 'database-theory',
+	'database-finn': 'database-query',
+	'database-praksis': 'database-practice'
 };
 
 /** @typedef {{id:string,path:string,title:string,summary:string,topics:string[],tips:string[],kind?:string,contents?:{title:string,description:string,links:{title:string,href:string}[]}[]}} PartnerPage */

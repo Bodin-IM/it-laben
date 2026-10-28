@@ -45,9 +45,15 @@ test('søk krever alle ordene og håndterer tomme treff uten å endre katalogen'
 });
 
 test('elevenes søk skjuler kommende moduler og viser aktive før tidligere, også ved fagvalg', () => {
-	const publications = moduler.map((module, index) => ({
+	const statusById = {
+		'meldingens-reise': 'completed',
+		'data-og-lagring': 'active',
+		'innlogging-og-tilgang': 'upcoming',
+		'fra-kode-til-drift': 'active'
+	};
+	const publications = moduler.map((module) => ({
 		id: module.id,
-		status: ['completed', 'active', 'upcoming', 'active'][index],
+		status: statusById[module.id] ?? 'upcoming',
 		revision: 1,
 		updatedAt: 1000
 	}));
