@@ -1,11 +1,18 @@
-import { moduler, moduleContents } from '#lib/moduler.js';
+import { moduler, moduleContents, moduleAliases } from '#lib/moduler.js';
 
 /** A URL may identify a module only when that module actually links to the current page.
  * @param {string} pathname
  * @param {string|null|undefined} moduleId
  */
 export function moduleContext(pathname, moduleId) {
-	const module = moduler.find((item) => item.id === moduleId);
+	// A direct activity link belongs to its single owning module; explicit invalid IDs never fall back.
+	const owners =
+		moduleId == null
+			? moduler.filter((item) => moduleContents(item).some((step) => step.href === pathname))
+			: [];
+	const canonical =
+		moduleAliases[moduleId ?? '']?.id ?? moduleId ?? (owners.length === 1 ? owners[0].id : null);
+	const module = moduler.find((item) => item.id === canonical);
 	if (!module) return null;
 	const steps = moduleContents(module);
 	let index = steps.findIndex((step) => step.href === pathname);
@@ -26,6 +33,7 @@ export function moduleLink(href, moduleId) {
 	const url = new URL(href, 'https://it-laben.invalid');
 	if (url.origin !== 'https://it-laben.invalid') return href;
 	url.searchParams.delete('modul');
-	if (moduleContext(url.pathname, moduleId)) url.searchParams.set('modul', moduleId ?? '');
+	const context = moduleContext(url.pathname, moduleId);
+	if (context) url.searchParams.set('modul', context.module.id);
 	return url.pathname + url.search + url.hash;
 }

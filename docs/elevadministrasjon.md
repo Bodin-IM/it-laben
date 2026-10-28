@@ -42,7 +42,7 @@ Bruk aldri produksjonsdatabasen som testdatabase for `dev`. Migrasjonene 006–0
 
 Eleven oppretter profil uten å skrive et navn. Serveren tildeler for eksempel **Rolig Oter 4816** eller **Modig Falk 7352**. Dette er visningsnavnet; innlogging bruker fremdeles den hemmelige nøkkelfilen.
 
-Den tidligere generatoren kombinerte ett adjektiv, seks dyr og 900 tall: bare **5 400 kombinasjoner**, uten unikhetskontroll. Den nye har 32 adjektiver, 32 dyr og 9 000 tall: **9 216 000 kombinasjoner**. `crypto.randomInt` velger navnet; databasen kontrollerer unikhet. Kollisjoner trekkes på nytt i samme skrivetransaksjon, og generatoren har en begrenset feilgrense fremfor en uendelig løkke.
+Den tidligere generatoren kombinerte ett adjektiv, seks dyr og 900 tall: bare **5 400 kombinasjoner**, uten unikhetskontroll. Den nye har 100 adjektiver, 100 dyr og 9 000 tall: **90 000 000 kombinasjoner**. `crypto.randomInt` velger navnet; databasen kontrollerer unikhet. Kollisjoner trekkes på nytt i samme skrivetransaksjon, og generatoren har en begrenset feilgrense fremfor en uendelig løkke.
 
 - Navnefeltet er fjernet ved registrering og fra profilinnstillingene.
 - Registrerings-API-et ignorerer eventuelle navn sendt av eldre nettleserfaner.

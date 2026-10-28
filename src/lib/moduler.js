@@ -1,12 +1,12 @@
 import { aktiviteter, altElevinnhold, fag } from '#lib/innhold.js';
 import { teachingPlans } from '#lib/teaching.js';
 
-/** @typedef {{kind:'undervisning'|'teori'|'oving'|'oppdrag'|'praksis',id:string}} ModuleStep */
+/** @typedef {{kind:'undervisning'|'teori'|'oving'|'oppdrag'|'praksis'|'repetisjon',id:string,section?:string}} ModuleStep */
 /** @typedef {{id:string,title:string,description:string,subject:string,goals:string[],prerequisites:string,steps:ModuleStep[],resources:{label:string,href:string}[],continuation?:{title:string,description:string}[]}} Module */
 
 // Modules group existing content. Activity IDs, assessment rules and XP stay in their own catalogues.
 /** @type {Module[]} */
-export const moduler = [
+const originalModules = [
 	{
 		id: 'meldingens-reise',
 		title: 'Meldingens reise',
@@ -126,11 +126,54 @@ export const moduler = [
 	}
 ];
 
+// The old URLs remain valid; the three former modules are now sections of Backend.
+/** @type {Readonly<Record<string,{id:string,start:number}>>} */
+export const moduleAliases = Object.freeze({
+	'meldingens-reise': { id: 'backend', start: 1 },
+	'data-og-lagring': { id: 'backend', start: 4 },
+	'innlogging-og-tilgang': { id: 'backend', start: 9 }
+});
+
+/** @type {Module[]} */
+export const moduler = [
+	{
+		id: 'backend',
+		title: 'Backend',
+		description:
+			'Fra første forespørsel til en chat med lagring og innlogging. Følg delene, prøv koden og bruk det du lærer i oppdragene.',
+		subject: 'utvikling',
+		goals: [
+			'Forklare dataflyten mellom frontend og backend med GET og POST.',
+			'Undersøke validering, CRUD og lagring i JSON-fil.',
+			'Forklare og teste innlogging, avsender og tilgang på serveren.'
+		],
+		prerequisites:
+			'Du kjenner variabler, objekter, lister og funksjoner i JavaScript. Start med Meldingens reise hvis frontend og backend er nytt for deg.',
+		steps: [
+			...originalModules.slice(0, 3).flatMap((module) =>
+				module.steps.map((step, index) => ({
+					...step,
+					...(index === 0 ? { section: module.title } : {})
+				}))
+			),
+			{
+				kind: 'repetisjon',
+				id: 'backend-oppsummering',
+				section: 'Repetisjon og ekstra utfordring'
+			},
+			{ kind: 'oppdrag', id: 'nattvakt' }
+		],
+		resources: []
+	},
+	...originalModules.slice(3)
+];
+
 export const moduleTypes = {
 	undervisning: { label: 'Undervisning', plural: 'gjennomganger', singular: 'gjennomgang' },
 	teori: { label: 'Teori og eksempel', plural: 'teorideler', singular: 'teoridel' },
 	oving: { label: 'Øving', plural: 'øvinger', singular: 'øving' },
 	oppdrag: { label: 'Oppdrag', plural: 'oppdrag', singular: 'oppdrag' },
+	repetisjon: { label: 'Repetisjon', plural: 'repetisjoner', singular: 'repetisjon' },
 	praksis: { label: 'På egen maskin', plural: 'kodeoppgaver', singular: 'kodeoppgave' }
 };
 
@@ -232,7 +275,7 @@ export function validateModules(modules = moduler) {
 					activity.fag !== module.subject ||
 					(['oving', 'teori'].includes(step.kind)
 						? activity.format !== 'leksjon'
-						: step.kind === 'praksis'
+						: ['praksis', 'repetisjon'].includes(step.kind)
 							? activity.format !== 'aktivitet'
 							: activity.format !== 'spill')
 				)

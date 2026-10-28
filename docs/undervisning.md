@@ -77,7 +77,7 @@ Den kompakte oversikten er kontrollert 28. oktober 2026 med en lokal testdatabas
 - Tastatur med piltaster, emulert berøring, begge temaer og bredder på 1440, 768, 390 og 320 CSS-piksler. Radiovalg har minst 44 piksler høye trykkflater. På smale skjermer stables de tre valgene, uten å krympe teksten.
 - 200 % tekststørrelse kombinert med overstyrt linje-, ord- og bokstavavstand ved 1440 og 320 piksler, uten horisontal sideoverflyt. Lange ord i lærerinnholdet kan brytes ved behov.
 - Axe-core fant ingen avvik i de prøvde A/AA-reglene for disse skjermbreddene og temaene. Ingen JavaScript-feil ble registrert.
-- 195 eksisterende tester består, samt `npm run check` og produksjonsbygg. Backendens statusverdier, revisjonskontroll, elevprogresjon og vurderingsregler er uendret.
+- 199 tester består, samt `npm run check` og produksjonsbygg. Oversikten er også kontrollert etter samlingen til Backend, med tre moduler og ni radiovalg. Backendens statusverdier, revisjonskontroll, elevprogresjon og vurderingsregler er uendret; migreringen av de gamle modulenhetene er beskrevet i [modulveiledningen](moduler.md).
 
 Dette er teknisk kontroll, ikke full WCAG-samsvarsvurdering eller utprøving med en virkelig skjermleser. Den faktiske skoleinstallasjonen og læreres bruk av den nye oversikten må prøves etter oppdatering.
 

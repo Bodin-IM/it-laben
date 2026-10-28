@@ -1,4 +1,5 @@
 // Server-owned teaching context. Client fields are validated before any reconstruction.
+import { guideSteps, tutorialResult } from '../../src/lib/studentGuide.js';
 import { lessons } from '../../src/lib/ovingene.js';
 import { buildTrace } from '../../src/lib/ovingModel.js';
 import { moduleContext } from '../../src/lib/moduleNavigation.js';
@@ -146,7 +147,14 @@ export function pageWork(page, raw) {
 			'Avgrenset status rapportert av nettleseren, ikke dokumentasjon på forståelse. Kode og forklaringer hentes fra IT-labens undervisningsmodeller. Tekstfelt er bare kategorier; eksempler er ikke elevens faktiske tekst.',
 		selection: v
 	};
-	if (page.kind === 'database-theory') {
+	if (page.kind === 'tutorial') {
+		work.guideStep = guideSteps.find((step) => step.id === v.section) ?? null;
+		work.current = { sample: v.sample, trim: v.trim };
+		work.oldRun = v.run !== null && (v.run.sample !== v.sample || v.run.trim !== v.trim);
+		work.lastRun = v.run ? tutorialResult(v.run) : null;
+		work.limit =
+			'Lokalt prøveforsøk for å lære arbeidsmåten. Ingen XP eller vurdering av forståelse. Forklar bare resultatet av kjøringen som faktisk er vist.';
+	} else if (page.kind === 'database-theory') {
 		work.topic = v.section;
 	} else if (page.kind === 'database-practice') {
 		work.phase = v.phase;

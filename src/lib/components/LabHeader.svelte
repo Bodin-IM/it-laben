@@ -92,6 +92,9 @@
 					{/each}
 				</div>
 			</details>
+			<a href="/tutorial/" aria-current={page.url.pathname === '/tutorial/' ? 'page' : undefined}
+				>Slik bruker du laben</a
+			>
 			<a href="/toppliste/" aria-current={page.url.pathname === '/toppliste/' ? 'page' : undefined}
 				>Toppliste</a
 			>

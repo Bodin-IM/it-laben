@@ -8,7 +8,7 @@ Labpartneren er tilgjengelig på elevsidene. Lærer- og administratorsider er un
 
 - **Sidehjelp:** fast, offentlig veiledning som virker uten backend og innlogging. Sidens tema og korte forslag til neste handling gjenbrukes fra innholdskatalogen, modulmålene og øvingenes introduksjoner og hint. **Et annet tips** lar eleven undersøke flere råd. Det fremgår at disse rådene ikke er KI-genererte eller basert på elevens forsøk.
 - **KI:** krever innlogging og konfigurert KI i IT-labens backend. Panelet undersøker konfigurasjonen ved åpning, og velger KI når den er tilgjengelig, med mindre eleven allerede har valgt en annen visning. **Prøv KI igjen** undersøker på nytt. En konfigurert modell kan fortsatt være utilgjengelig; et mislykket spørsmål beholdes, og Sidehjelp er fortsatt tilgjengelig. Statusruten er ingen Ollama-helsesjekk.
-- **Utseende:** ti figurer, tre bakgrunner og valg av animasjoner. Se [avatarer og lagring](avatarer-og-trygg-lagring.md).
+- **Tannhjul (Utseende og innstillinger):** ti figurer, tre bakgrunner og valg av animasjoner. Se [avatarer og lagring](avatarer-og-trygg-lagring.md).
 
 På elevsidene brukes `page-help` versjon 2 med kjent side-ID, eventuell validert modul og en avgrenset arbeidsstatus. Backend henter faglig grunnlag og kode fra IT-labens egne kilder. Nye øvingsark i felleskomponenten får koblingen automatisk. Se [delingsoversikten](labpartner-kontekst.md#hva-sidene-deler) for felter og begrensninger. Lærer-ID-er avvises også direkte i API-et.
 

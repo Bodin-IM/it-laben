@@ -1,6 +1,7 @@
 // Public, curated help only. Never add assessment answers, account data or DOM content.
 import { altElevinnhold, fag } from '#lib/innhold.js';
 import { moduler, moduleContents } from '#lib/moduler.js';
+import { guideSteps } from '#lib/studentGuide.js';
 import { lessons } from '#lib/ovingene.js';
 
 /** @type {Record<string,string>} */
@@ -41,18 +42,27 @@ export const partnerPages = [
 		topics: ['Fag', 'Moduler'],
 		tips: [
 			'Velg faget du arbeider med. Start med en modul hvis du ønsker en sammenhengende rekkefølge.',
-			'Lenger ned finner du enkeltøvinger, spill og repetisjon. Søk eller filtrer når du leter etter et bestemt tema.'
+			'Åpne «Finn enkeltoppgaver» for øvinger, spill og repetisjon. Søk eller filtrer når du leter etter et bestemt tema.'
 		]
+	},
+	{
+		id: 'tutorial',
+		path: '/tutorial/',
+		kind: 'tutorial',
+		title: 'Slik bruker du IT-laben',
+		summary: 'En veiledning med et lokalt prøveforsøk. Ingen poeng eller lagring av forsøket.',
+		topics: ['Navigasjon', 'Testing', 'Hint', 'Fremgang'],
+		tips: guideSteps.map((step) => `${step.title}: ${step.text}`)
 	},
 	{
 		id: 'start',
 		path: '/kom-i-gang/',
-		title: 'Kom i gang',
-		summary: 'Introduksjon til IT-laben og hvordan du bruker aktivitetene.',
+		title: 'Kom i gang med Min lab',
+		summary: 'Hjelp med sikker tilkobling og innlogging i Min lab.',
 		topics: ['Arbeidsmåter'],
 		tips: [
-			'Les målet for aktiviteten og prøv ett valg om gangen. Forklar hva du forventer før du tester.',
-			'Sammenlign resultatet med forventningen din. Bruk forklaringen eller hintet til å planlegge neste forsøk.'
+			'Følg sidens veiledning for sikker tilkobling til Min lab.',
+			'For hjelp til oppgavene: åpne Slik bruker du IT-laben på /tutorial/.'
 		]
 	},
 	{

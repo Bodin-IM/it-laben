@@ -1,4 +1,5 @@
 // Shared, versioned allowlist. It accepts descriptions of learning state, never DOM or arbitrary text.
+import { guideSteps } from '#lib/studentGuide.js';
 import { lessons } from '#lib/ovingene.js';
 import { partnerPageById } from '#lib/partnerPages.js';
 import { LEVELS, actionsFor, MAX_ACTIONS } from '#lib/chatSpill.js';
@@ -124,7 +125,17 @@ export function readPartnerState(pageId, raw) {
 	const v = wrap.values;
 	/** @type {Record<string,Rule>} */
 	let shape;
-	if (page.kind === 'database-theory') shape = { section: choice(['dokument', 'typer', 'filter']) };
+	if (page.kind === 'tutorial') {
+		const attempt = record({ sample: choice(['spaces', 'message']), trim: bool });
+		shape = {
+			section: (value) =>
+				value === undefined ? 'all' : choice(['all', ...guideSteps.map((step) => step.id)])(value),
+			sample: choice(['spaces', 'message']),
+			trim: bool,
+			run: nullable(attempt)
+		};
+	} else if (page.kind === 'database-theory')
+		shape = { section: choice(['dokument', 'typer', 'filter']) };
 	else if (page.kind === 'database-practice') shape = { phase: choice(databasePhases) };
 	else if (page.kind === 'database-query') {
 		const choices = record(
