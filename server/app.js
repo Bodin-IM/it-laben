@@ -36,7 +36,7 @@ import {
 import { leaderboard } from './leaderboard.js';
 import { teachingLibrary } from './teaching.js';
 import { avatars } from '../src/lib/avatars.js';
-import { schoolClasses } from '../src/lib/classes.js';
+import { schoolClasses, classCapacities } from '../src/lib/classes.js';
 import { labPartnerRouter } from './lab-partner/router.js';
 
 const DAY = 86400000;
@@ -375,6 +375,17 @@ export function createApp({ db, config, clock = Date.now, limits = true }) {
 		if (!schoolClasses.includes(classCode) || confirmed !== true)
 			return fail(res, 400, 'INVALID_CLASS', 'Velg 2ITA eller 2ITB og bekreft at valget låses.');
 		const saved = transaction(db, () => {
+			const current = db
+				.prepare('SELECT class_code AS classCode FROM users WHERE id=?')
+				.get(req.labUser.id).classCode;
+			// Existing choices stay locked; retries must also succeed when the class is full.
+			if (current !== null) return current;
+			// Count every assigned profile, including hidden/disabled profiles. Checking and
+			// saving inside BEGIN IMMEDIATE prevents two students from taking the last place.
+			const members = db
+				.prepare('SELECT COUNT(*) AS n FROM users WHERE class_code=?')
+				.get(classCode).n;
+			if (members >= classCapacities[classCode]) return null;
 			// The conditional write also protects against competing choices from other tabs/devices.
 			db.prepare('UPDATE users SET class_code=? WHERE id=? AND class_code IS NULL').run(
 				classCode,
@@ -383,6 +394,13 @@ export function createApp({ db, config, clock = Date.now, limits = true }) {
 			return db.prepare('SELECT class_code AS classCode FROM users WHERE id=?').get(req.labUser.id)
 				.classCode;
 		});
+		if (saved === null)
+			return fail(
+				res,
+				409,
+				'CLASS_FULL',
+				`${classCode} er full. Klassen har plass til maks ${classCapacities[classCode]} brukere. Ta kontakt med læreren.`
+			);
 		if (saved !== classCode)
 			return fail(res, 409, 'CLASS_LOCKED', `Klassevalget er allerede låst til ${saved}.`);
 		// Repeating the same confirmed choice is safe after a lost response.
