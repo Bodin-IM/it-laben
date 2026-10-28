@@ -12,7 +12,7 @@ Lærere og administratorer kan endre status fra **Lærerpanel → Undervisning**
 | Aktiv    | Modulen vises først i oversikten.                                                                     | Vis hva klassen arbeider med nå.                              |
 | Ferdig   | Modulen er synlig etter de aktive og kan åpnes igjen.                                                 | Behold forløpet tilgjengelig for repetisjon og videre arbeid. |
 
-Læreren velger status og lagrer med **Aktiver modulen**, **Marker som ferdig** eller **Skjul som kommende**. Flere moduler kan være aktive samtidig. Å aktivere én modul avslutter ingen andre; læreren velger selv når en modul er ferdig eller skal bli kommende igjen. Innenfor hver statusgruppe beholdes modulenes innholdsrekkefølge.
+I læreroversikten velges status med tre radiovalg som lagres automatisk. **Fullført** er den samme statusen som **Ferdig** (`completed`). Inne på modulsiden beholdes menyen og lagring med **Aktiver modulen**, **Marker som ferdig** eller **Skjul som kommende**. Se [undervisningsveiledningen](undervisning.md) for lagringsrespons og feilretting. Flere moduler kan være aktive samtidig. Å aktivere én modul avslutter ingen andre; læreren velger selv når en modul er ferdig eller skal bli kommende igjen. Innenfor hver statusgruppe beholdes modulenes innholdsrekkefølge.
 
 **Ferdig** betyr at undervisningsforløpet er avsluttet av læreren. Det endrer ikke elevenes gjennomføring, vurdering, forsøk, lagrede løsninger eller XP. En elev kan fortsatt arbeide i en ferdig modul og bruke aktivitetenes vanlige progresjonsregler.
 

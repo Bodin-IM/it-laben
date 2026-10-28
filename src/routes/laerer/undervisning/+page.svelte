@@ -4,11 +4,11 @@
 	import { hasTeacherRole } from '#lib/learning.js';
 	import { aktiviteter, fag } from '#lib/innhold.js';
 	import { moduler, moduleSummary } from '#lib/moduler.js';
-	import { moduleStatusLabels, orderedModules, publicationFor } from '#lib/modulePublication.js';
+	import { publicationFor } from '#lib/modulePublication.js';
 	import { modulePublication, refreshModulePublication } from '#lib/modulePublicationStore.js';
 	import { teachingPlans, presentationLessons, presentationLink } from '#lib/teaching.js';
 	import TeacherShell from '#lib/components/TeacherShell.svelte';
-	import ModuleAdministration from '#lib/components/ModuleAdministration.svelte';
+	import ModuleStatusControl from '#lib/components/ModuleStatusControl.svelte';
 	const browser = typeof window !== 'undefined';
 	/** @type {import('#lib/teaching.js').TeachingLibrary|null} */
 	let library = $state(null);
@@ -36,7 +36,7 @@
 	const guide = $derived.by(() => library?.guides.find((item) => item.planId === planId));
 	const words = $derived(search.trim().toLocaleLowerCase('nb-NO').split(/\s+/).filter(Boolean));
 	const modules = $derived(
-		orderedModules(moduler, $modulePublication.modules).filter(
+		moduler.filter(
 			(item) =>
 				(subject === 'alle' || item.subject === subject) &&
 				words.every((word) =>
@@ -46,11 +46,32 @@
 				)
 		)
 	);
-	const groupLabels = {
-		active: 'Aktive moduler',
-		completed: 'Ferdige moduler',
-		upcoming: 'Kommende moduler'
-	};
+	const statusSummary = $derived([
+		{
+			status: 'active',
+			label: 'aktive',
+			singular: 'aktiv',
+			count: modules.filter(
+				(item) => publicationFor(item.id, $modulePublication.modules).status === 'active'
+			).length
+		},
+		{
+			status: 'completed',
+			label: 'fullførte',
+			singular: 'fullført',
+			count: modules.filter(
+				(item) => publicationFor(item.id, $modulePublication.modules).status === 'completed'
+			).length
+		},
+		{
+			status: 'upcoming',
+			label: 'kommende',
+			singular: 'kommende',
+			count: modules.filter(
+				(item) => publicationFor(item.id, $modulePublication.modules).status === 'upcoming'
+			).length
+		}
+	]);
 	const plans = $derived(
 		teachingPlans.filter(
 			(item) =>
@@ -122,7 +143,7 @@
 	intro={plan
 		? plan.description
 		: view === 'modules'
-			? 'Start med modulen dere jobber med, og styr hva elevene får se.'
+			? 'Velg status for hver modul, og åpne modulen for innhold og undervisningsopplegg.'
 			: 'Finn støtte til felles gjennomgang eller en elevleksjon å vise på storskjerm.'}
 >
 	{#if planId}
@@ -211,14 +232,10 @@
 			{/if}
 		{/if}
 	{:else}
-		<div class="mode-links">
-			{#if view !== 'modules'}<a href="/laerer/undervisning/">← Til modulene</a>{/if}
-			<a class="button-link secondary" href="/?visning=elev">Åpne elevvisningen →</a>
-			{#if view === 'modules'}<p class="small">
-					Aktive moduler vises først. Ferdige moduler er åpne for repetisjon, og kommende moduler er
-					skjult for elevene.
-				</p>{/if}
-		</div>
+		{#if view !== 'modules'}<div class="mode-links">
+				<a href="/laerer/undervisning/">← Til modulene</a>
+				<a class="button-link secondary" href="/?visning=elev">Åpne elevvisningen →</a>
+			</div>{/if}
 		<div class="filters">
 			<div>
 				<label for="teaching-search"
@@ -242,15 +259,20 @@
 			<div class="module-overview-heading">
 				<div>
 					<h2>Moduler</h2>
-					<p class="small">Samme modulstatus gjelder for 2ITA og 2ITB.</p>
+					<p class="small" id="module-status-instructions">
+						Velg én status per modul. Valget lagres automatisk for 2ITA og 2ITB.
+					</p>
 				</div>
-				<button
-					type="button"
-					class="secondary"
-					disabled={$modulePublication.loading}
-					onclick={refreshPublication}
-					>{$modulePublication.loading ? 'Henter status …' : 'Oppdater status'}</button
-				>
+				<div class="overview-actions">
+					<a class="button-link secondary" href="/?visning=elev">Åpne elevvisningen →</a>
+					<button
+						type="button"
+						class="secondary"
+						disabled={$modulePublication.loading}
+						onclick={refreshPublication}
+						>{$modulePublication.loading ? 'Henter status …' : 'Oppdater status'}</button
+					>
+				</div>
 			</div>
 			{#if $modulePublication.error || publicationError}
 				<p class="notice error" role="alert">
@@ -260,38 +282,42 @@
 						: ' Du kan åpne modulene, men må hente status før du kan endre hva elevene ser.'}
 				</p>
 			{:else if !$modulePublication.ready}<p role="status">Henter lagrede modulstatuser …</p>{/if}
-			<div class="module-list">
-				{#if !$modulePublication.ready}<h3 class="group-heading">Alle moduler</h3>{/if}
-				{#each modules as item, index (item.id)}
+			<div class="status-guide" aria-label="Hva modulstatusene betyr">
+				<span><strong>Kommende</strong> · skjult for elevene</span>
+				<span><strong>Aktiv</strong> · vises først for elevene</span>
+				<span><strong>Fullført</strong> · åpen for repetisjon</span>
+			</div>
+			<p class="small progress-note">
+				Fullført gjelder undervisningen. Elevenes arbeid og progresjon beholdes.
+			</p>
+			{#if $modulePublication.ready}
+				<ul class="status-summary" aria-label="Modulstatus i dette utvalget">
+					{#each statusSummary as item}<li data-status={item.status}>
+							<strong>{item.count}</strong>
+							{item.count === 1 ? item.singular : item.label}
+						</li>{/each}
+				</ul>
+			{/if}
+			<div class="module-list" aria-describedby="module-status-instructions">
+				{#each modules as item (item.id)}
 					{@const publication = publicationFor(item.id, $modulePublication.modules)}
-					{#if $modulePublication.ready && (index === 0 || publicationFor(modules[index - 1].id, $modulePublication.modules).status !== publication.status)}
-						<h3 class="group-heading">{groupLabels[publication.status]}</h3>
-					{/if}
 					<article
-						class="panel module-card"
-						class:active={$modulePublication.ready && publication.status === 'active'}
+						class="module-row"
+						data-status={$modulePublication.ready ? publication.status : 'unknown'}
 					>
-						<div class="module-card-heading">
-							<div>
-								<p class="module-meta">
-									<span>{fag.find((subject) => subject.id === item.subject)?.navn ?? ''}</span>
-									{#if $modulePublication.ready}<span
-											class="publication-label"
-											class:active={publication.status === 'active'}
-											>{moduleStatusLabels[publication.status]}</span
-										>{/if}
-								</p>
-								<h4><a href={`/moduler/${item.id}/`}>{item.title}</a></h4>
-								<p class="module-description">{item.description}</p>
-								<p class="small">{moduleSummary(item)}</p>
-							</div>
-							<a
-								class="button-link secondary"
-								aria-label={`Åpne modulen ${item.title}`}
-								href={`/moduler/${item.id}/`}>Åpne modulen →</a
-							>
+						<div class="module-heading">
+							<h3>
+								<a href={`/moduler/${item.id}/`}
+									>{item.title}<span class="open-arrow" aria-hidden="true"> →</span></a
+								>
+							</h3>
+							<p>
+								{fag.find((subject) => subject.id === item.subject)?.navn ?? ''} · {moduleSummary(
+									item
+								)}
+							</p>
 						</div>
-						<ModuleAdministration moduleId={item.id} title={item.title} />
+						<ModuleStatusControl moduleId={item.id} title={item.title} />
 					</article>
 				{/each}
 			</div>
@@ -381,10 +407,6 @@
 	.plan-actions > span {
 		color: var(--color-text-muted);
 	}
-	.mode-links p {
-		flex: 1 1 350px;
-		margin: 0;
-	}
 	.filters {
 		align-items: flex-end;
 		gap: 18px;
@@ -396,77 +418,123 @@
 	input {
 		width: 100%;
 	}
-	.module-overview-heading,
-	.module-card-heading {
+	.module-overview-heading {
 		display: flex;
 		align-items: center;
 		justify-content: space-between;
 		flex-wrap: wrap;
-		gap: 16px 24px;
+		gap: 12px 24px;
+		margin: 28px 0 16px;
 	}
-	.module-overview-heading {
-		margin: 30px 0 18px;
+	.overview-actions {
+		display: flex;
+		flex-wrap: wrap;
+		gap: 10px;
+		min-width: 0;
+	}
+	.overview-actions a,
+	.mode-links a {
+		max-width: 100%;
+		overflow-wrap: anywhere;
 	}
 	.module-overview-heading h2,
 	.module-overview-heading p {
 		margin: 0 0 6px;
 	}
-	.group-heading {
-		font-size: 1.125rem;
-		margin: 28px 0 12px;
-	}
-	.module-list .module-card {
-		border-left: 4px solid var(--color-border-strong);
-	}
-	.module-card.active {
-		border-left-color: var(--color-accent);
-	}
-	.module-card-heading > div {
-		flex: 1 1 420px;
-		min-width: 0;
-	}
-	.module-card h4 {
-		font-size: 1.3rem;
-		line-height: 1.35;
-		margin: 0 0 8px;
-	}
-	.module-card h4 a {
-		text-decoration: none;
-	}
-	.module-card h4 a:hover {
-		text-decoration: underline;
-	}
-	.module-meta {
+	.status-guide {
 		display: flex;
-		align-items: center;
 		flex-wrap: wrap;
-		gap: 8px 14px;
-		margin: 0 0 8px;
-		font-size: var(--font-meta);
+		gap: 8px 24px;
+		font-size: var(--font-small);
+	}
+	.status-guide span {
 		color: var(--color-text-muted);
 	}
-	.publication-label {
-		padding: 3px 9px;
-		border: 1px solid var(--color-border-strong);
-		border-radius: 6px;
+	.status-guide strong {
 		color: var(--color-text);
-		background: var(--color-surface-soft);
-		font-weight: 650;
 	}
-	.publication-label.active {
-		border-color: var(--color-info-border);
-		background: var(--color-info-soft);
-		color: var(--color-info);
+	.progress-note {
+		margin: 8px 0 16px;
 	}
-	.module-description {
-		max-width: 80ch;
-		margin: 0 0 8px;
+	.status-summary {
+		list-style: none;
+		display: flex;
+		flex-wrap: wrap;
+		gap: 8px;
+		padding: 0;
+		margin: 0 0 12px;
 	}
-	.module-card-heading .small {
+	.status-summary li {
 		margin: 0;
+		padding: 4px 10px;
+		border-radius: 6px;
+		background: var(--color-surface-soft);
+		font-size: var(--font-small);
+	}
+	.status-summary [data-status='active'] {
+		color: var(--color-info);
+		background: var(--color-info-soft);
+	}
+	.status-summary [data-status='completed'] {
+		color: var(--color-success);
+		background: var(--color-success-soft);
+	}
+	.module-list {
+		display: grid;
+		gap: 10px;
+	}
+	.module-row {
+		display: grid;
+		grid-template-columns: minmax(0, 1fr) minmax(23rem, 28rem);
+		align-items: center;
+		gap: 12px 24px;
+		padding: 16px 20px;
+		border: 1px solid var(--color-border);
+		border-left: 4px solid var(--color-border-strong);
+		border-radius: var(--radius-card);
+		background: var(--color-surface);
+		min-width: 0;
+	}
+	.module-row[data-status='active'] {
+		border-left-color: var(--color-info);
+	}
+	.module-row[data-status='completed'] {
+		border-left-color: var(--color-success);
+	}
+	.module-heading {
+		min-width: 0;
+		overflow-wrap: anywhere;
+	}
+	.module-heading h3 {
+		margin: 0;
+		font-size: 1.125rem;
+		line-height: 1.4;
+	}
+	.module-heading h3 a {
+		text-decoration: none;
+	}
+	.module-heading h3 a:hover {
+		text-decoration: underline;
+	}
+	.open-arrow {
+		white-space: nowrap;
+		margin-left: 0.25em;
+	}
+	.module-heading p {
+		margin: 5px 0 0;
+		color: var(--color-text-muted);
+		font-size: var(--font-small);
+		line-height: 1.5;
+	}
+	@media (max-width: 60rem) {
+		.module-row {
+			grid-template-columns: minmax(0, 1fr);
+			padding: 16px;
+		}
 	}
 	.teaching-library {
 		margin-top: 36px;
+		overflow-wrap: anywhere;
 	}
 	.teaching-library p {
 		color: var(--color-text-muted);
@@ -478,6 +546,8 @@
 		gap: 12px 26px;
 	}
 	.teaching-library a {
+		max-width: 100%;
+		overflow-wrap: anywhere;
 		padding-block: 10px;
 		min-height: 44px;
 	}

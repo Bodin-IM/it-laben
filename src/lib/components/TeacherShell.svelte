@@ -66,8 +66,10 @@
 
 	main {
 		padding: 30px 0 70px;
+		overflow-wrap: anywhere;
 	}
 	h1 {
+		overflow-wrap: anywhere;
 		font-size: clamp(2rem, 5vw, 3.4rem);
 		line-height: 1.12;
 		letter-spacing: -0.045em;
@@ -151,7 +153,7 @@
 		border-color: var(--color-danger);
 		color: var(--color-surface);
 	}
-	.teacher-shell :global(input:not([type='checkbox'])),
+	.teacher-shell :global(input:not([type='checkbox']):not([type='radio'])),
 	.teacher-shell :global(select) {
 		min-height: 44px;
 		border: 1px solid var(--color-border-strong);
