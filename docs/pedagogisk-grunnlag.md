@@ -4,6 +4,8 @@ Dette er det felles grunnlaget for å utvikle og videreutvikle aktiviteter i IT-
 
 Grunnlaget bygger på **«Pedagogisk plan for IT-laben – Interaktivitet, tilbakemeldinger og gamification»**, datert 26. oktober 2026, med gjennomgang av ni artikler. Dette dokumentet er den operative versjonen i repoet. Endringer i den opprinnelige Word-planen overføres ikke automatisk hit. Nye beslutninger og revisjoner av grunnlaget skal beskrives her og begrunnes.
 
+For Vg2 informasjonsteknologi brukes dette sammen med [læreplangrunnlaget](laereplangrunnlag.md) og [hele læreplanen ITK02-01](laereplan/ITK02-01.md). Læreplanen beskriver kompetansen opplæringen skal bidra til; dette dokumentet støtter utformingen av elevens arbeid og respons. Knytt konkrete læringsmål til relevante kompetansemål, og beskriv avgrensningen når en øving bare dekker deler av et mål.
+
 Forskningsfunn, lokale designvalg og tekniske kontroller har ulike roller. Kildene begrunner retningen, mens utforming, poengregler og tidsbruk må prøves med våre elever. En bestått programtest dokumenterer funksjon, ikke læringseffekt.
 
 ## 1. Formålet med aktivitetene
@@ -133,6 +135,7 @@ Utvid når elevene får brukt tilbakemeldingene og viser forståelse i nye situa
 
 Bruk relevante punkter for oppgavens omfang. Dokumenter eventuelle bevisste avvik og hva som fortsatt må undersøkes med elever.
 
+- [ ] Relevant læreplan, programfag og kompetansemål er oppgitt, og det er tydelig hvilken del av målet opplegget gir øving i.
 - [ ] Målet sier hva eleven skal kunne gjøre eller forklare, og forkunnskapene er synlige.
 - [ ] Eleven gjør faglig arbeid som gir et produkt, en begrunnelse eller et resultat som kan undersøkes.
 - [ ] Tilbakemeldingen gir informasjon som kan brukes i et nytt forsøk, og hjelp er tilgjengelig.
@@ -203,3 +206,5 @@ Metaanalysen viser betydningen av informasjonsinnhold i tilbakemeldinger, med st
 ## Endringslogg
 
 - **26. oktober 2026:** Første versjon i repoet, avledet fra den pedagogiske planen og de ni gjennomgåtte artiklene. Prinsippene er gjort operative for senere utvikling; eksisterende aktiviteter og poengordninger endres ikke av denne dokumentasjonsendringen.
+
+- **28. oktober 2026:** Læreplanen ITK02-01 er lagt til som eget faglig grunnlag med uendret PDF, fulltekst og arbeidsveiledning. Koblingen i aktivitetsmalen og sjekklisten supplerer det pedagogiske grunnlaget; tidligere prinsipper og kildedrøftinger beholdes.

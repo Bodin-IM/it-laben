@@ -29,6 +29,8 @@ Modulens status viser antall unike elevaktiviteter som API-et allerede har merke
 
 ## Videre innhold og pedagogisk avgrensning
 
+Ved nye eller vesentlig endrede Vg2-moduler brukes [læreplangrunnlaget](laereplangrunnlag.md) og [aktivitetsmalen](aktivitetsmal.md). Oppgi relevante programfag og kompetansemål i modulens veiledning eller arbeidsplan, og beskriv hvordan undervisning, øving og ny anvendelse bidrar til dem. De korte elevmålene på modulsiden skal konkretisere opplegget; de skal ikke fremstilles som ordrette kompetansemål. Gjør avgrensninger og videre arbeid synlig.
+
 Samlingene følger [det pedagogiske grunnlaget](https://github.com/Bodin-IM/it-laben/blob/main/docs/pedagogisk-grunnlag.md). Denne endringen organiserer eksisterende innhold. Tilbakemeldinger og faglige tester beholdes på enkeltsidene; navigasjonen vurderer ingen elevsvar. Videre utvikling av en modul skal beskrive en ny anvendelse med mindre støtte, og hvordan lærer eller elev kan undersøke forståelsen. En gjennomgått samling dokumenterer ikke i seg selv overføring eller læringseffekt.
 
 Registrer moduler i `src/lib/moduler.js`. Bruk stabile aktivitets-ID-er fra `innhold.js` og oppleggs-ID-er fra `teaching.js`. `steps` angir rekkefølge og innholdstype; `resources` lenker til åpne aktiviteter. Private lærernotater skal fortsatt ligge i `server/teaching.js`. De dynamiske modulrutene blir forhåndsbygget som statiske sider, også for direkte åpning og oppfrisking.
