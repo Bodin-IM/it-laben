@@ -1,5 +1,6 @@
 <script>
 	import { page } from '$app/state';
+	import { lab } from '#lib/lab.js';
 	const links = [
 		{ href: '/laerer/undervisning/', label: 'Undervisning' },
 		{ href: '/laerer/', label: 'Oversikt' },
@@ -13,6 +14,11 @@
 			href={item.href}
 			aria-current={page.url.pathname === item.href ? 'page' : undefined}>{item.label}</a
 		>{/each}
+	{#if $lab.user?.role === 'admin'}<a
+			href="/laerer/tilbakemeldinger/"
+			aria-current={page.url.pathname === '/laerer/tilbakemeldinger/' ? 'page' : undefined}
+			>Tilbakemeldinger · admin</a
+		>{/if}
 </nav>
 
 <style>
@@ -27,6 +33,8 @@
 	}
 	a {
 		display: inline-flex;
+		max-width: 100%;
+		overflow-wrap: anywhere;
 		align-items: center;
 		min-height: 44px;
 		box-sizing: border-box;
