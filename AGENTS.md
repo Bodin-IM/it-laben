@@ -4,6 +4,8 @@ Disse instruksjonene gjelder hele repoet. IT-laben er et undervisningsverktøy f
 
 ## Før du utvikler eller endrer innhold og grensesnitt
 
+Ved utvikling eller endring av moduler, aktiviteter, undervisning, leksjoner og elevøvinger for Vg2 informasjonsteknologi: les [læreplangrunnlaget](docs/laereplangrunnlag.md) og [læreplanen ITK02-01 i fulltekst](docs/laereplan/ITK02-01.md) før du planlegger innholdet. Bruk dette sammen med grunnlagene nedenfor. Oppgi aktuelle programfag og konkrete kompetansemål med korrekt ordlyd i aktivitetens veiledning eller arbeidsplan, og beskriv hvilken del av målet eleven faktisk øver. DRS-, BRU- og UTV-referansene er lokale henvisninger, ikke offisielle Udir-koder.
+
 1. Les hele [det pedagogiske grunnlaget](docs/pedagogisk-grunnlag.md) før du planlegger eller endrer læringsinnhold, elevhandlinger, tilbakemeldinger, vurdering, progresjon eller gamification. Følg grunnlaget i arbeidet; det er ikke bare bakgrunnslitteratur.
 2. Les hele [grunnlaget for webdesign og brukeropplevelse](docs/webdesign-og-brukeropplevelse.md) før du planlegger eller endrer navigasjon, layout, stiler, komponenter eller interaksjon. Dette gjelder også innlogging og lærer-/administratorvisninger. Følg begge grunnlagene når arbeidet berører både pedagogikk og grensesnitt; designgrunnlaget supplerer det pedagogiske.
 3. Les den aktuelle siden eller aktiviteten og relevant dokumentasjon. Undersøk felles komponenter og stiler før du foreslår en ny løsning. [Redd chatten-piloten](docs/redd-chatten-pilot.md) er ett eksempel, ikke en mal som alle aktiviteter skal kopiere.
