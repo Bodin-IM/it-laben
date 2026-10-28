@@ -259,9 +259,9 @@ test('avatar: oppgradering fra v7 bevarer eksisterende labkort, nøkkel og poeng
 	assert.equal((await f.client().request('/api/leaderboard')).result.entries[0].avatarId, 'robot');
 });
 
-test('navnegenerator: 9,2 millioner kombinasjoner, kollisjonsforsøk og unik databasebegrensning', async (t) => {
+test('navnegenerator: 90 millioner kombinasjoner, kollisjonsforsøk og unik databasebegrensning', async (t) => {
 	const f = await fixture(t);
-	assert.equal(adjectives.length * animals.length * 9000, 9216000);
+	assert.equal(adjectives.length * animals.length * 9000, 90000000);
 	const first = f.client();
 	await first.create();
 	f.db.prepare("UPDATE users SET nickname='Lur Oter 1000' WHERE id=?").run(first.user.id);
