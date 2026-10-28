@@ -1,4 +1,5 @@
 <script>
+	import { moduleLink } from '#lib/moduleNavigation.js';
 	import { innholdsformat } from '#lib/innhold.js';
 	import { lab } from '#lib/lab.js';
 	/** @type {{activity:(typeof import('#lib/innhold.js').altElevinnhold)[number]}} */
@@ -6,7 +7,7 @@
 	const status = $derived($lab.summary?.progress.find((item) => item.id === activity.id)?.status);
 </script>
 
-<a class="sidekort" href={activity.href}>
+<a class="sidekort" href={moduleLink(activity.href, null)}>
 	<span class="activity-icon" aria-hidden="true">{activity.symbol}</span>
 	<div class="copy">
 		<div class="meta">

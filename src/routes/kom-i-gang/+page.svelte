@@ -9,7 +9,10 @@
 	/></svelte:head
 >
 <div class="guide-page">
-	<main id="hovedinnhold" tabindex="-1"><SecureAccessGuide /></main>
+	<main id="hovedinnhold" tabindex="-1">
+		<p><a href="/tutorial/">Ny her? Se hvordan du bruker oppgavene i IT-laben →</a></p>
+		<SecureAccessGuide />
+	</main>
 </div>
 
 <style>

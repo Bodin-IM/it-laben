@@ -1,6 +1,6 @@
 # Fag, moduler og enkeltinnhold
 
-Moduler samler undervisning, øvinger og oppdrag. I elevens fagoversikt vises aktive moduler først og ferdige moduler etterpå. Kommende moduler er skjult fra elevoversikten til læreren aktiverer dem. Kortene har tekstmerket **Modul** og en tydelig status. Under modulene ligger fortsatt alle fagets enkeltøvinger, oppdrag og spill, også innhold som er lenket fra en modul. Søket finner både synlige moduler og enkeltaktiviteter. Typefilteret gjelder enkeltaktivitetene, mens fagvalget gjelder begge oversiktene. [Designvurderingen og utkastet](designvurdering-og-utkast.md) dokumenterer den første utformingen.
+Moduler samler undervisning, øvinger og oppdrag. I elevens fagoversikt vises aktive moduler først og ferdige moduler etterpå. Kommende moduler er skjult fra elevoversikten til læreren aktiverer dem. Kortene har tekstmerket **Modul** og en tydelig status. Under modulene samles enkeltøvinger, oppdrag og spill i «Finn enkeltoppgaver». Listen er lukket til eleven åpner den, søker eller velger en aktivitetstype. Søket finner både synlige moduler og enkeltaktiviteter. Typefilteret gjelder enkeltaktivitetene, mens fagvalget gjelder begge oversiktene. [Designvurderingen og utkastet](designvurdering-og-utkast.md) dokumenterer den første utformingen.
 
 ## Modulstatus og lærerens styring
 
@@ -12,7 +12,7 @@ Lærere og administratorer kan endre status fra **Lærerpanel → Undervisning**
 | Aktiv    | Modulen vises først i oversikten.                                                                     | Vis hva klassen arbeider med nå.                              |
 | Ferdig   | Modulen er synlig etter de aktive og kan åpnes igjen.                                                 | Behold forløpet tilgjengelig for repetisjon og videre arbeid. |
 
-Læreren velger status og lagrer med **Aktiver modulen**, **Marker som ferdig** eller **Skjul som kommende**. Flere moduler kan være aktive samtidig. Å aktivere én modul avslutter ingen andre; læreren velger selv når en modul er ferdig eller skal bli kommende igjen. Innenfor hver statusgruppe beholdes modulenes innholdsrekkefølge.
+I læreroversikten velges status med tre radiovalg som lagres automatisk. **Fullført** er den samme statusen som **Ferdig** (`completed`). Inne på modulsiden beholdes menyen og lagring med **Aktiver modulen**, **Marker som ferdig** eller **Skjul som kommende**. Se [undervisningsveiledningen](undervisning.md) for lagringsrespons og feilretting. Flere moduler kan være aktive samtidig. Å aktivere én modul avslutter ingen andre; læreren velger selv når en modul er ferdig eller skal bli kommende igjen. Innenfor hver statusgruppe beholdes modulenes innholdsrekkefølge.
 
 **Ferdig** betyr at undervisningsforløpet er avsluttet av læreren. Det endrer ikke elevenes gjennomføring, vurdering, forsøk, lagrede løsninger eller XP. En elev kan fortsatt arbeide i en ferdig modul og bruke aktivitetenes vanlige progresjonsregler.
 
@@ -40,14 +40,15 @@ Dette er styring av navigasjon og undervisningstempo. **Kommende** er ingen sikk
 
 Modulen er en samling, ikke en ny aktivitetstype som gir XP. «Aktiviteter» er fortsatt et samlebegrep. Betegnelser i oversikten endrer ikke aktivitetenes ID-er, URL-er, tester, forsøk eller belønninger. Gamification bestemmer ikke innholdets pedagogiske rolle.
 
-## Første samlinger
+## Samlinger
 
-- **Meldingens reise:** felles gjennomgang, frontend/backend-øving og dataflytspillet.
-- **Data og lagring:** gjennomgang av minne og fil, fillagring og Øving 5–7.
-- **Innlogging og tilgang:** gjennomgang, sessions, Øving 8–9, chatrom og de to feilsøkingsspillene. Forutsetter tidligere arbeid med dataflyt og lagring.
-- **Fra kode til drift:** det eksisterende tverrfaglige opplegget «Fra kode til tjeneste», Øving 10 og repetisjonslenker. Dette er en første samling av eksisterende stoff, ikke et komplett driftskurs.
+- **Backend · Utvikling:** Meldingens reise, Data og lagring, Innlogging og tilgang, deretter oppsummering og den valgfrie Nattevakt-utfordringen. De tre første er nå deler i samme modul. Se [mål og elevveiledning](backend-og-tutorial.md).
+- **Databaser · Utvikling:** egen modul med teori, søkeøvinger og arbeid i egen kode.
+- **Fra kode til drift · Driftsstøtte:** publisering, systemd, omstart og backup i Øving 10. Backend-modulen lenker videre hit.
 
-Nattevakten ligger fortsatt tilgjengelig blant enkeltspillene. Moduler må ikke ha alle innholdstypene, og elever kan alltid åpne enkeltdeler direkte.
+Migrasjon `011_backend_module.sql` samler publiseringsstatusen: hvis en tidligere del er kommende (eller mangler), starter Backend som kommende. Hvis alle er ferdige, blir den ferdig; ellers aktiv. Dette bevarer et restriktivt lærervalg. De historiske statusradene beholdes, men vises ikke som egne moduler. Aktivitets-ID-er, progresjon, XP og vurderingsregler endres ikke.
+
+Gamle moduladresser videresendes til starten på tilsvarende del i Backend. Gamle `?modul=`-verdier gir riktig tilbakevei og ny modulkontekst. Direkte aktivitetslenker finner sin modul når tilhørigheten er entydig. Ved flere eiere må en modul velges uttrykkelig.
 
 ## Modulsiden
 
@@ -79,4 +80,4 @@ Ved utprøving: sjekk om elever finner riktig modul, forstår forskjellen på gj
 
 `npm run check`, `npm run build` og 127 tester bestod. Nettleserprøven kontrollerte fagvalg, modulrekkefølge, søk og typefilter, gamle `#spill`-/`#ovingene`-lenker, alle modulrutene, oppfrisking, tilbakeknapp og lenker til enkeltsider. Elev-/lærervisning og progresjon ble prøvd med simulerte API-svar. Ingen progresjonsskriving ble utløst ved modulnavigasjon. Lyst/mørkt tema, tastatur og bredder på 1440, 390 og 320 piksler er kontrollert. Pedagogisk utprøving med elever gjenstår.
 
-Denne kontrolloggen gjelder den første modulversjonen, før læreradministrert modulstatus. Den dokumenterer ikke nettleserprøving av de nye statuskontrollene eller den endrede lærerinngangen. Slik nettleserprøving er ikke gjennomført i denne arbeidsøkten og gjenstår, sammen med utprøving med elever og lærere.
+Denne historiske kontrolloggen gjelder den første modulversjonen, før læreradministrert modulstatus. Nyere nettleserkontroller er beskrevet i [undervisningsveiledningen](undervisning.md#utprøving-av-endret-lærerflyt) og [Backend og tutorial](backend-og-tutorial.md#kontroll-og-utprøving). Utprøving med elever og lærere gjenstår.

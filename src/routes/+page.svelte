@@ -16,6 +16,11 @@
 	let valgtFag = $state('alle');
 	let valgtFormat = $state('alle');
 	let sok = $state('');
+	let activitiesOpen = $state(false);
+	$effect(() => {
+		if (sok.trim() || valgtFormat !== 'alle' || $connection.publicHttp || $modulePublication.error)
+			activitiesOpen = true;
+	});
 	let klar = $state(false);
 	/** @type {{pathname:string,search:string,hash:string}|null} */
 	let landingEntry = $state(null);
@@ -68,6 +73,7 @@
 	function lesAdresse() {
 		const url = new URL(window.location.href);
 		const viserOvingene = url.hash === '#ovingene';
+		if (['#utforsk', '#spill', '#ovingene'].includes(url.hash)) activitiesOpen = true;
 		valgtFag = fag.find((gruppe) => gruppe.id === url.searchParams.get('fag'))?.id ?? 'alle';
 		valgtFormat =
 			formater.find((format) => format.id === url.searchParams.get('type'))?.id ??
@@ -160,7 +166,9 @@
 			<nav class="section-nav" aria-label="På denne siden">
 				<p class="nav-label">På denne siden</p>
 				<a href="#moduler">Moduler <span aria-hidden="true">↓</span></a>
-				<a href="#utforsk">Øvinger og aktiviteter <span aria-hidden="true">↓</span></a>
+				<a href="#utforsk" onclick={() => (activitiesOpen = true)}
+					>Finn enkeltoppgaver <span aria-hidden="true">↓</span></a
+				>
 			</nav>
 			<p class="sidebar-note">Se sammenhengen.<br />Prøv selv.<br />Forstå mer.</p>
 		</aside>
@@ -176,6 +184,10 @@
 							'. Utforsk sammenhengene og prøv selv.'}
 				</p>
 			</section>
+
+			<a class="tutorial-link" href="/tutorial/?tur=finn"
+				><strong>Ny i IT-laben?</strong> La labpartneren vise deg rundt →</a
+			>
 
 			<div class="search-tools">
 				<label for="innholdssok"
@@ -216,7 +228,9 @@
 							? ` for «${sok.trim()}»`
 							: ''}
 					</p>
-					<a class="jump" href="#utforsk">Til aktivitetene <span aria-hidden="true">↓</span></a>
+					<a class="jump" href="#utforsk" onclick={() => (activitiesOpen = true)}
+						>Finn enkeltoppgaver <span aria-hidden="true">↓</span></a
+					>
 					{#if sok || valgtFormat !== 'alle'}<button
 							type="button"
 							class="text-button"
@@ -311,47 +325,52 @@
 			{#if !sok.trim()}<PersonalOverview subject={valgtFag} />{/if}
 
 			<section id="utforsk" class="oversikt" aria-labelledby="aktivitetstittel">
-				<div class="section-heading">
-					<div>
-						<h2 id="aktivitetstittel">
-							Øvinger og aktiviteter <span class="count">{resultater.activities.length}</span>
-						</h2>
-						<p>Åpne en øving, et oppdrag eller et spill direkte.</p>
+				<details class="activity-browser" bind:open={activitiesOpen}>
+					<summary id="aktivitetstittel"
+						>Finn enkeltoppgaver <span class="count">{resultater.activities.length}</span></summary
+					>
+					<div class="section-heading">
+						<div>
+							<h2>
+								Øvinger og aktiviteter <span class="count">{resultater.activities.length}</span>
+							</h2>
+							<p>Åpne en øving, et oppdrag eller et spill direkte.</p>
+						</div>
 					</div>
-				</div>
-				<div class="formatvalg" role="group" aria-label="Vis aktivitetstype">
-					{#each formater as format (format.id)}<button
-							type="button"
-							class:valgt={valgtFormat === format.id}
-							aria-pressed={valgtFormat === format.id}
-							aria-controls="resultater"
-							onclick={() => (valgtFormat = format.id)}>{format.navn}</button
-						>{/each}
-				</div>
-				<div id="spill" class="anker" aria-hidden="true"></div>
-				<div id="ovingene" class="anker" aria-hidden="true"></div>
-				<div id="resultater">
-					{#if !resultater.activities.length}<div class="tomt-resultat">
-							<h3>Ingen aktiviteter passer til søket</h3>
-							<p>Prøv et annet søkeord eller en annen aktivitetstype.</p>
-							<button type="button" class="handling" onclick={nullstillSok}
-								>Vis innholdet i valgt fag</button
-							>
-						</div>{/if}
-					{#each fagGrupper as gruppe (gruppe.id)}
-						{#if gruppe.aktiviteter.length}<section
-								class="faggruppe"
-								aria-label={`Aktiviteter i ${gruppe.navn}`}
-							>
-								{#if valgtFag === 'alle'}<h3 class="group-label">{gruppe.navn}</h3>{/if}
-								<div class="kortliste">
-									{#each gruppe.aktiviteter as activity (activity.id)}<ActivityCard
-											{activity}
-										/>{/each}
-								</div>
-							</section>{/if}
-					{/each}
-				</div>
+					<div class="formatvalg" role="group" aria-label="Vis aktivitetstype">
+						{#each formater as format (format.id)}<button
+								type="button"
+								class:valgt={valgtFormat === format.id}
+								aria-pressed={valgtFormat === format.id}
+								aria-controls="resultater"
+								onclick={() => (valgtFormat = format.id)}>{format.navn}</button
+							>{/each}
+					</div>
+					<div id="spill" class="anker" aria-hidden="true"></div>
+					<div id="ovingene" class="anker" aria-hidden="true"></div>
+					<div id="resultater">
+						{#if !resultater.activities.length}<div class="tomt-resultat">
+								<h3>Ingen aktiviteter passer til søket</h3>
+								<p>Prøv et annet søkeord eller en annen aktivitetstype.</p>
+								<button type="button" class="handling" onclick={nullstillSok}
+									>Vis innholdet i valgt fag</button
+								>
+							</div>{/if}
+						{#each fagGrupper as gruppe (gruppe.id)}
+							{#if gruppe.aktiviteter.length}<section
+									class="faggruppe"
+									aria-label={`Aktiviteter i ${gruppe.navn}`}
+								>
+									{#if valgtFag === 'alle'}<h3 class="group-label">{gruppe.navn}</h3>{/if}
+									<div class="kortliste">
+										{#each gruppe.aktiviteter as activity (activity.id)}<ActivityCard
+												{activity}
+											/>{/each}
+									</div>
+								</section>{/if}
+						{/each}
+					</div>
+				</details>
 			</section>
 			<footer>
 				<span>IT-laben.</span>
@@ -362,7 +381,32 @@
 </div>
 
 <style>
+	.tutorial-link {
+		overflow-wrap: anywhere;
+		display: block;
+		margin: 0 0 28px;
+		padding: 16px 20px;
+		background: var(--color-surface);
+		border: 1px solid var(--color-border);
+		border-radius: 10px;
+		color: var(--color-accent);
+		text-underline-offset: 4px;
+	}
+	.activity-browser > summary {
+		overflow-wrap: anywhere;
+		cursor: pointer;
+		min-height: 44px;
+		font-size: 1.3rem;
+		font-weight: 650;
+		margin-bottom: 18px;
+	}
+	.activity-browser > summary:focus-visible {
+		outline: 3px solid var(--color-focus);
+		outline-offset: 4px;
+	}
+
 	.forside {
+		overflow-wrap: anywhere;
 		font-family: var(--font-ui);
 	}
 	.forside,
@@ -529,6 +573,8 @@
 		opacity: 1;
 	}
 	.jump {
+		max-width: 100%;
+		min-width: 0;
 		display: inline-flex;
 		align-items: center;
 		gap: 12px;

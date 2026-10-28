@@ -209,6 +209,7 @@
 								tabindex="-1"
 								class:teaching={step.kind === 'undervisning'}
 							>
+								{#if step.section}<h3 class="part-title">{step.section}</h3>{/if}
 								<span class="step-number" aria-hidden="true"
 									>{String(index + 1).padStart(2, '0')}</span
 								>
@@ -246,7 +247,9 @@
 													? 'Start med teorien'
 													: step.kind === 'praksis'
 														? 'Se kodeoppgaven'
-														: 'Åpne oppdraget'}
+														: step.kind === 'repetisjon'
+															? 'Åpne repetisjonen'
+															: 'Åpne oppdraget'}
 											<span aria-hidden="true">→</span></a
 										>{/if}
 								</div>
@@ -266,10 +269,8 @@
 					<nav class="outline panel" aria-label="Hopp til en del i modulen">
 						<h2>I denne modulen</h2>
 						<ol>
-							{#each contents as step, index}<li>
-									<a href={`#del-${index + 1}`}
-										><span aria-hidden="true">{index + 1}</span>{step.title}</a
-									>
+							{#each contents.filter((step) => module.id !== 'backend' || step.section) as step}<li>
+									<a href={`#del-${contents.indexOf(step) + 1}`}>{step.section ?? step.title}</a>
 								</li>{/each}
 						</ol>
 					</nav>
@@ -297,6 +298,12 @@
 									</li>{/each}
 							</ul>
 						</section>{/if}
+					{#if module.id === 'backend'}<section class="panel">
+							<h2>Videre til drift</h2>
+							<p>Publisering, systemd og backup hører til Driftsstøtte.</p>
+							<a href="/moduler/fra-kode-til-drift/">Fra kode til drift →</a>
+						</section>{/if}
+					<a class="back-link" href="/tutorial/">Slik bruker du IT-laben →</a>
 					<a class="back-link" href={`${studentOverview}#utforsk`}
 						>Alle øvinger og spill i {subject?.navn.toLocaleLowerCase('nb-NO')}
 						<span aria-hidden="true">→</span></a
@@ -313,12 +320,19 @@
 </div>
 
 <style>
+	.part-title {
+		grid-column: 1 / -1;
+		margin: 0 0 8px;
+		color: var(--color-info);
+		font-size: 1.1rem;
+	}
 	.continuation {
 		margin-top: 24px;
 	}
 	.module-page {
 		font-family: var(--font-ui);
 		color: var(--color-text);
+		overflow-wrap: anywhere;
 	}
 	.module-page :global(*) {
 		box-sizing: border-box;
@@ -451,6 +465,7 @@
 	}
 	.primary {
 		display: inline-flex;
+		max-width: 100%;
 		align-items: center;
 		justify-content: space-between;
 		gap: 14px;
@@ -621,9 +636,6 @@
 	.outline a:hover {
 		color: var(--color-accent);
 		text-decoration: underline;
-	}
-	.outline a span {
-		font: 500 var(--font-meta)/1 monospace;
 	}
 	progress {
 		width: 100%;

@@ -10,15 +10,15 @@ Når en innlogget lærer eller administrator åpner den vanlige forsiden `/`, g�
 
 **Fagoversikt** og **Åpne elevvisningen** bruker `/?visning=elev`, slik at læreren kan åpne elevoversikten uten å bli sendt tilbake. Eksplisitte fagvalg, søk, ankere og direktelenker bevares. Å åpne **Min lab** som allerede innlogget lærer gir fortsatt tilgang til profil og innstillinger.
 
-Aktive moduler står øverst, ferdige moduler følger etter, og kommende moduler er tilgjengelige for lærerens forberedelse. Søk og fagfilter avgrenser modulene. Under listen ligger **Støtte til undervisningen**, med lenker til alle opplegg og elevleksjoner. Relevante forslag til gjennomgang vises inne i hver modul, der læreren også ser mål, forkunnskaper og elevarbeid.
+Læreroversikten viser én kompakt rad per modul i fast katalogrekkefølge. Raden beholder plassen når status endres. Modulnavnet åpner innholdet; fag og omfang står under navnet. Søk og fagfilter avgrenser modulene, og antall aktive, fullførte og kommende gjelder det synlige utvalget. Elevoversikten viser fortsatt aktive moduler først. Under listen ligger **Støtte til undervisningen**, med lenker til alle opplegg og elevleksjoner. Relevante forslag til gjennomgang vises inne i hver modul, der læreren også ser mål, forkunnskaper og elevarbeid.
 
-Læreren velger **Kommende**, **Aktiv** eller **Ferdig** og lagrer valget. Statusen gjelder begge klassene, **2ITA og 2ITB**. Flere moduler kan være aktive; ingen annen modul avsluttes automatisk. Kommende moduler skjules fra elevoversikten, mens ferdige moduler fortsatt kan åpnes for repetisjon. **Ferdig** beskriver undervisningsforløpet og endrer ingen elevs progresjon, vurdering eller XP.
+Læreren velger **Kommende**, **Aktiv** eller **Fullført** i tre synlige radiovalg. Valget lagres automatisk. Raden viser **Lagrer …** og deretter **Lagret** først etter bekreftet svar. Ved feil vises sist bekreftede status og en forklaring; læreren kan hente siste status eller velge på nytt. Inne på selve modulsiden beholdes den eksisterende statusmenyen med eksplisitt lagreknapp; **Fullført** og **Ferdig** er samme status (`completed`). Statusen gjelder begge klassene, **2ITA og 2ITB**. Flere moduler kan være aktive; ingen annen modul avsluttes automatisk. Kommende moduler skjules fra elevoversikten, mens ferdige moduler fortsatt kan åpnes for repetisjon. **Ferdig** beskriver undervisningsforløpet og endrer ingen elevs progresjon, vurdering eller XP.
 
 Status lagres i backend, med revisjonskontroll ved samtidige endringer. Ved konflikt henter læreren siste lagrede status før et nytt valg lagres. De fire eksisterende modulene starter som aktive ved oppgradering; nye moduler uten lagret status er kommende. [Modulveiledningen](moduler.md) beskriver lagring, rettigheter og avgrensninger.
 
 Skolens åpne HTTP-versjon beholder enkeltleksjoner, øvinger og spill. Den administrerte moduloversikten peker til HTTPS, hvor modulstatus kan hentes. Skjuling av kommende moduler styrer navigasjonen; den beskytter ikke det statiske leksjonsinnholdet. Private lærernotater og skrivehandlinger krever fortsatt autorisasjon på serveren.
 
-Organiseringen følger U1 og U6 i [designgrunnlaget](webdesign-og-brukeropplevelse.md): prioriter dagens arbeid, gi forståelig status og legg relevant støtte nær oppgaven. Ferdige moduler beholdes i tråd med muligheten til å gå tilbake i [pedagogikkgrunnlagets del 3](pedagogisk-grunnlag.md#3-progresjon-støtte-og-elevens-styring); skillet fra vurdert forståelse følger [del 7](pedagogisk-grunnlag.md#7-vurdering-og-lærerens-rolle). Dette er lokale valg for organisering av eksisterende innhold, uten nye læreplanmål eller endrede vurderingsregler.
+Den kompakte visningen følger U1, U3, U6 og U7 i [designgrunnlaget](webdesign-og-brukeropplevelse.md): vis valgene samtidig, gi forståelig lagringsstatus, fjern gjentatt tekst og bevar stabil plassering. Radiovalgene har native tastaturbetjening, felles `fieldset`/`legend` med modulnavn og minst 44 piksler høye trykkflater. Valgt status vises med tekst, markert radioknapp, ramme og farge. Se også [W3Cs veiledning om gruppering av kontroller](https://www.w3.org/WAI/tutorials/forms/grouping/). Tre statusbokser og fast rekkefølge er lokale designvalg, ikke et forskningskrav. Ferdige moduler beholdes i tråd med muligheten til å gå tilbake i [pedagogikkgrunnlagets del 3](pedagogisk-grunnlag.md#3-progresjon-støtte-og-elevens-styring); skillet fra vurdert forståelse følger [del 7](pedagogisk-grunnlag.md#7-vurdering-og-lærerens-rolle). Dette er lokale valg for organisering av eksisterende innhold, uten nye læreplanmål eller endrede vurderingsregler.
 
 ## To typer innhold
 
@@ -32,13 +32,13 @@ Eksisterende direktelenker med `?opplegg=<id>` åpner fortsatt samme læreropple
 
 ## Gjennomfør en økt
 
-1. Åpne **Undervisning** og velg modulen klassen arbeider med. Velg og lagre **Aktiv** når elevene skal begynne.
+1. Åpne **Undervisning** og velg modulen klassen arbeider med. Velg **Aktiv** når elevene skal begynne, og se at raden bekrefter lagring.
 2. Åpne et av modulens forslag til gjennomgang for å lese mål, forberedelser og lærernotater. **Alle undervisningsopplegg** under moduloversikten gir også tilgang til hele biblioteket med søk og fagfilter.
 3. Velg **Start gjennomgangen** eller **Vis på storskjerm**.
 4. Bruk forsøkskontrollene i leksjonen som vanlig. Verktøylinjen lar deg velge leksjon, gå videre eller tilbake og bruke fullskjerm.
 5. **Lærerveiledning** åpner forberedelsene i en egen fane. Den kan ligge på lærerskjermen mens leksjonen vises for klassen.
 6. **Avslutt visning** går tilbake til opplegget. Elevene bruker de vanlige elevlenkene til etterarbeidet.
-7. Når dere er ferdige med forløpet, velg **Ferdig** og lagre. Elevene beholder tilgang til modulen for repetisjon.
+7. Når dere er ferdige med forløpet, velg **Fullført** i oversikten og se at raden bekrefter lagring. Elevene beholder tilgang til modulen for repetisjon.
 
 Storskjermvisningen bruker `?visning=presentasjon`, eventuelt med `opplegg=...`. Den krever innlogget lærer-/administratorrolle. En elev som følger samme leksjonslenke får vanlig elevvisning.
 
@@ -69,7 +69,17 @@ Lærernotater hentes fra `GET /api/teacher/teaching`, med serverkontroll av lær
 
 ## Utprøving av endret lærerflyt
 
-Nettleserprøving av den nye modulstyringen og lærerinngangen er ikke gjennomført i denne arbeidsøkten. Kontroller innlogging, elevvisning, tilbakeknapp, statusendringer, konflikt og nytt forsøk, samt tastatur, berøring, smal skjerm, zoom og begge temaer. Eldre skjermbilder og kontrollogger gjelder sine opprinnelige versjoner. Teknisk kontroll må suppleres med utprøving av om elever og lærere finner aktivt arbeid og tidligere moduler.
+Den kompakte oversikten er kontrollert 28. oktober 2026 med en lokal testdatabase og oppdiktet lærerprofil:
+
+- Automatisk lagring av alle tre statuser, omlasting, søk, fagfilter og tomt søkeresultat.
+- Feilet lagring og nytt forsøk, tregt svar, konflikt med en annen lærerendring og mislykket første henting av modulstatus. Ingen status er valgt før metadata er hentet. Rader og tastaturfokus beholder plassen ved vanlig lagring; fokus trekkes ikke tilbake fra søkefeltet ved et sent svar.
+- Elevvisningen skjuler kommende moduler og beholder fullførte moduler tilgjengelige.
+- Tastatur med piltaster, emulert berøring, begge temaer og bredder på 1440, 768, 390 og 320 CSS-piksler. Radiovalg har minst 44 piksler høye trykkflater. På smale skjermer stables de tre valgene, uten å krympe teksten.
+- 200 % tekststørrelse kombinert med overstyrt linje-, ord- og bokstavavstand ved 1440 og 320 piksler, uten horisontal sideoverflyt. Lange ord i lærerinnholdet kan brytes ved behov.
+- Axe-core fant ingen avvik i de prøvde A/AA-reglene for disse skjermbreddene og temaene. Ingen JavaScript-feil ble registrert.
+- 199 tester består, samt `npm run check` og produksjonsbygg. Oversikten er også kontrollert etter samlingen til Backend, med tre moduler og ni radiovalg. Backendens statusverdier, revisjonskontroll, elevprogresjon og vurderingsregler er uendret; migreringen av de gamle modulenhetene er beskrevet i [modulveiledningen](moduler.md).
+
+Dette er teknisk kontroll, ikke full WCAG-samsvarsvurdering eller utprøving med en virkelig skjermleser. Den faktiske skoleinstallasjonen og læreres bruk av den nye oversikten må prøves etter oppdatering.
 
 ## Toppliste med mulighet til å skjule seg
 

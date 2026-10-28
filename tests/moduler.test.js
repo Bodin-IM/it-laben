@@ -23,21 +23,21 @@ test('moduler peker til eksisterende sider og gir ikke nye XP-aktiviteter', () =
 
 test('modulfremgang skiller undervisning og påbegynt arbeid fra gjennomgått eller bestått', () => {
 	const module = moduler[0];
-	assert.deepEqual(moduleProgress(module), { completed: 0, total: 2, started: false });
+	assert.deepEqual(moduleProgress(module), { completed: 0, total: 13, started: false });
 	assert.deepEqual(
 		moduleProgress(module, [
 			{ id: 'meldingens-reise', status: 'passed' },
 			{ id: 'frontend-backend', status: 'started' },
 			{ id: 'chat', status: 'new' },
-			{ id: 'sessions', status: 'passed' }
+			{ id: 'oving-10', status: 'passed' }
 		]),
-		{ completed: 0, total: 2, started: true }
+		{ completed: 0, total: 13, started: true }
 	);
 	const completed = [
 		{ id: 'frontend-backend', status: 'reviewed' },
 		{ id: 'chat', status: 'passed' }
 	];
-	assert.deepEqual(moduleProgress(module, completed), { completed: 2, total: 2, started: true });
+	assert.deepEqual(moduleProgress(module, completed), { completed: 2, total: 13, started: true });
 	assert.equal(moduleProgress(module, [...completed, ...completed]).completed, 2);
 });
 

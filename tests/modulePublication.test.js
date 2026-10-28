@@ -14,13 +14,8 @@ import { modulePublications } from '../server/modules.js';
 import { moduler } from '../src/lib/moduler.js';
 import { publicationFor, orderedModules, visibleModules } from '../src/lib/modulePublication.js';
 
-// Migration 010 preserves these existing modules; later additions start upcoming.
-const migratedModuleIds = new Set([
-	'meldingens-reise',
-	'data-og-lagring',
-	'innlogging-og-tilgang',
-	'fra-kode-til-drift'
-]);
+// Migrations 010/011 preserve Backend and Drift; later additions start upcoming.
+const migratedModuleIds = new Set(['backend', 'fra-kode-til-drift']);
 const initialPublications = () =>
 	moduler.map((module) => ({
 		id: module.id,
@@ -160,31 +155,30 @@ test('modulpublisering: innlogging, lærerrolle, konto, CSRF, Origin og valideri
 		student = f.client(),
 		teacher = await f.staff(),
 		admin = await f.staff('admin');
-	assert.equal((await student.set('meldingens-reise', 'upcoming', 0)).status, 401);
+	assert.equal((await student.set('backend', 'upcoming', 0)).status, 401);
 	await student.request('/auth/create', {});
-	assert.equal((await student.set('meldingens-reise', 'upcoming', 0)).status, 403);
+	assert.equal((await student.set('backend', 'upcoming', 0)).status, 403);
 	assert.equal(
-		(await teacher.set('meldingens-reise', 'upcoming', 0, { accountId: student.id })).status,
+		(await teacher.set('backend', 'upcoming', 0, { accountId: student.id })).status,
 		409
 	);
 	assert.equal(
-		(await teacher.set('meldingens-reise', 'upcoming', 0, {}, { 'X-CSRF-Token': '' })).status,
+		(await teacher.set('backend', 'upcoming', 0, {}, { 'X-CSRF-Token': '' })).status,
 		403
 	);
 	assert.equal(
-		(await teacher.set('meldingens-reise', 'upcoming', 0, {}, { Origin: 'https://foreign.test' }))
-			.status,
+		(await teacher.set('backend', 'upcoming', 0, {}, { Origin: 'https://foreign.test' })).status,
 		403
 	);
 	assert.equal((await teacher.set('unknown-module', 'active', 0)).status, 404);
 	for (const status of ['done', '__proto__', '', null, 1, ['active']])
-		assert.equal((await teacher.set('meldingens-reise', status, 0)).status, 400);
+		assert.equal((await teacher.set('backend', status, 0)).status, 400);
 	for (const revision of [-1, 0.5, '0', null, Number.MAX_SAFE_INTEGER + 1])
-		assert.equal((await teacher.set('meldingens-reise', 'upcoming', revision)).status, 400);
-	assert.equal((await admin.set('data-og-lagring', 'upcoming', 0)).status, 200);
+		assert.equal((await teacher.set('backend', 'upcoming', revision)).status, 400);
+	assert.equal((await admin.set('fra-kode-til-drift', 'upcoming', 0)).status, 200);
 	f.db.prepare('DELETE FROM user_roles WHERE user_id=?').run(teacher.id);
-	assert.equal((await teacher.set('meldingens-reise', 'upcoming', 0)).status, 403);
-	assert.equal(publicationFor('meldingens-reise', modulePublications(f.db).modules).revision, 0);
+	assert.equal((await teacher.set('backend', 'upcoming', 0)).status, 403);
+	assert.equal(publicationFor('backend', modulePublications(f.db).modules).revision, 0);
 });
 
 test('modulpublisering: kommende, aktiv og ferdig endrer ikke elevprogresjon, poeng eller andre moduler', async (t) => {
@@ -203,15 +197,15 @@ test('modulpublisering: kommende, aktiv og ferdig endrer ikke elevprogresjon, po
 	const original = (await teacher.request('/modules')).modules;
 	let revision = 0;
 	for (const status of ['upcoming', 'active', 'completed']) {
-		const result = await teacher.set('meldingens-reise', status, revision++);
+		const result = await teacher.set('backend', status, revision++);
 		assert.equal(result.status, 200);
-		const record = publicationFor('meldingens-reise', result.modules);
+		const record = publicationFor('backend', result.modules);
 		assert.equal(record.status, status);
 		assert.equal(record.revision, revision);
 		assert.ok(Number.isSafeInteger(record.updatedAt));
 		assert.deepEqual(
-			result.modules.filter((module) => module.id !== 'meldingens-reise'),
-			original.filter((module) => module.id !== 'meldingens-reise')
+			result.modules.filter((module) => module.id !== 'backend'),
+			original.filter((module) => module.id !== 'backend')
 		);
 		assert.deepEqual(f.db.prepare('SELECT * FROM progress').all(), progress);
 		assert.deepEqual(f.db.prepare('SELECT * FROM rewards').all(), rewards);
@@ -222,7 +216,7 @@ test('modulpublisering: kommende, aktiv og ferdig endrer ikke elevprogresjon, po
 	);
 	assert.ok(
 		visibleModules(moduler, modulePublications(f.db).modules).some(
-			(module) => module.id === 'meldingens-reise'
+			(module) => module.id === 'backend'
 		)
 	);
 });
@@ -232,26 +226,23 @@ test('modulpublisering: samtidige lærerendringer bruker versjon, og tapt svar k
 		first = await f.staff(),
 		second = await f.staff();
 	const changes = await Promise.all([
-		first.set('meldingens-reise', 'upcoming', 0),
-		second.set('meldingens-reise', 'completed', 0)
+		first.set('backend', 'upcoming', 0),
+		second.set('backend', 'completed', 0)
 	]);
 	assert.deepEqual(changes.map((result) => result.status).sort(), [200, 409]);
 	assert.equal(changes.find((result) => result.status === 409).error.code, 'MODULE_CONFLICT');
-	const saved = publicationFor('meldingens-reise', modulePublications(f.db).modules);
+	const saved = publicationFor('backend', modulePublications(f.db).modules);
 	assert.equal(saved.revision, 1);
-	assert.equal((await first.set('meldingens-reise', saved.status, 0)).status, 200);
-	assert.equal((await first.set('meldingens-reise', saved.status, 1)).status, 200);
+	assert.equal((await first.set('backend', saved.status, 0)).status, 200);
+	assert.equal((await first.set('backend', saved.status, 1)).status, 200);
 	assert.equal(
 		f.db.prepare("SELECT COUNT(*) AS n FROM teacher_actions WHERE action LIKE 'module-%'").get().n,
 		1
 	);
-	assert.equal((await second.set('meldingens-reise', 'active', 1)).status, 200);
-	assert.equal((await second.set('meldingens-reise', saved.status, 2)).status, 200);
-	assert.equal(
-		(await first.set('meldingens-reise', saved.status, 0)).error.code,
-		'MODULE_CONFLICT'
-	);
-	assert.equal(publicationFor('meldingens-reise', modulePublications(f.db).modules).revision, 3);
+	assert.equal((await second.set('backend', 'active', 1)).status, 200);
+	assert.equal((await second.set('backend', saved.status, 2)).status, 200);
+	assert.equal((await first.set('backend', saved.status, 0)).error.code, 'MODULE_CONFLICT');
+	assert.equal(publicationFor('backend', modulePublications(f.db).modules).revision, 3);
 });
 
 test('modulpublisering: oppgradering bevarer elever, og status overlever omstart, backup og slettet lærer', async (t) => {
@@ -289,7 +280,7 @@ test('modulpublisering: oppgradering bevarer elever, og status overlever omstart
 		initialPublications()
 	);
 	const teacher = await f.staff();
-	await teacher.set('data-og-lagring', 'completed', 0);
+	await teacher.set('fra-kode-til-drift', 'completed', 0);
 	const expected = modulePublications(f.db);
 	const reopened = openDatabase(f.filename);
 	assert.deepEqual(modulePublications(reopened), expected);
@@ -304,7 +295,7 @@ test('modulpublisering: oppgradering bevarer elever, og status overlever omstart
 	assert.deepEqual(modulePublications(f.db), expected);
 	assert.equal(
 		f.db
-			.prepare("SELECT updated_by FROM module_publication WHERE module_id='data-og-lagring'")
+			.prepare("SELECT updated_by FROM module_publication WHERE module_id='fra-kode-til-drift'")
 			.get().updated_by,
 		null
 	);

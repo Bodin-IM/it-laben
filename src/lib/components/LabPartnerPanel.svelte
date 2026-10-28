@@ -285,9 +285,29 @@
 			>
 			<button type="button" aria-pressed={mode === 'ai'} onclick={() => chooseMode('ai')}>KI</button
 			>
-			<button type="button" aria-pressed={mode === 'style'} onclick={() => chooseMode('style')}
-				>Utseende</button
+			<button
+				type="button"
+				class="appearance-button"
+				aria-label="Utseende og innstillinger for labpartneren"
+				title="Utseende og innstillinger"
+				aria-pressed={mode === 'style'}
+				onclick={() => chooseMode('style')}
 			>
+				<svg
+					viewBox="0 0 24 24"
+					width="22"
+					height="22"
+					fill="none"
+					stroke="currentColor"
+					stroke-width="1.8"
+					stroke-linecap="round"
+					stroke-linejoin="round"
+					aria-hidden="true"
+					><path
+						d="m9.5 3-.5 2-2 .9-1.8-.6-2 3.4 1.5 1.5v2.6l-1.5 1.5 2 3.4 1.8-.6 2 .9.5 2h5l.5-2 2-.9 1.8.6 2-3.4-1.5-1.5v-2.6l1.5-1.5-2-3.4-1.8.6-2-.9-.5-2z"
+					/><circle cx="12" cy="11.5" r="3" /></svg
+				>
+			</button>
 		</div>
 		{#if mode === 'ai'}
 			{#if checking}<p role="status">Sjekker KI-tilkoblingen …</p>{/if}
@@ -499,6 +519,15 @@
 						class="secondary"
 						onclick={() => (tipIndex = (tipIndex + 1) % pageHelp.tips.length)}>Et annet tips</button
 					>
+					<p>
+						<a
+							href="/tutorial/?tur=finn"
+							onclick={() => {
+								expanded = false;
+								dialog?.close();
+							}}>Vis meg rundt i IT-laben →</a
+						>
+					</p>
 					<p class="fine guide-note">
 						Disse rådene er skrevet på forhånd. Velg KI for å stille egne spørsmål når tjenesten er
 						tilgjengelig.
@@ -562,9 +591,18 @@
 {/if}
 
 <style>
+	.mode-switch .appearance-button {
+		flex: 0 0 44px;
+		min-width: 44px;
+		min-height: 44px;
+		padding: 8px;
+		display: grid;
+		place-items: center;
+		margin-left: auto;
+	}
 	.mode-switch {
 		display: grid;
-		grid-template-columns: repeat(auto-fit, minmax(min(100%, 5.5rem), 1fr));
+		grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) 44px;
 		gap: 6px;
 		margin: 0 0 12px;
 		flex: none;
