@@ -1,16 +1,24 @@
 <script>
 	import { onMount, tick } from 'svelte';
-	import { afterNavigate, replaceState } from '$app/navigation';
+	import { afterNavigate, goto, replaceState } from '$app/navigation';
+	import { page } from '$app/state';
 	import PersonalOverview from '#lib/components/PersonalOverview.svelte';
 	import ModuleCard from '#lib/components/ModuleCard.svelte';
 	import ActivityCard from '#lib/components/ActivityCard.svelte';
 	import { altElevinnhold as aktiviteter, fag, innholdsformat } from '#lib/innhold.js';
 	import { searchCatalogue, normalizeSearch } from '#lib/catalogueSearch.js';
+	import { lab } from '#lib/lab.js';
+	import { teacherLanding } from '#lib/teacherNavigation.js';
+	import { connection, secureHref } from '#lib/connection.js';
+	import { publicationFor } from '#lib/modulePublication.js';
+	import { modulePublication, refreshModulePublication } from '#lib/modulePublicationStore.js';
 
 	let valgtFag = $state('alle');
 	let valgtFormat = $state('alle');
 	let sok = $state('');
 	let klar = $state(false);
+	/** @type {{pathname:string,search:string,hash:string}|null} */
+	let landingEntry = $state(null);
 	/** @type {HTMLInputElement|undefined} */
 	let searchInput = $state();
 	const formater = [
@@ -19,7 +27,22 @@
 	];
 	const valgtFagnavn = $derived(fag.find((item) => item.id === valgtFag)?.navn ?? 'Alle fag');
 	const resultater = $derived(
-		searchCatalogue({ subject: valgtFag, format: valgtFormat, query: sok })
+		searchCatalogue({
+			subject: valgtFag,
+			format: valgtFormat,
+			query: sok,
+			publications: $modulePublication.ready ? $modulePublication.modules : []
+		})
+	);
+	const aktiveModuler = $derived(
+		resultater.modules.filter(
+			(module) => publicationFor(module.id, $modulePublication.modules).status === 'active'
+		)
+	);
+	const tidligereModuler = $derived(
+		resultater.modules.filter(
+			(module) => publicationFor(module.id, $modulePublication.modules).status === 'completed'
+		)
 	);
 	const fagGrupper = $derived(
 		fag
@@ -29,6 +52,11 @@
 				aktiviteter: resultater.activities.filter((activity) => activity.fag === gruppe.id)
 			}))
 	);
+	const secureOverviewPath = $derived.by(() => {
+		const url = new URL(page.url.href);
+		url.searchParams.set('visning', 'elev');
+		return url.pathname + url.search + url.hash;
+	});
 
 	async function nullstillSok() {
 		sok = '';
@@ -46,7 +74,13 @@
 			(url.hash === '#spill' ? 'spill' : viserOvingene ? 'leksjon' : 'alle');
 		sok = url.searchParams.get('q') ?? (viserOvingene ? 'øving' : '');
 	}
-	afterNavigate(lesAdresse);
+	afterNavigate(({ to }) => {
+		lesAdresse();
+		// Capture real page entry; changing catalogue filters with replaceState is not a new visit.
+		landingEntry = to
+			? { pathname: to.url.pathname, search: to.url.search, hash: to.url.hash }
+			: null;
+	});
 	onMount(() => {
 		lesAdresse();
 		klar = true;
@@ -56,6 +90,14 @@
 			window.removeEventListener('popstate', lesAdresse);
 			window.removeEventListener('hashchange', lesAdresse);
 		};
+	});
+	$effect(() => {
+		if (!klar || !$lab.ready || !landingEntry) return;
+		const destination = teacherLanding($lab.user?.role, landingEntry);
+		landingEntry = null;
+		// A person may already have chosen a filter while their login was being checked.
+		if (destination && teacherLanding($lab.user?.role, window.location))
+			void goto(destination, { replace: true });
 	});
 	$effect(() => {
 		if (!klar) return;
@@ -164,9 +206,11 @@
 				</div>
 				<div class="search-status">
 					<p role="status" aria-atomic="true">
-						{resultater.modules.length}
-						{resultater.modules.length === 1 ? 'modul' : 'moduler'}
-						<span aria-hidden="true">·</span>
+						{#if $modulePublication.ready}
+							{resultater.modules.length}
+							{resultater.modules.length === 1 ? 'modul' : 'moduler'}
+							<span aria-hidden="true">·</span>
+						{/if}
 						{resultater.activities.length}
 						{resultater.activities.length === 1 ? 'aktivitet' : 'aktiviteter'}{sok.trim()
 							? ` for «${sok.trim()}»`
@@ -184,18 +228,84 @@
 			<section id="moduler" class="moduloversikt" aria-labelledby="modultittel">
 				<div class="section-heading">
 					<div>
-						<h2 id="modultittel">Moduler <span class="count">{resultater.modules.length}</span></h2>
-						<p>Undervisning og aktiviteter som hører sammen.</p>
+						<h2 id="modultittel">
+							Moduler {#if $modulePublication.ready}<span class="count"
+									>{resultater.modules.length}</span
+								>{/if}
+						</h2>
+						<p>Det dere jobber med nå, og tidligere temaer du kan gå tilbake til.</p>
 					</div>
 				</div>
-				<div class="modulkortliste">
-					{#each resultater.modules as module (module.id)}<ModuleCard {module} />{/each}
-				</div>
-				{#if !resultater.modules.length}<p class="empty-modules">
-						{sok.trim()
-							? 'Ingen moduler passer til søket. Se aktivitetene nedenfor, eller prøv et annet søkeord.'
-							: 'Moduler for dette faget kommer. Utforsk aktivitetene nedenfor.'}
-					</p>{/if}
+				{#if $connection.publicHttp}
+					<div class="module-notice">
+						<p>Åpne den sikre siden for å se hvilke moduler læreren har åpnet.</p>
+						<a class="jump" href={secureHref($connection.httpsOrigin, secureOverviewPath)}
+							>Se modulene på sikker side →</a
+						>
+						<p class="notice-detail">
+							Du kan fortsatt bruke øvingene og aktivitetene nedenfor her.
+						</p>
+					</div>
+				{:else if !$modulePublication.ready}
+					<div class="module-notice" aria-live="polite">
+						{#if $modulePublication.error}
+							<p>{$modulePublication.error}</p>
+							<button
+								type="button"
+								class="text-button"
+								disabled={$modulePublication.loading}
+								onclick={() => refreshModulePublication()}
+								>{$modulePublication.loading ? 'Henter moduler …' : 'Prøv igjen'}</button
+							>
+						{:else}<p>Henter moduler …</p>{/if}
+					</div>
+				{:else}
+					{#if $modulePublication.error}
+						<div class="module-notice" role="status">
+							<p>Viser sist hentede oversikt. {$modulePublication.error}</p>
+							<button
+								type="button"
+								class="text-button"
+								disabled={$modulePublication.loading}
+								onclick={() => refreshModulePublication()}>Prøv igjen</button
+							>
+						</div>
+					{/if}
+					{#if aktiveModuler.length}
+						<div class="module-group">
+							<h3 class="module-group-title">
+								{aktiveModuler.length === 1 ? 'Aktiv modul' : 'Aktive moduler'}
+							</h3>
+							<div class="modulkortliste">
+								{#each aktiveModuler as module (module.id)}<ModuleCard
+										{module}
+										publication={publicationFor(module.id, $modulePublication.modules)}
+										headingLevel={4}
+									/>{/each}
+							</div>
+						</div>
+					{/if}
+					{#if tidligereModuler.length}
+						<div class="module-group">
+							<h3 class="module-group-title">Tidligere moduler</h3>
+							<p class="module-group-description">
+								Finn igjen stoffet og øv videre når du trenger det.
+							</p>
+							<div class="modulkortliste">
+								{#each tidligereModuler as module (module.id)}<ModuleCard
+										{module}
+										publication={publicationFor(module.id, $modulePublication.modules)}
+										headingLevel={4}
+									/>{/each}
+							</div>
+						</div>
+					{/if}
+					{#if !resultater.modules.length}<p class="empty-modules">
+							{sok.trim()
+								? 'Ingen åpne moduler passer til søket. Se aktivitetene nedenfor, eller prøv et annet søkeord.'
+								: 'Ingen moduler er åpnet for dette faget ennå. Utforsk aktivitetene nedenfor.'}
+						</p>{/if}
+				{/if}
 			</section>
 
 			{#if !sok.trim()}<PersonalOverview subject={valgtFag} />{/if}
@@ -497,6 +607,37 @@
 	}
 	.moduloversikt {
 		margin-bottom: 40px;
+	}
+	.module-group + .module-group {
+		margin-top: 28px;
+	}
+	.module-group-title {
+		margin: 0 0 12px;
+		font-size: 1.05rem;
+		font-weight: 650;
+	}
+	.module-group-description {
+		margin: -4px 0 16px;
+		color: var(--color-text-muted);
+		font-size: var(--font-small);
+	}
+	.module-notice {
+		padding: 18px 20px;
+		margin-bottom: 18px;
+		border: 1px solid var(--color-border);
+		border-radius: var(--radius-card);
+		background: var(--color-surface);
+	}
+	.module-notice p {
+		margin: 0;
+	}
+	.notice-detail {
+		color: var(--color-text-muted);
+		font-size: var(--font-small);
+	}
+	button:disabled {
+		cursor: wait;
+		opacity: 0.7;
 	}
 	.oversikt {
 		border-top: 1px solid var(--color-border);

@@ -1,6 +1,6 @@
 # IT-laben
 
-På `dev` vises [moduler](docs/moduler.md) først i hvert fag, med undervisning, øvinger og oppdrag samlet. Alle øvinger og spill kan fortsatt åpnes direkte lenger ned på fagsiden.
+[Moduler](docs/moduler.md) vises først i hvert fag, med undervisning, øvinger og oppdrag samlet. Læreren styrer kommende, aktive og ferdige moduler; aktive vises først, og ferdige beholdes for repetisjon. Alle enkeltøvinger og spill kan fortsatt åpnes direkte lenger ned på fagsiden.
 
 Interaktive forklaringer, små øvelser og kodeeksempler for IT-fagene i videregående skole.
 
@@ -20,9 +20,11 @@ Innholdet handler foreløpig om webutvikling. Laben skal også kunne romme drift
 
 De nyeste frontend/backend- og sessions-visningene er hovedversjonene på de vanlige adressene. Forsiden har én inngang til hvert tema.
 
-På forsiden spør vi **«Hva jobber du med i dag?»**. Alt innhold er synlig fra start. Fagvalgene **Utvikling** og **Driftsstøtte** filtrerer den samme oversikten, og **Alle fag** viser begge igjen. Moduler vises først, med øvinger, oppdrag og spill nedenfor. Søket øverst finner både moduler og aktiviteter. Et eget typefilter avgrenser enkeltaktivitetene. Fag uten publisert innhold viser en kommer-melding.
+På elevforsiden spør vi **«Hva jobber du med i dag?»**. Fagvalgene **Utvikling** og **Driftsstøtte** filtrerer den samme oversikten, og **Alle fag** viser begge igjen. Aktive moduler vises først, deretter ferdige moduler, med enkeltøvinger, oppdrag og spill nedenfor. Kommende moduler skjules fra elevoversikten. Søket øverst finner synlige moduler og aktiviteter. Et eget typefilter avgrenser enkeltaktivitetene. Fag uten publisert innhold viser en kommer-melding.
 
-Søket bruker titler, beskrivelser, emner og ekstra søkeord, slik at for eksempel «innlogging» også finner sessions. Valgt fag, aktivitetstype og søk følger nettadressen, for eksempel `/?fag=utvikling&type=spill&q=session`, og gjenopprettes ved oppfrisking eller retur fra en aktivitet. Vanlige besøk på `/` starter med alle fag. Eldre lenker til `/#spill` åpner spillfilteret, og `/#ovingene` viser øving 5–10 samlet.
+Søket bruker titler, beskrivelser, emner og ekstra søkeord, slik at for eksempel «innlogging» også finner sessions. Valgt fag, aktivitetstype og søk følger nettadressen, for eksempel `/?fag=utvikling&type=spill&q=session`, og gjenopprettes ved oppfrisking eller retur fra en aktivitet. For elever og gjester starter vanlige besøk på `/` med alle fag. Innloggede lærere og administratorer starter i **Undervisning**; **Fagoversikt** åpner elevvisningen med `/?visning=elev`. Eldre lenker til `/#spill` åpner spillfilteret, og `/#ovingene` viser øving 5–10 samlet.
+
+Modulstatusen er felles for 2ITA og 2ITB og lagres i backend. På skolens åpne HTTP-adresse er enkeltaktivitetene tilgjengelige, mens den administrerte moduloversikten peker til HTTPS. Statusen styrer navigasjonen og endrer ikke elevprogresjon eller XP.
 
 ### Backend · øving 5–10
 
@@ -210,4 +212,4 @@ Før backend merges til `main`, klargjøres serveren med [installasjonsskriptene
 
 Lærere kan bruke [lærerpanelet](docs/laererpanel.md) til å teste aktiviteter uten XP og åpne øving eller ekstra undervisningsforsøk for alle i 30 eller 60 minutter. Lærertilgang gis én gang til den eksisterende profilen fra serveren.
 
-På `dev` finnes også [undervisningsmodus](docs/undervisning.md): egne læreropplegg, lærerveiledninger og storskjermvisning, adskilt fra elevleksjonene for selvarbeid.
+[Undervisningsmodus](docs/undervisning.md) samler modulstyring, læreropplegg, lærerveiledninger og storskjermvisning. Læreren starter med modulene og finner relevante forslag inne i hver modul. Oppleggene er fortsatt adskilt fra elevleksjonene for selvarbeid.

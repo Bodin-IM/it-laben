@@ -2,6 +2,7 @@
 	import { connection } from '#lib/connection.js';
 	import SecureAccessGuide from '#lib/components/SecureAccessGuide.svelte';
 	import { onMount } from 'svelte';
+	import { goto } from '$app/navigation';
 	import PersonalOverview from '#lib/components/PersonalOverview.svelte';
 	import LabCustomizer from '#lib/components/LabCustomizer.svelte';
 	import TrackList from '#lib/components/TrackList.svelte';
@@ -134,6 +135,7 @@
 				throw new Error('Kunne ikke lese nøkkelfilen. Velg JSON-filen du lastet ned fra IT-laben.');
 			}
 			await loginWithKey(data, remember);
+			if (hasTeacherRole($lab.user?.role)) await goto('/laerer/undervisning/');
 		});
 		input.value = '';
 	}
@@ -360,7 +362,9 @@
 						<summary>Profilinformasjon</summary>
 						<p>Din profil-ID: <code style="overflow-wrap:anywhere">{$lab.user.id}</code></p>
 					</details>
-					{#if hasTeacherRole($lab.user.role)}<p><a href="/laerer/">Åpne lærerpanel →</a></p>{/if}
+					{#if hasTeacherRole($lab.user.role)}<p>
+							<a href="/laerer/undervisning/">Åpne lærerpanel →</a>
+						</p>{/if}
 					<p>
 						Brukernavnet er tildelt av IT-laben. Be læreren om hjelp hvis det må endres. Nøkkelfilen
 						gir tilgang til profilen uavhengig av navnet.

@@ -43,3 +43,24 @@ test('søk krever alle ordene og håndterer tomme treff uten å endre katalogen'
 	});
 	assert.equal(JSON.stringify({ altElevinnhold, moduler }), before);
 });
+
+test('elevenes søk skjuler kommende moduler og viser aktive før tidligere, også ved fagvalg', () => {
+	const publications = moduler.map((module, index) => ({
+		id: module.id,
+		status: ['completed', 'active', 'upcoming', 'active'][index],
+		revision: 1,
+		updatedAt: 1000
+	}));
+	const result = searchCatalogue({ publications });
+	assert.deepEqual(
+		result.modules.map((module) => module.id),
+		['data-og-lagring', 'fra-kode-til-drift', 'meldingens-reise']
+	);
+	assert.deepEqual(
+		searchCatalogue({ publications, subject: 'utvikling' }).modules.map((module) => module.id),
+		['data-og-lagring', 'meldingens-reise']
+	);
+	assert.deepEqual(searchCatalogue({ publications, query: 'innlogging' }).modules, []);
+	assert.deepEqual(result.activities, searchCatalogue().activities);
+	assert.deepEqual(searchCatalogue({ publications: [] }).modules, []);
+});

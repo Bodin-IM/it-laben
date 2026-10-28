@@ -18,6 +18,7 @@
 	/** @type {HTMLElement|undefined} */
 	let header;
 	const teacherPage = $derived(page.url.pathname.startsWith('/laerer/'));
+	const teacher = $derived(hasTeacherRole($lab.user?.role));
 
 	async function openPartner() {
 		closeMenus();
@@ -56,7 +57,11 @@
 
 <header class="lab-header" bind:this={header}>
 	<div class="header-inner">
-		<a class="brand" href="/" aria-label="IT-laben – forside">
+		<a
+			class="brand"
+			href={teacher ? '/laerer/undervisning/' : '/'}
+			aria-label={teacher ? 'IT-laben – undervisning' : 'IT-laben – forside'}
+		>
 			<span class="brand-mark" aria-hidden="true">IT</span><span
 				>IT-laben<span class="brand-dot">.</span></span
 			>
@@ -73,12 +78,15 @@
 			{menuOpen ? 'Lukk meny' : 'Meny'}
 		</button>
 		<nav id="site-navigation" class="main-nav" class:open={menuOpen} aria-label="Hovedmeny">
-			<a href="/" aria-current={page.url.pathname === '/' ? 'page' : undefined}>Fagoversikt</a>
+			<a
+				href={teacher ? '/?visning=elev' : '/'}
+				aria-current={page.url.pathname === '/' ? 'page' : undefined}>Fagoversikt</a
+			>
 			<details class="subjects" bind:this={subjectsMenu} onfocusout={leaveSubjects}>
 				<summary>Velg fag <span aria-hidden="true">⌄</span></summary>
 				<div class="subject-links">
 					{#each fag as subject (subject.id)}
-						<a href={`/?fag=${subject.id}`}
+						<a href={`/?fag=${subject.id}${teacher ? '&visning=elev' : ''}`}
 							><strong>{subject.navn}</strong><span>{subject.beskrivelse}</span></a
 						>
 					{/each}
@@ -87,11 +95,11 @@
 			<a href="/toppliste/" aria-current={page.url.pathname === '/toppliste/' ? 'page' : undefined}
 				>Toppliste</a
 			>
-			{#if hasTeacherRole($lab.user?.role)}
+			{#if teacher}
 				<a
-					href="/laerer/"
+					href="/laerer/undervisning/"
 					aria-current={teacherPage
-						? page.url.pathname === '/laerer/'
+						? page.url.pathname === '/laerer/undervisning/'
 							? 'page'
 							: 'location'
 						: undefined}>Lærerpanel</a

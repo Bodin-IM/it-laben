@@ -35,6 +35,7 @@ import {
 } from './students.js';
 import { leaderboard } from './leaderboard.js';
 import { teachingLibrary } from './teaching.js';
+import { modulePublications, setModulePublication } from './modules.js';
 import { avatars } from '../src/lib/avatars.js';
 import { schoolClasses, classCapacities } from '../src/lib/classes.js';
 import { labPartnerRouter } from './lab-partner/router.js';
@@ -56,6 +57,14 @@ export function createApp({ db, config, clock = Date.now, limits = true }) {
 	app.disable('x-powered-by');
 	app.set('trust proxy', 'loopback');
 	app.use(helmet());
+	// Read-only publication metadata never reads or changes an incoming session.
+	// It still follows the production HTTPS requirement for all API requests.
+	app.get('/api/modules', (req, res) => {
+		res.set('Cache-Control', 'no-store');
+		if (config.secure && !req.secure)
+			return fail(res, 400, 'HTTPS_REQUIRED', 'Bruk nettstedets HTTPS-adresse.');
+		res.json(modulePublications(db));
+	});
 	app.use((req, res, next) => {
 		res.set('Cache-Control', 'no-store');
 		res.set('Vary', 'Cookie');
@@ -495,6 +504,9 @@ export function createApp({ db, config, clock = Date.now, limits = true }) {
 	app.get('/api/teacher/teaching', authenticated, (req, res) =>
 		res.json(teachingLibrary(db, req.labUser.id))
 	);
+	app.post('/api/teacher/modules/:moduleId', authenticated, accountMatches, (req, res) =>
+		res.json(setModulePublication(db, req.labUser.id, req.params.moduleId, req.body, clock()))
+	);
 	app.get('/api/teacher/overview', authenticated, (req, res) =>
 		res.json(teacherOverview(db, req.labUser.id, clock()))
 	);
@@ -597,6 +609,7 @@ export function createApp({ db, config, clock = Date.now, limits = true }) {
 			error.code?.startsWith('TEACHER_') ||
 			error.code?.startsWith('ADMIN_') ||
 			error.code?.startsWith('STUDENT_') ||
+			error.code?.startsWith('MODULE_') ||
 			error.code === 'ACCOUNT_DISABLED'
 		) {
 			if (error.retryAt)

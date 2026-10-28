@@ -1,8 +1,24 @@
 # Undervisningsmodus og elevleksjoner
 
-Utvidelsen ligger på `dev`. `main` og skolens automatiske publisering endres ikke av en push til denne branchen. Bruk den separate lokale dev-databasen fra [elevadministrasjon](elevadministrasjon.md) når du prøver løsningen.
+Undervisningssiden samler modulstyring, læreropplegg, lærerveiledninger og storskjermvisning. Lærere og administratorer starter i moduloversikten på `/laerer/undervisning/`. Bruk den separate lokale dev-databasen fra [elevadministrasjon](elevadministrasjon.md) når du prøver løsningen med testprofiler.
 
-Eksempelvisninger: [undervisningsbibliotek](teaching-library.png), [lærerveiledning](teaching-guide.png) og [storskjermvisning](teaching-presentation.png).
+Eksempelvisninger fra den første undervisningsversjonen: [undervisningsbibliotek](teaching-library.png), [lærerveiledning](teaching-guide.png) og [storskjermvisning](teaching-presentation.png). De viser ikke den nye moduladministrasjonen.
+
+## Lærerens startside og moduloversikt
+
+Når en innlogget lærer eller administrator åpner den vanlige forsiden `/`, går hen til **Undervisning**. Det samme skjer etter vellykket nøkkelinnlogging. Logoen og **Lærerpanel** går dit, og **Undervisning** er første lærerfane. **Oversikt**, **Elever** og **Aktiviteter** beholdes.
+
+**Fagoversikt** og **Åpne elevvisningen** bruker `/?visning=elev`, slik at læreren kan åpne elevoversikten uten å bli sendt tilbake. Eksplisitte fagvalg, søk, ankere og direktelenker bevares. Å åpne **Min lab** som allerede innlogget lærer gir fortsatt tilgang til profil og innstillinger.
+
+Aktive moduler står øverst, ferdige moduler følger etter, og kommende moduler er tilgjengelige for lærerens forberedelse. Søk og fagfilter avgrenser modulene. Under listen ligger **Støtte til undervisningen**, med lenker til alle opplegg og elevleksjoner. Relevante forslag til gjennomgang vises inne i hver modul, der læreren også ser mål, forkunnskaper og elevarbeid.
+
+Læreren velger **Kommende**, **Aktiv** eller **Ferdig** og lagrer valget. Statusen gjelder begge klassene, **2ITA og 2ITB**. Flere moduler kan være aktive; ingen annen modul avsluttes automatisk. Kommende moduler skjules fra elevoversikten, mens ferdige moduler fortsatt kan åpnes for repetisjon. **Ferdig** beskriver undervisningsforløpet og endrer ingen elevs progresjon, vurdering eller XP.
+
+Status lagres i backend, med revisjonskontroll ved samtidige endringer. Ved konflikt henter læreren siste lagrede status før et nytt valg lagres. De fire eksisterende modulene starter som aktive ved oppgradering; nye moduler uten lagret status er kommende. [Modulveiledningen](moduler.md) beskriver lagring, rettigheter og avgrensninger.
+
+Skolens åpne HTTP-versjon beholder enkeltleksjoner, øvinger og spill. Den administrerte moduloversikten peker til HTTPS, hvor modulstatus kan hentes. Skjuling av kommende moduler styrer navigasjonen; den beskytter ikke det statiske leksjonsinnholdet. Private lærernotater og skrivehandlinger krever fortsatt autorisasjon på serveren.
+
+Organiseringen følger U1 og U6 i [designgrunnlaget](webdesign-og-brukeropplevelse.md): prioriter dagens arbeid, gi forståelig status og legg relevant støtte nær oppgaven. Ferdige moduler beholdes i tråd med muligheten til å gå tilbake i [pedagogikkgrunnlagets del 3](pedagogisk-grunnlag.md#3-progresjon-støtte-og-elevens-styring); skillet fra vurdert forståelse følger [del 7](pedagogisk-grunnlag.md#7-vurdering-og-lærerens-rolle). Dette er lokale valg for organisering av eksisterende innhold, uten nye læreplanmål eller endrede vurderingsregler.
 
 ## To typer innhold
 
@@ -10,16 +26,19 @@ Eksempelvisninger: [undervisningsbibliotek](teaching-library.png), [lærerveiled
 
 **Undervisningsopplegg** ligger under **Lærerpanel → Undervisning**, på `/laerer/undervisning/`. Et opplegg samler mål, tidsforslag, leksjonsrekkefølge, spørsmål til klassen, private lærernotater og forslag til selvarbeid etterpå. Oppleggene er egne innholdselementer og inngår ikke i elevenes aktivitetsliste, fullføringskrav eller XP.
 
-Lærere og administratorer får en **Undervisning →**-lenke på forsiden og en egen inngang i lærerpanelet. Elevvisningen inneholder ikke disse kontrollene.
+Modulsiden viser relevante opplegg og administrasjonskontroller til lærer og administrator. Elever får modulens vanlige gjennomgangs- og aktivitetslenker.
+
+Eksisterende direktelenker med `?opplegg=<id>` åpner fortsatt samme læreropplegg, og `?vis=leksjoner` åpner **Elevleksjoner · rask tilgang**. `?vis=opplegg` åpner hele undervisningsbiblioteket; undervisningssidens adresse uten slike valg åpner moduloversikten.
 
 ## Gjennomfør en økt
 
-1. Åpne **Undervisning** og finn et opplegg med søk eller fagfilter.
-2. Velg **Åpne opplegget** for å lese mål, forberedelser og lærernotater.
+1. Åpne **Undervisning** og velg modulen klassen arbeider med. Velg og lagre **Aktiv** når elevene skal begynne.
+2. Åpne et av modulens forslag til gjennomgang for å lese mål, forberedelser og lærernotater. **Alle undervisningsopplegg** under moduloversikten gir også tilgang til hele biblioteket med søk og fagfilter.
 3. Velg **Start gjennomgangen** eller **Vis på storskjerm**.
 4. Bruk forsøkskontrollene i leksjonen som vanlig. Verktøylinjen lar deg velge leksjon, gå videre eller tilbake og bruke fullskjerm.
 5. **Lærerveiledning** åpner forberedelsene i en egen fane. Den kan ligge på lærerskjermen mens leksjonen vises for klassen.
 6. **Avslutt visning** går tilbake til opplegget. Elevene bruker de vanlige elevlenkene til etterarbeidet.
+7. Når dere er ferdige med forløpet, velg **Ferdig** og lagre. Elevene beholder tilgang til modulen for repetisjon.
 
 Storskjermvisningen bruker `?visning=presentasjon`, eventuelt med `opplegg=...`. Den krever innlogget lærer-/administratorrolle. En elev som følger samme leksjonslenke får vanlig elevvisning.
 
@@ -47,6 +66,10 @@ Tidsforslagene inkluderer avslutning og samtale. Oppleggene gir ikke automatisk 
 - Nye driftsopplegg bruker `subject: 'drift'` og tilsvarende ressurser. Fagfilter og visning trenger ingen egen spesialkode.
 
 Lærernotater hentes fra `GET /api/teacher/teaching`, med serverkontroll av lærerrollen ved hvert kall. Notatene importeres ikke i frontendpakken. En ny lærerstyrt side med privat veiledning må bruke samme tilgangsprinsipp; ikke legg private notater i en elevkomponent.
+
+## Utprøving av endret lærerflyt
+
+Nettleserprøving av den nye modulstyringen og lærerinngangen er ikke gjennomført i denne arbeidsøkten. Kontroller innlogging, elevvisning, tilbakeknapp, statusendringer, konflikt og nytt forsøk, samt tastatur, berøring, smal skjerm, zoom og begge temaer. Eldre skjermbilder og kontrollogger gjelder sine opprinnelige versjoner. Teknisk kontroll må suppleres med utprøving av om elever og lærere finner aktivt arbeid og tidligere moduler.
 
 ## Toppliste med mulighet til å skjule seg
 
