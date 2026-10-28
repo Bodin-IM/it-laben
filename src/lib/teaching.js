@@ -88,20 +88,6 @@ export const teachingPlans = [
 		],
 		lessonIds: ['fillagring', 'oving-5', 'oving-6'],
 		selfWorkIds: ['oving-5', 'oving-6']
-	},
-	{
-		id: 'fra-kode-til-tjeneste',
-		audience: 'teacher',
-		title: 'Fra kode til tjeneste',
-		subject: 'utvikling',
-		minutes: 45,
-		description: 'Samle validering, tilgang og publisering i en gjennomgang fram mot produksjon.',
-		goals: [
-			'Skille ugyldige data fra manglende tilgang.',
-			'Beskrive bygging, omstart og backup som deler av drift.'
-		],
-		lessonIds: ['oving-7', 'oving-9', 'oving-10'],
-		selfWorkIds: ['oving-10', 'nattvakt']
 	}
 ];
 

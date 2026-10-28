@@ -14,8 +14,8 @@ import { modulePublications } from '../server/modules.js';
 import { moduler } from '../src/lib/moduler.js';
 import { publicationFor, orderedModules, visibleModules } from '../src/lib/modulePublication.js';
 
-// Migrations 010/011 preserve Backend and Drift; later additions start upcoming.
-const migratedModuleIds = new Set(['backend', 'fra-kode-til-drift']);
+// Historical migration rows remain; only current catalogue entries are published.
+const migratedModuleIds = new Set(['backend']);
 const initialPublications = () =>
 	moduler.map((module) => ({
 		id: module.id,
@@ -175,13 +175,13 @@ test('modulpublisering: innlogging, lærerrolle, konto, CSRF, Origin og valideri
 		assert.equal((await teacher.set('backend', status, 0)).status, 400);
 	for (const revision of [-1, 0.5, '0', null, Number.MAX_SAFE_INTEGER + 1])
 		assert.equal((await teacher.set('backend', 'upcoming', revision)).status, 400);
-	assert.equal((await admin.set('fra-kode-til-drift', 'upcoming', 0)).status, 200);
+	assert.equal((await admin.set('databaser', 'active', 0)).status, 200);
 	f.db.prepare('DELETE FROM user_roles WHERE user_id=?').run(teacher.id);
 	assert.equal((await teacher.set('backend', 'upcoming', 0)).status, 403);
 	assert.equal(publicationFor('backend', modulePublications(f.db).modules).revision, 0);
 });
 
-test('modulpublisering: kommende, aktiv og ferdig endrer ikke elevprogresjon, poeng eller andre moduler', async (t) => {
+test('modulpublisering: status bevarer elevdata og historisk driftmodul uten å publisere den', async (t) => {
 	const f = await fixture(t),
 		teacher = await f.staff(),
 		student = f.client();
@@ -190,11 +190,27 @@ test('modulpublisering: kommende, aktiv og ferdig endrer ikke elevprogresjon, po
 		.prepare('INSERT INTO progress VALUES (?,?,?,?,?,?)')
 		.run(student.id, 'frontend-backend', 'existing-work', 10, 10, '{"saved":true}');
 	f.db
+		.prepare('INSERT INTO progress VALUES (?,?,?,?,?,?)')
+		.run(student.id, 'oving-10', 'check-v2', 10, 10, '{"saved":true}');
+	f.db
 		.prepare('INSERT INTO rewards VALUES (?,?,?,25,?,10)')
 		.run(randomUUID(), student.id, 'existing-reward', 'Behold poeng');
 	const progress = f.db.prepare('SELECT * FROM progress').all();
 	const rewards = f.db.prepare('SELECT * FROM rewards').all();
+	const users = f.db.prepare('SELECT * FROM users').all();
+	const oldModule = f.db
+		.prepare("SELECT * FROM module_publication WHERE module_id='fra-kode-til-drift'")
+		.get();
+	assert.ok(oldModule);
 	const original = (await teacher.request('/modules')).modules;
+	assert.deepEqual(
+		original.map((module) => module.id),
+		['backend', 'databaser']
+	);
+	const removed = await teacher.set('fra-kode-til-drift', 'completed', 0);
+	assert.equal(removed.status, 404);
+	assert.equal(removed.error.code, 'MODULE_NOT_FOUND');
+	assert.deepEqual((await teacher.request('/modules')).modules, original);
 	let revision = 0;
 	for (const status of ['upcoming', 'active', 'completed']) {
 		const result = await teacher.set('backend', status, revision++);
@@ -209,6 +225,11 @@ test('modulpublisering: kommende, aktiv og ferdig endrer ikke elevprogresjon, po
 		);
 		assert.deepEqual(f.db.prepare('SELECT * FROM progress').all(), progress);
 		assert.deepEqual(f.db.prepare('SELECT * FROM rewards').all(), rewards);
+		assert.deepEqual(f.db.prepare('SELECT * FROM users').all(), users);
+		assert.deepEqual(
+			f.db.prepare("SELECT * FROM module_publication WHERE module_id='fra-kode-til-drift'").get(),
+			oldModule
+		);
 	}
 	assert.equal(
 		f.db.prepare("SELECT COUNT(*) AS n FROM teacher_actions WHERE action LIKE 'module-%'").get().n,
@@ -280,7 +301,7 @@ test('modulpublisering: oppgradering bevarer elever, og status overlever omstart
 		initialPublications()
 	);
 	const teacher = await f.staff();
-	await teacher.set('fra-kode-til-drift', 'completed', 0);
+	assert.equal((await teacher.set('backend', 'completed', 0)).status, 200);
 	const expected = modulePublications(f.db);
 	const reopened = openDatabase(f.filename);
 	assert.deepEqual(modulePublications(reopened), expected);
@@ -294,9 +315,8 @@ test('modulpublisering: oppgradering bevarer elever, og status overlever omstart
 	f.db.prepare('DELETE FROM users WHERE id=?').run(teacher.id);
 	assert.deepEqual(modulePublications(f.db), expected);
 	assert.equal(
-		f.db
-			.prepare("SELECT updated_by FROM module_publication WHERE module_id='fra-kode-til-drift'")
-			.get().updated_by,
+		f.db.prepare("SELECT updated_by FROM module_publication WHERE module_id='backend'").get()
+			.updated_by,
 		null
 	);
 });

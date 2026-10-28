@@ -18,7 +18,7 @@ I læreroversikten velges status med tre radiovalg som lagres automatisk. **Full
 
 ### Lagring og tilgang
 
-Status lagres i backendens SQLite-database og følger med ved omstart og vanlig databasebackup. Migrasjon `010_module_publication.sql` setter de fire eksisterende modulene til aktive for å bevare tidligere tilgjengelighet. Nye katalogmoduler uten lagret status starter som kommende.
+Status lagres i backendens SQLite-database og følger med ved omstart og vanlig databasebackup. Migrasjon `010_module_publication.sql` satte de fire opprinnelige modulene til aktive for å bevare tidligere tilgjengelighet. Nye katalogmoduler uten lagret status starter som kommende.
 
 Hver endring bruker en revisjon. Hvis en annen lærer eller fane har endret modulen siden statusen ble hentet, avvises en motstridende lagring med `MODULE_CONFLICT`. Hent siste lagrede status og velg endringen på nytt. Identisk gjentakelse av den siste endringen etter et tapt svar oppretter ikke en ekstra endring. Grensesnittet bekrefter lagring først etter svar fra serveren.
 
@@ -42,13 +42,14 @@ Modulen er en samling, ikke en ny aktivitetstype som gir XP. «Aktiviteter» er 
 
 ## Samlinger
 
-- **Backend · Utvikling:** Meldingens reise, Data og lagring, Innlogging og tilgang, deretter oppsummering og den valgfrie Nattevakt-utfordringen. De tre første er nå deler i samme modul. Se [mål og elevveiledning](backend-og-tutorial.md).
+- **Backend · Utvikling:** Meldingens reise, Data og lagring, Innlogging og tilgang, Publisering og drift, deretter repetisjon og den valgfrie Nattevakt-utfordringen. Publisering og drift inneholder Øving 10 med bygg, systemd, omstart og backup. Se [mål og elevveiledning](backend-og-tutorial.md).
 - **Databaser · Utvikling:** egen modul med teori, søkeøvinger og arbeid i egen kode.
-- **Fra kode til drift · Driftsstøtte:** publisering, systemd, omstart og backup i Øving 10. Backend-modulen lenker videre hit.
 
 Migrasjon `011_backend_module.sql` samler publiseringsstatusen: hvis en tidligere del er kommende (eller mangler), starter Backend som kommende. Hvis alle er ferdige, blir den ferdig; ellers aktiv. Dette bevarer et restriktivt lærervalg. De historiske statusradene beholdes, men vises ikke som egne moduler. Aktivitets-ID-er, progresjon, XP og vurderingsregler endres ikke.
 
-Gamle moduladresser videresendes til starten på tilsvarende del i Backend. Gamle `?modul=`-verdier gir riktig tilbakevei og ny modulkontekst. Direkte aktivitetslenker finner sin modul når tilhørigheten er entydig. Ved flere eiere må en modul velges uttrykkelig.
+«Fra kode til drift» er deretter tatt inn i Backend på brukerens bestilling. Øving 10 beholder fagtilknytningen Driftsstøtte, men inngår i Backend-forløpet og følger Backend-modulens publiseringsstatus. Eksisterende gjennomføring teller nå blant Backends 14 elevaktiviteter uten nye belønninger. Dette krever ingen ny databasemigrering: den gamle statusraden og endringshistorikken beholdes, men katalogen og status-API-et viser bare Backend og Databaser. Backendens lagrede status endres ikke. Undervisningsopplegget «Fra kode til tjeneste» og den tilhørende lærerveiledningen er fjernet; enkeltøvingene består.
+
+Gamle moduladresser videresendes til starten på tilsvarende del i Backend. `/moduler/fra-kode-til-drift/` går til `/moduler/backend/#del-16`, som er Publisering og drift. Gamle `?modul=`-verdier gir riktig tilbakevei og ny modulkontekst. Direkte aktivitetslenker finner sin modul når tilhørigheten er entydig. Ved flere eiere må en modul velges uttrykkelig.
 
 ## Modulsiden
 
@@ -72,7 +73,7 @@ Ved nye eller vesentlig endrede Vg2-moduler brukes [læreplangrunnlaget](laerepl
 
 Samlingene følger [det pedagogiske grunnlaget](https://github.com/Bodin-IM/it-laben/blob/main/docs/pedagogisk-grunnlag.md). Denne endringen organiserer eksisterende innhold. Tilbakemeldinger og faglige tester beholdes på enkeltsidene; navigasjonen vurderer ingen elevsvar. Videre utvikling av en modul skal beskrive en ny anvendelse med mindre støtte, og hvordan lærer eller elev kan undersøke forståelsen. En gjennomgått samling dokumenterer ikke i seg selv overføring eller læringseffekt.
 
-Registrer moduler i `src/lib/moduler.js`. Bruk stabile aktivitets-ID-er fra `innhold.js` og oppleggs-ID-er fra `teaching.js`. `steps` angir rekkefølge og innholdstype; `resources` lenker til åpne aktiviteter. Private lærernotater skal fortsatt ligge i `server/teaching.js`. De dynamiske modulrutene blir forhåndsbygget som statiske sider, også for direkte åpning og oppfrisking.
+Registrer moduler i `src/lib/moduler.js`. Bruk stabile aktivitets-ID-er fra `innhold.js` og oppleggs-ID-er fra `teaching.js`. `steps` angir rekkefølge og innholdstype; `resources` lenker til åpne aktiviteter. Et elevsteg fra et annet programfag må oppgi et gyldig `subject` som samsvarer med aktivitetens fag, slik Øving 10 oppgir `drift`. Uten dette gjelder modulens fag. Dette lar modulen samle et sammenhengende forløp uten å endre fagprogresjonen. Private lærernotater skal fortsatt ligge i `server/teaching.js`. De dynamiske modulrutene blir forhåndsbygget som statiske sider, også for direkte åpning og oppfrisking.
 
 Ved utprøving: sjekk om elever finner riktig modul, forstår forskjellen på gjennomgang og elevarbeid, og finner igjen et spill uten å gå gjennom modulen først. Vurder pedagogisk effekt separat fra teknisk navigasjon.
 

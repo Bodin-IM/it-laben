@@ -298,11 +298,6 @@
 									</li>{/each}
 							</ul>
 						</section>{/if}
-					{#if module.id === 'backend'}<section class="panel">
-							<h2>Videre til drift</h2>
-							<p>Publisering, systemd og backup hører til Driftsstøtte.</p>
-							<a href="/moduler/fra-kode-til-drift/">Fra kode til drift →</a>
-						</section>{/if}
 					<a class="back-link" href="/tutorial/">Slik bruker du IT-laben →</a>
 					<a class="back-link" href={`${studentOverview}#utforsk`}
 						>Alle øvinger og spill i {subject?.navn.toLocaleLowerCase('nb-NO')}

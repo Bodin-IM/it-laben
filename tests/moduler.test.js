@@ -23,7 +23,7 @@ test('moduler peker til eksisterende sider og gir ikke nye XP-aktiviteter', () =
 
 test('modulfremgang skiller undervisning og påbegynt arbeid fra gjennomgått eller bestått', () => {
 	const module = moduler[0];
-	assert.deepEqual(moduleProgress(module), { completed: 0, total: 13, started: false });
+	assert.deepEqual(moduleProgress(module), { completed: 0, total: 14, started: false });
 	assert.deepEqual(
 		moduleProgress(module, [
 			{ id: 'meldingens-reise', status: 'passed' },
@@ -31,13 +31,13 @@ test('modulfremgang skiller undervisning og påbegynt arbeid fra gjennomgått el
 			{ id: 'chat', status: 'new' },
 			{ id: 'oving-10', status: 'passed' }
 		]),
-		{ completed: 0, total: 13, started: true }
+		{ completed: 1, total: 14, started: true }
 	);
 	const completed = [
 		{ id: 'frontend-backend', status: 'reviewed' },
 		{ id: 'chat', status: 'passed' }
 	];
-	assert.deepEqual(moduleProgress(module, completed), { completed: 2, total: 13, started: true });
+	assert.deepEqual(moduleProgress(module, completed), { completed: 2, total: 14, started: true });
 	assert.equal(moduleProgress(module, [...completed, ...completed]).completed, 2);
 });
 
@@ -59,6 +59,18 @@ test('modulkatalogen avviser brutte referanser, duplikater og feil innholdstype'
 	assert.throws(
 		() => validateModules([{ ...moduler[0], steps: [{ kind: 'oving', id: 'oving-10' }] }]),
 		/Feil innholdstype eller fag/
+	);
+	assert.doesNotThrow(() =>
+		validateModules([
+			{ ...moduler[0], steps: [{ kind: 'oving', id: 'oving-10', subject: 'drift' }] }
+		])
+	);
+	assert.throws(
+		() =>
+			validateModules([
+				{ ...moduler[0], steps: [{ kind: 'oving', id: 'oving-10', subject: 'ukjent' }] }
+			]),
+		/Ugyldig modulsteg/
 	);
 });
 

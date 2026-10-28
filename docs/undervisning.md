@@ -14,7 +14,7 @@ Læreroversikten viser én kompakt rad per modul i fast katalogrekkefølge. Rade
 
 Læreren velger **Kommende**, **Aktiv** eller **Fullført** i tre synlige radiovalg. Valget lagres automatisk. Raden viser **Lagrer …** og deretter **Lagret** først etter bekreftet svar. Ved feil vises sist bekreftede status og en forklaring; læreren kan hente siste status eller velge på nytt. Inne på selve modulsiden beholdes den eksisterende statusmenyen med eksplisitt lagreknapp; **Fullført** og **Ferdig** er samme status (`completed`). Statusen gjelder begge klassene, **2ITA og 2ITB**. Flere moduler kan være aktive; ingen annen modul avsluttes automatisk. Kommende moduler skjules fra elevoversikten, mens ferdige moduler fortsatt kan åpnes for repetisjon. **Ferdig** beskriver undervisningsforløpet og endrer ingen elevs progresjon, vurdering eller XP.
 
-Status lagres i backend, med revisjonskontroll ved samtidige endringer. Ved konflikt henter læreren siste lagrede status før et nytt valg lagres. De fire eksisterende modulene starter som aktive ved oppgradering; nye moduler uten lagret status er kommende. [Modulveiledningen](moduler.md) beskriver lagring, rettigheter og avgrensninger.
+Status lagres i backend, med revisjonskontroll ved samtidige endringer. Ved konflikt henter læreren siste lagrede status før et nytt valg lagres. Oversikten har nå Backend og Databaser. Øving 10 inngår i Backend og følger modulens eksisterende status; den har ingen egen modulrad. Nye moduler uten lagret status er kommende. [Modulveiledningen](moduler.md) beskriver migreringshistorikk, lagring, rettigheter og avgrensninger.
 
 Skolens åpne HTTP-versjon beholder enkeltleksjoner, øvinger og spill. Den administrerte moduloversikten peker til HTTPS, hvor modulstatus kan hentes. Skjuling av kommende moduler styrer navigasjonen; den beskytter ikke det statiske leksjonsinnholdet. Private lærernotater og skrivehandlinger krever fortsatt autorisasjon på serveren.
 
@@ -28,7 +28,7 @@ Den kompakte visningen følger U1, U3, U6 og U7 i [designgrunnlaget](webdesign-o
 
 Modulsiden viser relevante opplegg og administrasjonskontroller til lærer og administrator. Elever får modulens vanlige gjennomgangs- og aktivitetslenker.
 
-Eksisterende direktelenker med `?opplegg=<id>` åpner fortsatt samme læreropplegg, og `?vis=leksjoner` åpner **Elevleksjoner · rask tilgang**. `?vis=opplegg` åpner hele undervisningsbiblioteket; undervisningssidens adresse uten slike valg åpner moduloversikten.
+Direktelenker med `?opplegg=<id>` åpner tilgjengelige læreropplegg, og `?vis=leksjoner` åpner **Elevleksjoner · rask tilgang**. `?vis=opplegg` åpner hele undervisningsbiblioteket; undervisningssidens adresse uten slike valg åpner moduloversikten. «Fra kode til tjeneste» er fjernet fra biblioteket og lærer-API-et. Den gamle oppleggslenken viser at opplegget ikke finnes. Øving 7, 9 og 10 er fortsatt tilgjengelige som enkeltøvinger og i Backend.
 
 ## Gjennomfør en økt
 
@@ -48,12 +48,11 @@ I presentasjon skjules vanlig sidehode, Min lab-lenker, personlig progresjon, fa
 
 ## De første oppleggene
 
-| Opplegg               | Tid    | Gjennomgang                                                                 |
-| --------------------- | ------ | --------------------------------------------------------------------------- |
-| Meldingens reise      | 35 min | Frontend/backend og chatrom, deretter To nettlesere, én chat som selvarbeid |
-| Hvem er logget inn?   | 45 min | Sessions, avsender og eierskap; forslag til Øving 8 og Redd chatten etterpå |
-| Data som overlever    | 40 min | Minne, fillagring og trygg endring med Øving 5–6                            |
-| Fra kode til tjeneste | 45 min | Validering, tilgang og publisering; forberedelse til videre driftsarbeid    |
+| Opplegg             | Tid    | Gjennomgang                                                                 |
+| ------------------- | ------ | --------------------------------------------------------------------------- |
+| Meldingens reise    | 35 min | Frontend/backend og chatrom, deretter To nettlesere, én chat som selvarbeid |
+| Hvem er logget inn? | 45 min | Sessions, avsender og eierskap; forslag til Øving 8 og Redd chatten etterpå |
+| Data som overlever  | 40 min | Minne, fillagring og trygg endring med Øving 5–6                            |
 
 Tidsforslagene inkluderer avslutning og samtale. Oppleggene gir ikke automatisk elever godkjenning eller poeng. **Undervisningsforsøk** under **Aktiviteter** er fortsatt et separat verktøy for å åpne et ekstra vurdert forsøk for klassen.
 
@@ -69,7 +68,7 @@ Lærernotater hentes fra `GET /api/teacher/teaching`, med serverkontroll av lær
 
 ## Utprøving av endret lærerflyt
 
-Den kompakte oversikten er kontrollert 28. oktober 2026 med en lokal testdatabase og oppdiktet lærerprofil:
+Den kompakte oversikten ble kontrollert 28. oktober 2026 med en lokal testdatabase og oppdiktet lærerprofil. Denne kontrolloggen gjelder versjonen før publisering og drift ble innlemmet i Backend:
 
 - Automatisk lagring av alle tre statuser, omlasting, søk, fagfilter og tomt søkeresultat.
 - Feilet lagring og nytt forsøk, tregt svar, konflikt med en annen lærerendring og mislykket første henting av modulstatus. Ingen status er valgt før metadata er hentet. Rader og tastaturfokus beholder plassen ved vanlig lagring; fokus trekkes ikke tilbake fra søkefeltet ved et sent svar.
@@ -80,6 +79,8 @@ Den kompakte oversikten er kontrollert 28. oktober 2026 med en lokal testdatabas
 - 199 tester består, samt `npm run check` og produksjonsbygg. Oversikten er også kontrollert etter samlingen til Backend, med tre moduler og ni radiovalg. Backendens statusverdier, revisjonskontroll, elevprogresjon og vurderingsregler er uendret; migreringen av de gamle modulenhetene er beskrevet i [modulveiledningen](moduler.md).
 
 Dette er teknisk kontroll, ikke full WCAG-samsvarsvurdering eller utprøving med en virkelig skjermleser. Den faktiske skoleinstallasjonen og læreres bruk av den nye oversikten må prøves etter oppdatering.
+
+For den senere innlemmingen av publisering og drift i Backend: se [kontroll og gjenstående nettleserprøve](backend-og-tutorial.md#kontroll-av-innlemmingen-av-publisering-og-drift).
 
 ## Toppliste med mulighet til å skjule seg
 
