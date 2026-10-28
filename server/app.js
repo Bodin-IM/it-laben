@@ -39,6 +39,7 @@ import { modulePublications, setModulePublication } from './modules.js';
 import { avatars } from '../src/lib/avatars.js';
 import { schoolClasses, classCapacities } from '../src/lib/classes.js';
 import { labPartnerRouter } from './lab-partner/router.js';
+import { saveFeedback, listFeedback, setFeedbackStatus } from './feedback.js';
 
 const DAY = 86400000;
 const hash = (value) => createHash('sha256').update(value).digest('hex');
@@ -149,6 +150,8 @@ export function createApp({ db, config, clock = Date.now, limits = true }) {
 		app.use('/api/timed', limit(60000, 3000));
 		app.use('/api/practice', limit(60000, 3000));
 		app.use('/api/teacher', limit(60000, 120));
+		app.use('/api/admin', limit(60000, 120));
+		app.use('/api/feedback', limit(10 * 60000, 120));
 		app.use('/api/leaderboard', limit(60000, 120));
 	}
 	const authenticated = (req, res, next) => {
@@ -500,6 +503,23 @@ export function createApp({ db, config, clock = Date.now, limits = true }) {
 				.all()
 		};
 	};
+	app.post('/api/feedback', (req, res) => {
+		const accountId = req.labUser?.id ?? null;
+		if (req.body.accountId !== accountId)
+			return fail(
+				res,
+				409,
+				'ACCOUNT_CHANGED',
+				'Påloggingen er endret. Last siden på nytt før du sender.'
+			);
+		res.status(201).json(saveFeedback(db, accountId, req.body, clock()));
+	});
+	app.get('/api/admin/feedback', authenticated, (req, res) =>
+		res.json(listFeedback(db, req.labUser.id, req.query))
+	);
+	app.post('/api/admin/feedback/:id/status', authenticated, accountMatches, (req, res) =>
+		res.json(setFeedbackStatus(db, req.labUser.id, req.params.id, req.body, clock()))
+	);
 	app.get('/api/teacher', authenticated, (req, res) => res.json(teacherView(req.labUser.id)));
 	app.get('/api/teacher/teaching', authenticated, (req, res) =>
 		res.json(teachingLibrary(db, req.labUser.id))
@@ -601,6 +621,7 @@ export function createApp({ db, config, clock = Date.now, limits = true }) {
 			return fail(res, 409, error.code, error.message);
 		if (
 			error.code?.startsWith('PARTNER_') ||
+			error.code?.startsWith('FEEDBACK_') ||
 			error.code === 'CHECKPOINT_COOLDOWN' ||
 			error.code?.startsWith('ASSESSMENT_') ||
 			error.code?.startsWith('TIMED_') ||

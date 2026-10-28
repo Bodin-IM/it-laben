@@ -4,8 +4,8 @@
 	import TeacherNav from '#lib/components/TeacherNav.svelte';
 	import { connection, secureHref } from '#lib/connection.js';
 	import { page } from '$app/state';
-	/** @type {{title:string,intro?:string,children:import('svelte').Snippet}} */
-	let { title, intro = '', children } = $props();
+	/** @type {{title:string,intro?:string,adminOnly?:boolean,children:import('svelte').Snippet}} */
+	let { title, intro = '', adminOnly = false, children } = $props();
 </script>
 
 <svelte:head
@@ -17,7 +17,7 @@
 <div class="teacher-shell">
 	{#if hasTeacherRole($lab.user?.role)}<TeacherNav />{/if}
 	<main id="hovedinnhold" tabindex="-1">
-		<p class="eyebrow">LÆRERPANEL</p>
+		<p class="eyebrow">{adminOnly ? 'ADMINISTRASJON' : 'LÆRERPANEL'}</p>
 		<h1>{title}<span>.</span></h1>
 		{#if $connection.publicHttp}<section class="panel">
 				<h2>Lærerpanelet bruker HTTPS</h2>
@@ -30,6 +30,16 @@
 				<p><a href="/kom-i-gang/">Sertifikat og hjelp til pålogging →</a></p>
 			</section>
 		{:else if !$lab.ready}<p role="status">Henter profilen din …</p>
+		{:else if adminOnly && $lab.user?.role !== 'admin'}
+			<section class="panel">
+				<h2>Kun for administratorer</h2>
+				<p>Elevtilbakemeldinger krever administratorrollen.</p>
+				{#if !$lab.user}<a href="/min-lab/">Logg inn i Min lab →</a>
+				{:else if hasTeacherRole($lab.user.role)}<a href="/laerer/undervisning/"
+						>Til undervisningen →</a
+					>
+				{:else}<a href="/?visning=elev">Til fagoversikten →</a>{/if}
+			</section>
 		{:else if !hasTeacherRole($lab.user?.role)}
 			<section class="panel">
 				<h2>Aktiver lærertilgang på profilen din</h2>

@@ -22,6 +22,7 @@
 	import { initializeModulePublication } from '#lib/modulePublicationStore.js';
 	import ConnectionBanner from '#lib/components/ConnectionBanner.svelte';
 	import LabHeader from '#lib/components/LabHeader.svelte';
+	import StudentFeedback from '#lib/components/StudentFeedback.svelte';
 
 	/** @type {{children: import('svelte').Snippet}} */
 	let { children } = $props();
@@ -78,6 +79,11 @@
 			{#if showStudentTools}<ActivityProgress /><RewardToast />{/if}
 		</div>
 	</div>
+	<StudentFeedback
+		enabled={showStudentTools &&
+			!hasTeacherRole($lab.user?.role) &&
+			!page.url.pathname.startsWith('/laerer/')}
+	/>
 </div>
 
 <style>
