@@ -56,6 +56,78 @@ async function fixture(t, prepare) {
 	return { db, directory, filename, client };
 }
 
+function addClassMembers(db, classCode, count) {
+	return Array.from({ length: count }, (_, index) => {
+		const id = randomUUID();
+		db.prepare(
+			'INSERT INTO users(id,nickname,created_at,name_assigned,class_code) VALUES (?,?,0,1,?)'
+		).run(id, `${classCode} testelev ${index}`, classCode);
+		return id;
+	});
+}
+
+for (const [classCode, capacity, otherClass] of [
+	['2ITA', 12, '2ITB'],
+	['2ITB', 11, '2ITA']
+]) {
+	test(`klassekapasitet: ${classCode} stopper ved ${capacity} brukere også ved samtidige valg`, async (t) => {
+		const f = await fixture(t);
+		addClassMembers(f.db, classCode, capacity - 1);
+		const students = [f.client(), f.client()];
+		for (const student of students) await student.request('/auth/create', {});
+		const results = await Promise.all(students.map((student) => student.choose(classCode)));
+		assert.deepEqual(results.map((result) => result.status).sort(), [200, 409]);
+		const accepted = students[results.findIndex((result) => result.status === 200)];
+		const rejected = students[results.findIndex((result) => result.status === 409)];
+		assert.deepEqual(results.find((result) => result.status === 409).error, {
+			code: 'CLASS_FULL',
+			message: `${classCode} er full. Klassen har plass til maks ${capacity} brukere. Ta kontakt med læreren.`
+		});
+		assert.equal(
+			f.db.prepare('SELECT COUNT(*) AS n FROM users WHERE class_code=?').get(classCode).n,
+			capacity
+		);
+		assert.equal((await rejected.request('/me')).user.classCode, null);
+		assert.equal((await rejected.choose(classCode)).error.code, 'CLASS_FULL');
+		assert.equal((await accepted.choose(classCode)).status, 200);
+		assert.equal((await accepted.choose(otherClass)).error.code, 'CLASS_LOCKED');
+		assert.equal((await rejected.choose(otherClass)).status, 200);
+		assert.equal((await rejected.choose(classCode)).error.code, 'CLASS_LOCKED');
+	});
+}
+
+test('klassekapasitet: skjulte, deaktiverte og tidligere elevprofiler beholder plassen til profilen slettes', async (t) => {
+	const f = await fixture(t);
+	const ids = addClassMembers(f.db, '2ITA', 12);
+	f.db.prepare('UPDATE users SET leaderboard_visible=0 WHERE id=?').run(ids[0]);
+	f.db.prepare('UPDATE users SET disabled_at=1 WHERE id=?').run(ids[1]);
+	f.db.prepare("INSERT INTO user_roles VALUES (?,'teacher',0)").run(ids[2]);
+	f.db.prepare("INSERT INTO user_roles VALUES (?,'admin',0)").run(ids[3]);
+	const student = f.client();
+	await student.request('/auth/create', {});
+	assert.equal((await student.choose('2ITA')).error.code, 'CLASS_FULL');
+	assert.equal((await student.request('/me')).user.classCode, null);
+	f.db.prepare('DELETE FROM users WHERE id=?').run(ids[1]);
+	assert.equal((await student.choose('2ITA')).status, 200);
+	assert.equal(f.db.prepare("SELECT COUNT(*) AS n FROM users WHERE class_code='2ITA'").get().n, 12);
+});
+
+test('klassekapasitet: eksisterende overfylt klasse beholdes og avviser nye klassevalg', async (t) => {
+	const f = await fixture(t);
+	addClassMembers(f.db, '2ITB', 12);
+	const existing = f.db.prepare("SELECT * FROM users WHERE class_code='2ITB' ORDER BY id").all();
+	const student = f.client();
+	await student.request('/auth/create', {});
+	const result = await student.choose('2ITB');
+	assert.equal(result.status, 409);
+	assert.equal(result.error.code, 'CLASS_FULL');
+	assert.equal((await student.request('/me')).user.classCode, null);
+	assert.deepEqual(
+		f.db.prepare("SELECT * FROM users WHERE class_code='2ITB' ORDER BY id").all(),
+		existing
+	);
+});
+
 test('klassevalg: riktig elev og bekreftelse kreves, første valg låses også ved konkurrerende innsendinger', async (t) => {
 	const f = await fixture(t),
 		student = f.client(),

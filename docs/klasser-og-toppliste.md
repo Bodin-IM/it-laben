@@ -4,6 +4,12 @@ Eleven velger **2ITA** eller **2ITB** i Min lab eller på topplisten. Ingen klas
 
 Valget følger profilen mellom faner, enheter og pålogginger. Et mislykket lagringsforsøk kan prøves igjen. Samme valg kan sendes på nytt etter et tapt svar; en annen klasse avvises. Eksisterende profiler starter uten klasse og beholder konto, nøkkel, XP og topplisteinnstilling. Klassevalget er egenrapportert og låst per profil, ikke en kontroll mot skolens elevregister. Nye profiler kan fremdeles opprettes etter nettstedets eksisterende regler.
 
+## Maksimalt antall brukere
+
+**2ITA har plass til maks 12 brukere, og 2ITB har plass til maks 11 brukere.** Grensen gjelder profiler som har valgt klassen, uavhengig av synlighet på topplisten. En deaktivert profil eller en profil som senere får lærer-/administratorrolle, beholder plassen sin. Sletting av profilen frigjør plassen. Dette hindrer at skjuling, reaktivering eller rollebytte omgår grensen.
+
+Når klassen er full, avvises nye klassevalg med en forklaring og beskjed om å kontakte læreren. Profilen blir stående uten klasse og kan prøve igjen. Eksisterende klassevalg, XP og progresjon beholdes, også dersom klassen allerede har flere profiler enn den nye grensen. Ingen profiler flyttes eller slettes automatisk. Grensen gjelder klassevalg; den innfører ikke en samlet grense for opprettelse av profiler uten klasse.
+
 ## Hvilken klasse leder?
 
 Klassen med høyest **samlet XP** leder. Begge klassene vises med poengsum og antall deltakere. Lik poengsum vises som likt; uten deltakere eller opptjente poeng vises en starttilstand uten utpekt leder.
@@ -22,6 +28,8 @@ Klassen står ved brukernavnet i den individuelle topplisten. Den offentlige res
 Migrasjon `009_student_classes.sql` legger til det valgfrie feltet `users.class_code`, med databasekrav om 2ITA eller 2ITB. Den kjøres automatisk ved oppstart av API-et. Ingen tidligere migrasjoner endres.
 
 `POST /api/me/class` krever pålogget aktiv elevprofil, riktig Origin, CSRF, egen `accountId`, gyldig `classCode` og `confirmed: true`. Første valg lagres med en betinget oppdatering i en transaksjon. Et annet valg gir HTTP 409 og `CLASS_LOCKED`. Klassen kan ikke endres gjennom de øvrige profilendepunktene. `GET /api/me` og nøkkelinnlogging returnerer lagret klasse.
+
+Kapasiteten defineres i `src/lib/classes.js`. Medlemstallet kontrolleres i samme `BEGIN IMMEDIATE`-transaksjon som det første klassevalget, slik at samtidige forespørsler ikke kan ta den siste plassen flere ganger. Full klasse gir HTTP 409 og `CLASS_FULL`, som vises i klassevalgets eksisterende feilmelding. Gjentakelse av et allerede lagret klassevalg lykkes også når klassen er full. Kapasitetsgrensen krever ingen ny databasemigrasjon.
 
 `GET /api/leaderboard` utvides med `classCode` i elevoppføringene og `classes`, der hver rad har `classCode`, `participants` og `xp`. Sum og deltakere bruker de samme tilgangs- og synlighetsreglene som den individuelle listen.
 
