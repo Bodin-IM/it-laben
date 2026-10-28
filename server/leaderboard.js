@@ -35,7 +35,9 @@ export function leaderboard(db, userId, pageValue = 1) {
 	const page = Number(pageValue);
 	if (!Number.isInteger(page) || page < 1 || page > 100000)
 		throw new TypeError('Ugyldig sidenummer.');
-	const total = db.prepare(`${ranking} SELECT COUNT(*) AS n FROM ranked`).get().n;
+	const { total, maxXp } = db
+		.prepare(`${ranking} SELECT COUNT(*) AS total,COALESCE(MAX(xp),0) AS maxXp FROM ranked`)
+		.get();
 	const rows = db
 		.prepare(
 			`${ranking} SELECT * FROM ranked ORDER BY rank,nickname COLLATE NOCASE,id LIMIT 10 OFFSET ?`
@@ -62,6 +64,7 @@ export function leaderboard(db, userId, pageValue = 1) {
 		page,
 		pageSize: 10,
 		total,
+		maxXp: Number(maxXp),
 		entries: rows.map(entry),
 		self: own ? entry(own) : null,
 		classes

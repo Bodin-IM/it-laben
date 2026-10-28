@@ -2,40 +2,57 @@
 	import BadgeIcon from '#lib/components/BadgeIcon.svelte';
 	import { labColors } from '#lib/progression.js';
 	import Avatar from '#lib/components/Avatar.svelte';
-	/** @type {{entry:import('#lib/school.js').LeaderboardEntry,own?:boolean}} */
-	let { entry, own = false } = $props();
+	import XpBar from '#lib/components/XpBar.svelte';
+	/** @type {{entry:import('#lib/school.js').LeaderboardEntry,own?:boolean,maximum?:number|null,referenceXp?:number|null}} */
+	let { entry, own = false, maximum = null, referenceXp = null } = $props();
 	const color = $derived(labColors.find((item) => item.id === entry.colorId) ?? labColors[0]);
+	const difference = $derived(referenceXp === null ? null : entry.xp - referenceXp);
+	const comparison = $derived(
+		!own && difference !== null
+			? difference === 0
+				? 'Samme XP som deg'
+				: `${Math.abs(difference).toLocaleString('nb-NO')} XP ${difference > 0 ? 'foran' : 'bak'} deg`
+			: maximum !== null && maximum > 0
+				? entry.xp === maximum
+					? 'Høyeste poengsum'
+					: `${(maximum - entry.xp).toLocaleString('nb-NO')} XP bak førsteplass`
+				: 'Ingen XP ennå'
+	);
 </script>
 
-<article
-	class:own
-	class:podium={entry.rank <= 3}
-	style:--lab-color={color.color}
-	style:--lab-background={color.background}
->
+<article class:own style:--lab-color={color.color} style:--lab-background={color.background}>
 	<span class="rank" aria-label={`Plass ${entry.rank}`}>{entry.rank.toLocaleString('nb-NO')}</span>
 	<div class="identity">
-		<span class="avatar"><Avatar id={entry.avatarId} size={44} animate={false} /></span>
-		<div>
-			<strong>{entry.nickname}</strong><span class="level"
+		<span class="avatar"><Avatar id={entry.avatarId} size={44} animate={false} decorative /></span>
+		<div class="name">
+			<strong>{entry.nickname}</strong>
+			<span class="level"
 				>{entry.classCode ? `${entry.classCode} · ` : ''}Nivå {entry.level}{own
 					? ' · Din profil'
 					: ''}</span
 			>
 		</div>
+		{#if entry.badge}<span class="badge"
+				><BadgeIcon symbol={entry.badge.symbol} size={32} earned /><span>{entry.badge.title}</span
+				></span
+			>{/if}
 	</div>
-	{#if entry.badge}<div class="badge" title={entry.badge.title}>
-			<BadgeIcon symbol={entry.badge.symbol} size={40} earned /><span>{entry.badge.title}</span>
-		</div>{/if}
 	<strong class="points">{entry.xp.toLocaleString('nb-NO')} <span>XP</span></strong>
+	{#if maximum !== null}
+		<div class="comparison">
+			<XpBar value={entry.xp} {maximum} reference={own ? null : referenceXp} highlight={own} />
+			<p>{comparison}</p>
+		</div>
+	{/if}
 </article>
 
 <style>
 	article {
-		display: flex;
+		display: grid;
+		grid-template-columns: 2.25rem minmax(0, 1fr) auto;
 		align-items: center;
-		gap: 22px;
-		padding: 20px 22px;
+		gap: 12px 16px;
+		padding: 18px 20px;
 		background: var(--color-surface);
 		border: 1px solid var(--color-border);
 		border-radius: 10px;
@@ -44,27 +61,30 @@
 	article.own {
 		border-color: var(--color-accent);
 		background: var(--color-accent-soft);
+		box-shadow: inset 3px 0 0 var(--color-accent);
 	}
 	.rank {
-		min-width: 32px;
 		color: var(--color-text-muted);
-		font-size: 22px;
+		font-size: 1.25rem;
 		font-weight: 750;
 		text-align: center;
 		font-variant-numeric: tabular-nums;
+		overflow-wrap: anywhere;
 	}
-	.podium .rank {
+	.own .rank {
 		color: var(--color-accent);
 	}
 	.identity {
 		display: flex;
-		gap: 14px;
+		gap: 12px;
 		align-items: center;
-		flex: 1;
+		min-width: 0;
+	}
+	.name {
 		min-width: 0;
 	}
 	.identity strong {
-		font-size: 17px;
+		font-size: var(--font-body);
 		display: block;
 		overflow-wrap: anywhere;
 	}
@@ -76,71 +96,73 @@
 		place-items: center;
 		border-radius: 10px;
 		background: var(--lab-background);
-		color: var(--lab-color);
 		border: 1px solid var(--lab-color);
-		font:
-			750 13px/1 system-ui,
-			sans-serif;
 	}
 	.level {
 		display: block;
-		font-size: 13px;
+		font-size: var(--font-meta);
 		color: var(--color-text-muted);
 		margin-top: 4px;
+		line-height: 1.5;
 	}
 	.badge {
 		display: flex;
-		gap: 8px;
+		gap: 6px;
 		align-items: center;
-		max-width: 220px;
-		font-size: 12px;
+		margin-left: auto;
+		max-width: 12rem;
+		font-size: var(--font-meta);
 		color: var(--color-text-muted);
 	}
+	.badge span {
+		overflow-wrap: anywhere;
+	}
 	.points {
-		flex-shrink: 0;
-		font-size: 24px;
-		color: var(--color-accent);
+		font-size: 1.5rem;
 		font-variant-numeric: tabular-nums;
 		letter-spacing: -0.04em;
+		text-align: right;
+		overflow-wrap: anywhere;
 	}
 	.points span {
-		font-size: 12px;
+		font-size: var(--font-meta);
+		font-weight: 500;
 		letter-spacing: 0;
 	}
-	@media (max-width: 650px) {
-		article {
-			padding: 16px 12px;
-			gap: 12px;
-		}
-		.badge span {
-			display: none;
-		}
-		.identity strong {
-			font-size: 15px;
-		}
+	.comparison {
+		grid-column: 2 / -1;
+		min-width: 0;
 	}
-	@media (max-width: 430px) {
+	.comparison p {
+		margin: 8px 0 0;
+		font-size: var(--font-meta);
+		line-height: 1.5;
+		color: var(--color-text-muted);
+	}
+	.own .comparison p {
+		color: var(--color-accent);
+	}
+	@media (max-width: 800px) {
 		.badge {
 			display: none;
 		}
+	}
+	@media (max-width: 600px) {
+		article {
+			grid-template-columns: 1.75rem minmax(0, 1fr);
+			padding: 16px 12px;
+			gap: 10px;
+		}
 		.identity {
-			gap: 8px;
-		}
-		.avatar {
-			width: 36px;
-			height: 36px;
-			border: 0;
-		}
-		.avatar :global(svg) {
-			width: 36px;
-			height: 36px;
+			gap: 10px;
 		}
 		.points {
-			font-size: 20px;
+			grid-column: 2;
+			font-size: 1.25rem;
+			text-align: left;
 		}
-		.rank {
-			font-size: 18px;
-			min-width: 22px;
+		.comparison {
+			grid-column: 1 / -1;
 		}
 	}
 </style>

@@ -558,6 +558,7 @@ test('toppliste: på som standard, bare aktive elever, korrekt delt rangering og
 	const publicResult = await guest.request('/api/leaderboard');
 	assert.equal(publicResult.status, 200);
 	assert.equal(publicResult.result.total, 13);
+	assert.equal(publicResult.result.maxXp, 100);
 	assert.equal(publicResult.result.entries.length, 10);
 	assert.equal(publicResult.result.self, null);
 	assert.deepEqual(
@@ -571,12 +572,25 @@ test('toppliste: på som standard, bare aktive elever, korrekt delt rangering og
 		);
 	const own = await students[12].request('/api/leaderboard');
 	assert.equal(own.result.self.rank, 13);
+	assert.equal(own.result.maxXp, 100);
 	assert.equal((await guest.request('/api/leaderboard?page=2')).result.entries.length, 3);
+	assert.equal((await guest.request('/api/leaderboard?page=2')).result.maxXp, 100);
+	assert.equal((await guest.request('/api/leaderboard?page=100')).result.maxXp, 100);
 	assert.equal((await guest.request('/api/leaderboard?page=-1')).status, 400);
 	await students[0].visible(false);
 	assert.equal((await guest.request('/api/leaderboard')).result.total, 12);
 	await admin.action(students[1].user, 'status', { disabled: true });
 	assert.equal((await guest.request('/api/leaderboard')).result.total, 11);
+	assert.equal((await guest.request('/api/leaderboard')).result.maxXp, 48);
+	// Hidden/disabled profiles and staff must never define the public chart scale.
+	f.points(teacher, 9000);
+	f.points(admin, 8000);
+	assert.equal((await guest.request('/api/leaderboard')).result.maxXp, 48);
+	for (const student of students.slice(2)) await student.visible(false);
+	assert.equal((await guest.request('/api/leaderboard')).result.maxXp, 0);
+	const beginner = f.client();
+	await beginner.create();
+	assert.equal((await guest.request('/api/leaderboard')).result.maxXp, 0);
 	assert.ok(!JSON.stringify(publicResult.result).includes(students[0].user.id));
 });
 

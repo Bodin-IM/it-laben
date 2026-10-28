@@ -6,7 +6,7 @@
 /** @typedef {{serverNow:number,student:Student,activities:StudentActivity[],achievements:{id:string,title:string,symbol:string,earnedAt:number}[],checks:{activityId:string,score:number,passed:number,submittedAt:number,teaching:number}[],shifts:{activityId:string,status:string,startedAt:number,endedAt:number|null,teaching:number}[]}} StudentDetail */
 /** @typedef {{rank:number,nickname:string,classCode:string|null,xp:number,level:number,colorId:string,avatarId:string,badge:{title:string,symbol:string}|null}} LeaderboardEntry */
 /** @typedef {{classCode:string,participants:number,xp:number}} ClassStanding */
-/** @typedef {{page:number,pageSize:number,total:number,entries:LeaderboardEntry[],self:LeaderboardEntry|null,classes:ClassStanding[]}} Leaderboard */
+/** @typedef {{page:number,pageSize:number,total:number,maxXp:number,entries:LeaderboardEntry[],self:LeaderboardEntry|null,classes:ClassStanding[]}} Leaderboard */
 
 /** @param {number|null} value */
 export function schoolDate(value) {

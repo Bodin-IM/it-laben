@@ -99,6 +99,26 @@
 				<button type="button" disabled={loading} onclick={load}>Oppdater</button>
 			</div>
 			{#if board}
+				{#if board.entries.length && board.maxXp !== undefined}
+					<div class="chart-key">
+						<p>
+							{#if board.maxXp > 0}Samme skala på alle sider: 0–{board.maxXp.toLocaleString(
+									'nb-NO'
+								)} XP.{:else}Ingen XP er opptjent ennå. Stolpene fylles når deltakerne får poeng.{/if}
+						</p>
+						{#if board.self && board.maxXp > 0}<p>
+								<span class="reference-key" aria-hidden="true"></span>Streken viser dine {board.self.xp.toLocaleString(
+									'nb-NO'
+								)} XP.
+							</p>{/if}
+					</div>
+				{/if}
+				{#if board.self && !board.entries.some((entry) => entry.nickname === board?.self?.nickname)}
+					<section class="own-position" aria-label="Din plassering blant deltakerne">
+						<p class="eyebrow">DIN PLASSERING BLANT DELTAKERNE</p>
+						<LeaderboardRow entry={board.self} own maximum={board.maxXp ?? null} />
+					</section>
+				{/if}
 				{#if !board.entries.length}<section class="empty">
 						<span aria-hidden="true">✦</span>
 						<h3>
@@ -115,7 +135,12 @@
 					</section>
 				{:else}<ol class="ranking" aria-label="Deltakere rangert etter samlet XP">
 						{#each board.entries as entry}<li>
-								<LeaderboardRow {entry} own={board.self?.nickname === entry.nickname} />
+								<LeaderboardRow
+									{entry}
+									own={board.self?.nickname === entry.nickname}
+									maximum={board.maxXp ?? null}
+									referenceXp={board.self?.xp ?? null}
+								/>
 							</li>{/each}
 					</ol>{/if}
 				<nav class="pagination" aria-label="Sider i topplisten">
@@ -124,10 +149,6 @@
 							href={`/toppliste/?side=${board.page + 1}`}>Neste →</a
 						>{/if}
 				</nav>
-				{#if board.self}<section class="own-position">
-						<p class="eyebrow">DIN PLASSERING BLANT DELTAKERNE</p>
-						<LeaderboardRow entry={board.self} own />
-					</section>{/if}
 			{:else}<p role="status">
 					{loading ? 'Henter topplisten …' : 'Topplisten er ikke tilgjengelig.'}
 				</p>{/if}
@@ -256,7 +277,23 @@
 		margin: 20px 0;
 	}
 	.own-position {
-		margin-top: 32px;
+		margin: 0 0 24px;
+	}
+	.chart-key {
+		margin: 0 0 20px;
+		font-size: var(--font-meta);
+		color: var(--color-text-muted);
+		line-height: 1.6;
+	}
+	.chart-key p {
+		margin: 4px 0;
+	}
+	.reference-key {
+		display: inline-block;
+		width: 2px;
+		height: 14px;
+		margin: 0 6px -2px 2px;
+		background: var(--color-text);
 	}
 	.participation {
 		background: var(--color-surface);
