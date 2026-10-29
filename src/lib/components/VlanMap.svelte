@@ -1,7 +1,7 @@
 <script>
 	import { vlanPoint } from '#lib/vlanLab.js';
-	/** @type {{task:import('#lib/vlanLab.js').VlanTask,config:import('#lib/vlanLab.js').VlanConfig,selected:string,onselect:(id:string)=>void,step:import('#lib/vlanLab.js').TraceStep|null,progress?:number}} */
-	let { task, config, selected, onselect, step, progress = 1 } = $props();
+	/** @type {{task:import('#lib/vlanLab.js').VlanTask,config:import('#lib/vlanLab.js').VlanConfig,selected:string,onselect:(id:string)=>void,step:import('#lib/vlanLab.js').TraceStep|null,progress?:number,vlanDiagnostic?:boolean}} */
+	let { task, config, selected, onselect, step, progress = 1, vlanDiagnostic = false } = $props();
 	const packet = $derived.by(() => {
 		if (!step) return null;
 		const from = vlanPoint(task, step.from), to = vlanPoint(task, step.to);
@@ -46,6 +46,7 @@
 		{/each}
 		{#each task.switches as sw (sw.id)}
 			<button type="button" class="device switch" class:visited={step?.node === sw.id}
+				class:blocked={step?.node === sw.id && !step.ok && progress === 1}
 				style:left={`${sw.x / 9}%`} style:top={`${sw.y / 4.4}%`}
 				aria-pressed={selected === sw.id} aria-controls="device-editor" onclick={() => onselect(sw.id)}>
 				<svg viewBox="0 0 44 24" aria-hidden="true"><rect x="2" y="3" width="40" height="18" rx="3" /><path d="M8 9v6m7-6v6m7-6v6m7-6v6m7-6v6" /></svg>
@@ -55,7 +56,7 @@
 		{#if packet && step}
 			<div class="packet" class:stopped={!step.ok && progress === 1} aria-hidden="true" style:left={`${packet.x / 9}%`} style:top={`${packet.y / 4.4}%`}>
 				<svg viewBox="0 0 24 18"><rect x="1" y="1" width="22" height="16" rx="2" /><path d="m2 3 10 7L22 3" /></svg>
-				{#if !step.ok && progress === 1}<span>Stopp</span>{/if}
+				{#if !step.ok && progress === 1}<span>{vlanDiagnostic ? 'VLAN-stopp' : 'Stopp'}</span>{:else if vlanDiagnostic}<span>VLAN</span>{/if}
 			</div>
 		{/if}
 	</div>
@@ -75,6 +76,7 @@
 	.device:hover { background: var(--color-surface-hover); }
 	.device[aria-pressed='true'] { outline: 3px solid var(--color-accent); outline-offset: 2px; }
 	.device.visited { box-shadow: 0 0 0 7px var(--color-accent-soft); }
+	.device.blocked { border-color: var(--color-danger); box-shadow: 0 0 0 5px var(--color-danger-soft); }
 	.device svg { width: 34px; height: 28px; fill: none; stroke: currentColor; stroke-width: 1.7; }
 	.device strong { font-size: var(--font-small); }
 	.device span { font-size: var(--font-meta); overflow-wrap: anywhere; }

@@ -307,7 +307,7 @@
 			<div class="panel-heading"><h2 id="map-title" tabindex="-1">Nettverket ditt</h2><span class="muted">{task.switches.length} switch{task.switches.length > 1 ? 'er' : ''} · /24</span></div>
 			<div class="network-workspace">
 				<div class="map-area">
-					<VlanMap {task} {config} {selected} onselect={selectDevice} step={activeStep} progress={travelProgress} />
+					<VlanMap {task} {config} {selected} onselect={selectDevice} step={activeStep} progress={travelProgress} vlanDiagnostic={!stale && !!run?.result.vlanDiagnostic} />
 					<section class="map-ping" id="map-ping" aria-label="Ping" tabindex="-1">
 						<div class="ping-bar">
 							<form class="ping-controls" onsubmit={(event) => { event.preventDefault(); ping(); }}>
@@ -327,6 +327,7 @@
 						</div>
 						<div class="ping-details" id="ping-details" hidden={!showPingDetails || !run || stale}>
 							{#if run && !stale}
+								{#if run.result.vlanDiagnostic}<p class="muted">Kartet viser hvor VLAN-oppsettet sperrer forbindelsen. PC-ene er også i ulike IP-nett: selve ping-forsøket trenger ruting, som ikke finnes i denne laben.</p>{/if}
 								<div class="map-toolbar" role="group" aria-label="Undersøk pakkesteg">
 									<button type="button" disabled={frame === 0} onclick={() => stepFrame(-1)}>← Forrige</button>
 									<span>Steg {frame + 1} av {run.result.steps.length}</span>

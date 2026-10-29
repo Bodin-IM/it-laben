@@ -173,3 +173,54 @@ test('VLAN: packet steps form a continuous trip and return, or stop before sendi
 	assert.deepEqual(invalid.steps[0].from, invalid.steps[0].to);
 	assert.match(invalid.steps[0].text, /Ingen pakke sendt/);
 });
+
+test('VLAN: isolation playback stops at the rejecting switch, including different IP networks', () => {
+	for (const task of vlanTasks) {
+		const config = configured(task);
+		for (const source of task.pcs) for (const target of task.pcs.filter((pc) => pc.vlan !== source.vlan)) {
+			const result = pingVlan(task, config, source.id, target.id);
+			assert.equal(result.ok, false);
+			assert.equal(result.code, 'routing', 'the VLAN animation does not claim an off-subnet ping was sent');
+			assert.equal(result.vlanDiagnostic, true);
+			assert.match(result.message, /ruter\/default gateway/);
+			assert.deepEqual(result.steps[0].from, { node: source.id });
+			assert.deepEqual(result.steps.at(-1).to, { node: target.switchId });
+			assert.equal(result.steps.at(-1).ok, false);
+			assert.equal(result.steps.at(-1).link, undefined, 'the blocked PC cable is not traversed or highlighted');
+			assert.ok(result.steps.every((step) => step.to.node !== target.id));
+			for (let i = 1; i < result.steps.length; i++) assert.deepEqual(result.steps[i].from, result.steps[i - 1].to);
+			const sameSubnet = structuredClone(config);
+			sameSubnet.ips[target.id] = `${source.network}.254`;
+			const isolated = pingVlan(task, sameSubnet, source.id, target.id);
+			assert.equal(isolated.code, 'isolated');
+			assert.equal(isolated.vlanDiagnostic, undefined);
+			assert.deepEqual(isolated.steps.at(-1).to, { node: target.switchId });
+		}
+	}
+	const task = vlanTask('trunk'), config = configured(task);
+	config.switches.s1.ports.eth2.members['10'] = 'excluded';
+	const egress = pingVlan(task, config, 'pc1', 'pc4');
+	assert.equal(egress.vlanDiagnostic, true);
+	assert.deepEqual(egress.steps.at(-1).to, { node: 's1', port: 'eth2' });
+	assert.equal(egress.steps.at(-1).link, undefined);
+	assert.ok(egress.steps.every((step) => step.to.node !== 's2'));
+	config.switches.s1.ports.eth2.members['10'] = 'tagged';
+	config.switches.s2.ports.eth2.members['10'] = 'excluded';
+	const ingress = pingVlan(task, config, 'pc1', 'pc4');
+	assert.deepEqual(ingress.steps.at(-1).to, { node: 's2', port: 'eth2' });
+	config.switches.s1.ports.eth0.members['10'] = 'excluded';
+	const pvid = pingVlan(task, config, 'pc1', 'pc4');
+	assert.deepEqual(pvid.steps.at(-1).to, { node: 's1', port: 'eth0' });
+
+	const shared = initialVlanConfig(vlanTask('porter'));
+	const routing = pingVlan(vlanTask('porter'), shared, 'pc1', 'pc3');
+	assert.equal(routing.code, 'routing');
+	assert.equal(routing.vlanDiagnostic, undefined, 'different IP networks alone must not invent a VLAN barrier');
+	assert.equal(routing.steps.length, 1);
+	assert.deepEqual(routing.steps[0].from, routing.steps[0].to);
+	config.ips.pc1 = '';
+	const invalid = pingVlan(task, config, 'pc1', 'pc4');
+	assert.equal(invalid.code, 'ip');
+	assert.equal(invalid.steps.length, 1);
+	assert.deepEqual(invalid.steps[0].from, invalid.steps[0].to);
+});

@@ -9,7 +9,7 @@
 /** @typedef {{id:string,title:string,goal:string,ready:string,steps:string[],theory:string[],hints:string[],reflect:string,switchCount:number,groups:number[],networkNames:string[],networks:string[],discoverPorts?:boolean,editableSwitches:boolean,preconfigured:boolean,pcs:VlanPc[],switches:VlanSwitch[],links:VlanLink[]}} VlanTask */
 /** @typedef {{node:string,port?:string}} TracePoint */
 /** @typedef {{text:string,node:string,link?:string,ok:boolean,from:TracePoint,to:TracePoint}} TraceStep */
-/** @typedef {{ok:boolean,code:string,message:string,steps:TraceStep[]}} PingResult */
+/** @typedef {{ok:boolean,code:string,message:string,steps:TraceStep[],vlanDiagnostic?:boolean}} PingResult */
 
 export const vlanActivity = {
 	id: 'vlan-lab', tittel: 'VLAN-laben',
@@ -272,7 +272,7 @@ export function traceVlan(task, config, sourceId, targetId) {
 		const inId = link.a === next.id ? link.aPort : link.bPort;
 		const outPoint = { node: here.id, port: outId }, inPoint = { node: next.id, port: inId };
 		const outgoing = current.ports[outId];
-		if (!allows(current, outgoing, vlan)) return stop('egress', `${here.name} ${outId} slipper ikke ut VLAN ${vlan}. Undersøk VLAN-medlemskapet.`, { node: here.id }, outPoint, link.id);
+		if (!allows(current, outgoing, vlan)) return stop('egress', `${here.name} ${outId} slipper ikke ut VLAN ${vlan}. Undersøk VLAN-medlemskapet.`, { node: here.id }, outPoint);
 		const tag = membership(outgoing, vlan) === 'tagged' ? vlan : null;
 		travel(`${here.name} ${outId} sender ${tag === null ? `untagged fra VLAN ${vlan}` : `tagged med VLAN ${tag}`}.`, { node: here.id }, outPoint);
 		travel(`Rammen går på kabelen fra ${here.name} ${outId} til ${next.name} ${inId}.`, outPoint, inPoint, link.id);
@@ -285,7 +285,7 @@ export function traceVlan(task, config, sourceId, targetId) {
 	}
 	const destination = current.ports[target.port];
 	const lastPort = { node: target.switchId, port: target.port };
-	if (!allows(current, destination, vlan)) return stop('isolated', `${target.switchId.toUpperCase()} ${target.port} er ikke med i VLAN ${vlan}. Rammen sendes ikke til ${target.name}.`, { node: target.switchId }, lastPort, target.id);
+	if (!allows(current, destination, vlan)) return stop('isolated', `${target.switchId.toUpperCase()} stopper rammen: ${target.port} er ikke med i VLAN ${vlan}. Rammen sendes ikke til ${target.name}.`, { node: target.switchId }, { node: target.switchId });
 	travel(`${target.switchId.toUpperCase()} velger ${target.port} til ${target.name}.`, { node: target.switchId }, lastPort);
 	if (membership(destination, vlan) !== 'untagged') return stop('pc-tag', `${target.name} mottar en tagged ramme. PC-ene i denne laben trenger untagged ut fra switchen.`, lastPort, { node: target.id }, target.id);
 	travel(`${target.name} mottar rammen uten tag fra VLAN ${vlan}.`, lastPort, { node: target.id }, target.id);
@@ -301,7 +301,17 @@ export function pingVlan(task, config, sourceId, targetId) {
 	if (sourceId === targetId) return stop('pair', 'Velg to forskjellige PC-er.');
 	const source = hostAddress(config.ips[sourceId] ?? ''), target = hostAddress(config.ips[targetId] ?? '');
 	if (!source || !target) return stop('ip', `${name(!source ? sourceId : targetId)} trenger en gyldig vertsadresse. Med /24 kan siste tall være 1–254.`);
-	if (source.network !== target.network) return stop('routing', 'PC-ene er i ulike /24-nett. Trafikken trenger en ruter/default gateway; denne laben har ingen ruting.');
+	if (source.network !== target.network) {
+		const routing = 'PC-ene er i ulike /24-nett. Trafikken trenger en ruter/default gateway; denne laben har ingen ruting.';
+		const vlan = traceVlan(task, config, sourceId, targetId);
+		// Show the actual VLAN barrier as a labelled diagnostic, without pretending an
+		// off-subnet ICMP packet was sent or that a switch made an IP routing decision.
+		if (['pvid', 'egress', 'ingress', 'isolated'].includes(vlan.code)) {
+			return { ok: false, code: 'routing', vlanDiagnostic: true, message: `${vlan.message} ${routing}`,
+				steps: vlan.steps.map((step, i) => i === 0 ? { ...step, text: `VLAN-visning: følger forbindelsen fra ${name(sourceId)} inn til switchen.` } : step) };
+		}
+		return stop('routing', routing);
+	}
 	for (const pc of task.pcs) {
 		const address = hostAddress(config.ips[pc.id] ?? '');
 		for (const id of [sourceId, targetId]) {
