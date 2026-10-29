@@ -10,6 +10,7 @@ import { backendQuestions } from '#lib/backendQuiz.js';
 import { queryTasks, queryOptions, equipment, databasePhases } from '#lib/databaseCourse.js';
 import { databaseSections, readExamples, insertStages } from '#lib/databaseIntro.js';
 import { vlanTasks } from '#lib/vlanLab.js';
+import { vlan2Tasks } from '#lib/vlanLab2.js';
 export const PAGE_CONTEXT_VERSION = 2;
 export const ADAPTER_VERSION = 1;
 export const MAX_CONTEXT_BYTES = 6000;
@@ -127,7 +128,12 @@ export function readPartnerState(pageId, raw) {
 	const v = wrap.values;
 	/** @type {Record<string,Rule>} */
 	let shape;
-	if (page.kind === 'vlan') {
+	if (page.kind === 'vlan2') {
+		if (!object(v)) return invalidContext();
+		const task = vlan2Tasks.find((t) => t.id === v.taskId);
+		if (!task) return invalidContext();
+		shape = { taskId: choice(vlan2Tasks.map((t) => t.id)), deviceId: choice(task.devices.map((d) => d.id)), hints: integer(0, task.hints.length), hasRun: bool, stale: bool, revision: integer(0, 1000000000) };
+	} else if (page.kind === 'vlan') {
 		if (!object(v)) return invalidContext();
 		const task = vlanTasks.find((item) => item.id === v.taskId);
 		if (!task) return invalidContext();

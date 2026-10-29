@@ -40,6 +40,7 @@ import { avatars } from '../src/lib/avatars.js';
 import { schoolClasses, classCapacities } from '../src/lib/classes.js';
 import { labPartnerRouter } from './lab-partner/router.js';
 import { saveFeedback, listFeedback, setFeedbackStatus } from './feedback.js';
+import { networkLabSnapshot, checkNetworkLab } from './network-labs.js';
 
 const DAY = 86400000;
 const hash = (value) => createHash('sha256').update(value).digest('hex');
@@ -74,6 +75,7 @@ export function createApp({ db, config, clock = Date.now, limits = true }) {
 		next();
 	});
 	app.use('/api/lab-partner/ask', express.json({ limit: '16kb', strict: true }));
+	app.use('/api/network-labs', express.json({ limit: '32kb', strict: true }));
 	app.use(express.json({ limit: '8kb', strict: true }));
 	app.use(cookieParser());
 	app.get('/api/health', (_req, res) => {
@@ -146,6 +148,7 @@ export function createApp({ db, config, clock = Date.now, limits = true }) {
 		app.use('/api/auth/create', limit(60 * 60000, 200));
 		app.use('/api/auth/key', limit(15 * 60000, 120));
 		app.use('/api/progress', limit(60000, 600));
+		app.use('/api/network-labs', limit(60000, 120));
 		app.use('/api/checkpoints', limit(60000, 600));
 		app.use('/api/timed', limit(60000, 3000));
 		app.use('/api/practice', limit(60000, 3000));
@@ -159,6 +162,8 @@ export function createApp({ db, config, clock = Date.now, limits = true }) {
 		next();
 	};
 	app.use('/api/lab-partner', labPartnerRouter({ db, config, authenticated, limits }));
+	app.get('/api/network-labs/:labId', authenticated, (req, res) => res.json(networkLabSnapshot(db, req.labUser.id, req.params.labId)));
+	app.post('/api/network-labs/:labId/:taskId/check', authenticated, (req, res) => res.json(checkNetworkLab(db, req.labUser.id, req.params.labId, req.params.taskId, req.body, clock())));
 	const cookieOptions = { httpOnly: true, secure: config.secure, sameSite: 'lax', path: '/' };
 	function newSession(userId, remember) {
 		const raw = token(),
@@ -621,6 +626,7 @@ export function createApp({ db, config, clock = Date.now, limits = true }) {
 			return fail(res, 409, error.code, error.message);
 		if (
 			error.code?.startsWith('PARTNER_') ||
+			error.code?.startsWith('NETWORK_') ||
 			error.code?.startsWith('FEEDBACK_') ||
 			error.code === 'CHECKPOINT_COOLDOWN' ||
 			error.code?.startsWith('ASSESSMENT_') ||

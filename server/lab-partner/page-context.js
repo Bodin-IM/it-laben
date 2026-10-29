@@ -1,5 +1,6 @@
 // Server-owned teaching context. Client fields are validated before any reconstruction.
 import { vlanTask, vlanContextLimit } from '../../src/lib/vlanLab.js';
+import { vlan2Tasks } from '../../src/lib/vlanLab2.js';
 import {
 	databaseSections,
 	connectionCode,
@@ -158,7 +159,13 @@ export function pageWork(page, raw) {
 			'Avgrenset status rapportert av nettleseren, ikke dokumentasjon på forståelse. Kode og forklaringer hentes fra IT-labens undervisningsmodeller. Tekstfelt er bare kategorier; eksempler er ikke elevens faktiske tekst.',
 		selection: v
 	};
-	if (page.kind === 'vlan') {
+	if (page.kind === 'vlan2') {
+		const task = vlan2Tasks.find((t) => t.id === v.taskId);
+		work.task = { title: task.title, goal: task.goal, ready: task.ready, steps: task.steps, theory: task.theory, reflection: task.reflect, networks: task.networks };
+		work.device = task.devices.find((d) => d.id === v.deviceId)?.name;
+		work.openHints = task.hints.slice(0, v.hints);
+		work.limit = 'Du ser offentlig oppdragsgrunnlag og valgt enhet, ikke elevens IP-adresser, gateway, VLAN, SSID-valg, tilgangsregler eller testresultat. Ikke anta at oppsettet fungerer. Be om ett relevant funn. Bestått funksjonskontroll lagres på serveren og åpner neste del; KI gir aldri godkjenning eller XP. Lab 2 krever bestått lab 1. Modellen bruker statiske /24-nett, tagged ruter/AP, direkte tilkoblede ruter og symmetriske regler; ingen DHCP, NAT, radiomodell eller full brannmur.';
+	} else if (page.kind === 'vlan') {
 		const task = vlanTask(v.taskId);
 		const device = [...task.pcs, ...task.switches].find((item) => item.id === v.deviceId);
 		work.task = { title: task.title, goal: task.goal, ready: task.ready, steps: task.steps, theory: task.theory, reflection: task.reflect,

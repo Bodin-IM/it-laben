@@ -3,6 +3,7 @@
 	import VlanMap from '#lib/components/VlanMap.svelte';
 	import PartnerContext from '#lib/components/PartnerContext.svelte';
 	import { lab, learningContext } from '#lib/lab.js';
+	import { loadNetworkLab, saveNetworkCheck } from '#lib/networkLabApi.js';
 	import { createVlanAudio } from '#lib/vlanAudio.js';
 	import { labPreferences, registerSoundPlayer } from '#lib/labPreferences.js';
 	import { vlanTasks, vlanTask, vlanLabel, vlanCheckPassed, vlanAvailableThrough, initialVlanConfig, membership, pingVlan, checkVlanTask } from '#lib/vlanLab.js';
@@ -43,13 +44,41 @@
 	let settingMessage = $state('');
 	let portMessage = $state('');
 	let resetPending = $state(false);
+	let loadingSaved = $state(false);
+	let saving = $state(false);
+	let saveMessage = $state('');
+	let loadError = $state(false);
+	let lab2Unlocked = $state(false);
+	let loadSequence = 0;
 	const scope = $derived(`${$lab.user?.id ?? 'guest'}:${$learningContext.mode}:${$learningContext.openingId ?? ''}`);
 	$effect(() => {
 		scope;
 		work = freshWork();
 		taskId = 'ip';
 		resetSelection();
+		untrack(() => { void restoreSaved(); });
 	});
+	async function restoreSaved() {
+		const sequence = ++loadSequence, currentScope = scope;
+		lab2Unlocked = false; saveMessage = ''; loadError = false; saving = false;
+		if (!$lab.user || $learningContext.mode !== 'normal') { loadingSaved = false; return; }
+		loadingSaved = true;
+		try {
+			const saved = await loadNetworkLab('vlan-lab');
+			if (scope !== currentScope || sequence !== loadSequence) return;
+			for (const item of saved.tasks) {
+				const current = work[item.taskId];
+				if (current && current.revision === 0 && !current.check) {
+					const result = checkVlanTask(vlanTask(item.taskId), item.config);
+					work[item.taskId] = { config: item.config, revision: 0, run: null, check: { revision: 0, result } };
+				}
+			}
+			lab2Unlocked = saved.prerequisitePassed;
+			saveMessage = saved.tasks.length ? `${saved.tasks.length} beståtte oppsett hentet fra kontoen.` : '';
+		} catch (error) {
+			if (scope === currentScope && sequence === loadSequence) { loadError = true; saveMessage = error instanceof Error ? error.message : 'Kunne ikke hente lagrede oppsett.'; }
+		} finally { if (scope === currentScope && sequence === loadSequence) loadingSaved = false; }
+	}
 	const task = $derived(vlanTask(taskId));
 	const attempt = $derived(work[taskId]);
 	const config = $derived(attempt.config);
@@ -231,13 +260,29 @@
 		if (playbackComplete) { frame = 0; travelProgress = 0; }
 		playing = true;
 	}
-	function check() {
+	async function check() {
+		if (saving || loadingSaved) return;
+		const currentScope = scope, id = taskId, revision = attempt.revision, submittedAttempt = attempt;
+		const submitted = JSON.parse(JSON.stringify(config));
 		const result = checkVlanTask(task, config);
 		attempt.check = { revision: attempt.revision, result };
 		if ($labPreferences.sound) void controlAudio.play(result.passed, $labPreferences.volume);
+		if (!$lab.user || $learningContext.mode !== 'normal') {
+			saveMessage = 'Kontrollert lokalt. Logg inn og bruk vanlig modus for å lagre bestått og åpne lab 2.'; return;
+		}
+		saving = true; saveMessage = 'Kontrollerer og lagrer på serveren …';
+		try {
+			const saved = await saveNetworkCheck('vlan-lab', id, submitted);
+			if (scope !== currentScope) return;
+			if (work[id] === submittedAttempt && work[id].revision === revision) work[id].check = { revision, result: saved.result };
+			lab2Unlocked = saved.prerequisitePassed;
+			saveMessage = saved.saved ? 'Bestått oppsett lagret på kontoen.' : 'Kontrollen fant feil. Tidligere beståtte oppsett beholdes.';
+		} catch (error) {
+			if (scope === currentScope) saveMessage = `Ikke lagret. ${error instanceof Error ? error.message : 'Prøv kontrollen igjen.'}`;
+		} finally { if (scope === currentScope) saving = false; }
 	}
 	async function resetTask() {
-		work[taskId] = { config: initialVlanConfig(task), revision: 0, run: null, check: null };
+		work[taskId] = { config: initialVlanConfig(task), revision: attempt.revision + 1, run: null, check: null };
 		resetSelection();
 		await tick();
 		document.getElementById('task-heading')?.focus();
@@ -245,7 +290,7 @@
 </script>
 
 <svelte:head>
-	<title>VLAN-laben – IT-laben</title>
+	<title>VLAN-lab 1 – IT-laben</title>
 	<meta name="description" content="Konfigurer IP-adresser og VLAN, følg trafikken og bygg trunk gjennom tre switcher." />
 </svelte:head>
 
@@ -254,7 +299,7 @@
 <main id="hovedinnhold" class="vlan-page" tabindex="-1">
 	<a class="back" href="/?fag=drift">← Driftsstøtte</a>
 	<header class="hero">
-		<p class="eyebrow">DRIFTSSTØTTE · INTERAKTIV LAB · FØRSTE UTKAST</p>
+		<p class="eyebrow">DRIFTSSTØTTE · VLAN-LAB 1</p>
 		<h1>Bygg nett som henger sammen.</h1>
 		<p>Start med to PC-er. Skill trafikken med VLAN, og frakt den videre gjennom flere switcher.</p>
 	</header>
@@ -269,7 +314,10 @@
 		{/each}
 	</nav>
 	<p class="progress-rule" id="progress-rule">{completed} av {vlanTasks.length} oppsett består nå. Bestå «Kontroller oppdraget» før du går videre. Endrer du et tidligere oppsett, må det kontrolleres på nytt før senere oppdrag åpnes igjen.</p>
-	<p class="muted progress-note">Arbeidet beholdes mellom oppdragene mens siden er åpen. Omlasting eller å forlate siden nullstiller laben. Ingen XP.</p>
+	<p class="muted progress-note">Beståtte oppsett lagres på kontoen i vanlig modus. Omlasting henter sist beståtte versjon; ukontrollerte endringer beholdes bare mens siden er åpen. Ingen XP.</p>
+	<p role="status">{loadingSaved ? 'Henter beståtte oppsett …' : saveMessage}</p>
+	{#if loadError}<button type="button" onclick={restoreSaved}>Hent lagrede oppsett på nytt</button>{/if}
+	{#if lab2Unlocked}<p><a href="/nettverk/vlan-2/">✓ VLAN-lab 1 bestått · Start lab 2: Ruter og Wi-Fi →</a></p>{:else}<p class="muted"><a href="/nettverk/vlan-2/">VLAN-lab 2</a> åpnes når alle seks oppdrag er bestått og lagret.</p>{/if}
 	<section class="mission" aria-labelledby="task-heading">
 		<p class="eyebrow">OPPDRAG {index + 1} AV {vlanTasks.length}</p>
 		<h2 id="task-heading" tabindex="-1">{task.title}</h2>
@@ -368,7 +416,8 @@
 								<span class="sr-only">{checkStale ? 'Oppsettet er endret. Kontroller på nytt.' : attempt.check ? `${checkPassedCount} av ${checkTotal} krav oppfylt. ${passed ? 'Oppdraget består.' : 'Se hva som mangler.'}` : 'Kontrollen er ikke kjørt.'}</span>
 							</span>
 						</div>
-						<button type="button" class="primary" onclick={check}>Kontroller oppdraget</button>
+						<button type="button" class="primary" disabled={saving || loadingSaved} onclick={check}>{saving ? 'Lagrer …' : 'Kontroller oppdraget'}</button>
+						{#if saveMessage}<small role="status">{saveMessage}</small>{/if}
 						<a href="#testing">{passed ? 'Se resultat og gå videre ↓' : attempt.check && !checkStale ? 'Se hva som mangler ↓' : 'Detaljer og hint ↓'}</a>
 					</section>
 				</div>

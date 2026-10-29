@@ -11,7 +11,7 @@ test('felles søk viser hele katalogen og beholder bare valgt fag', () => {
 	assert.deepEqual(drift.modules, []);
 	assert.deepEqual(
 		drift.activities.map((x) => x.id),
-		['oving-10', 'vlan-lab']
+		['oving-10', 'vlan-lab', 'vlan-lab-2']
 	);
 });
 test('søk finner moduler via innholdet og aktiviteter via norske eller normaliserte ord', () => {

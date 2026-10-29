@@ -1,6 +1,6 @@
-# VLAN-laben – første utkast
+# VLAN-lab 1 – switcher
 
-Status: første utkast, teknisk kontrollert for merge til `main` 29. oktober 2026. Rute: `/nettverk/vlan/`, tilgjengelig som fri aktivitet under Driftsstøtte. Ingen ny modul, serverlagret fremgang eller XP. Se [samlet publiseringskontroll](publisering-2026-10-29.md). Utprøving med elever gjenstår.
+Rute: `/nettverk/vlan/`, tilgjengelig under Driftsstøtte. Ingen ny modul eller XP. Beståtte oppsett lagres nå på kontoen i vanlig modus og åpner [VLAN-lab 2](vlan-lab-2.md) når alle seks er bestått. Gjester og praksismodus beholder lokal øving. Se [opprinnelig publiseringskontroll](publisering-2026-10-29.md) og [kontroll av lagring og lab 2](publisering-vlan-2.md). Utprøving med elever gjenstår. Tidligere dev-notater nedenfor beskriver historiske kontroller.
 
 ## Mål og faglig ramme
 
@@ -36,9 +36,9 @@ Del 4 starter nå med bare VLAN 1 på begge switchene. Arbeids-VLAN må opprette
 
 Oppdragene åpnes i rekkefølge. Første oppdrag er tilgjengelig fra start; senere oppdrag krever en bestått, gjeldende oppdragskontroll for alle oppdragene foran. Én vellykket ping er ikke tilstrekkelig. Samme adgangsregel brukes av oppdragsmenyen og funksjonen som bytter oppdrag; «Neste oppdrag» er synlig, men deaktivert til kontrollen består.
 
-Gamle resultater telles ikke som et nåværende bestått oppsett. Ved endret oppsett eller ping-par blir pingindikatoren nøytral, pakken skjules og detaljene lukkes. Et endret ping-par gjør bare ping-resultatet utdatert; endret IP-/portoppsett gjør også oppdragskontrollen utdatert. Eleven kan gå tilbake til tidligere oppdrag. Endres eller nullstilles et tidligere oppsett, låses oppdragene etterpå til en ny kontroll består. Arbeidet i dem beholdes. Hjelp og nye forsøk har ingen poengtrekk. Arbeidet ligger i sidens minne og beholdes ved oppdragsbytte. Det nullstilles ved konto-/læringsmodusbytte, omlasting og navigasjon bort. Nullstilling av ett oppdrag har et eget bekreftelsessteg som også forklarer låsingen.
+Gamle resultater telles ikke som et nåværende bestått oppsett. Ved endret oppsett eller ping-par blir pingindikatoren nøytral, pakken skjules og detaljene lukkes. Et endret ping-par gjør bare ping-resultatet utdatert; endret IP-/portoppsett gjør også oppdragskontrollen utdatert. Eleven kan gå tilbake til tidligere oppdrag. Endres eller nullstilles et tidligere oppsett, låses oppdragene etterpå til en ny kontroll består. Arbeidet i dem beholdes. Hjelp og nye forsøk har ingen poengtrekk. Åpent arbeid beholdes ved oppdragsbytte og ryddes ved konto-/læringsmodusbytte. Beståtte oppsett lagres på kontoen i vanlig modus. Omlasting og tilbakekomst henter sist beståtte versjon; ukontrollerte endringer ligger bare i minnet. Nullstilling av ett oppdrag har et eget bekreftelsessteg som også forklarer låsingen.
 
-Kravet om bestått kontroll før videre progresjon følger brukerens uttrykkelige ønske og erstatter utkastets frie oppdragsvalg. Dette er en lokal avklaring av pedagogikkgrunnlagets elevstyring: eleven beholder tempo, tilbakevei, hjelp og nye forsøk, mens rekkefølgen styres av funksjonskravene. Bestått kontroll er fortsatt ikke dokumentasjon på forståelse. Adgangsregelen er lokal øvingslogikk, ikke serverlagret vurdering.
+Kravet om bestått kontroll før videre progresjon følger brukerens uttrykkelige ønske og erstatter utkastets frie oppdragsvalg. Dette er en lokal avklaring av pedagogikkgrunnlagets elevstyring: eleven beholder tempo, tilbakevei, hjelp og nye forsøk, mens rekkefølgen styres av funksjonskravene. Bestått kontroll er fortsatt ikke dokumentasjon på forståelse. Serveren kontrollerer og lagrer beståtte oppsett i rekkefølge. Seks lagrede beståtte oppdrag åpner lab 2. Dette er funksjonskontroll, ikke vurdering av forståelse.
 
 ## Modellens grenser og tekniske valg
 
