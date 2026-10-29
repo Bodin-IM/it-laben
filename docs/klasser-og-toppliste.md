@@ -23,6 +23,24 @@ Klassen med høyest **samlet XP** leder. Begge klassene vises med poengsum og an
 
 Klassen står ved brukernavnet i den individuelle topplisten. Den offentlige responsen får klassekode og to klassesummer, men ingen konto-ID-er eller ny aktivitetshistorikk. Topplisten oppdateres ved klassevalg, endret synlighet, «Oppdater» og den eksisterende oppdateringen hvert 30. sekund.
 
+## Grafisk sammenligning – 28. oktober 2026
+
+Topplisten viser vannrette XP-stolper fra et felles nullpunkt. API-feltet `maxXp` er høyeste poengsum blant de samme aktive, synlige elevene som deltar på listen. Skalaen er derfor lik på alle sider, også når eleven ser side 2 eller sin egen plassering utenfor den viste siden. Skjulte/deaktiverte profiler og ansatte påvirker ikke skalaen. Ved null XP vises tomme stolper, uten kunstig minimumslengde eller utpekt leder.
+
+Elevens egen rad merkes med «Din profil», ramme og aksentfarge. På de andre radene viser en strek elevens XP og en tekst den eksakte forskjellen: «40 XP foran deg», «Samme XP som deg» eller «80 XP bak deg». Gjester og elever som har skjult seg, ser avstanden til førsteplass. Egen plassering vises bare én gang, med en egen rad over listen når den ligger på en annen side. Klassenes to stolper står under hverandre med felles skala for klassesummene, med deltakerantall og poengavstand.
+
+`XpBar.svelte` gjenbrukes i begge oversiktene. Stolpene er uten animasjon og supplerer synlig tekst med poeng og avstand; de er ikke fullføringsprosenter eller nye mål. Tall og sammenligning kan leses uten farge, musepeker eller ekstra handling. Tekst, tematikk og felles navigasjon videreføres. Dersom en eldre API-versjon ikke sender `maxXp`, beholdes de individuelle tallene uten å gjette en skala fra ett sideutvalg.
+
+Dette er et lokalt designvalg etter brukerens ønske, med U1/U6 (forståelig informasjon og sammenheng) og U7 (tilgjengelighet) som grunnlag. XP-regler, rangering, synlighet og vurdering endres ikke. Elevhandlingen er å lese egen/klassens poengsum og sammenligne den med andre. Visningen sier noe om opptjente poeng, ikke faglig forståelse. Prøv med elever om de kan forklare avstanden og nullpunktet; undersøk separat hvordan sammenligningen oppleves.
+
+Kontrollert med oppdiktede profiler og isolert database:
+
+- 26 relevante API-/databasetester bestod, med kontroll av maksimum på tvers av sider, tom liste, null XP og utelating av skjulte/deaktiverte profiler og ansatte. Svelte-sjekk ga ingen feil/advarsler, og produksjonsbygget bestod.
+- Nettleserprøving av produksjonsbygget dekker stolpelengder, felles nullpunkt, markør, eksakte forskjeller, like summer, egen rad på annen side, klasseledelse og null/tomtilstander. Skjul/vis og feilet henting med nytt forsøk er prøvd mot API-et. Eldre API uten `maxXp` viser fortsatt tall.
+- Begge temaer er kontrollert ved 320, 390, 768 og 1440 CSS-piksler, samt 200 % tekst med økt linje-, ord- og bokstavavstand. Tastatur, emulert berøring og redusert bevegelse er prøvd. Ingen horisontal overflyt, JavaScript-feil eller avvik i de prøvde axe A/AA-reglene.
+
+Svelte MCP var ikke tilgjengelig; offisiell dokumentasjon for `$derived` og `style:`, prosjektets kontroller og nettleserprøving er brukt. Kontrollene er ikke en full tilgjengelighetsrevisjon, en prøve med fysisk mobil/skjermleser eller elevtesting. Endringen trenger ingen databasemigrasjon; frontend og API bør oppdateres sammen.
+
 ## Teknisk løsning og drift
 
 Migrasjon `009_student_classes.sql` legger til det valgfrie feltet `users.class_code`, med databasekrav om 2ITA eller 2ITB. Den kjøres automatisk ved oppstart av API-et. Ingen tidligere migrasjoner endres.
