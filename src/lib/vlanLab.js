@@ -61,7 +61,7 @@ const definitions = [
 			'PVID er portens VLAN for innkommende rammer uten tag. Untagged betyr at switchen sender dette VLAN-et uten tag på porten. Begge valgene må passe PC-ens nett.',
 			'Default VLAN er VLAN 1 i startoppsettet. Det er ikke det samme som en default gateway. Exclude betyr at porten ikke er medlem av VLAN-et. Å velge et annet untagged VLAN her setter det tidligere untagged-medlemskapet til Exclude, men endrer ikke PVID automatisk.'
 		],
-		hints: ['Velg S1. Opprett VLAN-ene og trykk på en nummerert port i «Per port». Tilkoblingen viser hvilken PC den tilhører.', 'På porten til Ansatt-PC 1: velg Untagged ved VLAN 10 og sett PVID til 10. Andre VLAN skal være Exclude på denne PC-porten.'],
+		hints: ['Velg S1 og opprett VLAN-ene. Finn PC-ens portnummer under tabellen, og følg samme portkolonne i VLAN-radene. Trykk på en rute for å bytte mellom U, E og T.', 'På porten til Ansatt-PC 1: sett U (Untagged) i raden for VLAN 10 og PVID til 10. Andre VLAN skal være E (Exclude) på denne PC-porten.'],
 		reflect: 'Hva forteller PVID om trafikk inn, og hva forteller untagged om trafikk ut?'
 	},
 	{
