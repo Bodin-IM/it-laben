@@ -74,6 +74,8 @@ Eth-navn vises ved kabelendene på switchene og samsvarer med tabellen, PVID-fel
 
 Switchpanelet har én samlet VLAN-tabell, med brukerens EdgeSwitch-skjermbilde som referanse. Valget mellom Per port og Per VLAN er fjernet. VLAN-ID og nettverksnavn står til venstre; nummererte portkolonner viser medlemskapet på hver VLAN-rad. Bare topologiens faktiske porter vises.
 
+Panelet bruker bredden til en kompakt rad for VLAN-oppretting og fjerning. ID-feltet har plass til fire sifre, og fjern-knappene fortsetter til høyre når det er plass. U/E/T-nøkkelen ligger til høyre i tabelloverskriften, utenfor tabellens vannrette rullefelt slik at forklaringen fortsatt er synlig på mobil. PVID-feltene samler portnavn og tilkobling på samme linje når det er plass. Radene brytes på smale skjermer; skriftstørrelse og 44 px trykkflater beholdes. Dette følger designgrunnlagets gruppering og lesbarhet (U6 og del 4.2), med mindre tom bredde og færre stablede rader. Layoutjusteringen er gjennomgått i kode/diff på dev; nettleserprøving ved smal skjerm, zoom og begge temaer gjenstår før main.
+
 - Hver portrute er en native knapp som bytter **U → E → T → U** ved klikk, Enter eller mellomrom. U betyr Untagged, E betyr Exclude og T betyr Tagged. Bokstav, forklaring og farge brukes sammen, med 44 × 44 px trykkflater.
 - Knappens tilgjengelige navn oppgir switch, port, tilkobling, VLAN, nåværende medlemskap og neste valg. Fokus blir i samme rute når medlemskapet endres.
 - PVID vises separat under tabellen for hver nummererte port, sammen med tilkoblet PC/switch. Portsnarveien fra en PC flytter fokus til riktig portkolonne i tabellen.

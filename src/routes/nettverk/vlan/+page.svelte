@@ -386,22 +386,27 @@
 				<details class="vlans" open={task.editableSwitches && !task.preconfigured}>
 					<summary>{task.editableSwitches ? 'Opprett og fjern VLAN' : 'VLAN på ' + sw.name} · {switchConfig.vlans.join(', ')}</summary>
 					{#if task.editableSwitches}
-						<form onsubmit={(event) => { event.preventDefault(); addVlan(); }}>
-							<label for="new-vlan">Opprett VLAN-ID (1–4094)</label>
-							<div class="add-vlan"><input id="new-vlan" type="text" inputmode="numeric" maxlength="4" bind:value={vlanInput} onfocus={() => selectSwitch(switchId)} /><button type="submit" class="secondary">Legg til</button></div>
-						</form>
-						<div class="vlan-list">{#each switchConfig.vlans.filter((id) => id !== 1) as id}<button type="button" onclick={() => removeVlan(id)}>Fjern VLAN {id}</button>{/each}</div>
+						<div class="vlan-management">
+							<form onsubmit={(event) => { event.preventDefault(); addVlan(); }}>
+								<label for="new-vlan">Opprett VLAN-ID (1–4094)</label>
+								<div class="add-vlan"><input id="new-vlan" type="text" inputmode="numeric" maxlength="4" bind:value={vlanInput} onfocus={() => selectSwitch(switchId)} /><button type="submit" class="secondary">Legg til</button></div>
+							</form>
+							<div class="vlan-list">{#each switchConfig.vlans.filter((id) => id !== 1) as id}<button type="button" onclick={() => removeVlan(id)}>Fjern VLAN {id}</button>{/each}</div>
+						</div>
 					{:else}<p>VLAN-ene er opprettet på forhånd.</p>{/if}
 				</details>
 				<p class="setting-status" role="status">{settingMessage}</p>
-				<div class="membership-legend" role="group" aria-label="Betydningen av bokstavene">
-					<span><strong class="untagged-key">U</strong> Untagged</span>
-					<span><strong class="excluded-key">E</strong> Exclude</span>
-					<span><strong class="tagged-key">T</strong> Tagged</span>
-				</div>
-				<div class="matrix-scroll" role="region" aria-label="VLAN-tabell. Rull vannrett ved behov." tabindex="0">
-					<table class="vlan-matrix">
-						<caption>{sw.name} · VLAN-medlemskap</caption>
+				<div class="matrix-panel">
+					<div class="matrix-heading">
+						<h3 id="membership-title">{sw.name} · VLAN-medlemskap</h3>
+						<div class="membership-legend" role="group" aria-label="Betydningen av bokstavene">
+							<span><strong class="untagged-key">U</strong> Untagged</span>
+							<span><strong class="excluded-key">E</strong> Exclude</span>
+							<span><strong class="tagged-key">T</strong> Tagged</span>
+						</div>
+					</div>
+					<div class="matrix-scroll" role="region" aria-label="VLAN-tabell. Rull vannrett ved behov." tabindex="0">
+					<table class="vlan-matrix" aria-labelledby="membership-title">
 						<thead><tr>
 							<th scope="col">ID</th><th scope="col">Navn</th>
 							{#each sw.ports as item (item.id)}
@@ -427,12 +432,13 @@
 							{/each}
 						</tbody>
 					</table>
+					</div>
 				</div>
 				<fieldset class="pvid-settings" disabled={!task.editableSwitches} aria-describedby="pvid-help">
 					<legend>PVID · VLAN for umerket trafikk inn</legend>
 					<div class="pvid-grid">
 						{#each sw.ports as item (item.id)}
-							<label class:selected-port={selected === switchId && portId === item.id}>Port {item.id}<small>{item.peer}</small>
+							<label class:selected-port={selected === switchId && portId === item.id}><span class="pvid-port">Port {item.id}<small>{item.peer}</small></span>
 								<select value={switchConfig.ports[item.id].pvid} onfocus={() => selectPort(item.id)}
 									onchange={(event) => {
 										if (!task.editableSwitches || !switchConfig) return;
@@ -582,12 +588,14 @@
 	.pc-back { display: inline-flex; align-items: center; min-height: 44px; margin-top: 8px; font-size: var(--font-small); }
 	.map-links, .switch-picker, .check-links { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 16px; }
 	.map-links a { display: inline-flex; align-items: center; min-height: 44px; font-size: var(--font-small); }
-	.switch-picker { margin: 4px 0 20px; gap: 8px; }
+	.switch-picker { margin: 4px 0 12px; gap: 8px; }
 	.switch-picker button { min-width: 72px; font-weight: 650; }
 	.switch-picker button[aria-pressed='true'] { border-color: var(--color-accent); background: var(--color-accent-soft); box-shadow: inset 0 -3px 0 var(--color-accent); }
 	.check-links { margin-top: 8px; gap: 8px; }
 	.check-links button { font-size: var(--font-small); text-align: left; }
-	.vlans form { max-width: 480px; }
+	.vlan-management { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 20px; margin: 4px 0 12px; }
+	.vlans form { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px; min-width: 0; max-width: 100%; }
+	.vlans label { margin: 0; }
 	.editor-footer { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 12px; margin-top: 20px; padding-top: 16px; border-top: 1px solid var(--color-border); }
 	.editor-footer p { margin: 0; max-width: 65ch; }
 	.check-result.passed { border-left: 3px solid var(--color-success); padding-left: 16px; }
@@ -599,23 +607,27 @@
 	input { font-family: ui-monospace, monospace; }
 	.target-vlan { font-weight: 650; color: var(--color-accent); }
 	.hints { border-left: 3px solid var(--color-info); background: var(--color-info-soft); padding: 12px 16px; font-size: var(--font-small); }
-	.vlans { margin-top: 12px; }
-	.add-vlan { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: end; gap: 8px; }
-	.vlan-list { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
+	.vlans { margin-top: 8px; }
+	.add-vlan { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: center; gap: 8px; width: 13rem; max-width: 100%; }
+	.add-vlan input { margin: 0; }
+	.vlan-list { display: flex; flex: 1 1 16rem; flex-wrap: wrap; gap: 6px; min-width: 0; }
+	.vlan-list:empty { display: none; }
 	.vlan-list button { font-size: var(--font-meta); }
 	.setting-status { font-size: var(--font-small); color: var(--color-accent); margin: 0; }
 	.setting-status:not(:empty) { margin: 8px 0; }
 	fieldset { border: 0; border-top: 1px solid var(--color-border); margin: 20px 0 0; padding: 14px 0 0; min-width: 0; }
 	legend { padding-right: 10px; font-size: var(--font-small); font-weight: 650; }
-	.membership-legend { display: flex; flex-wrap: wrap; gap: 8px 16px; margin: 12px 0; font-size: var(--font-small); }
+	.matrix-panel { border: 1px solid var(--color-border); border-radius: 8px; }
+	.matrix-heading { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px 20px; padding: 10px 12px; background: var(--color-surface-soft); border-radius: 7px 7px 0 0; }
+	.matrix-heading h3 { margin: 0; font-size: var(--font-small); font-weight: 650; }
+	.membership-legend { display: flex; flex-wrap: wrap; gap: 8px 16px; font-size: var(--font-small); font-weight: 400; }
 	.membership-legend span { display: inline-flex; align-items: center; gap: 6px; }
 	.membership-legend strong { display: inline-grid; place-items: center; width: 28px; height: 28px; border-radius: 4px; }
 	.untagged-key { color: var(--color-success); background: var(--color-success-soft); }
 	.excluded-key { color: var(--color-text-muted); background: var(--color-surface-soft); }
 	.tagged-key { color: var(--color-info); background: var(--color-info-soft); }
-	.matrix-scroll { max-width: 100%; overflow-x: auto; border: 1px solid var(--color-border); border-radius: 8px; }
+	.matrix-scroll { max-width: 100%; overflow-x: auto; border-radius: 0 0 7px 7px; }
 	.vlan-matrix { width: 100%; border-collapse: collapse; font-size: var(--font-small); }
-	.vlan-matrix caption { padding: 10px 12px; text-align: left; font-weight: 650; background: var(--color-surface-soft); }
 	.vlan-matrix th, .vlan-matrix td { padding: 10px 6px; text-align: center; border-top: 1px solid var(--color-border); }
 	.vlan-matrix thead th { font-weight: 500; font-size: var(--font-meta); color: var(--color-text-muted); }
 	.vlan-matrix thead strong { display: block; color: var(--color-text); font-size: var(--font-small); }
@@ -631,11 +643,12 @@
 	.membership-cell[data-mode='tagged'] { color: var(--color-info); background: var(--color-info-soft); border-color: var(--color-info); }
 	.membership-cell:not(:disabled):hover { box-shadow: inset 0 0 0 2px currentColor; }
 	.membership-cell:disabled { opacity: 1; }
-	.pvid-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap: 12px; }
-	.pvid-grid label { margin: 0; padding: 10px; border: 1px solid transparent; border-radius: 8px; }
+	.pvid-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 130px), 1fr)); gap: 8px 12px; }
+	.pvid-grid label { margin: 0; padding: 8px; border: 1px solid transparent; border-radius: 8px; }
+	.pvid-port { display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: 2px 10px; }
 	.pvid-grid label.selected-port { border-color: var(--color-accent); background: var(--color-accent-soft); }
-	.pvid-grid small { display: block; font-size: var(--font-meta); font-weight: 400; color: var(--color-text-muted); overflow-wrap: anywhere; }
-	.pvid-grid select { font-size: var(--font-small); }
+	.pvid-grid small { font-size: var(--font-meta); font-weight: 400; color: var(--color-text-muted); overflow-wrap: anywhere; }
+	.pvid-grid select { margin-top: 4px; font-size: var(--font-small); }
 	.membership-help { font-size: var(--font-small); margin-top: 16px; border-top: 1px solid var(--color-border); }
 	.primary { background: var(--color-action); color: var(--color-on-action); border-color: var(--color-action); font-weight: 650; }
 	.primary:hover { background: var(--color-action); filter: brightness(1.08); }
