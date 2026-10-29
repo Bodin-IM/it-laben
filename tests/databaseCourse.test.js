@@ -17,6 +17,7 @@ import { partnerPageById } from '../src/lib/partnerPages.js';
 import { pageWork, pageTask } from '../server/lab-partner/page-context.js';
 import { buildPartnerMessages } from '../server/lab-partner/context.js';
 import { moduler, moduleProgress } from '../src/lib/moduler.js';
+import { completeDatabaseExample } from '../src/lib/databaseIntro.js';
 
 const all = { kategori: 'all', tilgjengelig: 'all', dagspris: 'all' };
 const camera = { ...all, kategori: 'kamera' };
@@ -174,10 +175,173 @@ test('databasestart: nedlastingen følger samme datasett og kode, uten faktiske 
 	);
 	assert.deepEqual(JSON.parse(files['utstyr.json']), equipment);
 	assert.equal(files['finn.mjs'], starterCode);
+	assert.equal(files['eksempel.mjs'], completeDatabaseExample);
 	assert.equal(files['.env'], undefined);
 	assert.match(files['.gitignore'], /^\.env\n/);
 	assert.match(files['klargjor.mjs'], /\$setOnInsert/);
 	assert.doesNotMatch(files['klargjor.mjs'], /deleteMany|dropDatabase|replaceOne/);
-	for (const name of ['finn.mjs', 'klargjor.mjs'])
+	for (const name of ['finn.mjs', 'klargjor.mjs', 'eksempel.mjs'])
 		execFileSync(process.execPath, ['--check', '--input-type=module'], { input: files[name] });
+});
+
+test('databaseinnføring: kodeeksempler og synlige steg stemmer med data uten å endre øvingsdatasettet', async () => {
+	const { readExample, flowExample, insertExample, newEquipment } =
+		await import('../src/lib/databaseIntro.js');
+	const original = JSON.stringify(equipment);
+	assert.deepEqual(
+		readExample('kamera').rows.map((item) => item._id),
+		['K101', 'K102', 'K103']
+	);
+	assert.deepEqual(
+		readExample('ledige').rows.map((item) => item._id),
+		['K101', 'K103']
+	);
+	assert.deepEqual(readExample('ingen').rows, []);
+	assert.match(readExample('ledige').code, /"tilgjengelig": true/);
+	assert.equal(insertExample(0).saved, false);
+	assert.equal(insertExample(0).count, 6);
+	assert.equal(insertExample(0).result, null);
+	assert.equal(insertExample(1).count, 7);
+	assert.equal(insertExample(1).result, null);
+	assert.deepEqual(
+		insertExample(2).result.map((item) => item._id),
+		['M201', 'M202', newEquipment._id]
+	);
+	for (let step = 0; step < 5; step++) {
+		assert.equal(flowExample('hente', step).count, 6);
+		assert.equal(flowExample('lagre', step).count, step < 2 ? 6 : 7);
+	}
+	assert.equal(insertExample(0).count, 6);
+	assert.equal(JSON.stringify(equipment), original);
+	assert.throws(() => readExample('arbitrary-code'));
+	assert.throws(() => insertExample(3));
+	assert.throws(() => flowExample('delete', 0));
+	assert.throws(() => flowExample('hente', -1));
+});
+
+test('databaseinnføring: partneren får bare kjent del og det viste resultatet, med støtte for eldre klienter', async () => {
+	const { databaseSections, completeDatabaseExample } = await import('../src/lib/databaseIntro.js');
+	const page = partnerPageById('database-grunnlag');
+	assert.equal(readPartnerState(page.id, state({ section: 'typer' })).values.readShown, false);
+	const before = pageWork(page, state({ section: 'filter', readId: 'ledige' }));
+	assert.equal(before.resultShown, false);
+	assert.equal(before.visibleResult, undefined);
+	const shown = pageWork(page, state({ section: 'filter', readId: 'ledige', readShown: true }));
+	assert.deepEqual(
+		shown.visibleResult.documents.map((item) => item._id),
+		['K101', 'K103']
+	);
+	assert.equal(pageWork(page, state({ section: 'lagre', insertStep: 0 })).viewedStep.count, 6);
+	assert.equal(
+		pageWork(page, state({ section: 'dataflyt', operation: 'lagre', flowStep: 1 })).viewedStep
+			.count,
+		6
+	);
+	assert.equal(pageWork(page, state({ section: 'eksempel' })).code, completeDatabaseExample);
+	for (const values of [
+		{ section: 'start', uri: 'PRIVATE_URI' },
+		{ section: 'start', code: 'PRIVATE_CODE' },
+		{ section: 'filter', readId: '$where' },
+		{ section: 'filter', readShown: 'true' },
+		{ section: 'dataflyt', flowStep: 5 },
+		{ section: 'lagre', insertStep: 3 },
+		{ section: 'unknown' }
+	])
+		assert.throws(() => readPartnerState(page.id, state(values)));
+	for (const { id } of databaseSections) {
+		const messages = buildPartnerMessages({
+			question: 'Forklar denne delen.',
+			history: [],
+			snapshot: {
+				version: 2,
+				activityId: 'page-help',
+				pageId: page.id,
+				moduleId: 'databaser',
+				state: state({ section: id }),
+				running: false,
+				events: []
+			}
+		});
+		assert.ok(Buffer.byteLength(JSON.stringify(messages)) < 22000, id);
+	}
+});
+
+test('databaseeksempel: kjørbar fil henter, setter inn og lukker; gjentakelse og feil overskriver ingenting', async () => {
+	const { completeDatabaseExample, newEquipment } = await import('../src/lib/databaseIntro.js');
+	const AsyncFunction = Object.getPrototypeOf(async function () {}).constructor;
+	const run = new AsyncFunction(
+		'MongoClient',
+		'process',
+		'console',
+		completeDatabaseExample.replace(/^import[^\n]+\n/, '')
+	);
+	const documents = structuredClone(equipment);
+	const events = [],
+		tables = [],
+		messages = [];
+	let failure = '';
+	class Client {
+		async connect() {
+			events.push('connect');
+			if (failure === 'connect') throw Error('SECRET_URI');
+		}
+		db() {
+			return {
+				collection: () => ({
+					find: (filter) => ({
+						toArray: async () => {
+							events.push('find');
+							return documents.filter((item) => item.kategori === filter.kategori);
+						}
+					}),
+					insertOne: async (item) => {
+						events.push('insert');
+						if (failure === 'write') throw Error('SECRET_WRITE');
+						if (documents.some((saved) => saved._id === item._id))
+							throw Object.assign(Error('duplicate'), { code: 11000 });
+						documents.push(structuredClone(item));
+						return { insertedId: item._id };
+					}
+				})
+			};
+		}
+		async close() {
+			events.push('close');
+		}
+	}
+	const processMock = {
+		env: { MONGODB_URI: 'test', MONGODB_DATABASE: 'test' },
+		exitCode: 0,
+		exit: () => {
+			throw Error('exit');
+		}
+	};
+	const consoleMock = {
+		log: (...args) => messages.push(args.join(' ')),
+		error: (...args) => messages.push(args.join(' ')),
+		table: (rows) => tables.push(structuredClone(rows))
+	};
+	await run(Client, processMock, consoleMock);
+	assert.deepEqual(events, ['connect', 'find', 'insert', 'find', 'close']);
+	assert.equal(tables[0].length, 3);
+	assert.deepEqual(
+		tables[1].map((item) => item._id),
+		['M201', 'M202', newEquipment._id]
+	);
+	documents.find((item) => item._id === newEquipment._id).navn = 'Elevens endrede navn';
+	await run(Client, processMock, consoleMock);
+	assert.equal(documents.length, 7);
+	assert.equal(documents.at(-1).navn, 'Elevens endrede navn');
+	for (const kind of ['connect', 'write']) {
+		failure = kind;
+		events.length = 0;
+		await run(Client, processMock, consoleMock);
+		assert.equal(events.at(-1), 'close');
+		assert.equal(processMock.exitCode, 1);
+		assert.equal(documents.length, 7);
+	}
+	assert.ok(!messages.join('\n').includes('SECRET'));
+	events.length = 0;
+	await assert.rejects(run(Client, { ...processMock, env: {} }, consoleMock), /exit/);
+	assert.deepEqual(events, []);
 });

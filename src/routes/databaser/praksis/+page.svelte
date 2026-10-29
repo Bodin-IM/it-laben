@@ -49,6 +49,11 @@
 			Arbeidet på egen maskin blir ikke automatisk lest eller vurdert av IT-laben. Behold kildekoden
 			og testresultatene til gjennomgangen med læreren.
 		</p>
+		<p>
+			Trenger du å se koden først? <a href="/databaser/grunnlag/?modul=databaser&del=eksempel"
+				>Åpne det komplette eksemplet med forklaring →</a
+			>
+		</p>
 	</section>
 	<div class="db-callout" class:success={complete.length === 3}>
 		<strong
@@ -150,9 +155,10 @@
 					viser alle dokumentene.
 				</p>
 				<p>
-					I en tom øvingsdatabase skal du nå se seks rader. Åpne <code>utstyr.json</code> og sammenlign
-					datatypene med terminalresultatet. Hvis du har brukt databasen før, kan den inneholde flere
-					eller endrede dokumenter.
+					I en tom øvingsdatabase skal du nå se seks rader. Åpne <code>utstyr.json</code> og
+					sammenlign datatypene med terminalresultatet. Hvis du har brukt databasen før, kan den
+					inneholde flere eller endrede dokumenter. Har du kjørt <code>eksempel.mjs</code> fra teorien,
+					er Mikrofon Bord (M203) også lagt inn. Da er det sju dokumenter og tre mikrofoner.
 				</p>
 				<button class="db-button" onclick={() => (phase = 'kode')}>Videre til egne søk →</button>
 			{:else if phase === 'kode'}
@@ -185,6 +191,12 @@
 				</details>
 				<details>
 					<summary>Hjelp til å legge til ditt eget testdokument</summary>
+					<p>
+						Vil du bruke <code>insertOne()</code> i egen kode, kan du gå tilbake til
+						<a href="/databaser/grunnlag/?modul=databaser&del=lagre"
+							>det forklarte innsettingseksemplet</a
+						>. Velg en ny, ubrukt ID. For denne søkeoppgaven kan du også bruke klargjøringsskriptet:
+					</p>
 					<p>
 						Legg et nytt objekt med en ubrukt tekst-ID til i listen i <code>utstyr.json</code>, og
 						kjør <code>klargjor.mjs</code> igjen. Bruk samme feltnavn og datatyper. Eksisterende ID-er

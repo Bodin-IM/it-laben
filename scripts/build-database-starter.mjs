@@ -5,6 +5,7 @@ import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { execFileSync } from 'node:child_process';
 import { equipment, starterCode } from '../src/lib/databaseCourse.js';
+import { completeDatabaseExample } from '../src/lib/databaseIntro.js';
 
 const root = fileURLToPath(new URL('../', import.meta.url));
 const temporary = mkdtempSync(join(tmpdir(), 'it-laben-database-'));
@@ -71,6 +72,7 @@ const files = {
 	'.gitignore': '.env\n.env.*\n!.env.example\nnode_modules/\n',
 	'utstyr.json': JSON.stringify(equipment, null, 2) + '\n',
 	'finn.mjs': starterCode,
+	'eksempel.mjs': completeDatabaseExample,
 	'klargjor.mjs': setupCode,
 	'LES-MEG.md': `# Utstyrsboden – første kodeoppgave
 
@@ -83,6 +85,11 @@ Du trenger Node.js 22 eller nyere og tilgang til en MongoDB-database for deg ell
 4. Kjør \\CMDSETUP.
 5. Kjør \\CMDFIND.
 6. Skriv egne filtre i finn.mjs. Start med alle mikrofoner, og deretter ledige kameraer til høyst 300 kr.
+
+Vil du først kjøre det forklarte eksemplet fra teorien? Kjør node --env-file=.env eksempel.mjs etter klargjøringen.
+Det henter kameraer, legger inn Mikrofon Bord (M203) og henter mikrofonene på nytt. I en ny database
+er det da sju dokumenter. Gjentakelse overskriver ikke M203 og legger ikke til en ny kopi med samme ID.
+De tre mikrofonene er M201, M202 og M203. Egne søk i finn.mjs bruker dataene som faktisk ligger i databasen.
 
 Klargjøringen legger bare til dokumenter med nye ID-er. Den overskriver og sletter ikke eksisterende data.
 I en tom collection skal startdatasettet gi seks dokumenter. Vil du legge til et eget fiktivt dokument,

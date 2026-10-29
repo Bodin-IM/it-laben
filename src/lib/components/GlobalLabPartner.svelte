@@ -50,6 +50,9 @@
 			? (context.state?.values?.step ?? '')
 			: (context.state?.values?.level ??
 					context.state?.values?.taskId ??
+					(current?.kind === 'database-theory'
+						? `${context.state?.values?.section ?? ''}:${context.state?.values?.section === 'dataflyt' ? context.state?.values?.operation : ''}`
+						: undefined) ??
 					(current?.kind === 'database-practice' ? context.state?.values?.phase : undefined) ??
 					context.state?.values?.caseId ??
 					context.state?.values?.questionId ??

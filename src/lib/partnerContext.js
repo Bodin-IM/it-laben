@@ -8,6 +8,7 @@ import { PILOT_BLOCKS, ROOM_BLOCKS, STEPS } from '#lib/reddChattenPilot.js';
 import { casesFor } from '#lib/reddChatten.js';
 import { backendQuestions } from '#lib/backendQuiz.js';
 import { queryTasks, queryOptions, equipment, databasePhases } from '#lib/databaseCourse.js';
+import { databaseSections, readExamples, insertStages } from '#lib/databaseIntro.js';
 export const PAGE_CONTEXT_VERSION = 2;
 export const ADAPTER_VERSION = 1;
 export const MAX_CONTEXT_BYTES = 6000;
@@ -135,7 +136,15 @@ export function readPartnerState(pageId, raw) {
 			run: nullable(attempt)
 		};
 	} else if (page.kind === 'database-theory')
-		shape = { section: choice(['dokument', 'typer', 'filter']) };
+		shape = {
+			section: choice(databaseSections.map((item) => item.id)),
+			operation: (value) => (value === undefined ? 'hente' : choice(['hente', 'lagre'])(value)),
+			flowStep: (value) => (value === undefined ? 0 : integer(0, 4)(value)),
+			readId: (value) =>
+				value === undefined ? 'alle' : choice(readExamples.map((item) => item.id))(value),
+			readShown: (value) => (value === undefined ? false : bool(value)),
+			insertStep: (value) => (value === undefined ? 0 : integer(0, insertStages.length - 1)(value))
+		};
 	else if (page.kind === 'database-practice') shape = { phase: choice(databasePhases) };
 	else if (page.kind === 'database-query') {
 		const choices = record(

@@ -2,6 +2,7 @@ import { altElevinnhold, fag } from '#lib/innhold.js';
 import { moduler } from '#lib/moduler.js';
 import { moduleContext } from '#lib/moduleNavigation.js';
 import { guideSteps } from '#lib/studentGuide.js';
+import { databaseSections } from '#lib/databaseIntro.js';
 
 export const feedbackCategories = [
 	{ id: 'problem', label: 'Noe virker ikke' },
@@ -57,6 +58,13 @@ export function feedbackPage(href) {
 		if (step) {
 			clean.set('tur', step.id);
 			label += ` · ${step.shortTitle}`;
+		}
+	}
+	if (url.pathname === '/databaser/grunnlag/') {
+		const section = databaseSections.find((item) => item.id === url.searchParams.get('del'));
+		if (section) {
+			clean.set('del', section.id);
+			label += ` · ${section.label}`;
 		}
 	}
 	return { path: url.pathname, href: url.pathname + (clean.size ? `?${clean}` : ''), title: label };
