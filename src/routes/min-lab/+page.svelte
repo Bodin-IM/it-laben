@@ -524,6 +524,7 @@
 		background: var(--color-page);
 		font-family: var(--font-ui);
 		color: var(--color-text);
+		overflow-wrap: anywhere;
 	}
 	.profile-page,
 	.profile-page * {
@@ -613,6 +614,9 @@
 	.view-nav a {
 		display: inline-flex;
 		align-items: center;
+		min-width: 0;
+		max-width: 100%;
+		overflow-wrap: anywhere;
 		min-height: 48px;
 		padding: 10px 16px;
 		border-bottom: 3px solid transparent;
@@ -848,7 +852,7 @@
 	}
 	.activity-row {
 		display: grid;
-		grid-template-columns: minmax(0, 1fr) auto 16px;
+		grid-template-columns: minmax(0, 1fr) auto auto;
 		align-items: center;
 		gap: 18px;
 		padding: 18px 20px;
@@ -955,7 +959,7 @@
 			grid-template-columns: 1fr;
 		}
 		.activity-row {
-			grid-template-columns: minmax(0, 1fr) 16px;
+			grid-template-columns: minmax(0, 1fr) auto;
 			gap: 6px 12px;
 		}
 		.activity-status {

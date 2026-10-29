@@ -78,6 +78,7 @@
 		if (!currentRun || stale) { playing = false; return; }
 		if (reducedMotion) { playing = false; travelProgress = 1; return; }
 		if (!playing) return;
+		const lastFrame = currentRun.result.steps.length - 1;
 		const initialProgress = untrack(() => travelProgress);
 		let started = 0;
 		let request = 0;
@@ -87,7 +88,7 @@
 			const elapsed = now - started + initialProgress * 650;
 			travelProgress = Math.min(1, elapsed / 650);
 			if (elapsed >= 1000) {
-				if (currentFrame < currentRun.result.steps.length - 1) { travelProgress = 0; frame = currentFrame + 1; }
+				if (currentFrame < lastFrame) { travelProgress = 0; frame = currentFrame + 1; }
 				else playing = false;
 			} else request = requestAnimationFrame(advance);
 		}
@@ -405,6 +406,7 @@
 							<span><strong class="tagged-key">T</strong> Tagged</span>
 						</div>
 					</div>
+					<!-- svelte-ignore a11y_no_noninteractive_tabindex (Keyboard users need to focus this region to scroll the wide table.) -->
 					<div class="matrix-scroll" role="region" aria-label="VLAN-tabell. Rull vannrett ved behov." tabindex="0">
 					<table class="vlan-matrix" aria-labelledby="membership-title">
 						<thead><tr>
@@ -512,7 +514,7 @@
 </main>
 
 <style>
-	.vlan-page { width: min(var(--layout-width), calc(100% - 2 * var(--layout-gutter))); margin: 28px auto 56px; color: var(--color-text); font: var(--font-body)/var(--leading-body) var(--font-ui); }
+	.vlan-page { width: min(var(--layout-width), calc(100% - 2 * var(--layout-gutter))); margin: 28px auto 56px; color: var(--color-text); font: var(--font-body)/var(--leading-body) var(--font-ui); overflow-wrap: anywhere; }
 	.vlan-page :global(*) { box-sizing: border-box; }
 	h1, h2, h3, p { overflow-wrap: anywhere; }
 	h1 { font-size: clamp(2rem, 4vw, 3rem); line-height: 1.15; letter-spacing: -0.04em; margin: 8px 0 14px; }
@@ -530,7 +532,8 @@
 	button { cursor: pointer; touch-action: manipulation; }
 	button:hover { background: var(--color-surface-hover); }
 	button:disabled { opacity: 0.6; cursor: default; }
-	.tasks button { display: flex; gap: 10px; align-items: center; text-align: left; font-size: var(--font-small); }
+	.tasks button { display: flex; gap: 10px; align-items: center; min-width: 0; text-align: left; font-size: var(--font-small); }
+	.tasks button > span:last-child { min-width: 0; overflow-wrap: anywhere; }
 	.tasks button[aria-current] { border-color: var(--color-accent); background: var(--color-accent-soft); }
 	.tasks small { display: block; margin-top: 4px; color: var(--color-text-muted); font-size: var(--font-meta); }
 	.step-number { font-weight: 750; font-size: 1.25rem; color: var(--color-accent); }
@@ -549,7 +552,7 @@
 	.theory p { max-width: 75ch; }
 	.workspace-links { display: flex; flex-wrap: wrap; gap: 8px; margin: 0 0 16px; }
 	.workspace-links a, .action-link { display: inline-flex; align-items: center; justify-content: center; min-height: 44px; padding: 9px 14px; border: 1px solid var(--color-border-strong); border-radius: 8px; text-decoration: none; font-size: var(--font-small); }
-	.workspace-links a:hover, .action-link.secondary:hover { background: var(--color-surface-hover); }
+	.workspace-links a:hover { background: var(--color-surface-hover); }
 	.workspace-links .test-shortcut { font-weight: 650; border-color: var(--color-accent); background: var(--color-accent-soft); }
 	#network-panel, #map-title, #map-ping, #pc-editor, #pc-editor-title, #quick-check, #device-editor, #editor-title, #testing, .vlan-matrix th { scroll-margin-top: 24px; }
 	.network-workspace { display: grid; grid-template-columns: minmax(0, 1fr); grid-template-areas: "map" "pc"; gap: 16px; align-items: start; }
@@ -671,5 +674,5 @@
 	:is(button, input, select, summary, a, [tabindex]):focus-visible { outline: 3px solid var(--color-focus); outline-offset: 3px; }
 	@media (min-width: 1100px) { .network-workspace { grid-template-columns: minmax(0, 1fr) 260px; grid-template-areas: "map pc"; } .pc-back { display: none; } }
 	@media (max-width: 700px) { .mission-layout { grid-template-columns: minmax(0, 1fr); } }
-	@media (max-width: 600px) { .tasks { grid-template-columns: 1fr; } .map-panel, .editor, .testing, .mission { padding: 16px; } }
+	@media (max-width: 600px) { .tasks { grid-template-columns: minmax(0, 1fr); } .map-panel, .editor, .testing, .mission { padding: 16px; } }
 </style>

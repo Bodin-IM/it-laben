@@ -1,0 +1,20 @@
+# Kontroll før merge til main – 29. oktober 2026
+
+Omfanget er endringene siden `e40fd01e`: VLAN-lab med seks oppdrag, ryddigere Min lab og Innstillinger, felles lydknapp, fjerning av introduksjonsboksen på forsiden og avtalt arbeidsflyt med samlet testing før main. VLAN-laben er fortsatt et første utkast uten XP eller serverlagret fremgang.
+
+## Utført kontroll
+
+- **Testsuite:** `npm test` kjørte 232 tester. 231 bestod i første kjøring. Den eneste feilen var en katalogtest som fortsatt forventet bare Øving 10 under drift. Forventningen ble oppdatert til også å omfatte VLAN-laben; alle fem søketestene bestod i målrettet gjenkjøring. Øvrige beståtte tester ble ikke gjentatt. Testene omfatter blant annet VLAN-modellen, progresjonslåsing, kontekstgrenser, lydvalg, migrering og avbrutt lydstart.
+- **Svelte og bygg:** Endelig kode ga null feil og null advarsler i `npm run check`. `npm run build` fullførte statisk produksjonsbygg. Typefeilen i animasjonens callback ble rettet. De to bevisst fokuserbare rullefeltene har dokumenterte unntak fra kompilatorens generelle tabindex-advarsel; tastaturrulling av kartet ble prøvd. Svelte MCP var ikke tilgjengelig; prosjektets kontroller og tidligere lest offisiell dokumentasjon ble brukt.
+- **VLAN i nettleser:** Alle seks oppdrag ble løst gjennom synlige kontroller. Kontrollteller og detaljliste samsvarte. Ping innenfor nett virket, og VLAN-skille ga stopp og rød markering på switchen. U → E → T → U ble prøvd med tastatur; PVID ble beholdt. Ugyldig VLAN-ID, oppretting/fjerning, avvist fjerning av VLAN i bruk, pause/fortsett, manuelle steg og utdaterte resultater ble prøvd.
+- **Progresjon og hjelp:** Endring i et tidligere oppdrag låste senere oppdrag til ny bestått kontroll, uten å slette senere arbeid. Nullstilling og avbryt ble prøvd, sammen med feilsnarveier, PC-portlenke, fokus og berøringsbetjening. Labpartneren fikk serverbygd oppdragskontekst; endret arbeid ble merket, samtalen ble tømt ved oppdragsbytte, og elevens innskrevne IP-adresse ble ikke delt.
+- **Min lab og lyd:** Fagfilter, tannhjul, visningslenker, aktivitetsanker og tilbakeknapp ble prøvd. Tannhjulet bevarer nå fagfilteret fra Min lab. Lydvalget ble prøvd etter omlasting, mellom faner og med gammelt VLAN-av-valg. Sperret lagring og manglende Web Audio blokkerte ikke oppdragskontrollen. Nattevaktens av/på og frigjøring av lyd ved navigasjon ble kontrollert med faktisk Web Audio i Chromium.
+- **Visning og tilgjengelighet:** Hvert VLAN-oppdrag ble undersøkt ved 1440, 390 og 320 px i begge temaer. Min lab og Innstillinger ble prøvd på desktop og mobil. Utvalgte flater ble kontrollert med axe-core uten påviste avvik. 320 px med 200 % tekststørrelse og overstyrt tekstavstand ble prøvd i begge temaer for VLAN, Min lab og Innstillinger. Overflyt i oppdragsmeny, lange ord og innstillingslenken ble rettet. Skrift og trykkflater er beholdt. Skjermbilder av VLAN-panelet og mobilinnstillinger ble også gjennomgått visuelt.
+
+Nettleserprøvingen brukte produksjonsbygget, lokal API-server, midlertidig database og oppdiktede profiler. KI-svar kom fra en lokal testtjeneste. Ingen elevdata eller innstillinger på skolens server ble endret. Ingen uventede JavaScript-feil ble registrert i de ferdigprøvde flytene. Etter rettinger ble bare berørte kontroller gjentatt.
+
+## Pedagogisk og praktisk avgrensning
+
+Eleven undersøker portene, velger IP/VLAN/PVID, prøver forbindelser og retter feil. En bestått kontroll viser at oppsettet virker i den avgrensede modellen; den dokumenterer ikke alene forståelse. Veiledningen ber eleven forklare en pakkereise og lage en ny plan i Packet Tracer eller på reelt utstyr. De konkrete kompetansemålene og begrensningene står i [VLAN-veiledningen](vlan-lab.md).
+
+Dette er teknisk kontroll, ikke full WCAG-samsvarsvurdering eller brukertesting med elever. Lydstart, volum og demping er kontrollert teknisk; lydene er ikke vurdert ved avlytting på bærbar høyttaler eller hodetelefoner. Elevutprøving, fysisk avlytting og kontroll på skolens faktiske utstyr gjenstår.

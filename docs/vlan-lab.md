@@ -1,6 +1,6 @@
 # VLAN-laben – første utkast
 
-Status: utviklet på `dev`, 29. oktober 2026. Rute: `/nettverk/vlan/`, tilgjengelig som fri aktivitet under Driftsstøtte. Ingen ny modul, serverlagret fremgang eller XP. Utkastet skal prøves før det publiseres til `main`.
+Status: første utkast, teknisk kontrollert for merge til `main` 29. oktober 2026. Rute: `/nettverk/vlan/`, tilgjengelig som fri aktivitet under Driftsstøtte. Ingen ny modul, serverlagret fremgang eller XP. Se [samlet publiseringskontroll](publisering-2026-10-29.md). Utprøving med elever gjenstår.
 
 ## Mål og faglig ramme
 
@@ -98,6 +98,8 @@ Serveren bygger mål, utgangspunkt, offentlig VLAN-/IP-plan, arbeidssteg, teori 
 Etter oppdelingen i to synlige paneler er delt enhet fortsatt den eleven sist valgte eller redigerte. En PC deler fortsatt `portId: null`, selv om en switchtabell også er synlig. Panelets valgte switch beholdes lokalt og endrer ikke delingskontrakten.
 
 ## Kontroll og utprøving
+
+**Oppdatert 29. oktober:** Samlet testing, Svelte-sjekk, bygg og nettleserprøving er gjennomført før merge. Resultater, rettinger og gjenstående avgrensninger står i [publiseringskontrollen](publisering-2026-10-29.md). Notatene nedenfor beskriver tidligere dev-iterasjoner og hva som da var utsatt.
 
 Koden og diffen er gjennomgått på `dev`. Elleve testgrupper er skrevet for gyldige alternative adresser, feilede startoppsett, IP-konflikter, VLAN-isolasjon, manglende trunk-hopp, returtrafikk, native-mismatch, kontekstgrenser og adgang til neste oppdrag. Den nye progresjonsgruppen dekker ping alene, mislykket/full kontroll, forsøk på å hoppe over et oppdrag, utdatert resultat, ny kontroll og nullstilling med bevart senere arbeid. **Samlet testsuite er ikke kjørt på dev**, etter avtalt arbeidsflyt. Én avgrenset regresjonstest for VLAN-stopp er kjørt som beskrevet nedenfor. Svelte MCP var ikke tilgjengelig; offisiell dokumentasjon for [$state](https://svelte.dev/docs/svelte/$state), [each-blokker](https://svelte.dev/docs/svelte/each), [$effect](https://svelte.dev/docs/svelte/$effect) og [livssyklus](https://svelte.dev/docs/svelte/lifecycle-hooks) er brukt.
 

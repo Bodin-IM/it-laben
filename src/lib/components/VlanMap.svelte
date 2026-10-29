@@ -9,6 +9,7 @@
 	});
 </script>
 
+<!-- svelte-ignore a11y_no_noninteractive_tabindex (Keyboard users need to focus this region to scroll the wide topology.) -->
 <div class="map-scroll" role="region" aria-label="Nettverkskart. Rull vannrett på smal skjerm." tabindex="0">
 	<div class="network-map" style:min-width={`${task.switches.length > 2 ? 780 : task.switches.length > 1 ? 660 : 600}px`}>
 		<svg viewBox="0 0 900 440" preserveAspectRatio="none" aria-hidden="true">

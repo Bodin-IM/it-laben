@@ -162,7 +162,7 @@ Dette er et lokalt designvalg etter designgrunnlagets U1, U3 og U6: en tydelig h
 
 Profil, nøkkelnedlasting, kontobytte og køvarsler beholder eksisterende lagringsflyt. En nylig opprettet nøkkel holdes i samme sidekomponent ved bytte mellom visningene, og nedlastingsvarselet vises i begge. Feedback lagrer den kjente innstillingsvisningen som sidekontekst; ukjente URL-parametere beholdes ikke. Ingen XP-regler, merkekrav eller API-kontrakter er endret.
 
-Endringen på `dev` er gjennomgått som diff. Samlet testing gjenstår før `main`, inkludert tastatur, smal skjerm, zoom, begge temaer, direkte lenker/tilbakeknapp, fagfilter, gjestevisning, oppretting/nedlasting/bytte av nøkkel og lagring av innstillinger. Brukertesting med elever gjenstår.
+Endringen er kontrollert før merge 29. oktober: samlet testsuite, Svelte-sjekk, bygg og nettleserprøving av de endrede visningene. Fagfilter, innstillingslenker, tilbakeknapp, begge temaer, smal skjerm og stor tekst er prøvd. Tannhjulet bevarer fagfilteret, og innstillingslenken bryter lange ord ved stor tekst. Eksisterende nøkkel-/lagringsflyter er dekket av backendtestene; hele nøkkelflyten er ikke prøvd på nytt i nettleser. Se [publiseringskontrollen](publisering-2026-10-29.md). Brukertesting med elever gjenstår.
 
 ## Kontroll før publisering
 

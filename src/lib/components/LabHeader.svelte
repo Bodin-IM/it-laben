@@ -19,6 +19,12 @@
 	const settingsPage = $derived(
 		mounted && page.url.pathname === '/min-lab/' && page.url.searchParams.get('visning') === 'innstillinger'
 	);
+	const settingsSubject = $derived(
+		mounted && page.url.pathname === '/min-lab/'
+			? fag.find((subject) => subject.id === page.url.searchParams.get('fag'))?.id
+			: undefined
+	);
+	const settingsHref = $derived(`/min-lab/?visning=innstillinger${settingsSubject ? `&fag=${settingsSubject}` : ''}`);
 	/** @type {HTMLButtonElement|undefined} */
 	let menuButton;
 	/** @type {HTMLDetailsElement|undefined} */
@@ -124,7 +130,7 @@
 		</nav>
 		<div class="account">
 			<AccountLink />
-			<a class="settings-link" href="/min-lab/?visning=innstillinger" aria-label="Innstillinger" title="Innstillinger"
+			<a class="settings-link" href={settingsHref} aria-label="Innstillinger" title="Innstillinger"
 				aria-current={settingsPage ? 'page' : undefined}>
 				<svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor"
 					stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
