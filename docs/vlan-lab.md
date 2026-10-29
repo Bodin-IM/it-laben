@@ -27,9 +27,13 @@ Avgrensning: Eleven konfigurerer og undersøker IP-adresser, VLAN-medlemskap og 
 
 Hvert oppdrag viser ønsket kommunikasjon, hva som er ferdig satt opp, to konkrete arbeidssteg og en nettverksplan med navn, VLAN-ID, IP-nett og tilhørende PC-er. PC-ene heter for eksempel «Ansatt-PC 1» og «Gjest-PC 2» i kart, innstillinger, ping, hint og kontrolliste. Nettverksplanen beskriver målet, ikke en påstand om at dagens konfigurasjon er riktig. Sluttoppdraget beholder to nett og nye VLAN-ID-er; Admin-navnet er ikke en egen tilgangs- eller rutingsfunksjon.
 
-«Prøv ping» undersøker et valgt par, med en manuelt styrt hendelsesrekke og markert kabel/enhet. «Kontroller oppdraget» undersøker alle relevante par, riktig VLAN-tilhørighet, adresser, tagged uplinker og native-samsvar. Isolasjon undersøkes på VLAN-nivå, slik at ulike IP-nett på samme VLAN ikke feilaktig godkjennes som segmentering. Flere gyldige vertsadresser godtas; systemet krever ikke en bestemt .11/.12-fasit.
+«Prøv ping» undersøker et valgt par, med en manuelt styrt hendelsesrekke og markert kabel/enhet. «Kontroller oppdraget» undersøker alle relevante par, riktig VLAN-tilhørighet, adresser, tagged uplinker og native-samsvar. Isolasjon undersøkes på VLAN-nivå, slik at ulike IP-nett på samme VLAN ikke feilaktig godkjennes som segmentering. Flere gyldige vertsadresser godtas; systemet krever ikke en bestemt .11/.12-fasit. Ved feil vises inntil tre krav å starte med, mens hele kontrollisten kan åpnes ved behov.
 
-Gamle resultater merkes ved endret oppsett eller ping-par, og telles ikke som et nåværende bestått oppsett. Oppdragene er fritt tilgjengelige; hjelp og nye forsøk har ingen poengtrekk. Arbeidet ligger i sidens minne og beholdes ved oppdragsbytte. Det nullstilles ved konto-/læringsmodusbytte, omlasting og navigasjon bort. Nullstilling av ett oppdrag har et eget, forklart bekreftelsessteg.
+Oppdragene åpnes i rekkefølge. Første oppdrag er tilgjengelig fra start; senere oppdrag krever en bestått, gjeldende oppdragskontroll for alle oppdragene foran. Én vellykket ping er ikke tilstrekkelig. Samme adgangsregel brukes av oppdragsmenyen og funksjonen som bytter oppdrag; «Neste oppdrag» er synlig, men deaktivert til kontrollen består.
+
+Gamle resultater merkes ved endret oppsett eller ping-par, og telles ikke som et nåværende bestått oppsett. Et endret ping-par gjør bare ping-resultatet utdatert; endret IP-/portoppsett gjør også oppdragskontrollen utdatert. Eleven kan gå tilbake til tidligere oppdrag. Endres eller nullstilles et tidligere oppsett, låses oppdragene etterpå til en ny kontroll består. Arbeidet i dem beholdes. Hjelp og nye forsøk har ingen poengtrekk. Arbeidet ligger i sidens minne og beholdes ved oppdragsbytte. Det nullstilles ved konto-/læringsmodusbytte, omlasting og navigasjon bort. Nullstilling av ett oppdrag har et eget bekreftelsessteg som også forklarer låsingen.
+
+Kravet om bestått kontroll før videre progresjon følger brukerens uttrykkelige ønske og erstatter utkastets frie oppdragsvalg. Dette er en lokal avklaring av pedagogikkgrunnlagets elevstyring: eleven beholder tempo, tilbakevei, hjelp og nye forsøk, mens rekkefølgen styres av funksjonskravene. Bestått kontroll er fortsatt ikke dokumentasjon på forståelse. Adgangsregelen er lokal øvingslogikk, ikke serverlagret vurdering.
 
 ## Modellens grenser og tekniske valg
 
@@ -43,7 +47,11 @@ Faglig referanse: [Ciscos VLAN Trunking-guide](https://www.cisco.com/c/en/us/td/
 
 ## Design og pedagogisk oppfølging
 
-Et interaktivt kart med et separat panel for valgt enhet holder oppgaven og endringen synlig samtidig. Native knapper, feltetiketter, en alternativ enhetsliste og kabler som tekst gir betjening uten dragging. Smal skjerm stabler panelene; topologien og VLAN-tabellen kan rulles vannrett i egne felt ved behov. Farge suppleres av tekst og hendelser. Felles tema og tekstvariabler gjenbrukes, uten animasjoner som krever pause. Dette er lokale valg etter designgrunnlagets U1, U3 og U6, med tilgjengelighet som arbeidsmål.
+Arbeidsflaten følger én loddrett rekkefølge: nettverkskart i full bredde, konfigurasjon i samme bredde under og et tydelig markert testområde nederst. Dette gir plass til topologien og VLAN-tabellen og en leseretning som følger arbeidet. Lokale snarveier og «Gå til testing» etter konfigurasjonen gjør testen tilgjengelig uten å plassere den øverst. Oppdragskontroll og neste-knapp står først i testområdet; ping er en separat feilsøkingsdel under.
+
+Etter en ping kan eleven følge hendelsene ved selve kartet, der styreknappene og kabelmarkeringen vises sammen. Lenker går begge veier mellom kart og testområde. Dette motvirker den ekstra rullingen som en stablet arbeidsflate ellers kunne gitt ved stegvis feilsøking.
+
+Native knapper, feltetiketter, en alternativ enhetsliste og kabler som tekst gir betjening uten dragging. Topologien og VLAN-tabellen kan rulles vannrett i egne felt ved behov på smal skjerm. Farge suppleres av tekst og hendelser. Felles tema og tekstvariabler gjenbrukes, uten animasjoner som krever pause. Dette er lokale valg etter designgrunnlagets U1, U3 og U6, med tilgjengelighet som arbeidsmål.
 
 Switchpanelet har én samlet VLAN-tabell, med brukerens EdgeSwitch-skjermbilde som referanse. Valget mellom Per port og Per VLAN er fjernet. VLAN-ID og nettverksnavn står til venstre; nummererte portkolonner viser medlemskapet på hver VLAN-rad. Bare topologiens faktiske porter vises.
 
@@ -54,7 +62,7 @@ Switchpanelet har én samlet VLAN-tabell, med brukerens EdgeSwitch-skjermbilde s
 
 Medlemskap og PVID endrer samme konfigurasjon og merker tidligere ping/kontroll som utdatert. Ferdig oppsatte switcher kan undersøkes, men innstillingene er låst. Matrisen gjenbruker dagens nettverksmodell; den er ikke en full kopi av EdgeSwitch-funksjonene.
 
-Dette synliggjør sammenhengen mellom porter og VLAN i én oversikt og følger brukerens ønskede, gjenkjennelige arbeidsmåte. Valget følger designgrunnlagets synlige valgmuligheter og gruppering (U1/U6), men må prøves med elever. Kartet beholder enhetsvalg; konfigurasjonen ligger i panelet ved siden av.
+Dette synliggjør sammenhengen mellom porter og VLAN i én oversikt og følger brukerens ønskede, gjenkjennelige arbeidsmåte. Valget følger designgrunnlagets synlige valgmuligheter og gruppering (U1/U6), men må prøves med elever. Kartet beholder enhetsvalg; konfigurasjonen ligger i panelet under.
 
 Forløpet følger pedagogikkgrunnlagets overkommelige start, undersøking, endring og ny anvendelse. Be eleven forutsi før ping, forklare stoppstedet og endre én ting om gangen. En medelev kan være observatør og begrunne neste test før rollene byttes.
 
@@ -68,10 +76,12 @@ Serveren bygger mål, utgangspunkt, arbeidssteg, teori og bare åpne hint fra sa
 
 ## Kontroll og utprøving
 
-Koden og diffen er gjennomgått på `dev`. Seks testgrupper er skrevet for gyldige alternative adresser, feilede startoppsett, IP-konflikter, VLAN-isolasjon, manglende trunk-hopp, returtrafikk, native-mismatch og kontekstgrenser. **Testene er ikke kjørt på dev**, etter avtalt arbeidsflyt. Svelte MCP var ikke tilgjengelig; offisiell dokumentasjon for [$state](https://svelte.dev/docs/svelte/$state) og [each-blokker](https://svelte.dev/docs/svelte/each) er brukt.
+Koden og diffen er gjennomgått på `dev`. Sju testgrupper er skrevet for gyldige alternative adresser, feilede startoppsett, IP-konflikter, VLAN-isolasjon, manglende trunk-hopp, returtrafikk, native-mismatch, kontekstgrenser og adgang til neste oppdrag. Den nye progresjonsgruppen dekker ping alene, mislykket/full kontroll, forsøk på å hoppe over et oppdrag, utdatert resultat, ny kontroll og nullstilling med bevart senere arbeid. **Testene er ikke kjørt på dev**, etter avtalt arbeidsflyt. Svelte MCP var ikke tilgjengelig; offisiell dokumentasjon for [$state](https://svelte.dev/docs/svelte/$state) og [each-blokker](https://svelte.dev/docs/svelte/each) er brukt.
 
 Revisjonene med tydeligere oppdrag og den samlede VLAN-tabellen er også kun kode-/diffgjennomgått. Ingen nye automatiserte tester er lagt til for visningsendringene. Før main må alle tre medlemskap prøves med gjentatte klikk og tastatur: kontroller U → E → T → U, at nytt U setter tidligere U til E på samme port, og at PVID beholdes. Bytt switch, opprett/fjern VLAN, prøv forhåndsoppsatte switcher og bekreft at gamle resultater merkes. Prøv portsnarveien, rulling av tabellen og PVID-feltene med tastatur, mobil, zoom og begge temaer.
 
 Før `main`: kjør samlet testsuite, Svelte-sjekk og bygg. Prøv alle oppdrag og gyldige/ugyldige forsøk, retting etter feil, endring etter bestått, tilbakebytte mellom oppdrag, nullstilling og kontobytte. Kontroller tastatur, fokus, 320/390 px, zoom og begge temaer, samt markering av riktig kabel ved valgt hendelse. Prøv labpartnerens stegbytte, utdatert svar og delingsgrenser. Testene og nettleserprøvingen gjenstår.
+
+Den siste endringen med full bredde og låst progresjon er også kun kode-/diffgjennomgått. Prøv særlig at både meny og neste-knapp håndhever rekkefølgen, at endring av et gammelt oppsett krever ny kontroll uten å slette senere arbeid, og at reset/kontobytte starter riktig. Kontroller snarveier til testområdet, visning av manglende krav og ping-forløpet med styreknapper ved kartet.
 
 Prøv deretter med noen elever: Skiller de VLAN fra IP-nett? Forstår de PVID uten at de bare kopierer hintet? Finner de riktig port og stopper de der trafikken faktisk stoppet? Undersøk den nye praktiske oppgaven separat fra interesse og opplevd brukervennlighet. Ingen læringseffekt er dokumentert.

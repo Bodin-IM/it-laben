@@ -133,6 +133,18 @@ export const vlanTasks = definitions.map(topology);
 /** @param {string} id */
 export const vlanTask = (id) => vlanTasks.find((task) => task.id === id) ?? vlanTasks[0];
 
+/** @typedef {{revision:number,check:{revision:number,result:{passed:boolean}}|null}} VlanProgress */
+/** @param {VlanProgress|undefined} attempt */
+export function vlanCheckPassed(attempt) {
+	if (!attempt?.check) return false;
+	return attempt.check.revision === attempt.revision && attempt.check.result.passed;
+}
+/** The first incomplete task stays open; later tasks require current checks for all prerequisites. @param {Record<string,VlanProgress>} work */
+export function vlanAvailableThrough(work) {
+	const firstIncomplete = vlanTasks.findIndex((task) => !vlanCheckPassed(work[task.id]));
+	return firstIncomplete < 0 ? vlanTasks.length - 1 : firstIncomplete;
+}
+
 /** The task's intended network name, not a claim about the current port configuration. @param {VlanTask} task @param {number} id */
 export function vlanLabel(task, id) {
 	const name = task.networkNames[task.groups.indexOf(id)];
@@ -279,4 +291,4 @@ export function checkVlanTask(task, config) {
 }
 
 /** Only explicit view state is shared with the labpartner; never IP inputs or entire configuration. */
-export const vlanContextLimit = 'Du ser valgt oppdrag, enhet, port og om en test er kjørt eller utdatert. Du ser IKKE IP-adressene, VLAN-oppsettet eller testresultatet. Ikke anta at oppsettet virker; be eleven beskrive ett relevant funn. Ingen XP eller godkjenning av forståelse.';
+export const vlanContextLimit = 'Du ser valgt oppdrag, enhet, port og om en test er kjørt eller utdatert. Du ser IKKE IP-adressene, VLAN-oppsettet eller testresultatet. Ikke anta at oppsettet virker; be eleven beskrive ett relevant funn. Oppdragene må bestås i rekkefølge med «Kontroller oppdraget» i testområdet nederst. En enkelt ping åpner ikke neste oppdrag. Ingen XP eller godkjenning av forståelse.';

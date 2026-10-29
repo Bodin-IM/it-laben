@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { vlanTasks, vlanTask, initialVlanConfig, hostAddress, traceVlan, pingVlan, checkVlanTask } from '../src/lib/vlanLab.js';
+import { vlanTasks, vlanTask, initialVlanConfig, hostAddress, traceVlan, pingVlan, checkVlanTask, vlanAvailableThrough } from '../src/lib/vlanLab.js';
 import { readPartnerState } from '../src/lib/partnerContext.js';
 import { partnerPageById } from '../src/lib/partnerPages.js';
 import { pageWork } from '../server/lab-partner/page-context.js';
@@ -25,6 +25,33 @@ test('VLAN: every brief accepts different valid host addresses and starts with w
 		assert.equal(checkVlanTask(task, configured(task)).passed, true, task.id);
 		assert.equal(checkVlanTask(task, configured(task, 201)).passed, true, task.id);
 	}
+});
+
+test('VLAN: only current full checks open later tasks; edits and resets require a new check', () => {
+	const work = Object.fromEntries(vlanTasks.map((task) => [task.id, { revision: 0, check: null, run: null }]));
+	const check = (id, config) => {
+		work[id].check = { revision: work[id].revision, result: checkVlanTask(vlanTask(id), config) };
+	};
+	assert.equal(vlanAvailableThrough(work), 0);
+	const first = vlanTasks[0], firstConfig = configured(first);
+	work[first.id].run = pingVlan(first, firstConfig, 'pc1', 'pc2');
+	assert.equal(work[first.id].run.ok, true);
+	assert.equal(vlanAvailableThrough(work), 0, 'a successful ping alone does not open the next task');
+	check(first.id, initialVlanConfig(first));
+	assert.equal(vlanAvailableThrough(work), 0, 'a failed full check does not open the next task');
+	check(first.id, firstConfig);
+	assert.equal(vlanAvailableThrough(work), 1);
+	check(vlanTasks[2].id, configured(vlanTasks[2]));
+	assert.equal(vlanAvailableThrough(work), 1, 'later results cannot skip a prerequisite');
+	for (const task of vlanTasks) check(task.id, configured(task));
+	assert.equal(vlanAvailableThrough(work), 4);
+	work['to-nett'].revision += 1;
+	assert.equal(vlanAvailableThrough(work), 1, 'an edit makes the previous check stale');
+	assert.equal(work['trunk'].check.result.passed, true, 'later work is preserved');
+	check('to-nett', configured(vlanTask('to-nett')));
+	assert.equal(vlanAvailableThrough(work), 4);
+	work.ip = { revision: 0, check: null, run: null };
+	assert.equal(vlanAvailableThrough(work), 0, 'resetting a task requires passing its check again');
 });
 
 test('VLAN: host addresses, duplicate hosts and routing are distinguished', () => {

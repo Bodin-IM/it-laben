@@ -3,7 +3,7 @@
 	import VlanMap from '#lib/components/VlanMap.svelte';
 	import PartnerContext from '#lib/components/PartnerContext.svelte';
 	import { lab, learningContext } from '#lib/lab.js';
-	import { vlanTasks, vlanTask, vlanLabel, initialVlanConfig, membership, pingVlan, checkVlanTask } from '#lib/vlanLab.js';
+	import { vlanTasks, vlanTask, vlanLabel, vlanCheckPassed, vlanAvailableThrough, initialVlanConfig, membership, pingVlan, checkVlanTask } from '#lib/vlanLab.js';
 	/** @typedef {{config:import('#lib/vlanLab.js').VlanConfig,revision:number,run:{revision:number,source:string,target:string,result:import('#lib/vlanLab.js').PingResult}|null,check:{revision:number,result:ReturnType<typeof checkVlanTask>}|null}} Workspace */
 	/** @returns {Record<string,Workspace>} */
 	function freshWork() {
@@ -42,15 +42,19 @@
 	const run = $derived(attempt.run);
 	const stale = $derived(!!run && (run.revision !== attempt.revision || run.source !== source || run.target !== target));
 	const checkStale = $derived(!!attempt.check && attempt.check.revision !== attempt.revision);
-	const passed = $derived(!!attempt.check && !checkStale && attempt.check.result.passed);
+	const passed = $derived(vlanCheckPassed(attempt));
+	const availableThrough = $derived(vlanAvailableThrough(work));
+	const missingRows = $derived(attempt.check?.result.rows.filter((row) => !row.ok) ?? []);
 	const activeStep = $derived(run && !stale ? run.result.steps[frame] ?? null : null);
-	const completed = $derived(vlanTasks.filter((item) => work[item.id].check?.revision === work[item.id].revision && work[item.id].check?.result.passed).length);
+	const completed = $derived(vlanTasks.filter((item) => vlanCheckPassed(work[item.id])).length);
 	function resetSelection() {
 		selected = 'pc1'; portId = '1'; source = 'pc1'; target = 'pc2'; frame = 0;
 		hints = 0; vlanInput = ''; settingMessage = ''; portMessage = ''; resetPending = false;
 	}
 	/** @param {string} id */
 	async function selectTask(id) {
+		const targetIndex = vlanTasks.findIndex((item) => item.id === id);
+		if (targetIndex < 0 || targetIndex > availableThrough) return;
 		taskId = id;
 		resetSelection();
 		await tick();
@@ -143,14 +147,16 @@
 	</header>
 	<nav class="tasks" aria-label="Oppdrag i VLAN-laben">
 		{#each vlanTasks as item, i (item.id)}
-			<button type="button" aria-current={taskId === item.id ? 'step' : undefined} onclick={() => selectTask(item.id)}>
+			<button type="button" disabled={i > availableThrough} aria-current={taskId === item.id ? 'step' : undefined}
+				aria-describedby={i > availableThrough ? 'progress-rule' : undefined} onclick={() => selectTask(item.id)}>
 				<span class="step-number">{i + 1}</span><span>{item.title}
-					<small>{work[item.id].check?.revision === work[item.id].revision && work[item.id].check?.result.passed ? '✓ Oppsettet består' : 'Åpne oppdrag'}</small>
+					<small>{i > availableThrough ? `Låst · bestå oppdrag ${i}` : vlanCheckPassed(work[item.id]) ? '✓ Oppsettet består' : taskId === item.id ? 'Du er her' : 'Åpne oppdrag'}</small>
 				</span>
 			</button>
 		{/each}
 	</nav>
-	<p class="muted progress-note">{completed} av {vlanTasks.length} oppsett består nå. Arbeidet beholdes mellom oppdragene mens siden er åpen. Omlasting eller å forlate siden nullstiller laben. Ingen XP.</p>
+	<p class="progress-rule" id="progress-rule">{completed} av {vlanTasks.length} oppsett består nå. Bestå «Kontroller oppdraget» før du går videre. Endrer du et tidligere oppsett, må det kontrolleres på nytt før senere oppdrag åpnes igjen.</p>
+	<p class="muted progress-note">Arbeidet beholdes mellom oppdragene mens siden er åpen. Omlasting eller å forlate siden nullstiller laben. Ingen XP.</p>
 	<section class="mission" aria-labelledby="task-heading">
 		<p class="eyebrow">OPPDRAG {index + 1} AV {vlanTasks.length}</p>
 		<h2 id="task-heading" tabindex="-1">{task.title}</h2>
@@ -171,10 +177,28 @@
 			{#each task.theory.slice(1) as text}<p>{text}</p>{/each}
 		</details>
 	</section>
+	<nav class="workspace-links" aria-label="Arbeidsområder i oppdraget">
+		<a href="#network-panel">Nettverkskart</a>
+		<a href="#device-editor">Konfigurasjon</a>
+		<a class="test-shortcut" href="#testing">Til testing ↓</a>
+	</nav>
 	<div class="workspace">
-		<section class="map-panel" aria-labelledby="map-title">
+		<section class="map-panel" id="network-panel" aria-labelledby="map-title" tabindex="-1">
 			<div class="panel-heading"><h2 id="map-title">Nettverket ditt</h2><span class="muted">{task.switches.length} switch{task.switches.length > 1 ? 'er' : ''} · /24</span></div>
 			<VlanMap {task} {config} {selected} onselect={selectDevice} step={activeStep} />
+			{#if run}
+				<div class="map-playback">
+					<h3>Følg ping gjennom nettverket</h3>
+					{#if stale}<p class="muted">Dette er et tidligere forsøk. Kjør ping på nytt i testområdet for å følge det nye oppsettet.</p>{/if}
+					<div class="trace-controls">
+						<button type="button" disabled={stale || frame === 0} onclick={() => frame -= 1}>← Forrige hendelse</button>
+						<span>Hendelse {frame + 1} av {run.result.steps.length}</span>
+						<button type="button" disabled={stale || frame >= run.result.steps.length - 1} onclick={() => frame += 1}>Neste hendelse →</button>
+					</div>
+					<p class="trace" aria-live="polite">{run.result.steps[frame]?.ok ? '→' : 'Stopp:'} {run.result.steps[frame]?.text}</p>
+					<a href="#testing">Tilbake til testing ↓</a>
+				</div>
+			{/if}
 			<a href="#device-editor">Til innstillinger for valgt enhet ↓</a>
 		</section>
 		<section class="editor" id="device-editor" aria-labelledby="editor-title" tabindex="-1">
@@ -264,43 +288,52 @@
 					<p id="pvid-help"><strong>PVID</strong> velger VLAN for umerket trafikk inn. Når du setter U på et nytt VLAN, blir tidligere U til E på samme port. PVID endres ikke automatisk. Kontroller PVID når du flytter en PC-port til et annet VLAN.</p>
 				</div>
 			{/if}
+			<div class="editor-footer">
+				<p class="muted">{passed ? 'Oppsettet består kontrollen. Se resultatet og veien videre i testområdet.' : checkStale ? 'Oppsettet er endret. Kontroller det på nytt før du går videre.' : 'Når oppsettet er klart, kontrollerer du hele oppdraget i testområdet.'}</p>
+				<a class="action-link primary" href="#testing">Gå til testing ↓</a>
+			</div>
 		</section>
 	</div>
-	<section class="testing" aria-labelledby="test-title">
-		<h2 id="test-title">Prøv forbindelsen</h2>
-		<p>Forutsi utfallet, velg to PC-er og følg en simulert ping. Endre én ting og prøv igjen.</p>
-		<div class="ping-controls">
-			<label>Fra<select bind:value={source}>{#each task.pcs as item}<option value={item.id}>{item.name}</option>{/each}</select></label>
-			<label>Til<select bind:value={target}>{#each task.pcs as item}<option value={item.id}>{item.name}</option>{/each}</select></label>
-			<button type="button" class="primary" disabled={source === target} onclick={ping}>Prøv ping</button>
-		</div>
-		<div class="result" class:success={run?.result.ok && !stale}>
-			<p role="status">{stale ? 'Oppsettet eller PC-valget er endret. Kjør ping igjen; resultatet under er fra forrige forsøk.' : run?.result.message ?? 'Ingen ping kjørt ennå.'}</p>
-			{#if run}
-				<div class="trace-controls">
-					<button type="button" disabled={stale || frame === 0} onclick={() => frame -= 1}>← Forrige</button>
-					<span>Hendelse {frame + 1} av {run.result.steps.length}</span>
-					<button type="button" disabled={stale || frame >= run.result.steps.length - 1} onclick={() => frame += 1}>Neste →</button>
-				</div>
-				<p class="trace" aria-live="polite">{run.result.steps[frame]?.ok ? '→' : 'Stopp:'} {run.result.steps[frame]?.text}</p>
-			{/if}
-		</div>
+	<section class="testing" id="testing" aria-labelledby="test-title" tabindex="-1">
+		<div class="panel-heading"><h2 id="test-title">Test oppsettet og gå videre</h2><a href="#device-editor">Tilbake til konfigurasjonen ↑</a></div>
+		<p>«Kontroller oppdraget» tester hele oppsettet: adresser, porter, kommunikasjon og skillet mellom nettverkene. Alle krav må bestås før neste oppdrag åpnes.</p>
 		<div class="actions">
 			<button type="button" class="primary" onclick={check}>Kontroller oppdraget</button>
+			{#if index < vlanTasks.length - 1}
+				<button class="secondary" type="button" disabled={!passed} aria-describedby="check-status" onclick={() => selectTask(vlanTasks[index + 1].id)}>Neste oppdrag →</button>
+			{/if}
 			<button type="button" class="secondary" disabled={hints >= task.hints.length} onclick={() => hints += 1}>Vis {hints ? 'neste ' : ''}hint</button>
 		</div>
-		{#if hints}<aside class="hints" aria-label="Hint" aria-live="polite">{#each task.hints.slice(0, hints) as hint}<p>{hint}</p>{/each}</aside>{/if}
-		<div class="check-result">
-			<p role="status">{checkStale ? 'Oppsettet er endret etter kontrollen. Kontroller på nytt.' : attempt.check ? passed ? 'Oppsettet oppfyller kravene i modellen.' : 'Noen krav gjenstår. Åpne kontrollisten for å finne neste ting å undersøke.' : 'Kontrollen undersøker adresser, VLAN-porter, kommunikasjon og skillet mellom nettverkene.'}</p>
-			{#if attempt.check}<details open={!passed}><summary>Kontrolliste · {attempt.check.result.rows.filter((row) => row.ok).length} av {attempt.check.result.rows.length} krav {checkStale ? 'i forrige kontroll' : 'oppfylt'}</summary>
-				<ul>{#each attempt.check.result.rows as row}<li class:met={row.ok}><strong>{row.ok ? '✓ OK' : 'Mangler'}</strong> · {row.label}</li>{/each}</ul>
-			</details>{/if}
+		<div class="check-result" class:passed>
+			<p id="check-status" role="status">{checkStale ? 'Oppsettet er endret etter kontrollen. Kontroller på nytt.' : attempt.check ? passed ? index < vlanTasks.length - 1 ? '✓ Oppsettet består. Neste oppdrag er åpent.' : '✓ Oppsettet består. Du har bestått alle fem oppdrag.' : `${missingRows.length} krav gjenstår. Rett oppsettet og kontroller igjen.` : 'Kontrollen er ikke kjørt ennå.'}</p>
+			{#if attempt.check}
+				{#if !passed && !checkStale}
+					<p class="muted">Start med {missingRows.length > 3 ? 'disse kravene. Hele listen kan åpnes under.' : 'det som gjenstår:'}</p>
+					<ul>{#each missingRows.slice(0, 3) as row}<li><strong>Mangler</strong> · {row.label}</li>{/each}</ul>
+				{/if}
+				<details><summary>Hele kontrollisten · {attempt.check.result.rows.filter((row) => row.ok).length} av {attempt.check.result.rows.length} krav {checkStale ? 'i forrige kontroll' : 'oppfylt'}</summary>
+					<ul>{#each attempt.check.result.rows as row}<li class:met={row.ok}><strong>{row.ok ? '✓ OK' : 'Mangler'}</strong> · {row.label}</li>{/each}</ul>
+				</details>
+			{/if}
 		</div>
+		{#if hints}<aside class="hints" aria-label="Hint" aria-live="polite">{#each task.hints.slice(0, hints) as hint}<p>{hint}</p>{/each}</aside>{/if}
 		{#if passed}
 			<div class="reflection"><h3>Forklar for en medelev</h3><p>{task.reflect}</p><p class="muted">Bestått kontroll viser at oppsettet virker i modellen. Forklaringen og et nytt oppsett viser mer av hva du forstår.</p></div>
-			{#if index < vlanTasks.length - 1}<button class="primary" type="button" onclick={() => selectTask(vlanTasks[index + 1].id)}>Neste oppdrag →</button>
-			{:else}<p>Prøv prinsippene i Packet Tracer eller på labens switcher sammen med læreren.</p>{/if}
+			{#if index === vlanTasks.length - 1}<p>Prøv prinsippene i Packet Tracer eller på labens switcher sammen med læreren.</p>{/if}
 		{/if}
+		<div class="ping-lab">
+			<h3>Undersøk én forbindelse med ping</h3>
+			<p>Forutsi utfallet, velg to PC-er og prøv ping. Dette hjelper deg å feilsøke; en enkelt ping åpner ikke neste oppdrag.</p>
+			<div class="ping-controls">
+				<label>Fra<select bind:value={source}>{#each task.pcs as item}<option value={item.id}>{item.name}</option>{/each}</select></label>
+				<label>Til<select bind:value={target}>{#each task.pcs as item}<option value={item.id}>{item.name}</option>{/each}</select></label>
+				<button type="button" class="secondary" disabled={source === target} onclick={ping}>Prøv ping</button>
+			</div>
+			<div class="result" class:success={run?.result.ok && !stale}>
+				<p role="status">{stale ? 'Oppsettet eller PC-valget er endret. Kjør ping igjen; forrige resultat gjelder ikke lenger.' : run?.result.message ?? 'Ingen ping kjørt ennå.'}</p>
+				{#if run && !stale}<a class="action-link secondary" href="#network-panel">Følg ping steg for steg i kartet ↑</a>{/if}
+			</div>
+		</div>
 	</section>
 	<details class="model-notes"><summary>Om modellen og videre arbeid</summary>
 		<p>Dette er en lokal simulering. Ingen ping eller konfigurasjon sendes til skolens nett. Modellen bruker faste kabler uten løkker, IPv4 med /24, PVID og VLAN-medlemskap. PC-ene bruker ikke VLAN-tagging.</p>
@@ -309,7 +342,7 @@
 		<p><strong>Ny anvendelse:</strong> Tegn først port- og adresseplanen for to nye VLAN med andre ID-er. Bygg den på reelt utstyr eller i Packet Tracer, og dokumenter en forbindelse som virker og en som skal være adskilt.</p>
 	</details>
 	<div class="reset">
-		{#if resetPending}<p>Dette fjerner alle endringer og testresultater i dette oppdraget. De andre oppdragene beholdes.</p><button type="button" onclick={resetTask}>Nullstill dette oppdraget</button><button type="button" onclick={() => resetPending = false}>Avbryt</button>
+		{#if resetPending}<p>Dette fjerner alle endringer og testresultater i dette oppdraget. Arbeidet i de andre oppdragene beholdes, men senere oppdrag låses til dette består kontrollen igjen.</p><button type="button" onclick={resetTask}>Nullstill dette oppdraget</button><button type="button" onclick={() => resetPending = false}>Avbryt</button>
 		{:else}<button type="button" onclick={() => resetPending = true}>Start dette oppdraget på nytt</button>{/if}
 	</div>
 </main>
@@ -337,6 +370,7 @@
 	.tasks button[aria-current] { border-color: var(--color-accent); background: var(--color-accent-soft); }
 	.tasks small { display: block; margin-top: 4px; color: var(--color-text-muted); font-size: var(--font-meta); }
 	.step-number { font-weight: 750; font-size: 1.25rem; color: var(--color-accent); }
+	.progress-rule { font-size: var(--font-small); margin-bottom: 0; }
 	.progress-note { margin: 10px 0 24px; }
 	.mission { border-left: 4px solid var(--color-accent); padding: 18px 24px; background: var(--color-surface); border-radius: 0 12px 12px 0; margin-bottom: 20px; }
 	.goal { max-width: 75ch; }
@@ -349,7 +383,20 @@
 	.network-plan small { color: var(--color-text-muted); font-size: var(--font-meta); }
 	summary { cursor: pointer; min-height: 44px; padding: 10px 0; font-weight: 650; }
 	.theory p { max-width: 75ch; }
-	.workspace { display: grid; grid-template-columns: minmax(0, 1.5fr) minmax(360px, 1fr); gap: 20px; align-items: start; }
+	.workspace-links { display: flex; flex-wrap: wrap; gap: 8px; margin: 0 0 16px; }
+	.workspace-links a, .action-link { display: inline-flex; align-items: center; justify-content: center; min-height: 44px; padding: 9px 14px; border: 1px solid var(--color-border-strong); border-radius: 8px; text-decoration: none; font-size: var(--font-small); }
+	.workspace-links a:hover, .action-link.secondary:hover { background: var(--color-surface-hover); }
+	.workspace-links .test-shortcut { font-weight: 650; border-color: var(--color-accent); background: var(--color-accent-soft); }
+	#network-panel, #device-editor, #testing { scroll-margin-top: 16px; }
+	.editor > select, .editor > input { max-width: 520px; }
+	.vlans form { max-width: 480px; }
+	.editor-footer { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 12px; margin-top: 20px; padding-top: 16px; border-top: 1px solid var(--color-border); }
+	.editor-footer p { margin: 0; max-width: 65ch; }
+	.map-playback { padding: 16px; margin: 16px 0; border: 1px solid var(--color-border); border-radius: 8px; background: var(--color-surface-soft); }
+	.map-playback .trace { max-width: 75ch; }
+	.ping-lab { border-top: 1px solid var(--color-border); padding-top: 20px; margin-top: 24px; }
+	.check-result.passed { border-left: 3px solid var(--color-success); padding-left: 16px; }
+	.workspace { display: grid; grid-template-columns: minmax(0, 1fr); gap: 20px; }
 	.map-panel, .editor, .testing { min-width: 0; padding: 20px; border: 1px solid var(--color-border); border-radius: 14px; background: var(--color-surface); }
 	.panel-heading { display: flex; gap: 12px; justify-content: space-between; align-items: baseline; flex-wrap: wrap; }
 	label { display: block; font-size: var(--font-small); font-weight: 650; margin: 14px 0 6px; }
@@ -393,10 +440,10 @@
 	.primary { background: var(--color-action); color: var(--color-on-action); border-color: var(--color-action); font-weight: 650; }
 	.primary:hover { background: var(--color-action); filter: brightness(1.08); }
 	.secondary { color: var(--color-accent); font-weight: 650; }
-	.testing { margin-top: 20px; }
+	.testing { margin-top: 20px; border: 2px solid var(--color-accent); }
 	.ping-controls { display: grid; grid-template-columns: minmax(100px, 1fr) minmax(100px, 1fr) auto; gap: 14px; align-items: end; max-width: 700px; }
 	.ping-controls label { margin: 0; }
-	.result { background: var(--color-surface-soft); border: 1px solid var(--color-border); border-radius: 10px; margin: 20px 0; padding: 16px 20px; min-height: 140px; }
+	.result { background: var(--color-surface-soft); border: 1px solid var(--color-border); border-radius: 10px; margin: 20px 0; padding: 16px 20px; min-height: 80px; }
 	.result.success { border-color: var(--color-success); }
 	.trace-controls, .actions { display: flex; gap: 12px; flex-wrap: wrap; align-items: center; }
 	.trace-controls { font-size: var(--font-small); }
@@ -411,7 +458,6 @@
 	.reset { display: flex; flex-wrap: wrap; gap: 12px; font-size: var(--font-small); }
 	.reset p { flex-basis: 100%; }
 	:is(button, input, select, summary, a, [tabindex]):focus-visible { outline: 3px solid var(--color-focus); outline-offset: 3px; }
-	@media (max-width: 1000px) { .workspace { grid-template-columns: minmax(0, 1fr); } }
 	@media (max-width: 700px) { .mission-layout { grid-template-columns: minmax(0, 1fr); } }
 	@media (max-width: 600px) { .tasks { grid-template-columns: 1fr; } .map-panel, .editor, .testing, .mission { padding: 16px; } .ping-controls { grid-template-columns: 1fr 1fr; } .ping-controls button { grid-column: 1 / -1; } }
 </style>
