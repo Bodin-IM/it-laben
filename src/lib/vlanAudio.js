@@ -18,10 +18,11 @@ export function createVlanAudio() {
 		voices.clear();
 	}
 
-	/** @param {boolean} passed */
-	async function play(passed) {
+	/** @param {boolean} passed @param {number} [volume] */
+	async function play(passed, volume = 0.25) {
 		stop();
-		if (disposed || typeof window === 'undefined' || typeof AudioContext === 'undefined' || document.visibilityState !== 'visible') return;
+		const level = Number.isFinite(volume) ? Math.max(0, Math.min(0.6, volume)) : 0;
+		if (disposed || !level || typeof window === 'undefined' || typeof AudioContext === 'undefined' || document.visibilityState !== 'visible') return;
 		const currentRequest = request;
 		try {
 			const audio = context ??= new AudioContext();
@@ -39,7 +40,7 @@ export function createVlanAudio() {
 				oscillator.type = 'sine';
 				oscillator.frequency.value = frequency;
 				gain.gain.setValueAtTime(0, at);
-				gain.gain.linearRampToValueAtTime(passed ? 0.04 : 0.03, at + 0.012);
+				gain.gain.linearRampToValueAtTime(level * (passed ? 0.16 : 0.12), at + 0.012);
 				gain.gain.exponentialRampToValueAtTime(0.001, at + duration);
 				oscillator.connect(gain).connect(audio.destination);
 				oscillator.onended = () => {

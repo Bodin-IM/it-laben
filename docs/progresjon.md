@@ -1,6 +1,6 @@
 # Progresjon, fagspor og merker
 
-Denne første utprøvingen ligger på `backend`. Den har ni merker, fire fagspor, 13 fagsjekker med to spørsmål hver, et personlig område på forsiden og et labkort eleven kan tilpasse. Lyder er av som standard. Publisering til skolens server beskrives i [backendveiledningen](backend.md).
+Denne første utprøvingen ligger på `backend`. Den har ni merker, fire fagspor, 13 fagsjekker med to spørsmål hver, et personlig område på forsiden og et labkort eleven kan tilpasse. Lyd er på som standard og kan slås av i den felles toppmenyen; tidligere lagrede av-valg beholdes. Publisering til skolens server beskrives i [backendveiledningen](backend.md).
 
 Se også den nye fagsjekken: [tilbakemelding og ventetid](fagsjekk-forsok.png) og [mobilvisning av et nytt forsøk](fagsjekk-mobile.png).
 
@@ -146,7 +146,7 @@ Unike belønningsnøkler hindrer dobbeltelling ved nye forsøk og retry etter ne
 
 Labkortets farge og valgte merke lagres på kontoen gjennom `POST /api/me/lab`, med samme session-, Origin- og CSRF-kontroll som andre profilendringer. Serveren kontrollerer at låste farger og merker faktisk er opptjent. Migrasjon `002_lab_profile.sql` lagrer valgene og sørger for kaskadesletting sammen med kontoen.
 
-Lyd er av som standard, og korte effekter starter først etter en brukerhandling i nettleseren. Volum og rolige animasjoner er lokale innstillinger, slik at en ny maskin ikke plutselig spiller lyd. Operativsystemets reduserte bevegelse respekteres også. Lydene syntetiseres lokalt i nettleseren og trenger ingen eksterne lydtjenester.
+Lyd er på som standard etter brukerens avklaring, men tidligere lagrede av-valg beholdes. Høyttaleren i toppmenyen styrer all lyd, inkludert belønninger, VLAN-kontroll og Nattevakten. Lyden starter først etter en brukerhandling i nettleseren; innlasting alene spiller ikke lyd. Lydstyrke og rolige animasjoner er lokale valg under Innstillinger. Operativsystemets reduserte bevegelse respekteres også. Lydene syntetiseres lokalt i nettleseren og trenger ingen eksterne lydtjenester.
 
 Feiringer kommer etter serverbekreftelse. Flere belønninger fra samme kø samles. Kvitteringer for tidligere behandlede hendelser feires ikke på nytt. Et låst eller avvist fagsjekkforsøk fjernes fra køen og forsøksstatus hentes på nytt, slik at andre innsendinger fortsatt kan synkroniseres. Serverens forsøk, progresjon, poeng og kvittering oppdateres i samme transaksjon. En teknisk feil før commit bruker ikke forsøket.
 
@@ -156,7 +156,7 @@ Kø som er hentet fra lokal lagring eller har ventet på nettet får en rolig sa
 
 `/min-lab/` samler labkort, samlet XP/nivå, fremgang i valgt fag, neste steg, fagspor og merker/milepæler. Det tidligere doble sammendraget er fjernet. Aktivitetslisten og forklaringen av XP åpnes ved behov. Gjennomgang og bestått fagsjekk vises fortsatt hver for seg.
 
-`/min-lab/?visning=innstillinger` samler labpartner/lyd/animasjoner, tema/labkort, klasse/toppliste og profil/nøkkelfil. Tannhjulet ved kontolenken er tilgjengelig i den felles toppmenyen. URL-baserte lenker mellom visningene støtter direkte lenking og tilbakeknappen; fagfilteret beholdes. Merke-lenker til `#merker` og `#merke-…` bruker fortsatt samlingen. Innstillinger for nettleseren kan brukes uten profil.
+`/min-lab/?visning=innstillinger` samler labpartner/lydstyrke/animasjoner, tema/labkort, klasse/toppliste og profil/nøkkelfil. Tannhjulet ved kontolenken er tilgjengelig i den felles toppmenyen. URL-baserte lenker mellom visningene støtter direkte lenking og tilbakeknappen; fagfilteret beholdes. Merke-lenker til `#merker` og `#merke-…` bruker fortsatt samlingen. Innstillinger for nettleseren kan brukes uten profil.
 
 Dette er et lokalt designvalg etter designgrunnlagets U1, U3 og U6: en tydelig hovedoppgave per visning, mindre gjentakelse, gjenkjennelig navigasjon og detaljer ved behov. Labkortet viser samlet XP for alle fag, mens aktivitetsoversikten følger fagfilteret. Eleven kan velge neste steg eller åpne kravene bak et merke. XP og fullføring alene dokumenterer ikke forståelse; faglige forklaringer og fagsjekker må fortsatt brukes til det.
 

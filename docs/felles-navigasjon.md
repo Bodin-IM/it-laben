@@ -10,7 +10,7 @@ Den største gjenværende ulikheten var at hver side kunne definere sin egen top
 
 | Område | Ny løsning |
 | --- | --- |
-| Hovednavigasjon | Én `LabHeader` i SvelteKits rotlayout. Fagoversikt, fagvalg, toppliste, Min lab og temavelger har samme plassering på alle vanlige sider. Lærerpanel vises for lærer og administrator. |
+| Hovednavigasjon | Én `LabHeader` i SvelteKits rotlayout. Fagoversikt, fagvalg, toppliste, Min lab, lydknapp og temavelger har samme plassering på alle vanlige sider. Lærerpanel vises for lærer og administrator. |
 | Fag | «Velg fag» gir tilgang til fagene fra alle sider. Faglisten på forsiden er fortsatt et lokalt filter for katalogen. Valg gjennom hovedmenyen oppdaterer også en allerede åpen forside. |
 | Mobil | En navngitt menyknapp viser og skjuler navigasjonen. Menyen lukkes ved navigasjon og kan lukkes med Escape. XP-tallet skjules i den kompakte kontolenken; det er fortsatt tilgjengelig i Min lab. |
 | Hvor man er | Hovedmenyen, Min lab og lærerfanene markerer gjeldende side eller område med tekstfarge, bakgrunn og `aria-current`. |
@@ -60,3 +60,15 @@ Dette er teknisk kontroll, ikke full WCAG-samsvarsvurdering, en test med en virk
 Nye sider arver hovedmenyen fra rotlayouten og skal ikke sette inn `LabHeader` selv. Lærersider bruker `TeacherShell`. Gi én `main` per side `id="hovedinnhold"` og `tabindex="-1"`. Bruk `PageLinks` for tilsvarende relaterte lenker og behold lokale arbeidsmenyer der oppgaven krever dem. Dette er også lagt inn i [AGENTS.md](../AGENTS.md).
 
 Prøv med elever og lærere om de finner tilbake til et fag fra en aktivitet, åpner lærerpanel fra Min lab og kommer tilbake fra en presentasjon. Se spesielt etter om «Velg fag», «Fagoversikt» og den lokale faglisten har forståelige roller, og om mobilmenyen er lett å oppdage. Faktisk bruk må avgjøre om disse valgene trenger justering.
+
+## Felles lydknapp
+
+**Dev-justering 29. oktober 2026.** Høyttaleren i `LabHeader` styrer lyd for hele IT-laben: belønninger, VLAN-kontroll og Nattevakten. Den står ved temavelgeren, utenfor den sammenleggbare mobilmenyen. Lokale lydvalg i øvingene er fjernet. Innstillinger beholder lydstyrke, en prøveknapp og en lenke til høyttaleren.
+
+Dette er et prosjektvalg etter designgrunnlagets U1/U6 og del 4.1–4.3: en innstilling med samme virkning får samme plassering på tvers av sider, mens arbeidsflaten beholder de faglige handlingene. Høyttaler med bølger/kryss, forklarende tittel og `aria-pressed` formidler tilstanden uten å være avhengig av farge. Native knapp, 44 × 44 px trykkflate, synlig tastaturfokus og felles temavariabler viderefører menyens mønster. Ingen ekstra innstillingsmeny kreves for av/på.
+
+`labPreferences` eier av/på og volum i `it-laben-experience-v1`. Lyd er på som standard etter brukerens avklaring. En tidligere lagret `sound: false` beholdes. Det gamle VLAN-valget migreres én gang; hvis enten VLAN eller felles lyd var slått av, beholdes dempingen. Den gamle nøkkelen fjernes først etter vellykket lagring. Sperret lagring tillater fortsatt endringer i den åpne fanen. Andre åpne faner følger endringer via `storage`.
+
+Innstillingene leses etter montering; knappen er deaktivert til dette er ferdig. Innlasting og navigasjon starter ingen lyd alene. Avspillere registreres mens aktiviteten er montert. Demping, volumendring og skjult fane stopper pågående/ventende lyder. Nattevaktens aktive lydbilde kan fortsette med valgt volum etter en brukerhandling; gamle kontrollresultater spilles ikke av på nytt ved påslag. Avspillere avregistreres og lukkes ved navigasjon. Resultat, feilmeldinger og progresjon fungerer uavhengig av lyd.
+
+**Kontrollstatus:** Kode og diff er gjennomgått på dev. Regresjonstester for lagrede valg, migrering, felles demping og ventende lydstart er lagt til, men ikke kjørt i denne iterasjonen. Tidligere kontrollresultater ovenfor gjelder før denne justeringen. Samlet testsuite, Svelte-sjekk, bygg og nettleserprøving gjenstår før main. Prøv spesielt tastatur, 320 px/zoom, begge temaer, sidebytte, lagret demping, flere faner, blokkert lagring/lyd og av/på under en aktiv vakt eller kontrolllyd. Elevutprøving skal undersøke om knappen blir funnet og forstått.

@@ -4,6 +4,7 @@
 	import { afterNavigate } from '$app/navigation';
 	import { page } from '$app/state';
 	import ThemeToggle from '#lib/components/ThemeToggle.svelte';
+	import SoundToggle from '#lib/components/SoundToggle.svelte';
 	import AccountLink from '#lib/components/AccountLink.svelte';
 	import { lab } from '#lib/lab.js';
 	import { hasTeacherRole } from '#lib/learning.js';
@@ -132,7 +133,7 @@
 				</svg>
 			</a>
 		</div>
-		<div class="theme"><ThemeToggle compact /></div>
+		<div class="display-tools"><SoundToggle /><ThemeToggle compact /></div>
 	</div>
 </header>
 
@@ -289,9 +290,10 @@
 		border-color: var(--color-accent);
 	}
 	.account,
-	.theme {
+	.display-tools {
 		min-width: 0;
 	}
+	.display-tools { display: flex; align-items: center; gap: 8px; }
 	.menu-toggle {
 		display: none;
 		border: 1px solid var(--color-border-strong);
@@ -321,7 +323,7 @@
 			display: inline-flex;
 			order: 2;
 		}
-		.theme {
+		.display-tools {
 			order: 3;
 			margin-left: auto;
 		}

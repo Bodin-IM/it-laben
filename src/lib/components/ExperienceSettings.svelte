@@ -25,27 +25,20 @@
 			<p>Avataren følger arbeidet ditt med små reaksjoner.</p>
 		</div>
 		<div>
-			<label class="toggle"
-				><input
-					type="checkbox"
-					checked={$labPreferences.sound}
-					onchange={(event) => setLabPreferences({ sound: event.currentTarget.checked })}
-				/>Korte lyder ved fullføring</label
-			>
-			<p>Lyd er valgfritt. Innstillingen gjelder denne nettleseren.</p>
-			{#if $labPreferences.sound}
-				<div class="volume">
-					<label for="lab-volume">Lydstyrke</label><input
-						id="lab-volume"
-						type="range"
-						min="0"
-						max="0.6"
-						step="0.05"
-						value={$labPreferences.volume}
-						oninput={(event) => setLabPreferences({ volume: Number(event.currentTarget.value) })}
-					/><button type="button" onclick={preview}>Prøv lyd</button>
-				</div>
-			{/if}
+			<label class="toggle" for="lab-volume">Lydstyrke</label>
+			<p>Felles for alle øvinger. Lagres i denne nettleseren.</p>
+			<div class="volume">
+				<input
+					id="lab-volume"
+					type="range"
+					min="0"
+					max="0.6"
+					step="0.05"
+					value={$labPreferences.volume}
+					oninput={(event) => setLabPreferences({ volume: Number(event.currentTarget.value) })}
+				/><button type="button" disabled={!$labPreferences.sound || !$labPreferences.volume} onclick={preview}>Prøv lyd</button>
+			</div>
+			<a class="sound-link" href="#lab-sound-toggle">Lyd av/på i toppmenyen ↑</a>
 		</div>
 		<div>
 			<label class="toggle"
@@ -125,8 +118,19 @@
 		font: inherit;
 		cursor: pointer;
 	}
+	button:disabled {
+		cursor: default;
+		opacity: 0.5;
+	}
+	.sound-link {
+		display: inline-flex;
+		align-items: center;
+		min-height: 44px;
+		color: var(--color-accent);
+	}
 	summary:focus-visible,
 	input:focus-visible,
+	a:focus-visible,
 	button:focus-visible {
 		outline: 3px solid var(--color-focus);
 		outline-offset: 3px;

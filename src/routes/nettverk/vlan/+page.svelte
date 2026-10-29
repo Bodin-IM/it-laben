@@ -4,6 +4,7 @@
 	import PartnerContext from '#lib/components/PartnerContext.svelte';
 	import { lab, learningContext } from '#lib/lab.js';
 	import { createVlanAudio } from '#lib/vlanAudio.js';
+	import { labPreferences, registerSoundPlayer } from '#lib/labPreferences.js';
 	import { vlanTasks, vlanTask, vlanLabel, vlanCheckPassed, vlanAvailableThrough, initialVlanConfig, membership, pingVlan, checkVlanTask } from '#lib/vlanLab.js';
 	/** @typedef {{config:import('#lib/vlanLab.js').VlanConfig,revision:number,run:{revision:number,source:string,target:string,result:import('#lib/vlanLab.js').PingResult}|null,check:{revision:number,result:ReturnType<typeof checkVlanTask>}|null}} Workspace */
 	/** @returns {Record<string,Workspace>} */
@@ -24,20 +25,16 @@
 	let reducedMotion = $state(true);
 	let showMapHelp = $state(false);
 	let showPingDetails = $state(false);
-	let controlSound = $state(true);
-	const soundStorageKey = 'it-laben-vlan-sound-v1';
 	const controlAudio = createVlanAudio();
 	onMount(() => {
-		try { controlSound = localStorage.getItem(soundStorageKey) !== 'off'; } catch { /* Keep the in-memory choice. */ }
+		const unregisterSound = registerSoundPlayer(controlAudio);
 		const preference = window.matchMedia('(prefers-reduced-motion: reduce)');
 		const update = () => { reducedMotion = preference.matches; };
-		const stopHiddenAudio = () => { if (document.visibilityState !== 'visible') controlAudio.stop(); };
 		update();
 		preference.addEventListener('change', update);
-		document.addEventListener('visibilitychange', stopHiddenAudio);
 		return () => {
 			preference.removeEventListener('change', update);
-			document.removeEventListener('visibilitychange', stopHiddenAudio);
+			unregisterSound();
 			controlAudio.destroy();
 		};
 	});
@@ -236,12 +233,7 @@
 	function check() {
 		const result = checkVlanTask(task, config);
 		attempt.check = { revision: attempt.revision, result };
-		if (controlSound) void controlAudio.play(result.passed);
-	}
-	function toggleControlSound() {
-		controlSound = !controlSound;
-		if (!controlSound) controlAudio.stop();
-		try { localStorage.setItem(soundStorageKey, controlSound ? 'on' : 'off'); } catch { /* Keep the in-memory choice. */ }
+		if ($labPreferences.sound) void controlAudio.play(result.passed, $labPreferences.volume);
 	}
 	async function resetTask() {
 		work[taskId] = { config: initialVlanConfig(task), revision: 0, run: null, check: null };
@@ -374,12 +366,6 @@
 								<span aria-hidden="true">{checkStale ? 'Endret' : attempt.check ? `${passed ? '✓' : '×'} ${checkPassedCount}/${checkTotal}` : '—'}</span>
 								<span class="sr-only">{checkStale ? 'Oppsettet er endret. Kontroller på nytt.' : attempt.check ? `${checkPassedCount} av ${checkTotal} krav oppfylt. ${passed ? 'Oppdraget består.' : 'Se hva som mangler.'}` : 'Kontrollen er ikke kjørt.'}</span>
 							</span>
-							<button type="button" class="control-sound" aria-label="Lyd ved VLAN-kontroll" aria-pressed={controlSound}
-								title={controlSound ? 'Slå av kontrolllyd' : 'Slå på kontrolllyd'} onclick={toggleControlSound}>
-								<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M11 5 6 9H3v6h3l5 4Z" />
-									{#if controlSound}<path d="M15 8a6 6 0 0 1 0 8m3-11a10 10 0 0 1 0 14" />{:else}<path d="m16 9 5 6m0-6-5 6" />{/if}
-								</svg>
-							</button>
 						</div>
 						<button type="button" class="primary" onclick={check}>Kontroller oppdraget</button>
 						<a href="#testing">{passed ? 'Se resultat og gå videre ↓' : attempt.check && !checkStale ? 'Se hva som mangler ↓' : 'Detaljer og hint ↓'}</a>
@@ -583,9 +569,6 @@
 	.pc-editor, .quick-check { min-width: 0; padding: 18px; border: 1px solid var(--color-border-strong); border-radius: 10px; background: var(--color-surface-soft); }
 	.quick-check-heading { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 12px; }
 	.quick-check h3 { margin: 0; }
-	.control-sound { display: inline-grid; place-items: center; width: 44px; height: 44px; padding: 0; color: var(--color-text-muted); }
-	.control-sound[aria-pressed='true'] { color: var(--color-accent); background: var(--color-accent-soft); }
-	.control-sound svg { width: 22px; height: 22px; fill: none; stroke: currentColor; stroke-width: 1.7; stroke-linecap: round; stroke-linejoin: round; }
 	.quick-check > button { width: 100%; font-size: var(--font-small); }
 	.quick-check > a { display: inline-flex; align-items: center; min-height: 44px; margin-top: 4px; font-size: var(--font-small); }
 	.check-count { display: inline-block; padding: 3px 8px; border-radius: 6px; color: var(--color-text-muted); background: var(--color-surface); font-size: var(--font-small); font-weight: 750; font-variant-numeric: tabular-nums; }

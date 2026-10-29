@@ -33,9 +33,9 @@ Oppdatering av vaktresultat, progresjon, belønning, merke og kvittering skjer i
 
 ## Lyd og bevegelse
 
-Lyden er valgfri og bruker Min lab sine lokale lyd- og volumvalg. Den starter etter en brukerhandling. Ingen lydfiler lastes fra eksterne tjenester; Web Audio lager lave toner og pulser lokalt.
+Lyden er valgfri og bruker den felles høyttalerknappen i toppmenyen og lydstyrken under Innstillinger. Den lokale lydraden er fjernet. Den starter etter en brukerhandling. Ingen lydfiler lastes fra eksterne tjenester; Web Audio lager lave toner og pulser lokalt.
 
-Rytmen øker fra omtrent 52 til 110 slag i minuttet, med mer intensitet de siste tre minuttene og det siste minuttet. Selve klokken går jevnt. Lyden dempes i skjult fane og etter avsluttet vakt, og lydressursene frigjøres når siden forlates. Etter oppdatering kan nettleseren kreve at eleven trykker «Start lydbildet». Redusert bevegelse fra operativsystemet og Min lab respekteres.
+Rytmen øker fra omtrent 52 til 110 slag i minuttet, med mer intensitet de siste tre minuttene og det siste minuttet. Selve klokken går jevnt. Lyden dempes i skjult fane og etter avsluttet vakt, og lydressursene frigjøres når siden forlates. Etter oppdatering kan nettleseren kreve en ny brukerhandling; et klikk eller tastetrykk i en aktiv vakt forsøker da å aktivere lyden igjen. Felles demping stopper lyden umiddelbart, også mens lydstart venter. Start av vakten venter ikke på nettleserens lydtillatelse. Redusert bevegelse fra operativsystemet og Min lab respekteres.
 
 ## API
 

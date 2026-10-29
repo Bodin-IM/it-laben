@@ -74,7 +74,7 @@ export const partnerPages = [
 		topics: ['Profil', 'Fremgang'],
 		tips: [
 			'Min lab samler fremgang, fagspor og merker. Aktivitetslisten kan åpnes når du vil se alle aktivitetene.',
-			'Åpne Innstillinger via tannhjulet i toppmenyen for labkort, lyd, klasse og nøkkelfil. Velg riktig klasse: 2ITA eller 2ITB. Klassevalget låses etter lagring; kontakt læreren hvis noe er feil.',
+			'Åpne Innstillinger via tannhjulet i toppmenyen for labkort, lydstyrke, klasse og nøkkelfil. Høyttaleren i toppmenyen slår all lyd av/på. Velg riktig klasse: 2ITA eller 2ITB. Klassevalget låses etter lagring; kontakt læreren hvis noe er feil.',
 			'Poeng og gjennomføring viser aktivitet, men dokumenterer ikke alene forståelse. Forklar også hvordan og hvorfor løsningen virker.'
 		]
 	},
