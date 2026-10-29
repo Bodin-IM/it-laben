@@ -3,8 +3,9 @@ export const DATABASE_VERSION = 1;
 export const databaseActivities = [
 	{
 		id: 'database-grunnlag',
-		tittel: 'Fra tabell til dokument',
-		beskrivelse: 'Bygg videre på MySQL. Undersøk dokumenter, felter og datatyper før du søker.',
+		tittel: 'Databaser fra grunnen av',
+		beskrivelse:
+			'Se hvor databasen hører hjemme, og les kode som kobler til, henter og lagrer data før du øver selv.',
 		href: '/databaser/grunnlag/',
 		type: 'Teori og eksempel',
 		format: 'leksjon'
@@ -32,7 +33,20 @@ export const databaseActivities = [
 	fag: 'utvikling',
 	audience: 'student',
 	emner: ['MongoDB', 'Databaser', 'Dokumenter', 'Søk'],
-	sokeord: ['NoSQL', 'SQL', 'MySQL', 'collection', 'find', 'Node.js', 'Utstyrsboden'],
+	sokeord: [
+		'NoSQL',
+		'SQL',
+		'MySQL',
+		'collection',
+		'find',
+		'insertOne',
+		'MongoClient',
+		'tilkobling',
+		'frontend',
+		'backend',
+		'Node.js',
+		'Utstyrsboden'
+	],
 	symbol: '{ }'
 }));
 
@@ -110,11 +124,16 @@ export const queryTasks = [
 export const databasePhases = ['oppsett', 'data', 'kode', 'forklar'];
 export const databaseTheory = {
 	goals: [
+		'Forklare hva en database gjør, og skille frontend, backend og lagring.',
+		'Lese Node.js-kode som kobler til, henter og legger inn dokumenter.',
 		'Kjenne igjen collection, dokument, felt og _id.',
 		'Forklare forskjellen på tekst, tall og boolske verdier.',
 		'Lese et filter og forutsi hvilke dokumenter det finner.'
 	],
 	principles: [
+		'En database er en organisert samling data. Et databasesystem håndterer lagring og spørringer. Et objekt i minnet er ikke automatisk lagret.',
+		'Frontend snakker HTTP/JSON med backend. Backend kontrollerer tilgang og data og bruker MongoDB-driveren mot databasen. Tilkoblingshemmeligheter blir på serversiden.',
+		'MongoClient.connect kobler til. db og collection velger hvor vi arbeider, men henter ingen dokumenter. insertOne legger inn et dokument og bekrefter insertedId. En brukt _id gir feil, ikke overskriving.',
 		'MongoDB er en dokumentdatabase, én type NoSQL. Sammenlign med relasjonsmodellen fra MySQL; modellene har ulike egenskaper.',
 		'En collection inneholder dokumenter. Et dokument har felter og verdier, og kan også inneholde lister og andre dokumenter.',
 		'MongoDB lagrer BSON, et binært dokumentformat med flere datatyper enn JSON. Vi viser enkle JSON-eksempler her.',
@@ -277,8 +296,8 @@ export const practicalRequirements = [
 	'Legg til ett eget, fiktivt utstyrsdokument. Forutsi hvilke av søkene det påvirker, og kjør dem igjen.'
 ];
 export const practiceChecks = [
-	'Utgangsdatasettet gir seks dokumenter når filteret er {}.',
-	'Begge mikrofonene finnes, uavhengig av tilgjengelighet.',
+	'De seks startdokumentene finnes. Har du kjørt eksempel.mjs, finnes også Mikrofon Bord med ID M203.',
+	'M201 og M202 finnes, uavhengig av tilgjengelighet. M203 kommer også med hvis du har lagt den inn.',
 	'Kamera Nord finnes av søket etter ledige kameraer til høyst 300 kr. De to andre kameraene faller utenfor av ulike grunner.',
 	'Et gyldig søk uten treff gir [], mens en tilkoblingsfeil stopper kjøringen med en feilmelding.',
 	'Det nye dokumentet blir med akkurat der feltverdiene passer.'

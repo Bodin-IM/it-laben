@@ -71,15 +71,16 @@ const originalModules = [
 		id: 'databaser',
 		title: 'Databaser – fra tabeller til dokumenter',
 		description:
-			'Lær MongoDB gjennom Utstyrsboden. Undersøk data i IT-laben, og bruk det du lærer i egen kode. Første runde er klar.',
+			'Start med hva en database er og hvor den hører hjemme. Les kode for tilkobling, henting og innsetting, øv på søk og bruk MongoDB i eget prosjekt.',
 		subject: 'utvikling',
 		goals: [
+			'Forklare sammenhengen mellom frontend, backend og database.',
 			'Sammenligne en enkel tabellmodell med dokumenter i MongoDB.',
 			'Lage filtre og forklare hvorfor dokumenter blir med i resultatet.',
-			'Hente data fra en ekte database med Node.js.'
+			'Koble til og hente data fra en ekte database med Node.js, og undersøke et eksempel på innsetting.'
 		],
 		prerequisites:
-			'Du har møtt MySQL på Vg1 og kjenner objekter og lister i JavaScript. Kodeoppgaven bruker Node.js og await; et startprosjekt og tilkoblingshjelp følger med.',
+			'Du kjenner variabler, objekter og lister i JavaScript og har møtt frontend og backend. MySQL repeteres som sammenligning. Node.js-driveren, await og tilkobling forklares før kodeoppgaven.',
 		steps: [
 			{ kind: 'teori', id: 'database-grunnlag' },
 			{ kind: 'oving', id: 'database-finn' },

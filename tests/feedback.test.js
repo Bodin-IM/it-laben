@@ -95,6 +95,11 @@ test('feedback: kjent side og fag/modul/steg beholdes, vilkårlige parametre og 
 	])
 		assert.equal(feedbackPage(value), null);
 	assert.equal(feedbackPage('/backend/?modul=ukjent').href, '/backend/');
+	assert.equal(
+		feedbackPage('/databaser/grunnlag/?del=tilkobling&token=hemmelig').href,
+		'/databaser/grunnlag/?del=tilkobling'
+	);
+	assert.equal(feedbackPage('/databaser/grunnlag/?del=ukjent').href, '/databaser/grunnlag/');
 });
 
 test('feedback: elev og gjest kan sende; bare admin kan lese og endre status', async (t) => {

@@ -1,4 +1,14 @@
 // Server-owned teaching context. Client fields are validated before any reconstruction.
+import {
+	databaseSections,
+	connectionCode,
+	connectionExplanations,
+	readExample,
+	insertCode,
+	insertExample,
+	flowExample,
+	completeDatabaseExample
+} from '../../src/lib/databaseIntro.js';
 import { guideSteps, tutorialResult } from '../../src/lib/studentGuide.js';
 import { lessons } from '../../src/lib/ovingene.js';
 import { buildTrace } from '../../src/lib/ovingModel.js';
@@ -155,7 +165,27 @@ export function pageWork(page, raw) {
 		work.limit =
 			'Lokalt prøveforsøk for å lære arbeidsmåten. Ingen XP eller vurdering av forståelse. Forklar bare resultatet av kjøringen som faktisk er vist.';
 	} else if (page.kind === 'database-theory') {
-		work.topic = v.section;
+		work.topic = databaseSections.find((item) => item.id === v.section);
+		if (v.section === 'dataflyt') work.viewedStep = flowExample(v.operation, v.flowStep);
+		if (v.section === 'dokument') work.document = equipment[0];
+		if (v.section === 'tilkobling') {
+			work.code = connectionCode;
+			work.explanations = connectionExplanations;
+		}
+		if (v.section === 'filter') {
+			const example = readExample(v.readId);
+			work.code = example.code;
+			work.resultShown = v.readShown;
+			if (v.readShown)
+				work.visibleResult = { documents: example.rows, explanation: example.explanation };
+		}
+		if (v.section === 'lagre') {
+			work.code = insertCode;
+			work.viewedStep = insertExample(v.insertStep);
+		}
+		if (v.section === 'eksempel') work.code = completeDatabaseExample;
+		work.limit =
+			'Dette er offentlig teori og forklarte eksempler. Ingen ekte database kontaktes av nettsiden. Bare valgt, synlig eksempelsteg er rekonstruert. Du ser ikke elevens lokale kode, database, terminal eller tilkoblingsopplysninger. Å åpne en del er ikke bestått arbeid.';
 	} else if (page.kind === 'database-practice') {
 		work.phase = v.phase;
 		if (v.phase === 'kode') work.referenceCode = starterCode;

@@ -89,6 +89,14 @@
 	}}
 />
 <DatabaseFrame index={1}>
+	<p class="db-callout">
+		<strong>Fra kodeeksemplet til din egen undersøkelse.</strong>
+		Valgene nedenfor lager et <code>filter</code> til <code>utstyr.find(filter).toArray()</code>.
+		Les koden under valgene før du kjører.
+		<a href="/databaser/grunnlag/?modul=databaser&del=filter"
+			>Se det forklarte søkeeksemplet igjen →</a
+		>
+	</p>
 	<div class="db-callout">
 		<strong>Øvingsmodell i nettleseren.</strong> Her øver du på likhet, flere betingelser og
 		<code>$lte</code> i et fast datasett. Dette er et avgrenset utsnitt av MongoDB, uten en databaseforbindelse.

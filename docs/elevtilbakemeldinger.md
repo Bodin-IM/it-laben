@@ -18,7 +18,7 @@ Dette bruker U1, U3 og U6 i [designgrunnlaget](webdesign-og-brukeropplevelse.md)
 
 ## Sidekontekst og lagring
 
-`feedbackPage` i `src/lib/feedback.js` gjenbruker den offentlige innholdskatalogen og modulene. Backend validerer siden og henter tittelen selv. Bare kjente interne elevadresser godtas. Fagvalg på forsiden, kjent modulreferanse og kjent omvisningssteg beholdes. Andre søkeparametre og fragmenter fjernes, inkludert eventuelle fritekstsøk eller nøkler. Verken DOM, kode, elevsvar, vedlegg, passord eller KI-samtaler samles inn automatisk.
+`feedbackPage` i `src/lib/feedback.js` gjenbruker den offentlige innholdskatalogen og modulene. Backend validerer siden og henter tittelen selv. Bare kjente interne elevadresser godtas. Fagvalg på forsiden, kjent modulreferanse, kjent omvisningssteg og kjent kapittel i databaseinnføringen beholdes. Andre søkeparametre og fragmenter fjernes, inkludert eventuelle fritekstsøk eller nøkler. Verken DOM, kode, elevsvar, vedlegg, passord eller KI-samtaler samles inn automatisk.
 
 Migrasjon `012_student_feedback.sql` oppretter `student_feedback` i den eksisterende SQLite-databasen. En rad inneholder:
 
