@@ -9,6 +9,7 @@ import { casesFor } from '#lib/reddChatten.js';
 import { backendQuestions } from '#lib/backendQuiz.js';
 import { queryTasks, queryOptions, equipment, databasePhases } from '#lib/databaseCourse.js';
 import { databaseSections, readExamples, insertStages } from '#lib/databaseIntro.js';
+import { vlanTasks } from '#lib/vlanLab.js';
 export const PAGE_CONTEXT_VERSION = 2;
 export const ADAPTER_VERSION = 1;
 export const MAX_CONTEXT_BYTES = 6000;
@@ -126,7 +127,21 @@ export function readPartnerState(pageId, raw) {
 	const v = wrap.values;
 	/** @type {Record<string,Rule>} */
 	let shape;
-	if (page.kind === 'tutorial') {
+	if (page.kind === 'vlan') {
+		if (!object(v)) return invalidContext();
+		const task = vlanTasks.find((item) => item.id === v.taskId);
+		if (!task) return invalidContext();
+		const sw = task.switches.find((item) => item.id === v.deviceId);
+		shape = {
+			taskId: choice(vlanTasks.map((item) => item.id)),
+			deviceId: choice([...task.pcs, ...task.switches].map((item) => item.id)),
+			portId: sw ? choice(sw.ports.map((port) => port.id)) : choice([null]),
+			hints: integer(0, task.hints.length),
+			hasRun: bool,
+			stale: bool,
+			revision: integer(0, 1000000000)
+		};
+	} else if (page.kind === 'tutorial') {
 		const attempt = record({ sample: choice(['spaces', 'message']), trim: bool });
 		shape = {
 			section: (value) =>

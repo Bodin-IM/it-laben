@@ -6,6 +6,7 @@ import { lessons } from '#lib/ovingene.js';
 
 /** @type {Record<string,string>} */
 const kinds = {
+	'vlan-lab': 'vlan',
 	'frontend-backend': 'backend',
 	chatrom: 'chatroom',
 	fillagring: 'storage',
@@ -125,7 +126,12 @@ export const partnerPages = [
 			title: activity.tittel,
 			summary: lesson?.intro ?? activity.beskrivelse,
 			topics: activity.emner,
-			tips: lesson
+			tips: activity.id === 'vlan-lab'
+				? [
+						'Velg en PC eller switch i kartet. Gjør én endring, prøv ping og undersøk hendelsene.',
+						'PVID velger VLAN for umerket trafikk inn. Tagged/untagged beskriver hvordan trafikken sendes ut. En trunk frakter VLAN mellom switcher; den ruter ikke mellom IP-nett.'
+					]
+				: lesson
 				? [lesson.context, ...lesson.tasks.slice(0, 2).map((task) => task.hint)]
 				: [
 						'Les målet og forutsi hva som vil skje før du gjør et valg.',

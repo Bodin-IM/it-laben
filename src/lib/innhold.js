@@ -1,5 +1,6 @@
 import { lessons } from '#lib/ovingene.js';
 import { databaseActivities } from '#lib/databaseCourse.js';
+import { vlanActivity } from '#lib/vlanLab.js';
 
 // Aktiviteter med serverlagret fremgang. Fri repetisjon legges til i repetisjonsaktiviteter.
 export const fag = [
@@ -192,6 +193,7 @@ export const aktiviteter = [
 // Offentlig, formativ øving uten fagsjekk, opplåsing eller XP.
 // Behold den utenfor serverkatalogen og vis alt samlet i forsiden.
 export const repetisjonsaktiviteter = [
+	vlanActivity,
 	{
 		id: 'backend-oppsummering',
 		tittel: 'Backend: oppsummering av øving 1–10',
