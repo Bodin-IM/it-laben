@@ -53,6 +53,10 @@ export function feedbackPage(href) {
 		clean.set('modul', module.id);
 		label += ` · ${module.title}`;
 	}
+	if (url.pathname === '/min-lab/' && url.searchParams.get('visning') === 'innstillinger') {
+		clean.set('visning', 'innstillinger');
+		label += ' · Innstillinger';
+	}
 	if (url.pathname === '/tutorial/') {
 		const step = guideSteps.find((item) => item.id === url.searchParams.get('tur'));
 		if (step) {

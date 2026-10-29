@@ -12,7 +12,7 @@
 </script>
 
 <details class="experience">
-	<summary>Lyd og animasjoner <span>{$labPreferences.sound ? 'Lyd på' : 'Lyd av'}</span></summary>
+	<summary>Labpartner, lyd og animasjoner <span>{$labPreferences.sound ? 'Lyd på' : 'Lyd av'}</span></summary>
 	<div class="controls">
 		<div>
 			<label class="toggle"
@@ -69,7 +69,7 @@
 		font:
 			var(--font-small)/1.5 system-ui,
 			sans-serif;
-		margin-block: 20px;
+		margin-block: 16px;
 	}
 	summary {
 		cursor: pointer;
@@ -91,7 +91,7 @@
 		display: flex;
 		align-items: center;
 		gap: 10px;
-		min-height: 36px;
+		min-height: 44px;
 		font-weight: 600;
 	}
 	input[type='checkbox'] {
@@ -121,7 +121,7 @@
 		border: 1px solid var(--color-border);
 		border-radius: 7px;
 		padding: 8px 12px;
-		min-height: 40px;
+		min-height: 44px;
 		font: inherit;
 		cursor: pointer;
 	}

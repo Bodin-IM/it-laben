@@ -152,6 +152,18 @@ Feiringer kommer etter serverbekreftelse. Flere belønninger fra samme kø samle
 
 Kø som er hentet fra lokal lagring eller har ventet på nettet får en rolig samlet synkroniseringsmelding.
 
+## Min lab og innstillinger
+
+`/min-lab/` samler labkort, samlet XP/nivå, fremgang i valgt fag, neste steg, fagspor og merker/milepæler. Det tidligere doble sammendraget er fjernet. Aktivitetslisten og forklaringen av XP åpnes ved behov. Gjennomgang og bestått fagsjekk vises fortsatt hver for seg.
+
+`/min-lab/?visning=innstillinger` samler labpartner/lyd/animasjoner, tema/labkort, klasse/toppliste og profil/nøkkelfil. Tannhjulet ved kontolenken er tilgjengelig i den felles toppmenyen. URL-baserte lenker mellom visningene støtter direkte lenking og tilbakeknappen; fagfilteret beholdes. Merke-lenker til `#merker` og `#merke-…` bruker fortsatt samlingen. Innstillinger for nettleseren kan brukes uten profil.
+
+Dette er et lokalt designvalg etter designgrunnlagets U1, U3 og U6: en tydelig hovedoppgave per visning, mindre gjentakelse, gjenkjennelig navigasjon og detaljer ved behov. Labkortet viser samlet XP for alle fag, mens aktivitetsoversikten følger fagfilteret. Eleven kan velge neste steg eller åpne kravene bak et merke. XP og fullføring alene dokumenterer ikke forståelse; faglige forklaringer og fagsjekker må fortsatt brukes til det.
+
+Profil, nøkkelnedlasting, kontobytte og køvarsler beholder eksisterende lagringsflyt. En nylig opprettet nøkkel holdes i samme sidekomponent ved bytte mellom visningene, og nedlastingsvarselet vises i begge. Feedback lagrer den kjente innstillingsvisningen som sidekontekst; ukjente URL-parametere beholdes ikke. Ingen XP-regler, merkekrav eller API-kontrakter er endret.
+
+Endringen på `dev` er gjennomgått som diff. Samlet testing gjenstår før `main`, inkludert tastatur, smal skjerm, zoom, begge temaer, direkte lenker/tilbakeknapp, fagfilter, gjestevisning, oppretting/nedlasting/bytte av nøkkel og lagring av innstillinger. Brukertesting med elever gjenstår.
+
 ## Kontroll før publisering
 
 ```bash
