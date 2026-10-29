@@ -9,6 +9,7 @@ export function createNightwatchAudio() {
 	/** @type {ReturnType<typeof setInterval>|null} */
 	let timer = null;
 	let active = false;
+	let disposed = false;
 	let volume = 0.25;
 	let remaining = 480000;
 	let duration = 480000;
@@ -55,7 +56,7 @@ export function createNightwatchAudio() {
 	document.addEventListener('visibilitychange', tick);
 	return {
 		async enable() {
-			if (typeof AudioContext === 'undefined') return false;
+			if (disposed || typeof AudioContext === 'undefined') return false;
 			try {
 				if (!context) {
 					context = new AudioContext();
@@ -92,27 +93,38 @@ export function createNightwatchAudio() {
 					}
 					timer = setInterval(tick, 100);
 				}
-				await context.resume();
+				const audio = context;
+				if (audio.state === 'suspended') await audio.resume();
+				if (disposed || context !== audio) return false;
 				tick();
-				return context.state === 'running';
+				return audio.state === 'running';
 			} catch {
 				return false;
 			}
 		},
 		/** @param {number} left @param {number} total @param {number} level @param {boolean} playing */
 		update(left, total, level, playing) {
+			if (disposed) return;
 			remaining = left;
 			duration = total;
 			volume = Math.max(0, Math.min(0.6, level));
 			active = playing && left > 0;
 			tick();
 		},
+		mute() {
+			active = false;
+			if (master && context) {
+				master.gain.cancelScheduledValues(context.currentTime);
+				master.gain.setValueAtTime(0, context.currentTime);
+			}
+		},
 		destroy() {
+			disposed = true;
 			document.removeEventListener('visibilitychange', tick);
 			active = false;
 			if (timer) clearInterval(timer);
 			if (master && context) master.gain.value = 0;
-			void context?.close();
+			if (context) void context.close().catch(() => {});
 			context = null;
 			master = null;
 			filter = null;

@@ -13,7 +13,7 @@
 		refreshLab,
 		ApiError
 	} from '#lib/lab.js';
-	import { labPreferences, setLabPreferences } from '#lib/labPreferences.js';
+	import { labPreferences, registerSoundPlayer } from '#lib/labPreferences.js';
 	import { timedChallenges, shiftClock, taskAnswered } from '#lib/timedChallenges.js';
 	import { createNightwatchAudio } from '#lib/nightwatchAudio.js';
 	import { avatarFeedback } from '#lib/avatarFeedback.js';
@@ -36,7 +36,7 @@
 	let error = $state('');
 	let localWarning = $state(false);
 	let audioReady = $state(false);
-	let audioError = $state('');
+	let enablingAudio = false;
 	let selected = $state(0);
 	let remaining = $state(definition.durationMs);
 	let serverNow = 0;
@@ -260,9 +260,15 @@
 		choose(taskId, order);
 	}
 	async function enableAudio() {
-		if (!audio) return;
-		audioReady = await audio.enable();
-		audioError = audioReady ? '' : 'Nettleseren kunne ikke starte lyden. Vakten fungerer fortsatt.';
+		if (!audio || enablingAudio || !$labPreferences.sound || !$labPreferences.volume) return;
+		const player = audio;
+		enablingAudio = true;
+		try {
+			const ready = await player.enable();
+			if (audio === player) audioReady = ready;
+		} finally {
+			enablingAudio = false;
+		}
 	}
 	async function start(reset = false) {
 		if (busy || !$lab.user) return;
@@ -270,7 +276,7 @@
 		serial++;
 		error = '';
 		const accountId = $lab.user.id;
-		if ($labPreferences.sound) await enableAudio();
+		void enableAudio();
 		try {
 			const response = await timedChallengeRequest(definition.id, 'start', {
 				startId: randomId(),
@@ -324,6 +330,10 @@
 	});
 	onMount(() => {
 		audio = createNightwatchAudio();
+		const unregisterSound = registerSoundPlayer({
+			stop: () => audio?.mute(),
+			unlock: () => { if (active) return enableAudio(); }
+		});
 		mounted = true;
 		let expiredFor = '';
 		const clock = setInterval(() => {
@@ -348,7 +358,9 @@
 			if (debounce) clearTimeout(debounce);
 			window.removeEventListener('online', reconnect);
 			window.removeEventListener('focus', reconnect);
+			unregisterSound();
 			audio?.destroy();
+			audio = null;
 		};
 	});
 </script>
@@ -408,37 +420,6 @@
 				>
 			</div>
 		</div>
-		<div class="sound-bar">
-			<label
-				><input
-					type="checkbox"
-					checked={$labPreferences.sound}
-					onchange={async (event) => {
-						setLabPreferences({ sound: event.currentTarget.checked });
-						if (event.currentTarget.checked) await enableAudio();
-					}}
-				/><span>Spenningslyd</span></label
-			>
-			<label class="volume"
-				>Volum<input
-					type="range"
-					min="0"
-					max="0.6"
-					step="0.05"
-					value={$labPreferences.volume}
-					oninput={(event) => setLabPreferences({ volume: Number(event.currentTarget.value) })}
-				/></label
-			>
-			{#if active && $labPreferences.sound && !audioReady}<button
-					class="text-button"
-					type="button"
-					onclick={enableAudio}>Start lydbildet</button
-				>{:else}<span class="sound-caption"
-					>{active && audioReady && $labPreferences.sound
-						? 'Lav ambience → raskere puls mot slutten'
-						: 'Velg lyd før start, eller spill i stillhet.'}</span
-				>{/if}
-		</div>
 		{#if active}<div class="shift-hud" aria-label="Vaktstatus">
 				<span class="hud-status"><span class="live-dot"></span>{phase}</span>
 				<strong>{untimed ? 'TEST' : shiftClock(remaining)}</strong><span
@@ -452,8 +433,8 @@
 						onclick={() => start(true)}>Start ny øvingsvakt</button
 					>{/if}
 			</div>{/if}
-		{#if error || audioError}<div class="notice" role="status">
-				<p>{error || audioError}</p>
+		{#if error}<div class="notice" role="status">
+				<p>{error}</p>
 				{#if conflict}<button type="button" class="secondary" onclick={() => syncStatus(true)}
 						>Hent lagret utkast</button
 					>{:else if $lab.user}<button
@@ -915,18 +896,6 @@
 		border-color: #936744;
 		box-shadow: 0 0 40px #a85c2010;
 	}
-	.sound-bar {
-		display: flex;
-		align-items: center;
-		flex-wrap: wrap;
-		gap: 12px 24px;
-		padding: 14px 0;
-		border-top: 1px solid var(--line);
-		border-bottom: 1px solid var(--line);
-		color: var(--muted);
-		margin-bottom: 28px;
-		font-size: 12px;
-	}
 	.shift-hud {
 		position: sticky;
 		top: 0;
@@ -971,23 +940,6 @@
 	}
 	.handover {
 		scroll-margin-top: 100px;
-	}
-	.sound-bar label {
-		display: flex;
-		align-items: center;
-		gap: 9px;
-		min-height: 32px;
-		cursor: pointer;
-	}
-	.sound-bar input {
-		accent-color: var(--mint);
-	}
-	.volume input {
-		width: 94px;
-	}
-	.sound-caption {
-		margin-left: auto;
-		font-size: 11px;
 	}
 	button,
 	input,
@@ -1697,14 +1649,6 @@
 		}
 		.clock-caption {
 			grid-column: 1/-1;
-			font-size: 10px;
-		}
-		.sound-bar {
-			gap: 8px 18px;
-		}
-		.sound-caption {
-			width: 100%;
-			margin: 0;
 			font-size: 10px;
 		}
 		.dispatch-label {

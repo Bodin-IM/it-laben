@@ -1,15 +1,25 @@
 <script>
 	import { page } from '$app/state';
+	import { onMount } from 'svelte';
 	import { lab } from '#lib/lab.js';
 	import AnimatedNumber from '#lib/components/AnimatedNumber.svelte';
 	import Avatar from '#lib/components/Avatar.svelte';
 	import { connection } from '#lib/connection.js';
+
+	let mounted = $state(false);
+	onMount(() => {
+		mounted = true;
+	});
+	const settingsPage = $derived(
+		mounted && page.url.pathname === '/min-lab/' && page.url.searchParams.get('visning') === 'innstillinger'
+	);
 </script>
 
 <a
 	href={$connection.publicHttp ? '/kom-i-gang/' : '/min-lab/'}
 	class="account-link"
-	aria-current={page.url.pathname === ($connection.publicHttp ? '/kom-i-gang/' : '/min-lab/')
+	aria-current={!settingsPage &&
+	page.url.pathname === ($connection.publicHttp ? '/kom-i-gang/' : '/min-lab/')
 		? 'page'
 		: undefined}
 >

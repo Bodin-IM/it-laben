@@ -1,4 +1,5 @@
 // Server-owned teaching context. Client fields are validated before any reconstruction.
+import { vlanTask, vlanContextLimit } from '../../src/lib/vlanLab.js';
 import {
 	databaseSections,
 	connectionCode,
@@ -157,7 +158,15 @@ export function pageWork(page, raw) {
 			'Avgrenset status rapportert av nettleseren, ikke dokumentasjon på forståelse. Kode og forklaringer hentes fra IT-labens undervisningsmodeller. Tekstfelt er bare kategorier; eksempler er ikke elevens faktiske tekst.',
 		selection: v
 	};
-	if (page.kind === 'tutorial') {
+	if (page.kind === 'vlan') {
+		const task = vlanTask(v.taskId);
+		const device = [...task.pcs, ...task.switches].find((item) => item.id === v.deviceId);
+		work.task = { title: task.title, goal: task.goal, ready: task.ready, steps: task.steps, theory: task.theory, reflection: task.reflect,
+			networks: task.groups.map((vlan, i) => ({ vlan, name: task.networkNames[i], network: `${task.networks[i]}.0/24` })) };
+		work.device = { name: device.name, port: v.portId };
+		work.openHints = task.hints.slice(0, v.hints);
+		work.limit = vlanContextLimit;
+	} else if (page.kind === 'tutorial') {
 		work.guideStep = guideSteps.find((step) => step.id === v.section) ?? null;
 		work.current = { sample: v.sample, trim: v.trim };
 		work.oldRun = v.run !== null && (v.run.sample !== v.sample || v.run.trim !== v.trim);

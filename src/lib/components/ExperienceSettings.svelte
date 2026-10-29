@@ -12,7 +12,7 @@
 </script>
 
 <details class="experience">
-	<summary>Lyd og animasjoner <span>{$labPreferences.sound ? 'Lyd på' : 'Lyd av'}</span></summary>
+	<summary>Labpartner, lyd og animasjoner <span>{$labPreferences.sound ? 'Lyd på' : 'Lyd av'}</span></summary>
 	<div class="controls">
 		<div>
 			<label class="toggle"
@@ -25,27 +25,20 @@
 			<p>Avataren følger arbeidet ditt med små reaksjoner.</p>
 		</div>
 		<div>
-			<label class="toggle"
-				><input
-					type="checkbox"
-					checked={$labPreferences.sound}
-					onchange={(event) => setLabPreferences({ sound: event.currentTarget.checked })}
-				/>Korte lyder ved fullføring</label
-			>
-			<p>Lyd er valgfritt. Innstillingen gjelder denne nettleseren.</p>
-			{#if $labPreferences.sound}
-				<div class="volume">
-					<label for="lab-volume">Lydstyrke</label><input
-						id="lab-volume"
-						type="range"
-						min="0"
-						max="0.6"
-						step="0.05"
-						value={$labPreferences.volume}
-						oninput={(event) => setLabPreferences({ volume: Number(event.currentTarget.value) })}
-					/><button type="button" onclick={preview}>Prøv lyd</button>
-				</div>
-			{/if}
+			<label class="toggle" for="lab-volume">Lydstyrke</label>
+			<p>Felles for alle øvinger. Lagres i denne nettleseren.</p>
+			<div class="volume">
+				<input
+					id="lab-volume"
+					type="range"
+					min="0"
+					max="0.6"
+					step="0.05"
+					value={$labPreferences.volume}
+					oninput={(event) => setLabPreferences({ volume: Number(event.currentTarget.value) })}
+				/><button type="button" disabled={!$labPreferences.sound || !$labPreferences.volume} onclick={preview}>Prøv lyd</button>
+			</div>
+			<a class="sound-link" href="#lab-sound-toggle">Lyd av/på i toppmenyen ↑</a>
 		</div>
 		<div>
 			<label class="toggle"
@@ -69,7 +62,7 @@
 		font:
 			var(--font-small)/1.5 system-ui,
 			sans-serif;
-		margin-block: 20px;
+		margin-block: 16px;
 	}
 	summary {
 		cursor: pointer;
@@ -91,7 +84,7 @@
 		display: flex;
 		align-items: center;
 		gap: 10px;
-		min-height: 36px;
+		min-height: 44px;
 		font-weight: 600;
 	}
 	input[type='checkbox'] {
@@ -121,12 +114,23 @@
 		border: 1px solid var(--color-border);
 		border-radius: 7px;
 		padding: 8px 12px;
-		min-height: 40px;
+		min-height: 44px;
 		font: inherit;
 		cursor: pointer;
 	}
+	button:disabled {
+		cursor: default;
+		opacity: 0.5;
+	}
+	.sound-link {
+		display: inline-flex;
+		align-items: center;
+		min-height: 44px;
+		color: var(--color-accent);
+	}
 	summary:focus-visible,
 	input:focus-visible,
+	a:focus-visible,
 	button:focus-visible {
 		outline: 3px solid var(--color-focus);
 		outline-offset: 3px;

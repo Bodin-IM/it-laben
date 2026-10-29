@@ -3,6 +3,8 @@
 	import AnimatedNumber from '#lib/components/AnimatedNumber.svelte';
 	import Avatar from '#lib/components/Avatar.svelte';
 	import { avatars } from '#lib/avatars.js';
+	/** @type {{editable?:boolean}} */
+	let { editable = true } = $props();
 	/** @type {import('#lib/avatarFeedback.js').AvatarMood} */
 	let previewMood = $state('idle');
 	let chosenAvatar = $state('robot');
@@ -44,10 +46,10 @@
 </script>
 
 {#if $lab.user && $lab.summary && color}
-	<section class="lab-customizer" aria-labelledby="lab-card-title">
+	<section class="lab-customizer" class:read-only={!editable} aria-labelledby="lab-card-title">
 		<div class="lab-card" style:--lab-ink={color.color} style:--lab-background={color.background}>
 			<div class="card-top">
-				<span>MIN PERSONLIGE LAB</span><span>LV. {$lab.summary.level}</span>
+				<span>LABKORT · ALLE FAG</span><span>NIVÅ {$lab.summary.level}</span>
 			</div>
 			<div class="card-body">
 				<div>
@@ -57,18 +59,29 @@
 				</div>
 				<div class="card-avatar"><Avatar id={chosenAvatar} mood={previewMood} size={112} /></div>
 			</div>
+			<div class="level-progress">
+				<progress
+					aria-label={$lab.summary.xp >= $lab.summary.maximumXp ? 'Alle publiserte XP er samlet' : 'Fremgang til neste labnivå'}
+					max={$lab.summary.xpPerLevel}
+					value={$lab.summary.xp >= $lab.summary.maximumXp
+						? $lab.summary.xpPerLevel
+						: $lab.summary.xp % $lab.summary.xpPerLevel}
+				></progress>
+				<span>{$lab.summary.xp >= $lab.summary.maximumXp
+					? 'Alle publiserte XP er samlet!'
+					: `${$lab.summary.nextLevelAt - $lab.summary.xp} XP til nivå ${$lab.summary.level + 1}`}</span>
+			</div>
 			<div class="card-bottom">
 				{#if badge}<span class="featured">{badge.symbol} · Valgt merke</span>{:else}<span
 						>{earned.length} merker i samlingen</span
 					>{/if}<span>DITT TEMPO. DIN FREMDRIFT.</span>
 			</div>
 		</div>
-		<div class="customize-controls">
-			<span class="eyebrow">GJØR LABEN TIL DIN</span>
-			<h3>Et lite sted som viser fremgangen din.</h3>
-			<p>Velg en avatar, en farge og et merke. Du beholder alle poengene dine.</p>
-			<details>
-				<summary>Tilpass labkortet</summary>
+		{#if editable}
+			<div class="customize-controls">
+				<span class="eyebrow">GJØR LABEN TIL DIN</span>
+				<h3>Tilpass labkortet</h3>
+				<p>Velg en avatar, en farge og et merke. Du beholder alle poengene dine.</p>
 				<form
 					onsubmit={(event) => {
 						event.preventDefault();
@@ -141,9 +154,9 @@
 						>{busy ? 'Lagrer …' : 'Lagre labkort'}</button
 					>
 				</form>
-			</details>
-			{#if message}<p class="message" role="status">{message}</p>{/if}
-		</div>
+				{#if message}<p class="message" role="status">{message}</p>{/if}
+			</div>
+		{/if}
 	</section>
 {/if}
 
@@ -153,11 +166,33 @@
 		grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
 		gap: 30px;
 		align-items: start;
-		margin: 30px 0;
+		margin: 0;
 		font:
 			var(--font-small)/1.5 system-ui,
 			sans-serif;
 		color: var(--color-text);
+	}
+	.lab-customizer.read-only {
+		grid-template-columns: minmax(0, 1fr);
+	}
+	.level-progress {
+		margin: 0 0 16px;
+		font-size: var(--font-small);
+		color: var(--lab-ink);
+	}
+	.level-progress progress {
+		display: block;
+		width: 100%;
+		height: 7px;
+		accent-color: var(--lab-ink);
+		margin-bottom: 8px;
+	}
+	.read-only .card-body {
+		min-height: 92px;
+		margin-block: 12px;
+	}
+	.read-only .card-body p {
+		margin-bottom: 12px;
 	}
 	.lab-card {
 		color: #f2f5ef;
@@ -265,12 +300,6 @@
 		margin: 6px 0 14px;
 		overflow-wrap: anywhere;
 	}
-	summary {
-		cursor: pointer;
-		min-height: 36px;
-		font-weight: 650;
-		color: var(--color-accent);
-	}
 	fieldset {
 		border: 0;
 		padding: 0;
@@ -342,7 +371,6 @@
 		font-size: var(--font-meta);
 	}
 	button:focus-visible,
-	summary:focus-visible,
 	select:focus-visible {
 		outline: 3px solid var(--color-focus);
 		outline-offset: 3px;

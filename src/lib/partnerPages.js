@@ -6,6 +6,7 @@ import { lessons } from '#lib/ovingene.js';
 
 /** @type {Record<string,string>} */
 const kinds = {
+	'vlan-lab': 'vlan',
 	'frontend-backend': 'backend',
 	chatrom: 'chatroom',
 	fillagring: 'storage',
@@ -69,11 +70,11 @@ export const partnerPages = [
 		id: 'profile',
 		path: '/min-lab/',
 		title: 'Min lab',
-		summary: 'Profil, klassevalg, fremgang og personlige innstillinger.',
+		summary: 'Fremgang, fagspor og merker. Innstillinger samler profil- og utseendevalg.',
 		topics: ['Profil', 'Fremgang'],
 		tips: [
-			'Her kan du opprette eller åpne profilen din og tilpasse avatar, farge og opplevelse.',
-			'Velg riktig klasse: 2ITA eller 2ITB. Klassevalget låses etter at det er lagret. Kontakt læreren hvis noe er feil.',
+			'Min lab samler fremgang, fagspor og merker. Aktivitetslisten kan åpnes når du vil se alle aktivitetene.',
+			'Åpne Innstillinger via tannhjulet i toppmenyen for labkort, lydstyrke, klasse og nøkkelfil. Høyttaleren i toppmenyen slår all lyd av/på. Velg riktig klasse: 2ITA eller 2ITB. Klassevalget låses etter lagring; kontakt læreren hvis noe er feil.',
 			'Poeng og gjennomføring viser aktivitet, men dokumenterer ikke alene forståelse. Forklar også hvordan og hvorfor løsningen virker.'
 		]
 	},
@@ -85,7 +86,7 @@ export const partnerPages = [
 		topics: ['Klasse', 'Poeng'],
 		tips: [
 			'Topplisten viser aktivitet og poeng. Den er ikke en karakter eller en fullstendig vurdering av hva noen kan.',
-			'I Min lab kan du velge klasse og styre om du vil være synlig på topplisten. Labpartneren henter ikke andre elevers profiler.'
+			'Under Innstillinger → Klasse og toppliste kan du velge klasse og styre synligheten din. Labpartneren henter ikke andre elevers profiler.'
 		]
 	},
 	...fag.map((subject) => ({
@@ -125,7 +126,12 @@ export const partnerPages = [
 			title: activity.tittel,
 			summary: lesson?.intro ?? activity.beskrivelse,
 			topics: activity.emner,
-			tips: lesson
+			tips: activity.id === 'vlan-lab'
+				? [
+						'Velg en PC eller switch i kartet. Gjør én endring, prøv ping og undersøk hendelsene.',
+						'PVID velger VLAN for umerket trafikk inn. Tagged/untagged beskriver hvordan trafikken sendes ut. En trunk frakter VLAN mellom switcher; den ruter ikke mellom IP-nett.'
+					]
+				: lesson
 				? [lesson.context, ...lesson.tasks.slice(0, 2).map((task) => task.hint)]
 				: [
 						'Les målet og forutsi hva som vil skje før du gjør et valg.',

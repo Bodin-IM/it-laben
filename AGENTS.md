@@ -2,6 +2,15 @@
 
 Disse instruksjonene gjelder hele repoet. IT-laben er et undervisningsverktøy for IT-fag i videregående skole. Bruk norsk bokmål i elevtekster og lærerveiledninger.
 
+## Arbeidsflyt: utvikling på dev, testing før main
+
+- `dev` er arbeidsgrenen. Samle løpende justeringer der; `main` er grenen for publisering.
+- På `dev` kjøres ikke `npm test`, `npm run check`, `npm run build`, autofikser eller omfattende nettleser-/tilgjengelighetskontroller automatisk for hver justering. Gjør endringen og les gjennom diffen; samlet testing utsettes til publisering. Kjør bare en avgrenset kontroll underveis når brukeren ber om den, eller når den er nødvendig for å finne eller rette en konkret feil.
+- Før endringene legges på `main`, kontrolleres den samlede endringen mot siste `main`. Ved kodeendringer kjøres full testsuite, Svelte-sjekk og produksjonsbygg én gang, samt relevant nettleserprøving av de endrede flytene. Rett feil før merge. Rene dokumentasjonsendringer trenger bare kontroll av innhold, lenker og diff.
+- Test den versjonen som faktisk skal merges. Bruk allerede beståtte kontroller av samme versjon; ikke gjenta dem uten nye endringer, feil eller en konkret uavklart risiko. Etter en retting gjentas bare kontrollene som kan være påvirket.
+- Ved levering på `dev`: oppgi kort at samlet testing gjenstår før `main`. Ikke framstill utestede endringer som testet, og ikke merge til `main` før brukeren ber om publisering.
+- Krav til testing, bygging, nettleserprøving og autofikser nedenfor gjelder før publisering til `main`, ikke ved hver mellomleveranse på `dev`. Faglige grunnlag, kodekvalitet og avgrensning av oppgaven gjelder gjennom hele arbeidet.
+
 ## Før du utvikler eller endrer innhold og grensesnitt
 
 Ved utvikling eller endring av moduler, aktiviteter, undervisning, leksjoner og elevøvinger for Vg2 informasjonsteknologi: les [læreplangrunnlaget](docs/laereplangrunnlag.md) og [læreplanen ITK02-01 i fulltekst](docs/laereplan/ITK02-01.md) før du planlegger innholdet. Bruk dette sammen med grunnlagene nedenfor. Oppgi aktuelle programfag og konkrete kompetansemål med korrekt ordlyd i aktivitetens veiledning eller arbeidsplan, og beskriv hvilken del av målet eleven faktisk øver. DRS-, BRU- og UTV-referansene er lokale henvisninger, ikke offisielle Udir-koder.
@@ -23,7 +32,7 @@ Ved utvikling eller endring av moduler, aktiviteter, undervisning, leksjoner og 
 - Gjør brukerens plassering, handlinger og systemets status forståelige. Bruk WCAG 2.2 nivå AA som arbeidsmål for nye og vesentlig endrede brukerflyter. Skill forskningsfunn, standardkrav og lokale designvalg; en bestemt kortfarge eller tekststørrelse er ikke et forskningskrav.
 - Bruk grunnlagene innenfor oppgavens omfang. Ikke endre andre aktiviteter, eksisterende XP-regler eller vurderingsordninger som en sideeffekt. Hvis brukeren ber om et annet pedagogisk valg eller designvalg, følg den avklarte retningen og dokumenter begrunnelsen kort.
 
-## Før arbeidet leveres
+## Før publisering til main
 
 - Gå gjennom sjekklisten i det pedagogiske grunnlaget. Beskriv kort hva eleven gjør, hva responsen forteller, og hvordan forståelsen kan undersøkes. Skill mellom det som er teknisk kontrollert og det som ennå må prøves med elever.
 - Ved grensesnittendringer: bruk relevante punkter i [designgrunnlagets sjekkliste](docs/webdesign-og-brukeropplevelse.md#7-sjekkliste-før-levering). Kontroller den endrede flyten med tastatur, berøring, smal skjerm, zoom og begge temaer, inkludert fokus, kontrast og relevante feil- og hjelpemeldinger. Oppgi hva som er prøvd og hva som gjenstår; tekniske kontroller og agentgjennomgang erstatter ikke brukertesting med elever.
@@ -52,7 +61,7 @@ After calling the list-sections tool, you MUST analyze the returned documentatio
 #### 3. svelte-autofixer
 
 Analyzes Svelte code and returns issues and suggestions.
-You MUST use this tool whenever writing Svelte code before sending it to the user. Keep calling it until no issues or suggestions are returned.
+Use this tool for changed Svelte code as part of the checks before publishing to main, when it is available. Do not run it automatically for each intermediate dev change. Resolve relevant issues before merging.
 
 #### 4. playground-link
 

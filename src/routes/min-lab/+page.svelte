@@ -3,17 +3,17 @@
 	import SecureAccessGuide from '#lib/components/SecureAccessGuide.svelte';
 	import { onMount } from 'svelte';
 	import { goto } from '$app/navigation';
-	import PersonalOverview from '#lib/components/PersonalOverview.svelte';
+	import { page } from '$app/state';
+	import ThemeToggle from '#lib/components/ThemeToggle.svelte';
 	import LabCustomizer from '#lib/components/LabCustomizer.svelte';
 	import TrackList from '#lib/components/TrackList.svelte';
 	import AchievementGallery from '#lib/components/AchievementGallery.svelte';
 	import ExperienceSettings from '#lib/components/ExperienceSettings.svelte';
-	import AnimatedNumber from '#lib/components/AnimatedNumber.svelte';
 	import LeaderboardPreference from '#lib/components/LeaderboardPreference.svelte';
 	import ClassMembership from '#lib/components/ClassMembership.svelte';
 	import { hasTeacherRole } from '#lib/learning.js';
 	import { fag, innholdsformat } from '#lib/innhold.js';
-	import { rewardPolicy } from '#lib/progression.js';
+	import { nextActivity, rewardPolicy } from '#lib/progression.js';
 	import {
 		lab,
 		createProfile,
@@ -29,7 +29,16 @@
 	let busy = $state(false);
 	let message = $state('');
 	let messageSuccess = $state(false);
-	let filter = $state('alle');
+	let mounted = $state(false);
+	const settingsView = $derived(mounted && page.url.searchParams.get('visning') === 'innstillinger');
+	const chosenSubject = $derived(mounted ? page.url.searchParams.get('fag') : null);
+	const filter = $derived(
+		fag.some((item) => item.id === chosenSubject) ? (chosenSubject ?? 'alle') : 'alle'
+	);
+	const subjectTitle = $derived(fag.find((item) => item.id === filter)?.navn ?? 'Alle fag');
+	const labHref = $derived(filter === 'alle' ? '/min-lab/' : `/min-lab/?fag=${filter}`);
+	const settingsHref = $derived(`${labHref}${filter === 'alle' ? '?' : '&'}visning=innstillinger`);
+	const next = $derived(nextActivity($lab.summary?.progress ?? [], filter));
 	let downloaded = $state(false);
 	let keyOwner = $state('');
 	let deleteConfirmation = $state('');
@@ -50,8 +59,7 @@
 		activities.filter((item) => ['passed', 'reviewed'].includes(item.status)).length
 	);
 	onMount(() => {
-		const chosen = new URL(window.location.href).searchParams.get('fag');
-		filter = fag.some((item) => item.id === chosen) ? (chosen ?? 'alle') : 'alle';
+		mounted = true;
 	});
 	$effect(() => {
 		if (!$lab.user || (recoveryKey && keyOwner !== $lab.user.id)) {
@@ -170,89 +178,98 @@
 </script>
 
 <svelte:head
-	><title>Min lab – progresjon og achievements | IT-laben</title><meta
+	><title>{settingsView ? 'Innstillinger' : 'Min lab – fremgang og merker'} | IT-laben</title><meta
 		name="robots"
 		content="noindex"
 	/></svelte:head
 >
 <div class="profile-page">
 	<main id="hovedinnhold" tabindex="-1">
-		{#if $connection.publicHttp}<SecureAccessGuide />
+		{#if !$connection.publicHttp || settingsView}
+			<header class="page-heading">
+				<h1>{settingsView ? 'Innstillinger' : 'Min lab'}</h1>
+				<p>
+					{settingsView
+						? 'Tilpass laben, velg klasse og ta vare på profilen din.'
+						: 'Fremgangen din, merkene dine og veien videre – samlet på ett sted.'}
+				</p>
+			</header>
+		{/if}
+		<nav class="view-nav" aria-label="Min lab og innstillinger">
+			<a href={labHref} aria-current={!settingsView ? 'page' : undefined}>Min lab</a>
+			<a href={settingsHref} aria-current={settingsView ? 'page' : undefined}>Innstillinger</a>
+		</nav>
+		{#if $connection.publicHttp}
+			{#if settingsView}
+				<p class="notice">
+					Profilvalg krever sikker tilkobling.
+					<a href="/kom-i-gang/">Åpne tilkoblingshjelpen →</a>
+				</p>
+			{:else}<SecureAccessGuide />{/if}
 		{:else if !$lab.ready}<p class="status" role="status">Henter profilen din …</p>
 		{:else if !$lab.user}
-			<section class="intro">
-				<p class="eyebrow">DIN EGEN PLASS I IT-LABEN</p>
-				<h1>Små steg.<br /><em>Synlig fremgang.</em></h1>
-				<p>Ta vare på det du lærer. Samle XP, løs oppdrag og finn tilbake til det du har gjort.</p>
-			</section>
-			{#if !$lab.available}<div class="notice" role="status">
-					<p>
-						Min lab er ikke tilgjengelig akkurat nå. Du kan fortsatt bruke alle leksjonene og
-						spillene.
-					</p>
-					<button type="button" onclick={() => refreshLab()}>Prøv igjen</button><a href="/"
-						>Til innholdet →</a
-					>
-				</div>{/if}
-			<div class="entry-grid">
-				<section class="panel">
-					<span class="panel-icon" aria-hidden="true">✦</span>
-					<h2>Start min lab</h2>
-					<p>
-						Lag en profil med ett klikk. Du får et unikt brukernavn fra IT-laben. Vi trenger verken
-						navn, e-postadresse eller passord.
-					</p>
-					<form
-						onsubmit={(event) => {
-							event.preventDefault();
-							void perform(async () => {
-								recoveryKey = await createProfile(remember);
-								keyOwner = $lab.user?.id ?? '';
-								downloaded = false;
-							});
-						}}
-					>
-						<button class="primary" type="submit" disabled={busy || !$lab.available}
-							>{busy ? 'Et lite øyeblikk …' : 'Opprett profilen min →'}</button
+			{#if settingsView}
+				<p class="notice">
+					Du kan tilpasse denne nettleseren uten profil.
+					<a href={labHref}>Opprett eller åpne profilen din →</a>
+				</p>
+			{:else}
+				{#if !$lab.available}<div class="notice" role="status">
+						<p>
+							Min lab er ikke tilgjengelig akkurat nå. Du kan fortsatt bruke alle leksjonene og
+							spillene.
+						</p>
+						<button type="button" onclick={() => refreshLab()}>Prøv igjen</button><a href="/"
+							>Til innholdet →</a
 						>
-					</form>
-				</section>
-				<section class="panel">
-					<span class="panel-icon" aria-hidden="true">↪</span>
-					<h2>Jeg har allerede en bruker</h2>
-					<p>Åpne nøkkelfilen din for å hente samme profil, progresjon og poeng på denne PC-en.</p>
-					<label class="file-label" for="recovery-file">Velg nøkkelfil</label><input
-						id="recovery-file"
-						type="file"
-						accept=".json,application/json"
-						onchange={uploadKey}
-						disabled={busy || !$lab.available}
-					/>
-					<p class="small">
-						Filen heter vanligvis <code>min-it-lab-nokkel.json</code>. Del den bare med deg selv.
-					</p>
-				</section>
-			</div>
-			<label class="remember"
-				><input type="checkbox" bind:checked={remember} />Dette er min egen PC – husk påloggingen</label
-			>
-			<p class="small">
-				På en lånt eller delt maskin fjerner du avkrysningen og logger ut når du er ferdig.
-			</p>
-		{:else if $lab.summary}
-			<section class="welcome">
-				<div>
-					<p class="eyebrow">MIN LAB</p>
-					<h1>Hei, <em>{$lab.user.nickname}.</em></h1>
-					<p>Fortsett å prøve. Hvert oppdrag bygger på noe du kan ta med videre.</p>
+					</div>{/if}
+				<div class="entry-grid">
+					<section class="panel">
+						<span class="panel-icon" aria-hidden="true">✦</span>
+						<h2>Start min lab</h2>
+						<p>
+							Lag en profil med ett klikk. Du får et unikt brukernavn fra IT-laben. Vi trenger verken
+							navn, e-postadresse eller passord.
+						</p>
+						<form
+							onsubmit={(event) => {
+								event.preventDefault();
+								void perform(async () => {
+									recoveryKey = await createProfile(remember);
+									keyOwner = $lab.user?.id ?? '';
+									downloaded = false;
+								});
+							}}
+						>
+							<button class="primary" type="submit" disabled={busy || !$lab.available}
+								>{busy ? 'Et lite øyeblikk …' : 'Opprett profilen min →'}</button
+							>
+						</form>
+					</section>
+					<section class="panel">
+						<span class="panel-icon" aria-hidden="true">↪</span>
+						<h2>Jeg har allerede en bruker</h2>
+						<p>Åpne nøkkelfilen din for å hente samme profil, progresjon og poeng på denne PC-en.</p>
+						<label class="file-label" for="recovery-file">Velg nøkkelfil</label><input
+							id="recovery-file"
+							type="file"
+							accept=".json,application/json"
+							onchange={uploadKey}
+							disabled={busy || !$lab.available}
+						/>
+						<p class="small">
+							Filen heter vanligvis <code>min-it-lab-nokkel.json</code>. Del den bare med deg selv.
+						</p>
+					</section>
 				</div>
-				<button
-					class="secondary"
-					type="button"
-					disabled={busy}
-					onclick={() => perform(logoutProfile)}>Logg ut</button
+				<label class="remember"
+					><input type="checkbox" bind:checked={remember} />Dette er min egen PC – husk påloggingen</label
 				>
-			</section>
+				<p class="small">
+					På en lånt eller delt maskin fjerner du avkrysningen og logger ut når du er ferdig.
+				</p>
+			{/if}
+		{:else if $lab.summary}
 			{#if recoveryKey}<section class="key-panel" aria-labelledby="key-title">
 					<span class="panel-icon" aria-hidden="true"
 						><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" width="24" height="24"
@@ -279,33 +296,6 @@
 							</p>{/if}
 					</div>
 				</section>{/if}
-			{#key $lab.user?.id}<ClassMembership />{/key}
-			<section class="stats" aria-label="Din progresjon">
-				<div class="xp-card">
-					<span class="eyebrow">NIVÅ {$lab.summary.level}</span><strong
-						><AnimatedNumber value={$lab.summary.xp} /> <small>XP</small></strong
-					><progress
-						aria-label="Fremgang til neste nivå"
-						max={$lab.summary.xpPerLevel}
-						value={$lab.summary.xp % $lab.summary.xpPerLevel}
-					></progress><span class="small"
-						>{$lab.summary.xp >= $lab.summary.maximumXp
-							? 'Alle dagens XP er samlet!'
-							: `${$lab.summary.nextLevelAt - $lab.summary.xp} XP til labnivå ${$lab.summary.level + 1}`}</span
-					>
-				</div>
-				<div>
-					<strong>{finished}<small> / {activities.length}</small></strong><span
-						>publiserte aktiviteter gjennomgått eller bestått</span
-					>
-					<p class="small">
-						Vanlige leksjoner gir {rewardPolicy.reviewed} XP for gjennomgang, spill gir {rewardPolicy.passed}
-						XP per oppdrag. Poengene frigjøres ved bestått fagsjekk, med {rewardPolicy.checked} XP ekstra.
-						Nattevakten gir 50 XP ved første beståtte vakt. Fagsjekker og Nattevakten har ett forsøk per
-						24 timer. Du kan lese og øve i de vanlige spillene så mye du vil.
-					</p>
-				</div>
-			</section>
 			{#if $lab.pending || $lab.error}<div class="notice" role="status">
 					<p>{$lab.pending ? `${$lab.pending} forsøk venter på lagring.` : $lab.error}</p>
 					{#if $lab.pending && $lab.error}<p>{$lab.error}</p>{/if}<button
@@ -316,95 +306,74 @@
 						}}>{$lab.syncing ? 'Synkroniserer …' : 'Prøv å synkronisere'}</button
 					>{#if $lab.storageWarning}<p>Hold denne fanen åpen til fremgangen er lagret.</p>{/if}
 				</div>{/if}
-			<div class="subject-filter" role="group" aria-label="Velg fag for fremgangen din">
-				{#each [{ id: 'alle', navn: 'Alle fag' }, ...fag] as item (item.id)}<button
-						type="button"
-						class:active={filter === item.id}
-						aria-pressed={filter === item.id}
-						onclick={() => (filter = item.id)}>{item.navn}</button
-					>{/each}
-			</div>
-			<PersonalOverview subject={filter} />
-			<LabCustomizer />
-			<TrackList subject={filter} />
-			<AchievementGallery subject={filter} />
-			<section class="activity-section" aria-labelledby="activity-title">
-				<div class="section-top">
-					<h2 id="activity-title">Innholdet ditt</h2>
-					<span class="small">Gjennomgang og fagsjekker vises hver for seg.</span>
-				</div>
-				<div class="activity-list">
-					{#each activities as activity}<a href={resumeLink(activity)} class="activity-row"
-							><div>
-								<span class="small"
-									>{fag.find((item) => item.id === activity.subject)?.navn ?? activity.subject} · {innholdsformat(
-										activity.format
-									).entall}</span
-								>
-								<h3>{activity.title}</h3>
+			{#if !settingsView}
+				<nav class="subject-filter" aria-label="Velg fag for fremgangen din">
+					{#each [{ id: 'alle', navn: 'Alle fag' }, ...fag] as item (item.id)}
+						<a href={item.id === 'alle' ? '/min-lab/' : `/min-lab/?fag=${item.id}`}
+							aria-current={filter === item.id ? 'true' : undefined}>{item.navn}</a>
+					{/each}
+				</nav>
+				<div class="overview-grid">
+					<LabCustomizer editable={false} />
+					<section class="progress-summary" aria-labelledby="progress-title">
+						<p class="eyebrow">{subjectTitle}</p>
+						<h2 id="progress-title">Fremgangen din</h2>
+						<p><strong>{finished} av {activities.length}</strong> aktiviteter gjennomgått eller bestått.</p>
+						<progress aria-label={`Aktiviteter gjennomgått eller bestått: ${subjectTitle}`}
+							max={activities.length || 1} value={finished}></progress>
+						{#if next}
+							<div class="next-step">
+								<span class="small">Neste steg</span>
+								<h3>{next.title}</h3>
+								<a class="primary" href={next.href}>{next.evidence === 'checked' ? 'Prøv fagsjekken' : 'Fortsett'} →</a>
 							</div>
-							<span
-								class="activity-status"
-								class:done={['passed', 'reviewed'].includes(activity.status)}
-								>{statusText(activity)}{#if activity.checksCompleted}<small>
-										· {activity.checksCompleted}/{activity.checksTotal} fagsjekker bestått</small
-									>{/if}{#if activity.pendingXp}<small>
-										· {activity.pendingXp} XP venter på fagsjekk</small
-									>{/if}</span
-							><span class="row-arrow" aria-hidden="true">→</span></a
-						>{/each}
+						{:else}<p class="small">Ingen nye steg klare akkurat nå. Du kan gå tilbake til aktivitetene under.</p>{/if}
+					</section>
 				</div>
-			</section>
-			<details class="settings">
-				<summary>Profil og nøkkelfil</summary>
-				<div class="settings-content">
-					<details>
-						<summary>Profilinformasjon</summary>
-						<p>Din profil-ID: <code style="overflow-wrap:anywhere">{$lab.user.id}</code></p>
-					</details>
-					{#if hasTeacherRole($lab.user.role)}<p>
-							<a href="/laerer/undervisning/">Åpne lærerpanel →</a>
-						</p>{/if}
-					<p>
-						Brukernavnet er tildelt av IT-laben. Be læreren om hjelp hvis det må endres. Nøkkelfilen
-						gir tilgang til profilen uavhengig av navnet.
-					</p>
-					<LeaderboardPreference />
-					<div>
-						<h3>Trenger du en ny nøkkelfil?</h3>
-						<p>
-							Last ned den nye filen først. Den gamle virker til du bekrefter byttet. Deretter
-							logges andre enheter ut. Progresjonen beholdes.
-						</p>
-						<button
-							class="secondary"
-							type="button"
-							disabled={busy}
-							onclick={() => {
-								rotationError = '';
-								rotationDialog?.showModal();
-							}}>Lag ny nøkkelfil</button
-						>
+				<nav class="collection-nav" aria-label="I samlingen din">
+					<a href={`${labHref}#fagspor`}>Fagspor</a>
+					<a href={`${labHref}#merker`}>Merker og milepæler</a>
+					<a href={`${labHref}#aktiviteter`}>Aktiviteter</a>
+				</nav>
+				<details class="reward-help">
+					<summary>Slik fungerer XP og fremgang</summary>
+					<p>Vanlige leksjoner gir {rewardPolicy.reviewed} XP for gjennomgang, spill gir {rewardPolicy.passed}
+						XP per oppdrag. Poengene frigjøres ved bestått fagsjekk, med {rewardPolicy.checked} XP ekstra.
+						Nattevakten gir 50 XP ved første beståtte vakt. Fagsjekker og Nattevakten har ett forsøk per
+						24 timer. Du kan lese og øve i de vanlige spillene så mye du vil.</p>
+					<p>XP og gjennomføring viser aktivitet. De dokumenterer ikke alene hva du har forstått.</p>
+				</details>
+				{#if $lab.user.role === 'student' && !$lab.user.classCode}
+					<p class="small">Du har ikke valgt klasse ennå. <a href={`${settingsHref}#klasse`}>Velg klasse i Innstillinger →</a></p>
+				{/if}
+				<div id="fagspor"><TrackList subject={filter} /></div>
+				<AchievementGallery subject={filter} />
+				<details id="aktiviteter" class="activity-section" open={mounted && page.url.hash === '#aktiviteter'}>
+					<summary>Aktivitetene dine <span class="small">{finished} av {activities.length} gjennomgått eller bestått</span></summary>
+					<p class="small">Gjennomgang og fagsjekker vises hver for seg.</p>
+					<div class="activity-list">
+						{#each activities as activity}<a href={resumeLink(activity)} class="activity-row"
+								><div>
+									<span class="small"
+										>{fag.find((item) => item.id === activity.subject)?.navn ?? activity.subject} · {innholdsformat(
+											activity.format
+										).entall}</span
+									>
+									<h3>{activity.title}</h3>
+								</div>
+								<span
+									class="activity-status"
+									class:done={['passed', 'reviewed'].includes(activity.status)}
+									>{statusText(activity)}{#if activity.checksCompleted}<small>
+											· {activity.checksCompleted}/{activity.checksTotal} fagsjekker bestått</small
+										>{/if}{#if activity.pendingXp}<small>
+											· {activity.pendingXp} XP venter på fagsjekk</small
+										>{/if}</span
+								><span class="row-arrow" aria-hidden="true">→</span></a
+							>{/each}
 					</div>
-					<details class="delete-account">
-						<summary>Slett profilen</summary>
-						<p>
-							Dette sletter progresjon, XP og achievements permanent. Nøkkelfilen vil ikke lenger
-							virke.
-						</p>
-						<label for="delete-confirmation">Skriv SLETT for å bekrefte</label><input
-							id="delete-confirmation"
-							bind:value={deleteConfirmation}
-							autocomplete="off"
-						/><button
-							class="danger"
-							type="button"
-							disabled={busy || deleteConfirmation !== 'SLETT'}
-							onclick={() => perform(deleteProfile)}>Slett profilen min</button
-						>
-					</details>
-				</div>
-			</details>
+				</details>
+			{/if}
 		{/if}
 		{#if message}<p
 				class:error={!messageSuccess}
@@ -413,7 +382,79 @@
 			>
 				{message}
 			</p>{/if}
-		<ExperienceSettings />
+		{#if settingsView}
+			<ExperienceSettings />
+			<details class="settings">
+				<summary>Utseende <span>Tema, avatar og labkort</span></summary>
+				<div class="settings-content">
+					<div><h2>Tema</h2><ThemeToggle /></div>
+					{#if !$connection.publicHttp && $lab.user && $lab.summary}
+						<LabCustomizer />
+					{:else}<p>Åpne en profil for å velge avatar, labfarge og et merke til labkortet.</p>{/if}
+				</div>
+			</details>
+			{#if !$connection.publicHttp && $lab.user && $lab.summary}
+				{#if $lab.user.role === 'student'}
+					<details class="settings" id="klasse" open={mounted && page.url.hash === '#klasse'}>
+						<summary>Klasse og toppliste <span>{$lab.user.classCode ?? 'Ingen klasse valgt'}</span></summary>
+						<div class="settings-content">
+							{#key $lab.user.id}<ClassMembership /><LeaderboardPreference />{/key}
+						</div>
+					</details>
+				{/if}
+				<details class="settings" id="profil" open={mounted && page.url.hash === '#profil'}>
+					<summary>Profil og nøkkelfil <span>Pålogging, profil-ID og sletting</span></summary>
+					<div class="settings-content">
+						<details>
+							<summary>Profilinformasjon</summary>
+							<p>Din profil-ID: <code style="overflow-wrap:anywhere">{$lab.user.id}</code></p>
+						</details>
+						{#if hasTeacherRole($lab.user.role)}<p>
+								<a href="/laerer/undervisning/">Åpne lærerpanel →</a>
+							</p>{/if}
+						<p>
+							Brukernavnet er tildelt av IT-laben. Be læreren om hjelp hvis det må endres. Nøkkelfilen
+							gir tilgang til profilen uavhengig av navnet.
+						</p>
+						<div>
+							<h3>Trenger du en ny nøkkelfil?</h3>
+							<p>
+								Last ned den nye filen først. Den gamle virker til du bekrefter byttet. Deretter
+								logges andre enheter ut. Progresjonen beholdes.
+							</p>
+							<button
+								class="secondary"
+								type="button"
+								disabled={busy}
+								onclick={() => {
+									rotationError = '';
+									rotationDialog?.showModal();
+								}}>Lag ny nøkkelfil</button
+							>
+						</div>
+						<button class="secondary logout" type="button" disabled={busy}
+							onclick={() => perform(logoutProfile)}>Logg ut</button>
+						<details class="delete-account">
+							<summary>Slett profilen</summary>
+							<p>
+								Dette sletter progresjon, XP og merker permanent. Nøkkelfilen vil ikke lenger
+								virke.
+							</p>
+							<label for="delete-confirmation">Skriv SLETT for å bekrefte</label><input
+								id="delete-confirmation"
+								bind:value={deleteConfirmation}
+								autocomplete="off"
+							/><button
+								class="danger"
+								type="button"
+								disabled={busy || deleteConfirmation !== 'SLETT'}
+								onclick={() => perform(deleteProfile)}>Slett profilen min</button
+							>
+						</details>
+					</div>
+				</details>
+			{/if}
+		{/if}
 		<footer><a href="/">← Til IT-laben</a><span>Se. Prøv. Forstå.</span></footer>
 	</main>
 	<dialog bind:this={rotationDialog} aria-labelledby="rotation-title">
@@ -483,6 +524,7 @@
 		background: var(--color-page);
 		font-family: var(--font-ui);
 		color: var(--color-text);
+		overflow-wrap: anywhere;
 	}
 	.profile-page,
 	.profile-page * {
@@ -496,11 +538,6 @@
 	a {
 		color: var(--color-accent);
 	}
-
-	.intro {
-		padding: 44px 0 28px;
-		max-width: 680px;
-	}
 	.eyebrow {
 		font-size: var(--font-meta);
 		color: var(--color-accent);
@@ -509,14 +546,10 @@
 		margin: 0 0 8px;
 	}
 	h1 {
-		font-size: clamp(2rem, 5vw, 3.5rem);
+		font-size: clamp(1.8rem, 4vw, 2.5rem);
 		line-height: 1.1;
-		letter-spacing: -1.8px;
-		margin: 0 0 16px;
-	}
-	h1 em {
-		font-style: normal;
-		color: var(--color-accent);
+		letter-spacing: -1px;
+		margin: 0 0 8px;
 	}
 	h1,
 	h2,
@@ -564,6 +597,95 @@
 	summary:focus-visible {
 		outline: 3px solid var(--color-focus);
 		outline-offset: 4px;
+	}
+	.page-heading {
+		padding: 28px 0 8px;
+	}
+	.page-heading p {
+		margin-bottom: 12px;
+	}
+	.view-nav {
+		display: flex;
+		gap: 8px;
+		flex-wrap: wrap;
+		border-bottom: 1px solid var(--color-border);
+		margin-bottom: 24px;
+	}
+	.view-nav a {
+		display: inline-flex;
+		align-items: center;
+		min-width: 0;
+		max-width: 100%;
+		overflow-wrap: anywhere;
+		min-height: 48px;
+		padding: 10px 16px;
+		border-bottom: 3px solid transparent;
+		color: var(--color-text-muted);
+		text-decoration: none;
+		font-weight: 650;
+	}
+	.view-nav a[aria-current] {
+		border-color: var(--color-accent);
+		color: var(--color-accent);
+	}
+	.overview-grid {
+		display: grid;
+		grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+		gap: 20px;
+	}
+	.progress-summary {
+		padding: 22px;
+		border: 1px solid var(--color-border);
+		border-radius: 16px;
+		background: var(--color-surface);
+	}
+	.progress-summary progress {
+		display: block;
+		width: 100%;
+		height: 8px;
+		accent-color: var(--color-accent);
+	}
+	.next-step {
+		margin-top: 20px;
+	}
+	.next-step h3 {
+		margin: 4px 0 12px;
+	}
+	.collection-nav {
+		display: flex;
+		flex-wrap: wrap;
+		gap: 8px 20px;
+		margin-top: 16px;
+	}
+	.collection-nav a {
+		display: inline-flex;
+		align-items: center;
+		min-height: 44px;
+		font-size: var(--font-small);
+	}
+	summary {
+		cursor: pointer;
+		min-height: 44px;
+	}
+	.reward-help {
+		font-size: var(--font-small);
+		color: var(--color-text-muted);
+	}
+	.reward-help summary {
+		padding-block: 12px;
+	}
+	.reward-help p {
+		max-width: 75ch;
+		font-size: var(--font-small);
+	}
+	.settings > summary span {
+		display: block;
+		font-weight: 400;
+		color: var(--color-text-muted);
+		margin-top: 4px;
+	}
+	.logout {
+		justify-self: start;
 	}
 	.entry-grid {
 		display: grid;
@@ -667,17 +789,6 @@
 		font-size: var(--font-code-small);
 		overflow-wrap: anywhere;
 	}
-	.welcome {
-		display: flex;
-		justify-content: space-between;
-		align-items: center;
-		flex-wrap: wrap;
-		gap: 20px;
-		padding: 40px 0 22px;
-	}
-	.welcome h1 {
-		margin-bottom: 0;
-	}
 	.key-panel,
 	.notice {
 		display: flex;
@@ -698,78 +809,40 @@
 	.notice p {
 		margin-bottom: 8px;
 	}
-	.stats {
-		display: grid;
-		grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
-		border: 1px solid var(--color-border);
-		border-radius: 14px;
-		overflow: hidden;
-		background: var(--color-surface);
-		margin: 0 0 24px;
-	}
-	.stats > div {
-		padding: 24px 28px;
-		min-width: 0;
-	}
-	.stats > div + div {
-		border-left: 1px solid var(--color-border);
-	}
-	.stats strong {
-		display: block;
-		font-size: 2.5rem;
-		letter-spacing: -1px;
-		line-height: 1.2;
-	}
-	.stats strong small {
-		font-size: 1.15rem;
-		color: var(--color-text-muted);
-		font-weight: 500;
-	}
-	.stats > div > span {
-		display: block;
-		font-size: var(--font-small);
-		color: var(--color-text-muted);
-	}
-	.stats p {
-		margin-bottom: 0;
-	}
-	.xp-card progress {
-		display: block;
-		width: 100%;
-		height: 7px;
-		margin: 14px 0 8px;
-		accent-color: var(--color-accent);
-	}
 	.subject-filter {
 		display: flex;
 		gap: 8px;
 		flex-wrap: wrap;
 		margin: 0 0 20px;
 	}
-	.subject-filter button {
+	.subject-filter a {
+		display: inline-flex;
+		align-items: center;
 		padding: 9px 14px;
-		min-height: 42px;
+		min-height: 44px;
+		text-decoration: none;
 		border: 1px solid var(--color-border);
 		border-radius: 8px;
 		background: var(--color-surface);
 		color: var(--color-text-muted);
 		font-size: var(--font-small);
 	}
-	.subject-filter button.active {
+	.subject-filter a[aria-current] {
 		background: var(--color-action);
 		border-color: var(--color-action);
 		color: var(--color-on-action);
 	}
 	.activity-section {
-		margin: 36px 0;
+		margin: 28px 0;
+		border-top: 1px solid var(--color-border);
 	}
-	.section-top {
-		display: flex;
-		justify-content: space-between;
-		align-items: center;
-		flex-wrap: wrap;
-		gap: 14px;
-		margin-bottom: 14px;
+	.activity-section > summary {
+		padding-block: 18px;
+		font-weight: 650;
+	}
+	.activity-section > summary span {
+		margin-left: 12px;
+		font-weight: 400;
 	}
 	.activity-list {
 		border: 1px solid var(--color-border);
@@ -779,7 +852,7 @@
 	}
 	.activity-row {
 		display: grid;
-		grid-template-columns: minmax(0, 1fr) auto 16px;
+		grid-template-columns: minmax(0, 1fr) auto auto;
 		align-items: center;
 		gap: 18px;
 		padding: 18px 20px;
@@ -817,7 +890,7 @@
 		border: 1px solid var(--color-border);
 		border-radius: 12px;
 		background: var(--color-surface);
-		margin: 32px 0 20px;
+		margin: 16px 0;
 	}
 	.settings > summary {
 		padding: 18px 22px;
@@ -828,7 +901,7 @@
 	.settings-content {
 		padding: 0 22px 24px;
 		display: grid;
-		gap: 26px;
+		gap: 20px;
 	}
 	.inline {
 		display: flex;
@@ -881,14 +954,12 @@
 		background: rgb(0 0 0 / 45%);
 	}
 	@media (max-width: 700px) {
+		.overview-grid,
 		.entry-grid {
 			grid-template-columns: 1fr;
 		}
-		.stats > div {
-			padding: 20px;
-		}
 		.activity-row {
-			grid-template-columns: minmax(0, 1fr) 16px;
+			grid-template-columns: minmax(0, 1fr) auto;
 			gap: 6px 12px;
 		}
 		.activity-status {
@@ -904,21 +975,8 @@
 		main {
 			width: min(var(--layout-width), calc(100% - 2 * var(--layout-gutter)));
 		}
-		.stats {
-			grid-template-columns: 1fr;
-		}
-		.stats > div + div {
-			border-left: 0;
-			border-top: 1px solid var(--color-border);
-		}
 		.panel {
 			padding: 22px;
-		}
-		.welcome h1 {
-			font-size: 2rem;
-		}
-		.intro {
-			padding-top: 32px;
 		}
 	}
 </style>

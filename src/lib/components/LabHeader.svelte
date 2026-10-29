@@ -1,9 +1,10 @@
 <script>
-	import { tick } from 'svelte';
+	import { onMount, tick } from 'svelte';
 	import { setLabPreferences } from '#lib/labPreferences.js';
 	import { afterNavigate } from '$app/navigation';
 	import { page } from '$app/state';
 	import ThemeToggle from '#lib/components/ThemeToggle.svelte';
+	import SoundToggle from '#lib/components/SoundToggle.svelte';
 	import AccountLink from '#lib/components/AccountLink.svelte';
 	import { lab } from '#lib/lab.js';
 	import { hasTeacherRole } from '#lib/learning.js';
@@ -11,6 +12,19 @@
 	import { fag } from '#lib/innhold.js';
 
 	let menuOpen = $state(false);
+	let mounted = $state(false);
+	onMount(() => {
+		mounted = true;
+	});
+	const settingsPage = $derived(
+		mounted && page.url.pathname === '/min-lab/' && page.url.searchParams.get('visning') === 'innstillinger'
+	);
+	const settingsSubject = $derived(
+		mounted && page.url.pathname === '/min-lab/'
+			? fag.find((subject) => subject.id === page.url.searchParams.get('fag'))?.id
+			: undefined
+	);
+	const settingsHref = $derived(`/min-lab/?visning=innstillinger${settingsSubject ? `&fag=${settingsSubject}` : ''}`);
 	/** @type {HTMLButtonElement|undefined} */
 	let menuButton;
 	/** @type {HTMLDetailsElement|undefined} */
@@ -114,8 +128,18 @@
 					onclick={openPartner}>Labpartner</button
 				>{/if}
 		</nav>
-		<div class="account"><AccountLink /></div>
-		<div class="theme"><ThemeToggle compact /></div>
+		<div class="account">
+			<AccountLink />
+			<a class="settings-link" href={settingsHref} aria-label="Innstillinger" title="Innstillinger"
+				aria-current={settingsPage ? 'page' : undefined}>
+				<svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor"
+					stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+					<path d="m9.5 3-.5 2-2 .9-1.8-.6-2 3.4 1.5 1.5v2.6l-1.5 1.5 2 3.4 1.8-.6 2 .9.5 2h5l.5-2 2-.9 1.8.6 2-3.4-1.5-1.5v-2.6l1.5-1.5-2-3.4-1.8.6-2-.9-.5-2z" />
+					<circle cx="12" cy="11.5" r="3" />
+				</svg>
+			</a>
+		</div>
+		<div class="display-tools"><SoundToggle /><ThemeToggle compact /></div>
 	</div>
 </header>
 
@@ -246,10 +270,36 @@
 		outline: 3px solid var(--color-focus);
 		outline-offset: 3px;
 	}
+	.account {
+		display: flex;
+		align-items: center;
+		gap: 6px;
+		max-width: 100%;
+	}
+	.settings-link {
+		display: inline-flex;
+		align-items: center;
+		justify-content: center;
+		flex: 0 0 44px;
+		width: 44px;
+		height: 44px;
+		box-sizing: border-box;
+		border: 1px solid var(--color-border);
+		border-radius: 8px;
+		color: var(--color-accent);
+	}
+	.settings-link:hover {
+		background: var(--color-surface-hover);
+	}
+	.settings-link[aria-current] {
+		background: var(--color-accent-soft);
+		border-color: var(--color-accent);
+	}
 	.account,
-	.theme {
+	.display-tools {
 		min-width: 0;
 	}
+	.display-tools { display: flex; align-items: center; gap: 8px; }
 	.menu-toggle {
 		display: none;
 		border: 1px solid var(--color-border-strong);
@@ -279,7 +329,7 @@
 			display: inline-flex;
 			order: 2;
 		}
-		.theme {
+		.display-tools {
 			order: 3;
 			margin-left: auto;
 		}

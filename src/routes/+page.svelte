@@ -185,10 +185,6 @@
 				</p>
 			</section>
 
-			<a class="tutorial-link" href="/tutorial/?tur=finn"
-				><strong>Ny i IT-laben?</strong> La labpartneren vise deg rundt →</a
-			>
-
 			<div class="search-tools">
 				<label for="innholdssok"
 					>{valgtFag === 'alle'
@@ -381,17 +377,6 @@
 </div>
 
 <style>
-	.tutorial-link {
-		overflow-wrap: anywhere;
-		display: block;
-		margin: 0 0 28px;
-		padding: 16px 20px;
-		background: var(--color-surface);
-		border: 1px solid var(--color-border);
-		border-radius: 10px;
-		color: var(--color-accent);
-		text-underline-offset: 4px;
-	}
 	.activity-browser > summary {
 		overflow-wrap: anywhere;
 		cursor: pointer;
