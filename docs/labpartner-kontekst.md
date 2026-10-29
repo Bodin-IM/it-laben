@@ -38,7 +38,7 @@ Fagsjekker har ingen kontekstkobling. Labpartneren får eventuelt grunnlaget for
 
 ## Deling og grenser
 
-**VLAN-laben (utkast):** Deler kjent oppdrag, valgt enhet/port, åpne hint, om en test er kjørt/utdatert og revisjonsnummer. Serveren henter mål og teori fra `vlanLab.js`. IP-adresser, VLAN-konfigurasjon og testresultat deles ikke; veilederen får en uttrykkelig begrensning og skal ikke anta at oppsettet er riktig. Se [VLAN-laben](vlan-lab.md). Kontrakttester er skrevet, men samlet kjøring gjenstår før `main`.
+**VLAN-laben (utkast):** Deler kjent oppdrag, valgt enhet/port, åpne hint, om en test er kjørt/utdatert og revisjonsnummer. Serveren henter mål og teori fra `vlanLab.js`. IP-adresser, VLAN-konfigurasjon og testresultat deles ikke; veilederen får en uttrykkelig begrensning og skal ikke anta at oppsettet er riktig. Se [VLAN-laben](vlan-lab.md). Kontrakten er testet før publisering. **VLAN-lab 2** bruker egen adapter `vlan2` med kjent oppdrag, valgt enhet, åpne hint, kjørt/utdatert og revisjon. Serveren bygger offentlig teori om gateway, ruting og SSID fra `vlanLab2.js`. Ingen elevkonfigurasjon eller testresultat deles. Se [lab 2](vlan-lab-2.md).
 
 Panelets **Dette følger med spørsmålet** beskriver delingen og lar eleven åpne de faktiske statusfeltene. Øvingens fritekst klassifiseres lokalt, for eksempel som tom, bare mellomrom, utfylt eller for lang. Registreringsøvingens passord deles bare som lengdekategori; brukernavn som gyldig/ugyldig. Selvskrevet tekst i **spørsmålet til labpartneren** sendes uendret.
 

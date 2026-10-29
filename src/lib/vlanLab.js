@@ -12,10 +12,10 @@
 /** @typedef {{ok:boolean,code:string,message:string,steps:TraceStep[],vlanDiagnostic?:boolean}} PingResult */
 
 export const vlanActivity = {
-	id: 'vlan-lab', tittel: 'VLAN-laben',
+	id: 'vlan-lab', tittel: 'VLAN-lab 1 · Switcher',
 	beskrivelse: 'Gi PC-er IP-adresser, skill nettverk med VLAN og bygg trunk mellom tre switcher.',
 	href: '/nettverk/vlan/', fag: 'drift', audience: 'student', format: 'aktivitet',
-	type: 'Interaktiv nettverkslab · utkast',
+	type: 'Interaktiv nettverkslab',
 	emner: ['IP-adresser', 'VLAN', 'PVID', 'Trunk'],
 	sokeord: ['switch', 'svitsj', 'tagged', 'untagged', 'native', 'default', 'nettverk', 'ping'],
 	symbol: '↔'

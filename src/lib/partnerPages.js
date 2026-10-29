@@ -7,6 +7,7 @@ import { lessons } from '#lib/ovingene.js';
 /** @type {Record<string,string>} */
 const kinds = {
 	'vlan-lab': 'vlan',
+	'vlan-lab-2': 'vlan2',
 	'frontend-backend': 'backend',
 	chatrom: 'chatroom',
 	fillagring: 'storage',
