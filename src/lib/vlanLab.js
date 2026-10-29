@@ -255,24 +255,29 @@ export function pingVlan(task, config, sourceId, targetId) {
 		: { ok: false, code: back.code, message: `Returen stopper: ${back.message}`, steps };
 }
 
+/** @typedef {{deviceId:string,portId?:string}} VlanCheckTarget */
+/** @typedef {{label:string,ok:boolean,targets:VlanCheckTarget[]}} VlanCheckRow */
 /** @param {VlanTask} task @param {VlanConfig} config */
 export function checkVlanTask(task, config) {
+	/** @type {VlanCheckRow[]} */
 	const rows = [];
 	for (const pc of task.pcs) {
 		const address = hostAddress(config.ips[pc.id]);
 		const port = config.switches[pc.switchId].ports[pc.port];
-		rows.push({ label: `${pc.name}: vertsadresse i 192.168.${pc.subnet}.0/24`, ok: address?.network === `192.168.${pc.subnet}` });
+		rows.push({ label: `${pc.name}: vertsadresse i 192.168.${pc.subnet}.0/24`, ok: address?.network === `192.168.${pc.subnet}`, targets: [{ deviceId: pc.id }] });
 		rows.push({ label: `${pc.name}: VLAN ${pc.vlan} Untagged, PVID ${pc.vlan} og andre VLAN Exclude`, ok:
 			port.pvid === pc.vlan && membership(port, pc.vlan) === 'untagged' &&
 			config.switches[pc.switchId].vlans.includes(pc.vlan) &&
-			Object.entries(port.members).every(([id, mode]) => mode === 'excluded' || Number(id) === pc.vlan) });
+			Object.entries(port.members).every(([id, mode]) => mode === 'excluded' || Number(id) === pc.vlan),
+			targets: [{ deviceId: pc.switchId, portId: pc.port }] });
 	}
 	for (let i = 0; i < task.pcs.length; i++) {
 		for (const b of task.pcs.slice(i + 1)) {
 			const a = task.pcs[i];
 			rows.push(a.vlan === b.vlan
-				? { label: `${a.name} ↔ ${b.name}: ping får svar`, ok: pingVlan(task, config, a.id, b.id).ok }
-				: { label: `${a.name} / ${b.name}: adskilt på VLAN-nivå`, ok: !traceVlan(task, config, a.id, b.id).ok && !traceVlan(task, config, b.id, a.id).ok });
+				? { label: `${a.name} ↔ ${b.name}: ping får svar`, ok: pingVlan(task, config, a.id, b.id).ok, targets: [{ deviceId: a.id }, { deviceId: b.id }] }
+				: { label: `${a.name} / ${b.name}: adskilt på VLAN-nivå`, ok: !traceVlan(task, config, a.id, b.id).ok && !traceVlan(task, config, b.id, a.id).ok,
+					targets: [{ deviceId: a.switchId, portId: a.port }, { deviceId: b.switchId, portId: b.port }] });
 		}
 	}
 	for (const link of task.links) {
@@ -280,12 +285,14 @@ export function checkVlanTask(task, config) {
 		const left = a.ports[link.aPort], right = b.ports[link.bPort];
 		for (const vlan of task.groups) rows.push({
 			label: `${link.a.toUpperCase()} ↔ ${link.b.toUpperCase()}: ${vlanLabel(task, vlan)} Tagged i begge ender`,
-			ok: a.vlans.includes(vlan) && b.vlans.includes(vlan) && membership(left, vlan) === 'tagged' && membership(right, vlan) === 'tagged'
+			ok: a.vlans.includes(vlan) && b.vlans.includes(vlan) && membership(left, vlan) === 'tagged' && membership(right, vlan) === 'tagged',
+			targets: [{ deviceId: link.a, portId: link.aPort }, { deviceId: link.b, portId: link.bPort }]
 		});
 		const native = (/** @type {PortConfig} */ port) => Object.entries(port.members).find(([, mode]) => mode === 'untagged')?.[0];
 		const ln = native(left), rn = native(right);
 		rows.push({ label: `${link.a.toUpperCase()} ↔ ${link.b.toUpperCase()}: samsvar for untagged/native VLAN`,
-			ok: ln === rn && (ln === undefined || (Number(ln) === left.pvid && Number(rn) === right.pvid)) });
+			ok: ln === rn && (ln === undefined || (Number(ln) === left.pvid && Number(rn) === right.pvid)),
+			targets: [{ deviceId: link.a, portId: link.aPort }, { deviceId: link.b, portId: link.bPort }] });
 	}
 	return { passed: rows.every((row) => row.ok), rows };
 }

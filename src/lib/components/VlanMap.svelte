@@ -21,7 +21,7 @@
 		{#each task.pcs as pc (pc.id)}
 			<button type="button" class="device pc" class:visited={step?.node === pc.id}
 				style:left={`${pc.x / 9}%`} style:top={`${pc.y / 4.4}%`}
-				aria-pressed={selected === pc.id} aria-controls="device-editor" onclick={() => onselect(pc.id)}>
+				aria-pressed={selected === pc.id} aria-controls="pc-editor" onclick={() => onselect(pc.id)}>
 				<svg viewBox="0 0 32 28" aria-hidden="true"><rect x="3" y="2" width="26" height="18" rx="2" /><path d="M16 20v5M9 26h14" /></svg>
 				<strong>{pc.name}</strong><span>{config.ips[pc.id] || 'Ingen IP-adresse'}</span>
 				<small>{pc.switchId.toUpperCase()} · port {pc.port}</small>
@@ -33,12 +33,12 @@
 				aria-pressed={selected === sw.id} aria-controls="device-editor" onclick={() => onselect(sw.id)}>
 				<svg viewBox="0 0 44 24" aria-hidden="true"><rect x="2" y="3" width="40" height="18" rx="3" /><path d="M8 9v6m7-6v6m7-6v6m7-6v6m7-6v6" /></svg>
 				<strong>{sw.name} · switch</strong>
-				<span>{task.editableSwitches ? 'Velg for å konfigurere' : 'Ferdig oppsatt'}</span>
+				<span>{task.editableSwitches ? 'Åpne VLAN-tabellen ↓' : 'Se oppsettet ↓'}</span>
 			</button>
 		{/each}
 	</div>
 </div>
-<p class="map-help">Velg en enhet i kartet eller i listen ved innstillingene. Markert kabel følger den valgte hendelsen.</p>
+<p class="map-help">Velg en PC for å endre IP ved kartet. Velg en switch for å åpne VLAN-tabellen under. Markert kabel følger den valgte hendelsen.</p>
 <details>
 	<summary>Vis kabler som tekst</summary>
 	<ul>
