@@ -1,5 +1,5 @@
 <script>
-	import { tick } from 'svelte';
+	import { onMount, tick, untrack } from 'svelte';
 	import VlanMap from '#lib/components/VlanMap.svelte';
 	import PartnerContext from '#lib/components/PartnerContext.svelte';
 	import { lab, learningContext } from '#lib/lab.js';
@@ -14,10 +14,20 @@
 	let selected = $state('pc1');
 	let pcId = $state('pc1');
 	let switchId = $state('s1');
-	let portId = $state('1');
+	let portId = $state('eth0');
 	let source = $state('pc1');
 	let target = $state('pc2');
 	let frame = $state(0);
+	let playing = $state(false);
+	let travelProgress = $state(1);
+	let reducedMotion = $state(true);
+	onMount(() => {
+		const preference = window.matchMedia('(prefers-reduced-motion: reduce)');
+		const update = () => { reducedMotion = preference.matches; };
+		update();
+		preference.addEventListener('change', update);
+		return () => preference.removeEventListener('change', update);
+	});
 	let hints = $state(0);
 	let vlanInput = $state('');
 	let settingMessage = $state('');
@@ -48,9 +58,31 @@
 	const availableThrough = $derived(vlanAvailableThrough(work));
 	const missingRows = $derived(attempt.check?.result.rows.filter((row) => !row.ok) ?? []);
 	const activeStep = $derived(run && !stale ? run.result.steps[frame] ?? null : null);
+	const playbackComplete = $derived(!!run && !stale && frame === run.result.steps.length - 1 && travelProgress === 1);
 	const completed = $derived(vlanTasks.filter((item) => vlanCheckPassed(work[item.id])).length);
+	$effect(() => {
+		const currentRun = run, currentFrame = frame;
+		if (!currentRun || stale) { playing = false; return; }
+		if (reducedMotion) { playing = false; travelProgress = 1; return; }
+		if (!playing) return;
+		const initialProgress = untrack(() => travelProgress);
+		let started = 0;
+		let request = 0;
+		/** @param {number} now */
+		function advance(now) {
+			if (!started) started = now;
+			const elapsed = now - started + initialProgress * 650;
+			travelProgress = Math.min(1, elapsed / 650);
+			if (elapsed >= 1000) {
+				if (currentFrame < currentRun.result.steps.length - 1) { travelProgress = 0; frame = currentFrame + 1; }
+				else playing = false;
+			} else request = requestAnimationFrame(advance);
+		}
+		request = requestAnimationFrame(advance);
+		return () => cancelAnimationFrame(request);
+	});
 	function resetSelection() {
-		selected = 'pc1'; pcId = 'pc1'; switchId = 's1'; portId = '1'; source = 'pc1'; target = 'pc2'; frame = 0;
+		selected = 'pc1'; pcId = 'pc1'; switchId = 's1'; portId = 'eth0'; source = 'pc1'; target = 'pc2'; frame = 0; playing = false; travelProgress = 1;
 		hints = 0; vlanInput = ''; settingMessage = ''; portMessage = ''; resetPending = false;
 	}
 	/** @param {string} id */
@@ -73,9 +105,12 @@
 		const device = task.switches.find((item) => item.id === id);
 		if (!device) return;
 		selected = id;
-		if (switchId === id) return;
+		if (switchId === id) {
+			if (!device.ports.some((item) => item.id === portId)) portId = device.ports[0]?.id ?? 'eth0';
+			return;
+		}
 		switchId = id;
-		portId = device.ports[0]?.id ?? '1';
+		portId = device.ports[0]?.id ?? 'eth0';
 		settingMessage = ''; portMessage = ''; vlanInput = '';
 	}
 	/** Reveal only as far as needed; keep the map in view when the PC panel is already visible. @param {string} id @param {string} [regionId] */
@@ -116,7 +151,7 @@
 	function nextMembership(mode) {
 		return membershipOrder[(membershipOrder.indexOf(mode) + 1) % membershipOrder.length];
 	}
-	function changed() { attempt.revision += 1; portMessage = ''; }
+	function changed() { playing = false; attempt.revision += 1; portMessage = ''; }
 	/** @param {string} id @param {number} vlan */
 	function cycleMembership(id, vlan) {
 		const item = switchConfig?.ports[id];
@@ -158,9 +193,26 @@
 		await tick();
 		document.getElementById('new-vlan')?.focus();
 	}
-	function ping() {
+	async function ping() {
+		playing = false;
 		attempt.run = { revision: attempt.revision, source, target, result: pingVlan(task, config, source, target) };
 		frame = 0;
+		travelProgress = reducedMotion ? 1 : 0;
+		await reveal('packet-controls');
+		playing = !reducedMotion;
+	}
+	/** @param {number} delta */
+	function stepFrame(delta) {
+		if (!run || stale) return;
+		playing = false;
+		frame = Math.max(0, Math.min(run.result.steps.length - 1, frame + delta));
+		travelProgress = 1;
+	}
+	function togglePlayback() {
+		if (!run || stale || reducedMotion) return;
+		if (playing) { playing = false; return; }
+		if (playbackComplete) { frame = 0; travelProgress = 0; }
+		playing = true;
 	}
 	function check() { attempt.check = { revision: attempt.revision, result: checkVlanTask(task, config) }; }
 	async function resetTask() {
@@ -205,9 +257,9 @@
 		<div class="mission-layout">
 			<div><h3>Gjør dette</h3><ol class="task-steps">{#each task.steps as text}<li>{text}</li>{/each}</ol></div>
 			<div><h3>Nettverksplan · målet ditt</h3><ul class="network-plan">
-				{#each task.groups as id}
+				{#each task.groups as id, group}
 					{@const members = task.pcs.filter((item) => item.vlan === id)}
-					<li><strong>{vlanLabel(task, id)}</strong><span>192.168.{members[0].subnet}.0/24</span><small>{members.map((item) => item.name).join(', ')}</small></li>
+					<li><strong>{vlanLabel(task, id)}</strong><span>{task.networks[group]}.0/24</span>{#if !task.discoverPorts}<small>{members.map((item) => item.name).join(', ')}</small>{/if}</li>
 				{/each}
 			</ul></div>
 		</div>
@@ -224,39 +276,52 @@
 	</nav>
 	<div class="workspace">
 		<section class="map-panel" id="network-panel" aria-labelledby="map-title" tabindex="-1">
-			<div class="panel-heading"><h2 id="map-title">Nettverket ditt</h2><span class="muted">{task.switches.length} switch{task.switches.length > 1 ? 'er' : ''} · /24</span></div>
+			<div class="panel-heading"><h2 id="map-title" tabindex="-1">Nettverket ditt</h2><span class="muted">{task.switches.length} switch{task.switches.length > 1 ? 'er' : ''} · /24</span></div>
 			<div class="network-workspace">
+				<section class="map-ping" id="map-ping" aria-labelledby="ping-title" tabindex="-1">
+					<h3 id="ping-title">Prøv ping i kartet</h3>
+					<div class="ping-controls">
+						<label>Fra<select bind:value={source}>{#each task.pcs as item}<option value={item.id}>{item.name}</option>{/each}</select></label>
+						<label>Til<select bind:value={target}>{#each task.pcs as item}<option value={item.id}>{item.name}</option>{/each}</select></label>
+						<button type="button" class="primary" disabled={source === target} onclick={ping}>Send ping</button>
+					</div>
+					<p class="muted">Forutsi utfallet før du sender. Ping undersøker ett par; oppdragskontrollen nederst åpner neste del.</p>
+				</section>
 				<div class="map-area">
-					<VlanMap {task} {config} {selected} onselect={selectDevice} step={activeStep} />
+					<div class="map-toolbar" id="packet-controls" tabindex="-1" role="group" aria-label="Styr avspillingen">
+						{#if run}
+							<button type="button" class="secondary" disabled={stale || reducedMotion} onclick={togglePlayback}>{playing ? 'Pause' : playbackComplete ? 'Spill av igjen' : 'Spill av'}</button>
+							<button type="button" disabled={stale || frame === 0} onclick={() => stepFrame(-1)}>← Forrige</button>
+							<span>Steg {frame + 1} av {run.result.steps.length}</span>
+							<button type="button" disabled={stale || frame >= run.result.steps.length - 1} onclick={() => stepFrame(1)}>Neste →</button>
+						{:else}<span class="muted">Send en ping for å følge pakken gjennom nettverket.</span>{/if}
+					</div>
+					<VlanMap {task} {config} {selected} onselect={selectDevice} step={activeStep} progress={travelProgress} />
 					{#if run}
 						<div class="map-playback">
-							<h3>Følg ping gjennom nettverket</h3>
-							{#if stale}<p class="muted">Dette er et tidligere forsøk. Kjør ping på nytt i testområdet for å følge det nye oppsettet.</p>{/if}
-							<div class="trace-controls">
-								<button type="button" disabled={stale || frame === 0} onclick={() => frame -= 1}>← Forrige hendelse</button>
-								<span>Hendelse {frame + 1} av {run.result.steps.length}</span>
-								<button type="button" disabled={stale || frame >= run.result.steps.length - 1} onclick={() => frame += 1}>Neste hendelse →</button>
-							</div>
-							<p class="trace" aria-live="polite">{run.result.steps[frame]?.ok ? '→' : 'Stopp:'} {run.result.steps[frame]?.text}</p>
-							<a href="#testing">Tilbake til testing ↓</a>
+							{#if reducedMotion}<p class="muted">Redusert bevegelse er aktivert. Bruk Forrige og Neste for å følge pakken uten animasjon.</p>{/if}
+							{#if stale}<p role="status">Oppsettet eller ping-paret er endret. Send ping på nytt; dette er et tidligere forsøk.</p>
+							{:else}
+								<p class="trace" aria-live="polite">{!activeStep?.ok && travelProgress === 1 ? 'Stopp:' : '→'} {activeStep?.text}</p>
+								<p class="ping-status" class:success={playbackComplete && run.result.ok} role="status">{playbackComplete ? run.result.message : playing ? 'Ping pågår. Du kan pause og undersøke hvert steg.' : 'Avspillingen er satt på pause. Fortsett eller gå ett steg om gangen.'}</p>
+							{/if}
+							<a href="#testing">Kontroller hele oppdraget ↓</a>
 						</div>
 					{/if}
 				</div>
 				<section class="pc-editor" id="pc-editor" aria-labelledby="pc-editor-title" tabindex="-1">
-					<h3 id="pc-editor-title" tabindex="-1">PC-innstillinger</h3>
-					<label for="pc-picker">Velg PC</label>
-					<select id="pc-picker" value={pcId} onfocus={() => selectPc(pcId)} onchange={(event) => selectPc(event.currentTarget.value)}>
-						{#each task.pcs as item}<option value={item.id}>{item.name}</option>{/each}
-					</select>
+					<h3 id="pc-editor-title" tabindex="-1">{pc?.name ?? 'PC-innstillinger'}</h3>
+					<p class="muted">Klikk på en PC i kartet for å endre IP.</p>
+
 					{#if pc}
-						<p class="pc-connection"><strong>{pc.name}</strong><br />Koblet til {pc.switchId.toUpperCase()}, port {pc.port}.</p>
+						<p class="pc-connection">Koblet til <strong>{pc.switchId.toUpperCase()} {pc.port}</strong>.</p>
 						<label for="pc-ip">IP-adresse</label>
 						<input id="pc-ip" type="text" inputmode="decimal" autocomplete="off" spellcheck="false" maxlength="15"
 							value={config.ips[pc.id]} aria-describedby="ip-help" onfocus={() => selectPc(pc.id)}
 							oninput={(event) => { config.ips[pc.id] = event.currentTarget.value; changed(); }} />
-						<p class="muted" id="ip-help">Mål: 192.168.{pc.subnet}.0/24.<br />Fast maske: 255.255.255.0.<br />Bruk en unik vertsadresse med siste tall 1–254.</p>
-						<p class="target-vlan">Mål: {vlanLabel(task, pc.vlan)}</p>
-						<button type="button" class="secondary" onclick={() => inspect({ deviceId: pc.switchId, portId: pc.port })}>Vis {pc.switchId.toUpperCase()}, port {pc.port} ↓</button>
+						<p class="muted" id="ip-help">{#if task.discoverPorts}Undersøk U og PVID på switchporten, og velg IP-nett fra VLAN-planen.{:else}Mål: {pc.network}.0/24.{/if}<br />Fast maske: 255.255.255.0.<br />Bruk en unik vertsadresse med siste tall 1–254.</p>
+						{#if !task.discoverPorts}<p class="target-vlan">Mål: {vlanLabel(task, pc.vlan)}</p>{/if}
+						<button type="button" class="secondary" onclick={() => inspect({ deviceId: pc.switchId, portId: pc.port })}>Vis {pc.switchId.toUpperCase()} {pc.port} ↓</button>
 					{/if}
 					<a class="pc-back" href="#network-panel">Tilbake til kartet ↑</a>
 				</section>
@@ -362,7 +427,7 @@
 			<button type="button" class="secondary" disabled={hints >= task.hints.length} onclick={() => hints += 1}>Vis {hints ? 'neste ' : ''}hint</button>
 		</div>
 		<div class="check-result" class:passed>
-			<p id="check-status" role="status">{checkStale ? 'Oppsettet er endret etter kontrollen. Kontroller på nytt.' : attempt.check ? passed ? index < vlanTasks.length - 1 ? '✓ Oppsettet består. Neste oppdrag er åpent.' : '✓ Oppsettet består. Du har bestått alle fem oppdrag.' : `${missingRows.length} krav gjenstår. Rett oppsettet og kontroller igjen.` : 'Kontrollen er ikke kjørt ennå.'}</p>
+			<p id="check-status" role="status">{checkStale ? 'Oppsettet er endret etter kontrollen. Kontroller på nytt.' : attempt.check ? passed ? index < vlanTasks.length - 1 ? '✓ Oppsettet består. Neste oppdrag er åpent.' : `✓ Oppsettet består. Du har bestått alle ${vlanTasks.length} oppdrag.` : `${missingRows.length} krav gjenstår. Rett oppsettet og kontroller igjen.` : 'Kontrollen er ikke kjørt ennå.'}</p>
 			{#if attempt.check}
 				{#if !passed && !checkStale}
 					<p class="muted">Start med {missingRows.length > 3 ? 'disse kravene. Hele listen kan åpnes under.' : 'det som gjenstår:'}</p>
@@ -382,19 +447,7 @@
 			<div class="reflection"><h3>Forklar for en medelev</h3><p>{task.reflect}</p><p class="muted">Bestått kontroll viser at oppsettet virker i modellen. Forklaringen og et nytt oppsett viser mer av hva du forstår.</p></div>
 			{#if index === vlanTasks.length - 1}<p>Prøv prinsippene i Packet Tracer eller på labens switcher sammen med læreren.</p>{/if}
 		{/if}
-		<div class="ping-lab">
-			<h3>Undersøk én forbindelse med ping</h3>
-			<p>Forutsi utfallet, velg to PC-er og prøv ping. Dette hjelper deg å feilsøke; en enkelt ping åpner ikke neste oppdrag.</p>
-			<div class="ping-controls">
-				<label>Fra<select bind:value={source}>{#each task.pcs as item}<option value={item.id}>{item.name}</option>{/each}</select></label>
-				<label>Til<select bind:value={target}>{#each task.pcs as item}<option value={item.id}>{item.name}</option>{/each}</select></label>
-				<button type="button" class="secondary" disabled={source === target} onclick={ping}>Prøv ping</button>
-			</div>
-			<div class="result" class:success={run?.result.ok && !stale}>
-				<p role="status">{stale ? 'Oppsettet eller PC-valget er endret. Kjør ping igjen; forrige resultat gjelder ikke lenger.' : run?.result.message ?? 'Ingen ping kjørt ennå.'}</p>
-				{#if run && !stale}<a class="action-link secondary" href="#network-panel">Følg ping steg for steg i kartet ↑</a>{/if}
-			</div>
-		</div>
+		<p><a href="#map-ping">Til ping ved kartet ↑</a></p>
 	</section>
 	<details class="model-notes"><summary>Om modellen og videre arbeid</summary>
 		<p>Dette er en lokal simulering. Ingen ping eller konfigurasjon sendes til skolens nett. Modellen bruker faste kabler uten løkker, IPv4 med /24, PVID og VLAN-medlemskap. PC-ene bruker ikke VLAN-tagging.</p>
@@ -448,10 +501,16 @@
 	.workspace-links a, .action-link { display: inline-flex; align-items: center; justify-content: center; min-height: 44px; padding: 9px 14px; border: 1px solid var(--color-border-strong); border-radius: 8px; text-decoration: none; font-size: var(--font-small); }
 	.workspace-links a:hover, .action-link.secondary:hover { background: var(--color-surface-hover); }
 	.workspace-links .test-shortcut { font-weight: 650; border-color: var(--color-accent); background: var(--color-accent-soft); }
-	#network-panel, #pc-editor, #pc-editor-title, #device-editor, #editor-title, #testing, .vlan-matrix th { scroll-margin-top: 24px; }
-	.network-workspace { display: grid; grid-template-columns: minmax(0, 1fr); gap: 20px; align-items: start; }
-	.map-area { min-width: 0; }
-	.pc-editor { min-width: 0; padding: 18px; border: 1px solid var(--color-border-strong); border-radius: 10px; background: var(--color-surface-soft); }
+	#network-panel, #map-title, #map-ping, #packet-controls, #pc-editor, #pc-editor-title, #device-editor, #editor-title, #testing, .vlan-matrix th { scroll-margin-top: 24px; }
+	.network-workspace { display: grid; grid-template-columns: minmax(0, 1fr); grid-template-areas: "ping" "map" "pc"; gap: 20px; align-items: start; }
+	.map-area { grid-area: map; min-width: 0; }
+	.map-ping { grid-area: ping; padding: 18px; min-width: 0; border: 1px solid var(--color-border-strong); border-radius: 10px; background: var(--color-surface-soft); }
+	.map-ping p { margin-bottom: 0; }
+	.map-toolbar { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; min-height: 52px; margin-bottom: 12px; font-size: var(--font-small); }
+	.map-toolbar button { padding: 8px 10px; }
+	.ping-status { font-weight: 650; }
+	.ping-status.success { color: var(--color-success); }
+	.pc-editor { grid-area: pc; min-width: 0; padding: 18px; border: 1px solid var(--color-border-strong); border-radius: 10px; background: var(--color-surface-soft); }
 	.pc-editor h3 { margin-bottom: 16px; }
 	.pc-editor .pc-connection { font-size: var(--font-small); margin-block: 16px; }
 	.pc-editor .target-vlan { font-size: var(--font-small); }
@@ -470,7 +529,6 @@
 	.editor-footer p { margin: 0; max-width: 65ch; }
 	.map-playback { padding: 16px; margin: 16px 0; border: 1px solid var(--color-border); border-radius: 8px; background: var(--color-surface-soft); }
 	.map-playback .trace { max-width: 75ch; }
-	.ping-lab { border-top: 1px solid var(--color-border); padding-top: 20px; margin-top: 24px; }
 	.check-result.passed { border-left: 3px solid var(--color-success); padding-left: 16px; }
 	.workspace { display: grid; grid-template-columns: minmax(0, 1fr); gap: 20px; }
 	.map-panel, .editor, .testing { min-width: 0; padding: 20px; border: 1px solid var(--color-border); border-radius: 14px; background: var(--color-surface); }
@@ -521,12 +579,11 @@
 	.primary:hover { background: var(--color-action); filter: brightness(1.08); }
 	.secondary { color: var(--color-accent); font-weight: 650; }
 	.testing { margin-top: 20px; border: 2px solid var(--color-accent); }
-	.ping-controls { display: grid; grid-template-columns: minmax(100px, 1fr) minmax(100px, 1fr) auto; gap: 14px; align-items: end; max-width: 700px; }
-	.ping-controls label { margin: 0; }
-	.result { background: var(--color-surface-soft); border: 1px solid var(--color-border); border-radius: 10px; margin: 20px 0; padding: 16px 20px; min-height: 80px; }
-	.result.success { border-color: var(--color-success); }
-	.trace-controls, .actions { display: flex; gap: 12px; flex-wrap: wrap; align-items: center; }
-	.trace-controls { font-size: var(--font-small); }
+	.ping-controls { display: grid; grid-template-columns: minmax(0, 1fr); gap: 12px; align-items: end; }
+	.ping-controls label { display: grid; grid-template-columns: 2rem minmax(0, 1fr); gap: 8px; align-items: center; margin: 0; }
+	.ping-controls select { margin-top: 0; font-size: var(--font-small); }
+	.ping-controls button { grid-column: 1 / -1; }
+	.actions { display: flex; gap: 12px; flex-wrap: wrap; align-items: center; }
 	.trace { min-height: 3em; }
 	.check-result { margin-block: 20px; }
 	.check-result ul { list-style: none; padding: 0; display: grid; gap: 8px; font-size: var(--font-small); }
@@ -538,7 +595,7 @@
 	.reset { display: flex; flex-wrap: wrap; gap: 12px; font-size: var(--font-small); }
 	.reset p { flex-basis: 100%; }
 	:is(button, input, select, summary, a, [tabindex]):focus-visible { outline: 3px solid var(--color-focus); outline-offset: 3px; }
-	@media (min-width: 1100px) { .network-workspace { grid-template-columns: minmax(0, 1fr) 300px; } .pc-back { display: none; } }
+	@media (min-width: 1100px) { .network-workspace { grid-template-columns: minmax(0, 1fr) 300px; grid-template-areas: "map ping" "map pc"; grid-template-rows: auto 1fr; } .pc-back { display: none; } }
 	@media (max-width: 700px) { .mission-layout { grid-template-columns: minmax(0, 1fr); } }
-	@media (max-width: 600px) { .tasks { grid-template-columns: 1fr; } .map-panel, .editor, .testing, .mission { padding: 16px; } .ping-controls { grid-template-columns: 1fr 1fr; } .ping-controls button { grid-column: 1 / -1; } }
+	@media (max-width: 600px) { .tasks { grid-template-columns: 1fr; } .map-panel, .editor, .testing, .mission { padding: 16px; } }
 </style>
