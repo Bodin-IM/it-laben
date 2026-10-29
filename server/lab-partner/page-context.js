@@ -161,7 +161,7 @@ export function pageWork(page, raw) {
 	if (page.kind === 'vlan') {
 		const task = vlanTask(v.taskId);
 		const device = [...task.pcs, ...task.switches].find((item) => item.id === v.deviceId);
-		work.task = { title: task.title, goal: task.goal, theory: task.theory, reflection: task.reflect };
+		work.task = { title: task.title, goal: task.goal, ready: task.ready, steps: task.steps, theory: task.theory, reflection: task.reflect };
 		work.device = { name: device.name, port: v.portId };
 		work.openHints = task.hints.slice(0, v.hints);
 		work.limit = vlanContextLimit;

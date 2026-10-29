@@ -19,11 +19,13 @@ Avgrensning: Eleven konfigurerer og undersøker IP-adresser, VLAN-medlemskap og 
 
 | Oppdrag | Eleven gjør | Modellens respons |
 | --- | --- | --- |
-| 1. IP-adresser | Retter én adresse på et ferdig oppsatt VLAN 1-nett | Skiller ugyldig adresse, ulikt IP-nett og ping med svar |
-| 2. To nett | Setter fire adresser i to forhåndsoppsatte VLAN | Kontrollerer kommunikasjon innenfor gruppene og VLAN-skillet |
-| 3. PC-porter | Oppretter VLAN 10/20, setter PVID og untagged | Viser klassifisering inn, medlemskap og tagging ut |
-| 4. Trunk | Frakter VLAN 10/20 over to switcher | Viser tagg på linken, mottakets VLAN og returveien |
-| 5. Tre switcher | Bygger VLAN 30/40 gjennom tre switcher med mindre støtte | Undersøker alle hopp, begge grupper og isolasjonen mellom dem |
+| 1. IP-adresser | Retter én adresse for Ansatt på et ferdig oppsatt VLAN 1-nett | Skiller ugyldig adresse, ulikt IP-nett og ping med svar |
+| 2. To nett | Setter fire adresser for Ansatt (VLAN 10) og Gjest (VLAN 20) | Kontrollerer kommunikasjon innenfor gruppene og VLAN-skillet |
+| 3. PC-porter | Oppretter Ansatt/Gjest i VLAN 10/20, setter PVID og Untagged | Viser klassifisering inn, medlemskap og tagging ut |
+| 4. Trunk | Frakter Ansatt/Gjest i VLAN 10/20 over to switcher | Viser tagg på linken, mottakets VLAN og returveien |
+| 5. Tre switcher | Bygger Admin (VLAN 30) og Gjest (VLAN 40) gjennom tre switcher med mindre støtte | Undersøker alle hopp, begge grupper og isolasjonen mellom dem |
+
+Hvert oppdrag viser ønsket kommunikasjon, hva som er ferdig satt opp, to konkrete arbeidssteg og en nettverksplan med navn, VLAN-ID, IP-nett og tilhørende PC-er. PC-ene heter for eksempel «Ansatt-PC 1» og «Gjest-PC 2» i kart, innstillinger, ping, hint og kontrolliste. Nettverksplanen beskriver målet, ikke en påstand om at dagens konfigurasjon er riktig. Sluttoppdraget beholder to nett og nye VLAN-ID-er; Admin-navnet er ikke en egen tilgangs- eller rutingsfunksjon.
 
 «Prøv ping» undersøker et valgt par, med en manuelt styrt hendelsesrekke og markert kabel/enhet. «Kontroller oppdraget» undersøker alle relevante par, riktig VLAN-tilhørighet, adresser, tagged uplinker og native-samsvar. Isolasjon undersøkes på VLAN-nivå, slik at ulike IP-nett på samme VLAN ikke feilaktig godkjennes som segmentering. Flere gyldige vertsadresser godtas; systemet krever ikke en bestemt .11/.12-fasit.
 
@@ -43,6 +45,15 @@ Faglig referanse: [Ciscos VLAN Trunking-guide](https://www.cisco.com/c/en/us/td/
 
 Et interaktivt kart med et separat panel for valgt enhet holder oppgaven og endringen synlig samtidig. Native knapper, feltetiketter, en alternativ enhetsliste og kabler som tekst gir betjening uten dragging. Smal skjerm stabler panelene; bare selve topologien kan rulles vannrett. Farge suppleres av tekst og hendelser. Felles tema og tekstvariabler gjenbrukes, uten animasjoner som krever pause. Dette er lokale valg etter designgrunnlagets U1, U3 og U6, med tilgjengelighet som arbeidsmål.
 
+Switchpanelet har to alternative visninger, valgt med native radioknapper:
+
+- **Per port** er standard. Nummererte portknapper viser tilkoblet PC/switch, nåværende PVID og Untagged/Tagged VLAN. Ett innstillingsfelt under knappene gjelder den valgte porten. Valg markeres med tekst og `aria-pressed` i tillegg til farge.
+- **Per VLAN** lar eleven velge ett VLAN og se eller endre medlemskapet på alle switchens porter. PVID vises ved hver port; portknappen åpner den fulle portvisningen med tastaturfokus på riktig overskrift. Ved ulikt Untagged VLAN og PVID forklares trafikken inn og ut i tekst.
+
+Begge visninger skriver til samme konfigurasjon og merker tidligere ping/kontroll som utdatert. Bytte av visning endrer ikke nettverket. Ferdig oppsatte switcher kan undersøkes i begge visninger, men innstillingene er låst. Medlemskapsvalgene heter **Exclude**, **Untagged** og **Tagged**, med kort norsk forklaring. Å velge Untagged setter et tidligere Untagged-medlemskap til Exclude uten å endre PVID.
+
+Dette avgrenser mengden samtidige kontroller, samtidig som eleven kan arbeide både med én kabel/port og med fordelingen av ett nett. Valget følger designgrunnlagets synlige valgmuligheter, gruppering og elevstyrt utdyping (U1/U6), men må prøves med elever. Kartet beholder enhetsvalg; portvalget ligger i konfigurasjonspanelet.
+
 Forløpet følger pedagogikkgrunnlagets overkommelige start, undersøking, endring og ny anvendelse. Be eleven forutsi før ping, forklare stoppstedet og endre én ting om gangen. En medelev kan være observatør og begrunne neste test før rollene byttes.
 
 Tegn på forståelse: Eleven kan skille IP-nett fra VLAN, forklare PVID inn/untagged ut, følge en tag gjennom midtswitchen og forklare hvorfor en trunk ikke ruter mellom VLAN. En bestått kontroll alene er ikke vurdert forståelse. Be eleven bygge en ny plan med andre VLAN-ID-er og IP-nett, først på papir og deretter i Packet Tracer eller på labens switcher. Dokumenter både ønsket forbindelse og ønsket isolasjon, og begrunn feilsøkingen.
@@ -51,11 +62,13 @@ Tegn på forståelse: Eleven kan skille IP-nett fra VLAN, forklare PVID inn/unta
 
 Ny adapter `kind: vlan`, felles protokollversjon 2 og adapterversjon 1. Tillatte felt er kjent oppdrags-ID, enhet og gyldig port på den enheten, antall åpne hint, om et forsøk er kjørt/utdatert og en begrenset revisjonsteller. Ukjente felt, oppdrag, porter og versjoner avvises. Ingen inntastede IP-adresser, konfigurasjonsobjekter, testfasit, elevdata eller fritekst sendes. Oppdragsbytte bruker eksisterende `taskKey` og tømmer samtalen; endringer i konfigurasjon merker gamle svar som utdaterte via revisjonen.
 
-Serveren bygger mål, teori og bare åpne hint fra samme oppdragsmetadata. Begrensningen forteller uttrykkelig at veilederen ikke ser konfigurasjonen eller testresultatet og ikke kan anta at arbeidet er riktig. Dette er bevisst avgrenset i første utkast; full, validert konfigurasjonskontekst kan vurderes senere.
+Serveren bygger mål, utgangspunkt, arbeidssteg, teori og bare åpne hint fra samme oppdragsmetadata. Begrensningen forteller uttrykkelig at veilederen ikke ser konfigurasjonen eller testresultatet og ikke kan anta at arbeidet er riktig. Dette er bevisst avgrenset i første utkast; full, validert konfigurasjonskontekst kan vurderes senere. Visningsvalget Per port/Per VLAN og valgt VLAN deles ikke; portfeltet viser sist valgt eller redigert port på switchen.
 
 ## Kontroll og utprøving
 
 Koden og diffen er gjennomgått på `dev`. Seks testgrupper er skrevet for gyldige alternative adresser, feilede startoppsett, IP-konflikter, VLAN-isolasjon, manglende trunk-hopp, returtrafikk, native-mismatch og kontekstgrenser. **Testene er ikke kjørt på dev**, etter avtalt arbeidsflyt. Svelte MCP var ikke tilgjengelig; offisiell dokumentasjon for [$state](https://svelte.dev/docs/svelte/$state) og [each-blokker](https://svelte.dev/docs/svelte/each) er brukt.
+
+Revisjonen med portknapper, VLAN-visning og tydeligere oppdrag er også kun kode-/diffgjennomgått. Ingen nye automatiserte tester er lagt til for denne visningsendringen. Før main må begge visninger prøves mot samme portoppsett: endre medlemskap, bytt visning/switch, kontroller PVID, opprett/fjern VLAN, prøv forhåndsoppsatte switcher og bekreft at gamle resultater merkes. Prøv også portsnarveiene og radiovalg med tastatur, mobil, zoom og begge temaer.
 
 Før `main`: kjør samlet testsuite, Svelte-sjekk og bygg. Prøv alle oppdrag og gyldige/ugyldige forsøk, retting etter feil, endring etter bestått, tilbakebytte mellom oppdrag, nullstilling og kontobytte. Kontroller tastatur, fokus, 320/390 px, zoom og begge temaer, samt markering av riktig kabel ved valgt hendelse. Prøv labpartnerens stegbytte, utdatert svar og delingsgrenser. Testene og nettleserprøvingen gjenstår.
 

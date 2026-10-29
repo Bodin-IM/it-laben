@@ -6,7 +6,7 @@
 /** @typedef {{id:string,name:string,switchId:string,port:string,vlan:number,subnet:number,x:number,y:number}} VlanPc */
 /** @typedef {{id:string,name:string,x:number,y:number,ports:{id:string,peer:string}[]}} VlanSwitch */
 /** @typedef {{id:string,a:string,aPort:string,b:string,bPort:string}} VlanLink */
-/** @typedef {{id:string,title:string,goal:string,theory:string[],hints:string[],reflect:string,switchCount:number,groups:number[],editableSwitches:boolean,preconfigured:boolean,pcs:VlanPc[],switches:VlanSwitch[],links:VlanLink[]}} VlanTask */
+/** @typedef {{id:string,title:string,goal:string,ready:string,steps:string[],theory:string[],hints:string[],reflect:string,switchCount:number,groups:number[],networkNames:string[],editableSwitches:boolean,preconfigured:boolean,pcs:VlanPc[],switches:VlanSwitch[],links:VlanLink[]}} VlanTask */
 /** @typedef {{text:string,node:string,link?:string,ok:boolean}} TraceStep */
 /** @typedef {{ok:boolean,code:string,message:string,steps:TraceStep[]}} PingResult */
 
@@ -23,45 +23,53 @@ export const vlanActivity = {
 /** @type {Omit<VlanTask,'pcs'|'switches'|'links'>[]} */
 const definitions = [
 	{
-		id: 'ip', title: 'Få to PC-er på nett', switchCount: 1, groups: [1],
+		id: 'ip', title: 'Få to PC-er på nett', switchCount: 1, groups: [1], networkNames: ['Ansatt'],
 		editableSwitches: false, preconfigured: true,
-		goal: 'PC A og PC B skal kunne nå hverandre i 192.168.10.0/24. Switchen er ferdig satt opp. Endre IP-adressen som er i feil nett.',
+		goal: 'To ansatte skal kunne bruke samme lokalnett. Få ping til å svare mellom Ansatt-PC 1 og Ansatt-PC 2 i 192.168.10.0/24.',
+		ready: 'Switchen og VLAN 1 er ferdig satt opp. Én av PC-ene har IP-adresse i feil nett.',
+		steps: ['Velg PC-ene og sammenlign IP-adressene. Rett adressen som er i feil nett; PC-ene skal ha ulike adresser.', 'Prøv ping mellom Ansatt-PC 1 og Ansatt-PC 2. Du er i mål når ping får svar og oppdragskontrollen består.'],
 		theory: [
 			'En switch kobler enheter sammen. Først bruker begge portene standard VLAN 1.',
 			'Alle PC-ene i laben har masken /24 (255.255.255.0). De tre første tallene angir nettet; siste tall skiller PC-ene.',
 			'I 192.168.10.0/24 kan du bruke vertsadresser fra .1 til .254. .0 er nettadressen og .255 er broadcast. PC-ene må ha ulike adresser.'
 		],
-		hints: ['Sammenlign de tre første tallene i IP-adressene.', 'PC A har 192.168.10.11. PC B kan for eksempel bruke 192.168.10.12.'],
+		hints: ['Sammenlign de tre første tallene i IP-adressene.', 'Ansatt-PC 1 har 192.168.10.11. Ansatt-PC 2 kan for eksempel bruke 192.168.10.12.'],
 		reflect: 'Hvorfor er det ikke nok at begge PC-ene er koblet til samme switch?'
 	},
 	{
-		id: 'to-nett', title: 'To nett på én switch', switchCount: 1, groups: [10, 20],
+		id: 'to-nett', title: 'To nett på én switch', switchCount: 1, groups: [10, 20], networkNames: ['Ansatt', 'Gjest'],
 		editableSwitches: false, preconfigured: true,
-		goal: 'Gi A og B ulike adresser i 192.168.10.0/24. Gi C og D ulike adresser i 192.168.20.0/24. Portene er allerede delt i VLAN 10 og 20.',
+		goal: 'Ansatte og gjester skal ha hvert sitt nett. Ansatt-PC-ene skal nå hverandre i VLAN 10, og Gjest-PC-ene i VLAN 20. Ansatt og Gjest skal være adskilt.',
+		ready: 'VLAN 10 og 20 og alle switchportene er ferdig satt opp. PC-ene mangler IP-adresser.',
+		steps: ['Gi Ansatt-PC-ene ulike adresser i 192.168.10.0/24 og Gjest-PC-ene ulike adresser i 192.168.20.0/24.', 'Prøv ping innenfor hvert nett: begge par skal få svar. Ping fra Ansatt til Gjest skal ikke få svar. Bruk deretter «Kontroller oppdraget».'],
 		theory: [
 			'Et VLAN er et eget logisk lokalnett i switchen. En broadcast i VLAN 10 blir ikke sendt til porter som bare er i VLAN 20.',
 			'VLAN-ID og IP-nett er ulike ting. VLAN 10 betyr ikke automatisk 192.168.10.0/24; her bruker vi like tall for å gjøre oppgaven lett å følge.',
 			'Ingen ruter er med i laben. Hvert par skal kunne kommunisere innenfor sitt nett; trafikk mellom de to IP-nettene trenger ruting.'
 		],
-		hints: ['Velg en PC. Mål-nettet står ved IP-feltet.', 'Prøv A → B og C → D. Sammenlign deretter A → C.'],
-		reflect: 'Hvis C fikk en adresse i samme IP-nett som A, ville de da automatisk være i samme VLAN?'
+		hints: ['Velg en PC. Mål-nettet står ved IP-feltet.', 'Prøv Ansatt-PC 1 → Ansatt-PC 2 og Gjest-PC 1 → Gjest-PC 2. Sammenlign deretter Ansatt-PC 1 → Gjest-PC 1.'],
+		reflect: 'Hvis en Gjest-PC fikk en adresse i Ansatt-nettet, ville den da automatisk være i samme VLAN som Ansatt-PC-ene?'
 	},
 	{
-		id: 'porter', title: 'Sett VLAN på PC-portene', switchCount: 1, groups: [10, 20],
+		id: 'porter', title: 'Sett VLAN på PC-portene', switchCount: 1, groups: [10, 20], networkNames: ['Ansatt', 'Gjest'],
 		editableSwitches: true, preconfigured: false,
-		goal: 'IP-adressene er klare. Opprett VLAN 10 og 20 på S1. Sett A/B i VLAN 10 og C/D i VLAN 20. PC-portene skal sende uten VLAN-tag og ta imot i riktig PVID.',
+		goal: 'Del S1 i to lokalnett: Ansatt i VLAN 10 og Gjest i VLAN 20. PC-ene i samme nett skal nå hverandre, mens Ansatt og Gjest skal være adskilt på VLAN-nivå.',
+		ready: 'Alle IP-adressene er riktige, men switchportene ligger fortsatt i standard VLAN 1. Ulike IP-nett alene lager ikke VLAN-skillet.',
+		steps: ['Opprett VLAN 10 og 20 på S1. Velg hver PC-port og sett Untagged og PVID til PC-ens planlagte VLAN. Andre VLAN på PC-porten skal være Exclude.', 'Prøv ping mellom de to Ansatt-PC-ene og mellom de to Gjest-PC-ene. Begge par skal få svar. Oppdragskontrollen skal også bekrefte VLAN-skillet.'],
 		theory: [
 			'PC-ene i denne laben sender og mottar rammer uten VLAN-tag.',
 			'PVID er portens VLAN for innkommende rammer uten tag. Untagged betyr at switchen sender dette VLAN-et uten tag på porten. Begge valgene må passe PC-ens nett.',
-			'Default VLAN er VLAN 1 i startoppsettet. Det er ikke det samme som en default gateway. Å velge et annet untagged VLAN her fjerner det tidligere untagged-medlemskapet, men endrer ikke PVID automatisk.'
+			'Default VLAN er VLAN 1 i startoppsettet. Det er ikke det samme som en default gateway. Exclude betyr at porten ikke er medlem av VLAN-et. Å velge et annet untagged VLAN her setter det tidligere untagged-medlemskapet til Exclude, men endrer ikke PVID automatisk.'
 		],
-		hints: ['Velg S1. Opprett VLAN-ene før du velger en port.', 'På porten til A: velg Untagged ved VLAN 10 og sett PVID til 10. Andre VLAN skal være Utenfor på denne PC-porten.'],
+		hints: ['Velg S1. Opprett VLAN-ene og trykk på en nummerert port i «Per port». Tilkoblingen viser hvilken PC den tilhører.', 'På porten til Ansatt-PC 1: velg Untagged ved VLAN 10 og sett PVID til 10. Andre VLAN skal være Exclude på denne PC-porten.'],
 		reflect: 'Hva forteller PVID om trafikk inn, og hva forteller untagged om trafikk ut?'
 	},
 	{
-		id: 'trunk', title: 'Frakt to VLAN mellom switcher', switchCount: 2, groups: [10, 20],
+		id: 'trunk', title: 'Frakt to VLAN mellom switcher', switchCount: 2, groups: [10, 20], networkNames: ['Ansatt', 'Gjest'],
 		editableSwitches: true, preconfigured: true,
-		goal: 'A/B tilhører VLAN 10, C/D VLAN 20. PC-portene er klare, men uplinken frakter bare VLAN 1. La VLAN 10 og 20 gå tagged på begge ender av forbindelsen mellom S1 og S2.',
+		goal: 'Utvid Ansatt (VLAN 10) og Gjest (VLAN 20) til to switcher. Ansatt-PC-ene skal nå hverandre på tvers av S1 og S2, og det samme skal Gjest-PC-ene. Nettverkene skal fortsatt være adskilt.',
+		ready: 'IP-adresser, VLAN og PC-porter er riktige. Forbindelsen mellom switchene frakter foreløpig bare VLAN 1.',
+		steps: ['Konfigurer forbindelsen mellom S1 og S2 som trunk: VLAN 10 og 20 skal være Tagged i begge ender. Behold samsvar for untagged/native VLAN.', 'Prøv ping mellom Ansatt-PC-ene og mellom Gjest-PC-ene på hver sin switch. Begge par skal få svar, og oppdragskontrollen skal bestå.'],
 		theory: [
 			'En trunk er en forbindelse som kan frakte flere VLAN. En 802.1Q-tag forteller mottakerswitchen hvilket VLAN rammen tilhører.',
 			'På uplinken skal både VLAN 10 og 20 være Tagged. Et VLAN må finnes og være tillatt på begge switchene. PC-portene skal fortsatt være Untagged.',
@@ -71,15 +79,17 @@ const definitions = [
 		reflect: 'Hvorfor er det ikke nok å konfigurere trunk bare på S1?'
 	},
 	{
-		id: 'tre-switcher', title: 'Bygg gjennom tre switcher', switchCount: 3, groups: [30, 40],
+		id: 'tre-switcher', title: 'Bygg gjennom tre switcher', switchCount: 3, groups: [30, 40], networkNames: ['Admin', 'Gjest'],
 		editableSwitches: true, preconfigured: false,
-		goal: 'Bygg to adskilte nett gjennom S1–S2–S3. A/B/C skal bruke VLAN 30 og 192.168.30.0/24. D/E/F skal bruke VLAN 40 og 192.168.40.0/24. IP-adressene er klare; planlegg VLAN og porter selv.',
+		goal: 'Bygg Admin (VLAN 30) og Gjest (VLAN 40) gjennom S1–S2–S3. Alle tre Admin-PC-er skal nå hverandre, og alle tre Gjest-PC-er skal nå hverandre. Admin og Gjest skal være adskilt.',
+		ready: 'IP-adressene er klare: Admin bruker 192.168.30.0/24 og Gjest bruker 192.168.40.0/24. Alle switchporter starter i VLAN 1.',
+		steps: ['Planlegg og opprett VLAN-ene på alle tre switchene. Sett PC-portenes PVID og Untagged, og frakt begge nett Tagged over begge switchforbindelsene. Andre VLAN på PC-portene skal være Exclude.', 'Test innenfor begge nett, også fra S1 helt til S3. Bruk oppdragskontrollen for å undersøke alle forbindelsene og skillet mellom Admin og Gjest.'],
 		theory: [
 			'Samme VLAN må være tilgjengelig hele veien, også på switchen i midten.',
 			'Bruk portoversikten til å skille PC-porter fra forbindelser mellom switcher. Kontroller både et par som skal nå hverandre og skillet mellom gruppene.'
 		],
-		hints: ['Følg A → C gjennom begge kablene. Hvilke porter møter trafikken?', 'S2 har to uplinker. Begge må frakte VLAN 30 og 40 tagged, i tillegg til oppsettet på S1 og S3.'],
-		reflect: 'Forklar hele reisen fra A til C. Hva ville skjedd om VLAN 40 manglet på én av uplinkene?'
+		hints: ['Følg Admin-PC 1 → Admin-PC 3 gjennom begge kablene. Hvilke porter møter trafikken?', 'S2 har to uplinker. Begge må frakte VLAN 30 og 40 tagged, i tillegg til oppsettet på S1 og S3.'],
+		reflect: 'Forklar hele reisen fra Admin-PC 1 til Admin-PC 3. Hva ville skjedd med Gjest-nettet om VLAN 40 manglet på én av uplinkene?'
 	}
 ];
 
@@ -98,7 +108,7 @@ function topology(definition) {
 			const sw = switches[n === 1 ? 0 : i];
 			const index = group * perGroup + i;
 			const pc = {
-				id: `pc${index + 1}`, name: `PC ${String.fromCharCode(65 + index)}`,
+				id: `pc${index + 1}`, name: `${definition.networkNames[group]}-PC ${i + 1}`,
 				switchId: sw.id, port: String(n === 1 ? index + 1 : group + 1),
 				vlan, subnet: vlan === 1 ? 10 : vlan,
 				x: n === 1 ? 270 + i * 360 : sw.x,
@@ -122,6 +132,12 @@ function topology(definition) {
 export const vlanTasks = definitions.map(topology);
 /** @param {string} id */
 export const vlanTask = (id) => vlanTasks.find((task) => task.id === id) ?? vlanTasks[0];
+
+/** The task's intended network name, not a claim about the current port configuration. @param {VlanTask} task @param {number} id */
+export function vlanLabel(task, id) {
+	const name = task.networkNames[task.groups.indexOf(id)];
+	return `VLAN ${id}${name ? ` · ${name}` : id === 1 ? ' · Default' : ''}`;
+}
 
 /** @param {VlanTask} task @returns {VlanConfig} */
 export function initialVlanConfig(task) {
@@ -234,7 +250,7 @@ export function checkVlanTask(task, config) {
 		const address = hostAddress(config.ips[pc.id]);
 		const port = config.switches[pc.switchId].ports[pc.port];
 		rows.push({ label: `${pc.name}: vertsadresse i 192.168.${pc.subnet}.0/24`, ok: address?.network === `192.168.${pc.subnet}` });
-		rows.push({ label: `${pc.name}: bare VLAN ${pc.vlan}, untagged og PVID ${pc.vlan}`, ok:
+		rows.push({ label: `${pc.name}: VLAN ${pc.vlan} Untagged, PVID ${pc.vlan} og andre VLAN Exclude`, ok:
 			port.pvid === pc.vlan && membership(port, pc.vlan) === 'untagged' &&
 			config.switches[pc.switchId].vlans.includes(pc.vlan) &&
 			Object.entries(port.members).every(([id, mode]) => mode === 'excluded' || Number(id) === pc.vlan) });
@@ -251,7 +267,7 @@ export function checkVlanTask(task, config) {
 		const a = config.switches[link.a], b = config.switches[link.b];
 		const left = a.ports[link.aPort], right = b.ports[link.bPort];
 		for (const vlan of task.groups) rows.push({
-			label: `${link.a.toUpperCase()} ↔ ${link.b.toUpperCase()}: VLAN ${vlan} tagged i begge ender`,
+			label: `${link.a.toUpperCase()} ↔ ${link.b.toUpperCase()}: ${vlanLabel(task, vlan)} Tagged i begge ender`,
 			ok: a.vlans.includes(vlan) && b.vlans.includes(vlan) && membership(left, vlan) === 'tagged' && membership(right, vlan) === 'tagged'
 		});
 		const native = (/** @type {PortConfig} */ port) => Object.entries(port.members).find(([, mode]) => mode === 'untagged')?.[0];

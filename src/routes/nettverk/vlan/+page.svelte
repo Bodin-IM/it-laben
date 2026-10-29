@@ -3,7 +3,7 @@
 	import VlanMap from '#lib/components/VlanMap.svelte';
 	import PartnerContext from '#lib/components/PartnerContext.svelte';
 	import { lab, learningContext } from '#lib/lab.js';
-	import { vlanTasks, vlanTask, initialVlanConfig, membership, pingVlan, checkVlanTask } from '#lib/vlanLab.js';
+	import { vlanTasks, vlanTask, vlanLabel, initialVlanConfig, membership, pingVlan, checkVlanTask } from '#lib/vlanLab.js';
 	/** @typedef {{config:import('#lib/vlanLab.js').VlanConfig,revision:number,run:{revision:number,source:string,target:string,result:import('#lib/vlanLab.js').PingResult}|null,check:{revision:number,result:ReturnType<typeof checkVlanTask>}|null}} Workspace */
 	/** @returns {Record<string,Workspace>} */
 	function freshWork() {
@@ -13,6 +13,8 @@
 	let taskId = $state('ip');
 	let selected = $state('pc1');
 	let portId = $state('1');
+	let switchView = $state('port');
+	let inspectedVlan = $state(1);
 	let source = $state('pc1');
 	let target = $state('pc2');
 	let frame = $state(0);
@@ -35,6 +37,7 @@
 	const sw = $derived(task.switches.find((item) => item.id === selected));
 	const switchConfig = $derived(sw ? config.switches[sw.id] : null);
 	const port = $derived(switchConfig?.ports[portId]);
+	const portPeer = $derived(sw?.ports.find((item) => item.id === portId)?.peer);
 	const run = $derived(attempt.run);
 	const stale = $derived(!!run && (run.revision !== attempt.revision || run.source !== source || run.target !== target));
 	const checkStale = $derived(!!attempt.check && attempt.check.revision !== attempt.revision);
@@ -43,6 +46,7 @@
 	const completed = $derived(vlanTasks.filter((item) => work[item.id].check?.revision === work[item.id].revision && work[item.id].check?.result.passed).length);
 	function resetSelection() {
 		selected = 'pc1'; portId = '1'; source = 'pc1'; target = 'pc2'; frame = 0;
+		switchView = 'port'; inspectedVlan = 1;
 		hints = 0; vlanInput = ''; settingMessage = ''; resetPending = false;
 	}
 	/** @param {string} id */
@@ -56,42 +60,60 @@
 	function selectDevice(id) {
 		selected = id;
 		portId = task.switches.find((item) => item.id === id)?.ports[0]?.id ?? '1';
+		if (!config.switches[id]?.vlans.includes(inspectedVlan)) inspectedVlan = 1;
 		settingMessage = ''; vlanInput = '';
 	}
-	function selectPcPort() {
+	async function selectPcPort() {
 		const current = pc;
 		if (!current) return;
 		selectDevice(current.switchId);
-		portId = current.port;
+		await openPort(current.port);
+	}
+	/** @param {string} id */
+	async function openPort(id) {
+		portId = id; switchView = 'port'; settingMessage = '';
+		await tick();
+		document.getElementById('port-settings-title')?.focus();
+	}
+	/** @param {import('#lib/vlanLab.js').PortConfig} item @param {import('#lib/vlanLab.js').Membership} mode */
+	function memberVlans(item, mode) {
+		return switchConfig?.vlans.filter((id) => membership(item, id) === mode).join(', ') || 'ingen';
 	}
 	function changed() { attempt.revision += 1; settingMessage = ''; }
-	/** @param {number} vlan @param {string} mode */
-	function setMembership(vlan, mode) {
-		if (!port || !['excluded', 'untagged', 'tagged'].includes(mode)) return;
+	/** @param {string} id @param {number} vlan @param {string} mode */
+	function setMembership(id, vlan, mode) {
+		const item = switchConfig?.ports[id];
+		if (!task.editableSwitches || !item || !['excluded', 'untagged', 'tagged'].includes(mode)) return;
+		portId = id;
+		if (membership(item, vlan) === mode) return;
 		if (mode === 'untagged') {
-			for (const id of Object.keys(port.members)) if (port.members[id] === 'untagged') port.members[id] = 'excluded';
+			for (const key of Object.keys(item.members)) if (item.members[key] === 'untagged') item.members[key] = 'excluded';
 		}
-		port.members[String(vlan)] = /** @type {import('#lib/vlanLab.js').Membership} */ (mode);
+		item.members[String(vlan)] = /** @type {import('#lib/vlanLab.js').Membership} */ (mode);
 		changed();
 	}
 	function addVlan() {
-		if (!switchConfig) return;
+		if (!task.editableSwitches || !switchConfig) return;
 		const id = Number(vlanInput);
 		if (!/^\d+$/.test(vlanInput) || id < 1 || id > 4094) { settingMessage = 'Bruk et helt VLAN-ID fra 1 til 4094.'; return; }
 		if (switchConfig.vlans.includes(id)) { settingMessage = `VLAN ${id} finnes allerede på denne switchen.`; return; }
 		if (switchConfig.vlans.length >= 8) { settingMessage = 'Utkastet støtter inntil åtte VLAN per switch. Fjern et ubrukt VLAN før du legger til flere.'; return; }
 		switchConfig.vlans.push(id); switchConfig.vlans.sort((a, b) => a - b);
+		inspectedVlan = id;
 		changed(); vlanInput = ''; settingMessage = `VLAN ${id} er opprettet på ${sw?.name}. Velg medlemskap på portene.`;
 	}
 	/** @param {number} id */
-	function removeVlan(id) {
-		if (!switchConfig || id === 1) return;
+	async function removeVlan(id) {
+		if (!task.editableSwitches || !switchConfig || id === 1) return;
 		if (Object.values(switchConfig.ports).some((item) => item.pvid === id || membership(item, id) !== 'excluded')) {
-			settingMessage = `VLAN ${id} er i bruk. Flytt PVID og sett portene til Utenfor først.`; return;
+			settingMessage = `VLAN ${id} er i bruk. Flytt PVID og sett portene til Exclude først.`; return;
 		}
 		switchConfig.vlans = switchConfig.vlans.filter((vlan) => vlan !== id);
+		if (inspectedVlan === id) inspectedVlan = 1;
 		for (const item of Object.values(switchConfig.ports)) delete item.members[String(id)];
 		changed(); settingMessage = `VLAN ${id} er fjernet.`;
+		await tick();
+		document.getElementById('new-vlan')?.focus();
 	}
 	function ping() {
 		attempt.run = { revision: attempt.revision, source, target, result: pingVlan(task, config, source, target) };
@@ -134,6 +156,16 @@
 		<p class="eyebrow">OPPDRAG {index + 1} AV {vlanTasks.length}</p>
 		<h2 id="task-heading" tabindex="-1">{task.title}</h2>
 		<p class="goal">{task.goal}</p>
+		<p class="ready"><strong>Utgangspunkt:</strong> {task.ready}</p>
+		<div class="mission-layout">
+			<div><h3>Gjør dette</h3><ol class="task-steps">{#each task.steps as text}<li>{text}</li>{/each}</ol></div>
+			<div><h3>Nettverksplan · målet ditt</h3><ul class="network-plan">
+				{#each task.groups as id}
+					{@const members = task.pcs.filter((item) => item.vlan === id)}
+					<li><strong>{vlanLabel(task, id)}</strong><span>192.168.{members[0].subnet}.0/24</span><small>{members.map((item) => item.name).join(', ')}</small></li>
+				{/each}
+			</ul></div>
+		</div>
 		<p>{task.theory[0]}</p>
 		<details class="theory" open={index === 0}>
 			<summary>Før du prøver: {index < 2 ? 'IP og VLAN' : 'porter og trafikk'}</summary>
@@ -159,12 +191,12 @@
 				<input id="pc-ip" type="text" inputmode="decimal" autocomplete="off" spellcheck="false" maxlength="15"
 					value={config.ips[pc.id]} aria-describedby="ip-help" oninput={(event) => { config.ips[selected] = event.currentTarget.value; changed(); }} />
 				<p class="muted" id="ip-help">Mål: 192.168.{pc.subnet}.0/24.<br />Fast maske: 255.255.255.0. Bruk en unik vertsadresse med siste tall 1–254.</p>
-				<p class="target-vlan">Skal tilhøre VLAN {pc.vlan}</p>
+				<p class="target-vlan">Mål: {vlanLabel(task, pc.vlan)}</p>
 				<button type="button" class="secondary" onclick={selectPcPort}>Se switchporten →</button>
 			{:else if sw && switchConfig && port}
 				{#if !task.editableSwitches}<p class="callout">Switchen er ferdig oppsatt i dette oppdraget. Undersøk portene her, og endre IP-adresser på PC-ene.</p>{/if}
-				<details class="vlans" open={task.editableSwitches}>
-					<summary>VLAN på {sw.name}: {switchConfig.vlans.join(', ')}</summary>
+				<details class="vlans" open={task.editableSwitches && !task.preconfigured}>
+					<summary>{task.editableSwitches ? 'Opprett og fjern VLAN' : 'VLAN på ' + sw.name} · {switchConfig.vlans.join(', ')}</summary>
 					{#if task.editableSwitches}
 						<form onsubmit={(event) => { event.preventDefault(); addVlan(); }}>
 							<label for="new-vlan">Opprett VLAN-ID (1–4094)</label>
@@ -174,26 +206,74 @@
 					{:else}<p>VLAN-ene er opprettet på forhånd.</p>{/if}
 				</details>
 				<p class="setting-status" role="status">{settingMessage}</p>
-				<label for="port-picker">Port på {sw.name}</label>
-				<select id="port-picker" bind:value={portId}>
-					{#each sw.ports as item}<option value={item.id}>Port {item.id} → {item.peer}</option>{/each}
-				</select>
-				<label for="pvid">PVID · VLAN inn for untagged</label>
-				<select id="pvid" value={port.pvid} disabled={!task.editableSwitches}
-					onchange={(event) => { if (port) { port.pvid = Number(event.currentTarget.value); changed(); } }}>
-					{#each switchConfig.vlans as id}<option value={id}>VLAN {id}</option>{/each}
-				</select>
-				<fieldset disabled={!task.editableSwitches}>
-					<legend>VLAN-medlemskap på port {portId}</legend>
-					{#each switchConfig.vlans as id}
-						<label class="member">VLAN {id}
-							<select value={membership(port, id)} onchange={(event) => setMembership(id, event.currentTarget.value)}>
-								<option value="excluded">Utenfor</option><option value="untagged">Untagged · uten tag</option><option value="tagged">Tagged · med VLAN-ID</option>
-							</select>
-						</label>
-					{/each}
+				<fieldset class="view-picker">
+					<legend>Vis innstillinger</legend>
+					<label class:active={switchView === 'port'}><input type="radio" name="switch-view" value="port" bind:group={switchView} />Per port</label>
+					<label class:active={switchView === 'vlan'}><input type="radio" name="switch-view" value="vlan" bind:group={switchView} />Per VLAN</label>
 				</fieldset>
-				<p class="muted">PVID bestemmer VLAN for umerket trafikk inn. Medlemskapet bestemmer om VLAN-et tillates, og om trafikken sendes ut med tag.</p>
+				{#if switchView === 'port'}
+					<p class="muted">Trykk på en port på {sw.name}. Under vises innstillingene for porten du velger.</p>
+					<div class="port-grid" role="group" aria-label={`Porter på ${sw.name}`}>
+						{#each sw.ports as item (item.id)}
+							{@const current = switchConfig.ports[item.id]}
+							<button type="button" class="port-button" aria-pressed={portId === item.id} aria-controls="port-settings"
+								onclick={() => { portId = item.id; settingMessage = ''; }}>
+								<span class="port-number"><small>Port</small><strong>{item.id}</strong></span>
+								<span class="port-peer">{item.peer}</span>
+								<span class="port-summary">PVID {current.pvid}<br />Untagged: {memberVlans(current, 'untagged')}<br />Tagged: {memberVlans(current, 'tagged')}</span>
+								<span class="port-choice">{portId === item.id ? '✓ Valgt port' : 'Velg port'}</span>
+							</button>
+						{/each}
+					</div>
+					<div class="port-settings" id="port-settings">
+						<h3 id="port-settings-title" tabindex="-1">{sw.name} · port {portId}</h3>
+						<p class="muted">Koblet til {portPeer}</p>
+						<label for="pvid">PVID · VLAN inn for untagged</label>
+						<select id="pvid" value={port.pvid} disabled={!task.editableSwitches} aria-describedby="membership-help"
+							onchange={(event) => { if (port && task.editableSwitches) { port.pvid = Number(event.currentTarget.value); changed(); } }}>
+							{#each switchConfig.vlans as id}<option value={id}>{vlanLabel(task, id)}</option>{/each}
+						</select>
+						<fieldset disabled={!task.editableSwitches} aria-describedby="membership-help">
+							<legend>VLAN-medlemskap på port {portId}</legend>
+							{#each switchConfig.vlans as id (id)}
+								<label class="member">{vlanLabel(task, id)}
+									<select value={membership(port, id)} onchange={(event) => setMembership(portId, id, event.currentTarget.value)}>
+										<option value="excluded">Exclude</option><option value="untagged">Untagged</option><option value="tagged">Tagged</option>
+									</select>
+								</label>
+							{/each}
+						</fieldset>
+					</div>
+				{:else}
+					<label for="vlan-picker">VLAN på {sw.name}</label>
+					<select id="vlan-picker" bind:value={inspectedVlan}>
+						{#each switchConfig.vlans as id (id)}<option value={id}>{vlanLabel(task, id)}</option>{/each}
+					</select>
+					<p class="muted">{task.editableSwitches ? 'Se og endre det valgte VLAN-et på alle porter.' : 'Se hvordan det valgte VLAN-et er fordelt på portene.'} Portknappen åpner PVID og alle VLAN for én port.</p>
+					<fieldset class="vlan-ports" aria-describedby="membership-help">
+						<legend>{vlanLabel(task, inspectedVlan)} · medlemskap</legend>
+						{#each sw.ports as item (item.id)}
+							{@const current = switchConfig.ports[item.id]}
+							<div class="vlan-port-row">
+								<div><button type="button" class="port-shortcut" onclick={() => openPort(item.id)}
+									aria-label={`Åpne innstillinger for ${sw.name} port ${item.id}, ${item.peer}`}>Port {item.id} →</button>
+									<span class="peer-label">{item.peer}</span><small>PVID {current.pvid}</small></div>
+								<label><span class="sr-only">{vlanLabel(task, inspectedVlan)} på port {item.id} til {item.peer}</span>
+									<select value={membership(current, inspectedVlan)} disabled={!task.editableSwitches} onchange={(event) => setMembership(item.id, inspectedVlan, event.currentTarget.value)}>
+										<option value="excluded">Exclude</option><option value="untagged">Untagged</option><option value="tagged">Tagged</option>
+									</select>
+								</label>
+								{#if current.pvid !== inspectedVlan && membership(current, inspectedVlan) === 'untagged'}
+									<p class="pvid-note">Ut: VLAN {inspectedVlan} uten tag. Inn: PVID {current.pvid}. Åpne porten hvis PVID skal endres.</p>
+								{/if}
+							</div>
+						{/each}
+					</fieldset>
+				{/if}
+				<div class="membership-help" id="membership-help">
+					<p><strong>Exclude:</strong> ikke medlem. <strong>Untagged:</strong> send uten tag. <strong>Tagged:</strong> send med VLAN-ID.</p>
+					<p><strong>PVID</strong> velger VLAN for umerket trafikk inn. Å velge Untagged setter tidligere Untagged til Exclude, men endrer ikke PVID. Kontroller begge når du flytter en PC-port.</p>
+				</div>
 			{/if}
 		</section>
 	</div>
@@ -271,9 +351,16 @@
 	.progress-note { margin: 10px 0 24px; }
 	.mission { border-left: 4px solid var(--color-accent); padding: 18px 24px; background: var(--color-surface); border-radius: 0 12px 12px 0; margin-bottom: 20px; }
 	.goal { max-width: 75ch; }
+	.ready { max-width: 75ch; font-size: var(--font-small); }
+	.mission-layout { display: grid; grid-template-columns: minmax(0, 1.4fr) minmax(0, 1fr); gap: 24px; margin: 24px 0; }
+	.task-steps { padding-left: 24px; margin: 0; font-size: var(--font-small); }
+	.task-steps li + li { margin-top: 12px; }
+	.network-plan { list-style: none; padding: 0; margin: 0; display: grid; gap: 8px; }
+	.network-plan li { display: grid; gap: 4px; padding: 12px 16px; border: 1px solid var(--color-border); border-radius: 8px; background: var(--color-surface-soft); font-size: var(--font-small); overflow-wrap: anywhere; }
+	.network-plan small { color: var(--color-text-muted); font-size: var(--font-meta); }
 	summary { cursor: pointer; min-height: 44px; padding: 10px 0; font-weight: 650; }
 	.theory p { max-width: 75ch; }
-	.workspace { display: grid; grid-template-columns: minmax(0, 1.7fr) minmax(300px, 1fr); gap: 20px; align-items: start; }
+	.workspace { display: grid; grid-template-columns: minmax(0, 1.5fr) minmax(360px, 1fr); gap: 20px; align-items: start; }
 	.map-panel, .editor, .testing { min-width: 0; padding: 20px; border: 1px solid var(--color-border); border-radius: 14px; background: var(--color-surface); }
 	.panel-heading { display: flex; gap: 12px; justify-content: space-between; align-items: baseline; flex-wrap: wrap; }
 	label { display: block; font-size: var(--font-small); font-weight: 650; margin: 14px 0 6px; }
@@ -288,8 +375,35 @@
 	.setting-status { font-size: var(--font-small); color: var(--color-accent); min-height: 1.5em; }
 	fieldset { border: 0; border-top: 1px solid var(--color-border); margin: 20px 0 0; padding: 14px 0 0; min-width: 0; }
 	legend { padding-right: 10px; font-size: var(--font-small); font-weight: 650; }
-	.member { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 12px; align-items: center; }
+	.member { display: grid; grid-template-columns: minmax(0, 1fr) minmax(110px, 0.8fr); gap: 12px; align-items: center; }
 	.member select { margin: 0; font-size: var(--font-small); }
+	.view-picker { display: flex; flex-wrap: wrap; gap: 8px; margin: 0; padding: 0; border: 0; }
+	.view-picker legend { margin-bottom: 6px; }
+	.view-picker label { display: flex; align-items: center; flex: 1; gap: 8px; min-height: 44px; padding: 8px 12px; margin: 0; border: 1px solid var(--color-border-strong); border-radius: 8px; cursor: pointer; }
+	.view-picker label.active { background: var(--color-accent-soft); border-color: var(--color-accent); }
+	.view-picker input { width: 1rem; height: 1rem; min-height: 0; margin: 0; padding: 0; flex-shrink: 0; accent-color: var(--color-accent); }
+	.port-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap: 8px; }
+	.port-button { display: grid; grid-template-columns: 44px minmax(0, 1fr); gap: 6px 8px; padding: 10px; align-content: start; text-align: left; }
+	.port-button[aria-pressed='true'] { border-color: var(--color-accent); background: var(--color-accent-soft); box-shadow: inset 0 0 0 1px var(--color-accent); }
+	.port-number { display: grid; place-items: center; border: 1px solid var(--color-border-strong); border-bottom: 4px double var(--color-border-strong); border-radius: 4px; line-height: 1.2; padding: 4px 0; background: var(--color-surface); }
+	.port-number small { font-size: var(--font-meta); }
+	.port-number strong { font-size: 1.25rem; }
+	.port-peer { align-self: center; font-size: var(--font-small); font-weight: 650; overflow-wrap: anywhere; }
+	.port-summary { grid-column: 1 / -1; font-size: var(--font-meta); color: var(--color-text-muted); overflow-wrap: anywhere; }
+	.port-choice { grid-column: 1 / -1; color: var(--color-accent); font-size: var(--font-meta); }
+	.port-settings { margin-top: 20px; padding-top: 16px; border-top: 1px solid var(--color-border); }
+	.port-settings h3 { margin-bottom: 4px; }
+	.port-settings > p { margin-top: 4px; }
+	.vlan-ports { margin-top: 16px; }
+	.vlan-port-row { display: grid; grid-template-columns: minmax(0, 1fr) minmax(110px, 0.8fr); align-items: center; gap: 8px 12px; padding: 12px 0; border-bottom: 1px solid var(--color-border); }
+	.vlan-port-row label, .vlan-port-row select { margin: 0; }
+	.vlan-port-row select { font-size: var(--font-small); }
+	.port-shortcut { color: var(--color-accent); font-size: var(--font-small); font-weight: 650; }
+	.peer-label, .vlan-port-row small { display: block; margin-top: 4px; font-size: var(--font-meta); overflow-wrap: anywhere; }
+	.vlan-port-row small { color: var(--color-text-muted); }
+	.pvid-note { grid-column: 1 / -1; margin: 0; padding: 8px 12px; border-left: 3px solid var(--color-info); background: var(--color-info-soft); font-size: var(--font-meta); }
+	.membership-help { font-size: var(--font-small); margin-top: 16px; border-top: 1px solid var(--color-border); }
+	.sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; border: 0; }
 	.primary { background: var(--color-action); color: var(--color-on-action); border-color: var(--color-action); font-weight: 650; }
 	.primary:hover { background: var(--color-action); filter: brightness(1.08); }
 	.secondary { color: var(--color-accent); font-weight: 650; }
@@ -310,7 +424,8 @@
 	.model-notes p { max-width: 75ch; }
 	.reset { display: flex; flex-wrap: wrap; gap: 12px; font-size: var(--font-small); }
 	.reset p { flex-basis: 100%; }
-	:is(button, input, select, summary, a):focus-visible { outline: 3px solid var(--color-focus); outline-offset: 3px; }
+	:is(button, input, select, summary, a, [tabindex='-1']):focus-visible { outline: 3px solid var(--color-focus); outline-offset: 3px; }
 	@media (max-width: 1000px) { .workspace { grid-template-columns: minmax(0, 1fr); } }
-	@media (max-width: 600px) { .tasks { grid-template-columns: 1fr; } .map-panel, .editor, .testing, .mission { padding: 16px; } .ping-controls { grid-template-columns: 1fr 1fr; } .ping-controls button { grid-column: 1 / -1; } .member { grid-template-columns: 1fr; gap: 4px; } }
+	@media (max-width: 700px) { .mission-layout { grid-template-columns: minmax(0, 1fr); } }
+	@media (max-width: 600px) { .tasks { grid-template-columns: 1fr; } .map-panel, .editor, .testing, .mission { padding: 16px; } .ping-controls { grid-template-columns: 1fr 1fr; } .ping-controls button { grid-column: 1 / -1; } .member { grid-template-columns: 1fr; gap: 4px; } .port-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } .port-button { grid-template-columns: minmax(0, 1fr); justify-items: start; } .port-number { width: 44px; } }
 </style>
