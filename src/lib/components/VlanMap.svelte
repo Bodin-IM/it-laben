@@ -60,17 +60,8 @@
 		{/if}
 	</div>
 </div>
-<p class="map-help">Klikk på en PC for å endre IP. Portnavnene ved switchene viser hvor kablene er koblet til. Den røde pakken følger ping og stanser ved stedet som avviser trafikken.</p>
-<details>
-	<summary>Vis kabler som tekst</summary>
-	<ul>
-		{#each task.pcs as pc}<li>{pc.name} ↔ {pc.switchId.toUpperCase()} {pc.port}</li>{/each}
-		{#each task.links as link}<li>{link.a.toUpperCase()} {link.aPort} ↔ {link.b.toUpperCase()} {link.bPort}</li>{/each}
-	</ul>
-</details>
-
 <style>
-	.map-scroll { overflow-x: auto; border: 1px solid var(--color-border); border-radius: 12px; background: var(--color-surface-soft); }
+	.map-scroll { overflow-x: auto; border-radius: 10px 10px 0 0; background: var(--color-surface-soft); }
 	.network-map { position: relative; height: 440px; }
 	.network-map > svg { position: absolute; inset: 0; width: 100%; height: 100%; }
 	line { stroke: var(--color-text-muted); stroke-width: 3; }
@@ -90,8 +81,5 @@
 	.packet { position: absolute; transform: translate(-50%, -50%); z-index: 3; pointer-events: none; color: var(--color-surface); }
 	.packet > svg { display: block; width: 26px; height: 20px; fill: var(--color-danger); stroke: currentColor; stroke-width: 2; filter: drop-shadow(0 1px 2px #0008); }
 	.packet span { position: absolute; top: 24px; left: 50%; transform: translateX(-50%); padding: 3px 8px; border: 2px solid var(--color-danger); border-radius: 5px; background: var(--color-surface); color: var(--color-text); font-size: var(--font-small); font-weight: 700; }
-	.map-help { color: var(--color-text-muted); font-size: var(--font-small); line-height: 1.5; margin: 12px 0 6px; }
-	summary { cursor: pointer; min-height: 44px; padding: 10px 0; box-sizing: border-box; font-size: var(--font-small); }
-	ul { padding-left: 22px; font-size: var(--font-small); line-height: 1.6; }
-	:is(button, summary, .map-scroll):focus-visible { outline: 3px solid var(--color-focus); outline-offset: 3px; }
+	:is(button, .map-scroll):focus-visible { outline: 3px solid var(--color-focus); outline-offset: 3px; }
 </style>
