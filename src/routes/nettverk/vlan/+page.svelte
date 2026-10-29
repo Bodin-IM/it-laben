@@ -59,6 +59,8 @@
 	const passed = $derived(vlanCheckPassed(attempt));
 	const availableThrough = $derived(vlanAvailableThrough(work));
 	const missingRows = $derived(attempt.check?.result.rows.filter((row) => !row.ok) ?? []);
+	const checkTotal = $derived(attempt.check?.result.rows.length ?? 0);
+	const checkPassedCount = $derived(checkTotal - missingRows.length);
 	const activeStep = $derived(run && !stale ? run.result.steps[frame] ?? null : null);
 	const playbackComplete = $derived(!!run && !stale && frame === run.result.steps.length - 1 && travelProgress === 1);
 	const pingStatus = $derived(stale ? 'Endret. Send ping på nytt.' : !run ? 'Ingen ping kjørt.' : playbackComplete ? run.result.ok ? 'Ping: svar mottatt.' : 'Ping: ingen svar. Åpne Detaljer for å undersøke.' : playing ? 'Ping pågår.' : 'Ping satt på pause.');
@@ -277,7 +279,7 @@
 	<nav class="workspace-links" aria-label="Arbeidsområder i oppdraget">
 		<a href="#network-panel">Kart og PC-er</a>
 		<a href="#device-editor">Switcher og VLAN</a>
-		<a class="test-shortcut" href="#testing">Til testing ↓</a>
+		<a class="test-shortcut" href="#quick-check">Kontroll</a>
 	</nav>
 	<div class="workspace">
 		<section class="map-panel" id="network-panel" aria-labelledby="map-title" tabindex="-1">
@@ -326,22 +328,35 @@
 						</div>
 					</section>
 				</div>
-				<section class="pc-editor" id="pc-editor" aria-labelledby="pc-editor-title" tabindex="-1">
-					<h3 id="pc-editor-title" tabindex="-1">{pc?.name ?? 'PC-innstillinger'}</h3>
+				<div class="device-sidebar">
+					<section class="pc-editor" id="pc-editor" aria-labelledby="pc-editor-title" tabindex="-1">
+						<h3 id="pc-editor-title" tabindex="-1">{pc?.name ?? 'PC-innstillinger'}</h3>
 
-					{#if pc}
-						<p class="pc-connection">Koblet til <strong>{pc.switchId.toUpperCase()} {pc.port}</strong>.</p>
-						<label for="pc-ip">IP-adresse</label>
-						<input id="pc-ip" type="text" inputmode="decimal" autocomplete="off" spellcheck="false" maxlength="15"
-							value={config.ips[pc.id]} aria-describedby="ip-help" onfocus={() => selectPc(pc.id)}
-							oninput={(event) => { config.ips[pc.id] = event.currentTarget.value; changed(); }} />
-						<p class="muted" id="ip-help">{#if task.discoverPorts}Finn IP-nettet via portens U/PVID.{:else}Mål: {pc.network}.0/24.{/if}</p>
-						{#if !task.discoverPorts}<p class="target-vlan">Mål: {vlanLabel(task, pc.vlan)}</p>{/if}
-						<button type="button" class="secondary" onclick={() => inspect({ deviceId: pc.switchId, portId: pc.port })}>Vis {pc.switchId.toUpperCase()} {pc.port} ↓</button>
-						<details class="ip-help"><summary>IP-hjelp</summary><p>Fast maske: 255.255.255.0 (/24). Bruk en unik vertsadresse med siste tall 1–254.</p></details>
-					{/if}
-					<a class="pc-back" href="#network-panel">Tilbake til kartet ↑</a>
-				</section>
+						{#if pc}
+							<p class="pc-connection">Koblet til <strong>{pc.switchId.toUpperCase()} {pc.port}</strong>.</p>
+							<label for="pc-ip">IP-adresse</label>
+							<input id="pc-ip" type="text" inputmode="decimal" autocomplete="off" spellcheck="false" maxlength="15"
+								value={config.ips[pc.id]} aria-describedby="ip-help" onfocus={() => selectPc(pc.id)}
+								oninput={(event) => { config.ips[pc.id] = event.currentTarget.value; changed(); }} />
+							<p class="muted" id="ip-help">{#if task.discoverPorts}Finn IP-nettet via portens U/PVID.{:else}Mål: {pc.network}.0/24.{/if}</p>
+							{#if !task.discoverPorts}<p class="target-vlan">Mål: {vlanLabel(task, pc.vlan)}</p>{/if}
+							<button type="button" class="secondary" onclick={() => inspect({ deviceId: pc.switchId, portId: pc.port })}>Vis {pc.switchId.toUpperCase()} {pc.port} ↓</button>
+							<details class="ip-help"><summary>IP-hjelp</summary><p>Fast maske: 255.255.255.0 (/24). Bruk en unik vertsadresse med siste tall 1–254.</p></details>
+						{/if}
+						<a class="pc-back" href="#network-panel">Tilbake til kartet ↑</a>
+					</section>
+					<section class="quick-check" id="quick-check" aria-labelledby="quick-check-title" tabindex="-1">
+						<div class="quick-check-heading">
+							<h3 id="quick-check-title">Kontroll</h3>
+							<span class="check-count" class:success={passed} class:failure={!!attempt.check && !checkStale && !passed} role="status" aria-atomic="true">
+								<span aria-hidden="true">{checkStale ? 'Endret' : attempt.check ? `${passed ? '✓' : '×'} ${checkPassedCount}/${checkTotal}` : '—'}</span>
+								<span class="sr-only">{checkStale ? 'Oppsettet er endret. Kontroller på nytt.' : attempt.check ? `${checkPassedCount} av ${checkTotal} krav oppfylt. ${passed ? 'Oppdraget består.' : 'Se hva som mangler.'}` : 'Kontrollen er ikke kjørt.'}</span>
+							</span>
+						</div>
+						<button type="button" class="primary" onclick={check}>Kontroller oppdraget</button>
+						<a href="#testing">{passed ? 'Se resultat og gå videre ↓' : attempt.check && !checkStale ? 'Se hva som mangler ↓' : 'Detaljer og hint ↓'}</a>
+					</section>
+				</div>
 			</div>
 		</section>
 		<section class="editor" id="device-editor" aria-labelledby="editor-title" tabindex="-1">
@@ -428,22 +443,21 @@
 			</div>
 			<div class="editor-footer">
 				<p class="muted">{passed ? '✓ Oppsettet består' : checkStale ? 'Endret · kontroller på nytt' : 'Klar til å teste?'}</p>
-				<a class="action-link primary" href="#testing">Gå til testing ↓</a>
+				<a class="action-link primary" href={passed ? '#testing' : '#quick-check'}>{passed ? 'Se resultat ↓' : 'Til kontroll ↑'}</a>
 			</div>
 		</section>
 	</div>
 	<section class="testing" id="testing" aria-labelledby="test-title" tabindex="-1">
-		<div class="panel-heading"><h2 id="test-title">Test oppsettet og gå videre</h2><div class="map-links"><a href="#pc-editor">PC-innstillinger ↑</a><a href="#device-editor">Switcher og VLAN ↑</a></div></div>
+		<div class="panel-heading"><h2 id="test-title">Resultat og neste oppdrag</h2><div class="map-links"><a href="#quick-check">Til kontroll ↑</a><a href="#device-editor">Switcher og VLAN ↑</a></div></div>
 		<p>«Kontroller oppdraget» tester hele oppsettet: adresser, porter, kommunikasjon og skillet mellom nettverkene. Alle krav må bestås før neste oppdrag åpnes.</p>
 		<div class="actions">
-			<button type="button" class="primary" onclick={check}>Kontroller oppdraget</button>
 			{#if index < vlanTasks.length - 1}
 				<button class="secondary" type="button" disabled={!passed} aria-describedby="check-status" onclick={() => selectTask(vlanTasks[index + 1].id)}>Neste oppdrag →</button>
 			{/if}
 			<button type="button" class="secondary" disabled={hints >= task.hints.length} onclick={() => hints += 1}>Vis {hints ? 'neste ' : ''}hint</button>
 		</div>
 		<div class="check-result" class:passed>
-			<p id="check-status" role="status">{checkStale ? 'Oppsettet er endret etter kontrollen. Kontroller på nytt.' : attempt.check ? passed ? index < vlanTasks.length - 1 ? '✓ Oppsettet består. Neste oppdrag er åpent.' : `✓ Oppsettet består. Du har bestått alle ${vlanTasks.length} oppdrag.` : `${missingRows.length} krav gjenstår. Rett oppsettet og kontroller igjen.` : 'Kontrollen er ikke kjørt ennå.'}</p>
+			<p id="check-status">{checkStale ? 'Oppsettet er endret etter kontrollen. Kontroller på nytt.' : attempt.check ? passed ? index < vlanTasks.length - 1 ? '✓ Oppsettet består. Neste oppdrag er åpent.' : `✓ Oppsettet består. Du har bestått alle ${vlanTasks.length} oppdrag.` : `${missingRows.length} krav gjenstår. Rett oppsettet og kontroller igjen.` : 'Kontrollen er ikke kjørt ennå.'}</p>
 			{#if attempt.check}
 				{#if !passed && !checkStale}
 					<p class="muted">Start med {missingRows.length > 3 ? 'disse kravene. Hele listen kan åpnes under.' : 'det som gjenstår:'}</p>
@@ -451,7 +465,7 @@
 						<div class="check-links">{#each row.targets as destination}<button type="button" class="secondary" onclick={() => inspect(destination)}>Se {targetLabel(destination)} ↑</button>{/each}</div>
 					</li>{/each}</ul>
 				{/if}
-				<details><summary>Hele kontrollisten · {attempt.check.result.rows.filter((row) => row.ok).length} av {attempt.check.result.rows.length} krav {checkStale ? 'i forrige kontroll' : 'oppfylt'}</summary>
+				<details><summary>Hele kontrollisten · {checkPassedCount} av {checkTotal} krav {checkStale ? 'i forrige kontroll' : 'oppfylt'}</summary>
 					<ul>{#each attempt.check.result.rows as row}<li class:met={row.ok}><strong>{row.ok ? '✓ OK' : 'Mangler'}</strong> · {row.label}
 						{#if !row.ok && !checkStale}<div class="check-links">{#each row.targets as destination}<button type="button" class="secondary" onclick={() => inspect(destination)}>Se {targetLabel(destination)} ↑</button>{/each}</div>{/if}
 					</li>{/each}</ul>
@@ -517,7 +531,7 @@
 	.workspace-links a, .action-link { display: inline-flex; align-items: center; justify-content: center; min-height: 44px; padding: 9px 14px; border: 1px solid var(--color-border-strong); border-radius: 8px; text-decoration: none; font-size: var(--font-small); }
 	.workspace-links a:hover, .action-link.secondary:hover { background: var(--color-surface-hover); }
 	.workspace-links .test-shortcut { font-weight: 650; border-color: var(--color-accent); background: var(--color-accent-soft); }
-	#network-panel, #map-title, #map-ping, #pc-editor, #pc-editor-title, #device-editor, #editor-title, #testing, .vlan-matrix th { scroll-margin-top: 24px; }
+	#network-panel, #map-title, #map-ping, #pc-editor, #pc-editor-title, #quick-check, #device-editor, #editor-title, #testing, .vlan-matrix th { scroll-margin-top: 24px; }
 	.network-workspace { display: grid; grid-template-columns: minmax(0, 1fr); grid-template-areas: "map" "pc"; gap: 16px; align-items: start; }
 	.map-area { grid-area: map; min-width: 0; border: 1px solid var(--color-border); border-radius: 12px; }
 	.map-ping { padding: 8px 12px; min-width: 0; border-top: 1px solid var(--color-border); }
@@ -537,7 +551,15 @@
 	.ping-status.success { color: var(--color-success); background: var(--color-success-soft); }
 	.ping-status.failure { color: var(--color-danger); background: var(--color-danger-soft); }
 	.sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; border: 0; }
-	.pc-editor { grid-area: pc; min-width: 0; padding: 18px; border: 1px solid var(--color-border-strong); border-radius: 10px; background: var(--color-surface-soft); }
+	.device-sidebar { grid-area: pc; min-width: 0; display: grid; gap: 12px; }
+	.pc-editor, .quick-check { min-width: 0; padding: 18px; border: 1px solid var(--color-border-strong); border-radius: 10px; background: var(--color-surface-soft); }
+	.quick-check-heading { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 12px; }
+	.quick-check h3 { margin: 0; }
+	.quick-check > button { width: 100%; font-size: var(--font-small); }
+	.quick-check > a { display: inline-flex; align-items: center; min-height: 44px; margin-top: 4px; font-size: var(--font-small); }
+	.check-count { display: inline-block; padding: 3px 8px; border-radius: 6px; color: var(--color-text-muted); background: var(--color-surface); font-size: var(--font-small); font-weight: 750; font-variant-numeric: tabular-nums; }
+	.check-count.success { color: var(--color-success); background: var(--color-success-soft); }
+	.check-count.failure { color: var(--color-danger); background: var(--color-danger-soft); }
 	.pc-editor h3 { margin-bottom: 16px; }
 	.pc-editor .pc-connection { font-size: var(--font-small); margin-block: 16px; }
 	.pc-editor .target-vlan { font-size: var(--font-small); }
