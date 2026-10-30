@@ -1,6 +1,8 @@
 # Fag, moduler og enkeltinnhold
 
-Moduler samler undervisning, øvinger og oppdrag. I elevens fagoversikt vises aktive moduler først og ferdige moduler etterpå. Kommende moduler er skjult fra elevoversikten til læreren aktiverer dem. Kortene har tekstmerket **Modul** og en tydelig status. Under modulene samles enkeltøvinger, oppdrag og spill i «Finn enkeltoppgaver». Listen er lukket til eleven åpner den, søker eller velger en aktivitetstype. Søket finner både synlige moduler og enkeltaktiviteter. Typefilteret gjelder enkeltaktivitetene, mens fagvalget gjelder begge oversiktene. [Designvurderingen og utkastet](designvurdering-og-utkast.md) dokumenterer den første utformingen.
+Moduler samler undervisning, øvinger og oppdrag. I elevens vanlige fagoversikt vises aktive moduler først og ferdige moduler etterpå. Kommende moduler er skjult fra elevoversikten til læreren aktiverer dem. Kortene har tekstmerket **Modul** og en tydelig status. Under modulene ligger et kompakt forslag til neste oppgave og «Finn enkeltoppgaver», som kan åpnes for å bla i øvinger, oppdrag og spill. Merker, XP og labnivå vises i Min lab, ikke som egne paneler på fagoversikten.
+
+Søk og typevalg ligger sammen øverst. Når eleven skriver et søk eller velger aktivitetstype, erstattes den vanlige oversikten av kompakte treff direkte under kontrollene: enkeltoppgaver først, deretter matchende åpne moduler. Neste-oppgave-forslaget skjules mens eleven søker. Søket finner både synlige moduler og enkeltaktiviteter. Typefilteret gjelder enkeltaktivitetene, mens fagvalget gjelder begge oversiktene. [Designvurderingen og utkastet](designvurdering-og-utkast.md) dokumenterer den første utformingen.
 
 ## Modulstatus og lærerens styring
 
@@ -82,3 +84,12 @@ Ved utprøving: sjekk om elever finner riktig modul, forstår forskjellen på gj
 `npm run check`, `npm run build` og 127 tester bestod. Nettleserprøven kontrollerte fagvalg, modulrekkefølge, søk og typefilter, gamle `#spill`-/`#ovingene`-lenker, alle modulrutene, oppfrisking, tilbakeknapp og lenker til enkeltsider. Elev-/lærervisning og progresjon ble prøvd med simulerte API-svar. Ingen progresjonsskriving ble utløst ved modulnavigasjon. Lyst/mørkt tema, tastatur og bredder på 1440, 390 og 320 piksler er kontrollert. Pedagogisk utprøving med elever gjenstår.
 
 Denne historiske kontrolloggen gjelder den første modulversjonen, før læreradministrert modulstatus. Nyere nettleserkontroller er beskrevet i [undervisningsveiledningen](undervisning.md#utprøving-av-endret-lærerflyt) og [Backend og tutorial](backend-og-tutorial.md#kontroll-og-utprøving). Utprøving med elever og lærere gjenstår.
+
+
+## Ryddigere søk og anbefaling – dev, 30. oktober 2026
+
+Brukerproblemet var avstanden fra søkefeltet til enkeltoppgavene og at personlig samling tok plass i fagoversikten. Treff, typevalg og nullstilling er nå samlet. Kompakte treff gjenbruker `ActivityCard` og `ModuleCard`, med fag, tittel, kort beskrivelse og eksisterende lenker/status. Vanlig modulvisning beholder aktiv/tidligere-rekkefølgen. Søket skjuler ikke innhold i lukkede detaljer. URL-filtre og gamle `#spill`-/`#ovingene`-lenker beholdes, og tekstfelt/typeknapper blir stående i DOM ved bytte mellom oversikt og treff, slik at fokus beholdes.
+
+Dette er et lokalt valg etter U1/U3/U6 i designgrunnlaget: prioritere det eleven forsøker å finne, samle sammenhørende informasjon og redusere konkurrerende framhevinger. Forslaget til neste oppgave bruker samme progresjonsgrunnlag som før, men uten merker, nivålinje, XP og velkomsttekst. Det er en anbefaling, ikke en vurdering av forståelse.
+
+Kode og diff er gjennomgått på dev. Ingen tester, Svelte-sjekk, bygg eller nettleserprøving er kjørt i denne leveransen, etter avtalen om samlet testing før main. Før publisering: prøv søk etter eksempelvis VLAN og Øving 6, null treff, fag/type-kombinasjoner, nullstilling, delte søkelenker/tilbakeknapp, modulstatus ved lasting/feil/HTTP, og anbefaling for innlogget/gjest. Kontroller tastaturfokus, 320 px, tekstzoom og begge temaer sammen med labpartnerendringen. Utprøving med elever gjenstår.

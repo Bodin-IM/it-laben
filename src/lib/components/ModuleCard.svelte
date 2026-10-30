@@ -2,14 +2,15 @@
 	import { moduleSummary, moduleProgress } from '#lib/moduler.js';
 	import { fag } from '#lib/innhold.js';
 	import { lab } from '#lib/lab.js';
-	/** @type {{module:import('#lib/moduler.js').Module,publication?:import('#lib/modulePublication.js').ModulePublication,headingLevel?:3|4}} */
-	let { module, publication, headingLevel = 3 } = $props();
+	/** @type {{module:import('#lib/moduler.js').Module,publication?:import('#lib/modulePublication.js').ModulePublication,headingLevel?:3|4,compact?:boolean}} */
+	let { module, publication, headingLevel = 3, compact = false } = $props();
 	const progress = $derived(moduleProgress(module, $lab.summary?.progress));
 	const subject = $derived(fag.find((item) => item.id === module.subject));
 </script>
 
 <a
 	class="module-card"
+	class:compact
 	class:completed={publication?.status === 'completed'}
 	href={`/moduler/${module.id}/`}
 >
@@ -32,11 +33,11 @@
 		>{module.title}</svelte:element
 	>
 	<p class="description">{module.description}</p>
-	<div class="bottom">
+	{#if !compact}<div class="bottom">
 		<p class="contents">{moduleSummary(module)}</p>
 		<span class="open">Åpne modul <span aria-hidden="true">→</span></span>
-	</div>
-	{#if $lab.user && $lab.summary && progress.total > 0}
+	</div>{/if}
+	{#if !compact && $lab.user && $lab.summary && progress.total > 0}
 		<p class="progress">
 			{progress.completed} av {progress.total} elevaktiviteter gjennomgått eller bestått
 		</p>
@@ -138,6 +139,11 @@
 		margin-top: 14px;
 		color: var(--color-info);
 	}
+	.module-card.compact { padding: 14px 16px; }
+	.compact .top { margin-bottom: 3px; }
+	.compact .module-icon { display: none; }
+	.compact .title { margin-bottom: 4px; font-size: 1.125rem; }
+	.compact .description { margin-bottom: 0; font-size: var(--font-small); }
 	@media (max-width: 550px) {
 		.module-card {
 			padding: 20px;

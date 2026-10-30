@@ -278,7 +278,7 @@
 {/snippet}
 
 {#snippet body()}
-	<div class="partner-body ready">
+	<div class="partner-body ready" class:ai-ready={mode === 'ai' && enabled === true && !!accountId}>
 		<div class="mode-switch" aria-label="Labpartnerens verktøy">
 			<button type="button" aria-pressed={mode === 'guide'} onclick={() => chooseMode('guide')}
 				>Sidehjelp</button
@@ -310,7 +310,6 @@
 			</button>
 		</div>
 		{#if mode === 'ai'}
-			{#if checking}<p role="status">Sjekker KI-tilkoblingen …</p>{/if}
 			{#if !accountId}
 				<p class="availability">
 					<a href="/min-lab/">Logg inn i Min lab</a> for å bruke KI. Sidehjelp og utseende virker uten
@@ -408,9 +407,7 @@
 									<summary>Tidligere svar ({earlier.length})</summary>
 									{#each earlier as turn}{@render turnCard(turn)}{/each}
 								</details>{/if}
-						{:else}<p class="empty">
-								Be om et hint eller skriv et spørsmål. Svaret kommer her.
-							</p>{/if}
+						{/if}
 					</div>
 					{#if repair}
 						<details class="shared-context">
@@ -450,10 +447,6 @@
 							</div>
 						</details>
 
-						<p class="fine">
-							Oppgaven og kodevalgene dine følger med når du spør. KI-svar kan være feil. Bruk
-							oppgavens tester til å undersøke forslaget. Hjelpen gir ingen poengtrekk.
-						</p>
 					{:else}
 						<details class="shared-context">
 							<summary>Dette følger med spørsmålet</summary>
@@ -479,12 +472,11 @@
 										)}</pre>
 								</details>{/if}
 						</details>
-						<p class="fine">
-							KI-svar kan være feil. Undersøk forslaget med sidens forklaringer og tester. Hjelpen
-							vurderer ikke forståelsen din og gir ingen poengtrekk.
-						</p>
 					{/if}
+					{#if latest}<p class="fine">KI-svar kan være feil. Prøv forslaget i oppgaven.</p>{/if}
 				</div>
+			{:else if checking}
+				<p role="status">Sjekker KI-tilkoblingen …</p>
 			{:else}
 				<p class="availability">KI er ikke tilgjengelig nå. Bruk Sidehjelp for tips om siden.</p>
 				{#if error || contextError}<p class="error" role="alert">{error || contextError}</p>{/if}
@@ -503,15 +495,11 @@
 				aria-label={mode === 'style' ? 'Utseende' : 'Sidehjelp'}
 				tabindex="0"
 			>
-				<PartnerStage {avatarId} {mood} />
 				{#if mode === 'style'}<PartnerAppearance />
 				{:else}
-					<p class="eyebrow">FAST SIDEHJELP · UTEN KI</p>
 					<h3>{pageHelp.title}</h3>
-					<p>{pageHelp.summary}</p>
-					{#if pageHelp.topics.length}<p class="fine">Tema: {pageHelp.topics.join(' · ')}</p>{/if}
 					<div class="guide-tip">
-						<strong>Forslag {tipIndex + 1} av {pageHelp.tips.length}</strong>
+						<strong>Tips {tipIndex + 1} av {pageHelp.tips.length}</strong>
 						<p>{pageHelp.tips[tipIndex]}</p>
 					</div>
 					<button
@@ -519,19 +507,20 @@
 						class="secondary"
 						onclick={() => (tipIndex = (tipIndex + 1) % pageHelp.tips.length)}>Et annet tips</button
 					>
-					<p>
-						<a
-							href="/tutorial/?tur=finn"
-							onclick={() => {
-								expanded = false;
-								dialog?.close();
-							}}>Vis meg rundt i IT-laben →</a
-						>
-					</p>
-					<p class="fine guide-note">
-						Disse rådene er skrevet på forhånd. Velg KI for å stille egne spørsmål når tjenesten er
-						tilgjengelig.
-					</p>
+					<details class="guide-more">
+						<summary>Mer hjelp</summary>
+						<p>{pageHelp.summary}</p>
+						<p class="fine">Sidehjelp gir faste tips. KI lar deg stille egne spørsmål når tjenesten er tilgjengelig. Hjelpen gir ingen poengtrekk og vurderer ikke forståelsen din.</p>
+						<p>
+							<a
+								href="/tutorial/?tur=finn"
+								onclick={() => {
+									expanded = false;
+									dialog?.close();
+								}}>Vis meg rundt i IT-laben →</a
+							>
+						</p>
+					</details>
 				{/if}
 			</div>
 		{/if}
@@ -552,6 +541,7 @@
 	</button>
 	<dialog
 		class="partner-dialog"
+		class:ai-ready={mode === 'ai' && enabled === true && !!accountId}
 		bind:this={dialog}
 		aria-labelledby="partner-dialog-title"
 		oncancel={(event) => {
@@ -561,7 +551,7 @@
 	>
 		<div class="dialog-header">
 			<div class="dialog-title">
-				<Avatar id={avatarId} {mood} size={40} /><strong id="partner-dialog-title"
+				<PartnerStage {avatarId} {mood} {expanded} reveal /><strong id="partner-dialog-title"
 					>Labpartneren</strong
 				>
 			</div>
@@ -580,10 +570,8 @@
 		}}
 	>
 		<summary class="panel-heading"
-			><Avatar id={avatarId} {mood} size={44} /><span
-				><strong>Spør labpartneren</strong><small
-					>{reactionMessage || 'Sidehjelp · KI · Utseende'}</small
-				></span
+			><PartnerStage {avatarId} {mood} {expanded} /><span
+				><strong>{expanded ? 'Labpartneren' : 'Spør labpartneren'}</strong>{#if !expanded && reactionMessage}<small>{reactionMessage}</small>{/if}</span
 			></summary
 		>
 		{@render body()}
@@ -632,14 +620,10 @@
 	.guide-tip p {
 		margin: 6px 0 0;
 	}
-	.guide-note {
-		margin-top: 14px;
-	}
-	.eyebrow {
-		font-size: 0.65rem;
-		font-weight: 700;
-		letter-spacing: 0.08em;
-		color: var(--color-text-muted);
+	.guide-more {
+		margin-top: 16px;
+		border-top: 1px solid var(--color-border);
+		font-size: var(--font-small);
 	}
 	.local-help {
 		border-top: 0;
@@ -694,6 +678,10 @@
 	.partner-body.ready {
 		display: flex;
 		flex-direction: column;
+		max-height: min(680px, 75dvh);
+		min-height: 0;
+	}
+	.partner-body.ready.ai-ready {
 		height: min(680px, 75dvh);
 		min-height: 460px;
 	}
@@ -819,8 +807,7 @@
 		margin: 8px 0 0;
 	}
 	.earlier,
-	.fine,
-	.empty {
+	.fine {
 		color: var(--color-text-muted);
 		font-size: var(--font-small);
 	}
@@ -911,11 +898,12 @@
 	.partner-dialog .partner-body.ready {
 		flex: 1;
 		min-height: 0;
+		max-height: none;
 		height: auto;
 		padding-bottom: max(14px, env(safe-area-inset-bottom));
 	}
 	@media (max-height: 650px) {
-		.partner-body.ready {
+		.partner-body.ready.ai-ready {
 			height: auto;
 			min-height: 0;
 		}
@@ -932,12 +920,13 @@
 	@media (min-width: 601px) {
 		.partner-dialog {
 			width: min(560px, calc(100% - 48px));
-			height: min(850px, calc(100dvh - 48px));
+			height: auto;
 			max-height: calc(100dvh - 48px);
 			margin: auto;
 			border: 1px solid var(--color-border-strong);
 			border-radius: 20px;
 			box-shadow: 0 20px 80px var(--color-shadow);
 		}
+		.partner-dialog.ai-ready { height: min(850px, calc(100dvh - 48px)); }
 	}
 </style>

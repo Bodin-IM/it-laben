@@ -16,6 +16,7 @@
 	let valgtFag = $state('alle');
 	let valgtFormat = $state('alle');
 	let sok = $state('');
+	const filtering = $derived(!!sok.trim() || valgtFormat !== 'alle');
 	let activitiesOpen = $state(false);
 	$effect(() => {
 		if (sok.trim() || valgtFormat !== 'alle' || $connection.publicHttp || $modulePublication.error)
@@ -27,7 +28,7 @@
 	/** @type {HTMLInputElement|undefined} */
 	let searchInput = $state();
 	const formater = [
-		{ id: 'alle', navn: 'Alt innhold' },
+		{ id: 'alle', navn: 'Alle typer' },
 		...Array.from(new Set(aktiviteter.map((item) => item.format))).map(innholdsformat)
 	];
 	const valgtFagnavn = $derived(fag.find((item) => item.id === valgtFag)?.navn ?? 'Alle fag');
@@ -126,6 +127,45 @@
 	});
 </script>
 
+{#snippet moduleStatus()}
+	{#if $connection.publicHttp}
+		<div class="module-notice">
+			<p>Åpne den sikre siden for å se hvilke moduler læreren har åpnet.</p>
+			<a class="jump" href={secureHref($connection.httpsOrigin, secureOverviewPath)}
+				>Se modulene på sikker side →</a
+			>
+			<p class="notice-detail">
+				Enkeltoppgavene på denne siden er fortsatt tilgjengelige.
+			</p>
+		</div>
+	{:else if !$modulePublication.ready}
+		<div class="module-notice" aria-live="polite">
+			{#if $modulePublication.error}
+				<p>{$modulePublication.error}</p>
+				<button
+					type="button"
+					class="text-button"
+					disabled={$modulePublication.loading}
+					onclick={() => refreshModulePublication()}
+					>{$modulePublication.loading ? 'Henter moduler …' : 'Prøv igjen'}</button
+				>
+			{:else}<p>Henter moduler …</p>{/if}
+		</div>
+	{:else}
+		{#if $modulePublication.error}
+			<div class="module-notice" role="status">
+				<p>Viser sist hentede oversikt. {$modulePublication.error}</p>
+				<button
+					type="button"
+					class="text-button"
+					disabled={$modulePublication.loading}
+					onclick={() => refreshModulePublication()}>Prøv igjen</button
+				>
+			</div>
+		{/if}
+	{/if}
+{/snippet}
+
 <svelte:head>
 	<title>IT-laben – fag, moduler og aktiviteter</title>
 	<meta
@@ -176,12 +216,11 @@
 		<main id="hovedinnhold" tabindex="-1">
 			<section class="intro" aria-labelledby="sidetittel">
 				<p class="eyebrow">Fagoversikt <span aria-hidden="true">/</span> {valgtFagnavn}</p>
-				<h1 id="sidetittel">{valgtFag === 'alle' ? 'Hva jobber du med i dag?' : valgtFagnavn}</h1>
+				<h1 id="sidetittel">{valgtFag === 'alle' ? 'Finn det du trenger' : valgtFagnavn}</h1>
 				<p class="lead">
 					{valgtFag === 'alle'
 						? 'Finn et tema, følg en modul eller gå rett til en aktivitet.'
-						: fag.find((item) => item.id === valgtFag)?.beskrivelse +
-							'. Utforsk sammenhengene og prøv selv.'}
+						: fag.find((item) => item.id === valgtFag)?.beskrivelse}
 				</p>
 			</section>
 
@@ -212,6 +251,15 @@
 						/>
 					</div>
 				</div>
+				<div class="formatvalg" role="group" aria-label="Filtrer enkeltoppgaver etter type">
+					{#each formater as format (format.id)}<button
+							type="button"
+							class:valgt={valgtFormat === format.id}
+							aria-pressed={valgtFormat === format.id}
+							aria-controls="resultater"
+							onclick={() => (valgtFormat = format.id)}>{format.navn}</button
+						>{/each}
+				</div>
 				<div class="search-status">
 					<p role="status" aria-atomic="true">
 						{#if $modulePublication.ready}
@@ -224,9 +272,7 @@
 							? ` for «${sok.trim()}»`
 							: ''}
 					</p>
-					<a class="jump" href="#utforsk" onclick={() => (activitiesOpen = true)}
-						>Finn enkeltoppgaver <span aria-hidden="true">↓</span></a
-					>
+
 					{#if sok || valgtFormat !== 'alle'}<button
 							type="button"
 							class="text-button"
@@ -235,139 +281,117 @@
 				</div>
 			</div>
 
-			<section id="moduler" class="moduloversikt" aria-labelledby="modultittel">
-				<div class="section-heading">
-					<div>
-						<h2 id="modultittel">
-							Moduler {#if $modulePublication.ready}<span class="count"
-									>{resultater.modules.length}</span
-								>{/if}
-						</h2>
-						<p>Det dere jobber med nå, og tidligere temaer du kan gå tilbake til.</p>
-					</div>
+			{#if filtering}
+				<div id="resultater" class="search-results">
+					<section id="utforsk" aria-labelledby="trefftittel">
+						<div id="spill" class="anker" aria-hidden="true"></div>
+						<div id="ovingene" class="anker" aria-hidden="true"></div>
+						<h2 id="trefftittel" class="result-heading">Enkeltoppgaver <span class="count">{resultater.activities.length}</span></h2>
+						<div class="result-list">
+							{#each resultater.activities as activity (activity.id)}<ActivityCard {activity} compact />{/each}
+						</div>
+						{#if !resultater.activities.length}
+							{#if resultater.modules.length}<p class="empty-modules">Ingen enkeltoppgaver passer, men søket fant moduler nedenfor.</p>
+							{:else}
+							<div class="tomt-resultat">
+								<h3>Ingen enkeltoppgaver passer til søket</h3>
+								<p>Prøv et annet søkeord, en annen type eller et annet fag.</p>
+								<button type="button" class="handling" onclick={nullstillSok}>Nullstill søk og type</button>
+							</div>
+							{/if}
+						{/if}
+					</section>
+					<section id="moduler" class="matching-modules" aria-labelledby="modultittel">
+						<h2 id="modultittel" class="result-heading">Moduler {#if $modulePublication.ready}<span class="count">{resultater.modules.length}</span>{/if}</h2>
+						<div class="result-list">
+							{#each resultater.modules as module (module.id)}<ModuleCard {module} publication={publicationFor(module.id, $modulePublication.modules)} compact />{/each}
+						</div>
+						{@render moduleStatus()}
+						{#if $modulePublication.ready && !$connection.publicHttp && !resultater.modules.length}<p class="empty-modules">Ingen åpne moduler passer til søket.</p>{/if}
+					</section>
 				</div>
-				{#if $connection.publicHttp}
-					<div class="module-notice">
-						<p>Åpne den sikre siden for å se hvilke moduler læreren har åpnet.</p>
-						<a class="jump" href={secureHref($connection.httpsOrigin, secureOverviewPath)}
-							>Se modulene på sikker side →</a
-						>
-						<p class="notice-detail">
-							Du kan fortsatt bruke øvingene og aktivitetene nedenfor her.
-						</p>
-					</div>
-				{:else if !$modulePublication.ready}
-					<div class="module-notice" aria-live="polite">
-						{#if $modulePublication.error}
-							<p>{$modulePublication.error}</p>
-							<button
-								type="button"
-								class="text-button"
-								disabled={$modulePublication.loading}
-								onclick={() => refreshModulePublication()}
-								>{$modulePublication.loading ? 'Henter moduler …' : 'Prøv igjen'}</button
-							>
-						{:else}<p>Henter moduler …</p>{/if}
-					</div>
-				{:else}
-					{#if $modulePublication.error}
-						<div class="module-notice" role="status">
-							<p>Viser sist hentede oversikt. {$modulePublication.error}</p>
-							<button
-								type="button"
-								class="text-button"
-								disabled={$modulePublication.loading}
-								onclick={() => refreshModulePublication()}>Prøv igjen</button
-							>
-						</div>
-					{/if}
-					{#if aktiveModuler.length}
-						<div class="module-group">
-							<h3 class="module-group-title">
-								{aktiveModuler.length === 1 ? 'Aktiv modul' : 'Aktive moduler'}
-							</h3>
-							<div class="modulkortliste">
-								{#each aktiveModuler as module (module.id)}<ModuleCard
-										{module}
-										publication={publicationFor(module.id, $modulePublication.modules)}
-										headingLevel={4}
-									/>{/each}
-							</div>
-						</div>
-					{/if}
-					{#if tidligereModuler.length}
-						<div class="module-group">
-							<h3 class="module-group-title">Tidligere moduler</h3>
-							<p class="module-group-description">
-								Finn igjen stoffet og øv videre når du trenger det.
-							</p>
-							<div class="modulkortliste">
-								{#each tidligereModuler as module (module.id)}<ModuleCard
-										{module}
-										publication={publicationFor(module.id, $modulePublication.modules)}
-										headingLevel={4}
-									/>{/each}
-							</div>
-						</div>
-					{/if}
-					{#if !resultater.modules.length}<p class="empty-modules">
-							{sok.trim()
-								? 'Ingen åpne moduler passer til søket. Se aktivitetene nedenfor, eller prøv et annet søkeord.'
-								: 'Ingen moduler er åpnet for dette faget ennå. Utforsk aktivitetene nedenfor.'}
-						</p>{/if}
-				{/if}
-			</section>
-
-			{#if !sok.trim()}<PersonalOverview subject={valgtFag} />{/if}
-
-			<section id="utforsk" class="oversikt" aria-labelledby="aktivitetstittel">
-				<details class="activity-browser" bind:open={activitiesOpen}>
-					<summary id="aktivitetstittel"
-						>Finn enkeltoppgaver <span class="count">{resultater.activities.length}</span></summary
-					>
+			{:else}
+				<section id="moduler" class="moduloversikt" aria-labelledby="modultittel">
 					<div class="section-heading">
 						<div>
-							<h2>
-								Øvinger og aktiviteter <span class="count">{resultater.activities.length}</span>
+							<h2 id="modultittel">
+								Moduler {#if $modulePublication.ready}<span class="count"
+										>{resultater.modules.length}</span
+									>{/if}
 							</h2>
-							<p>Åpne en øving, et oppdrag eller et spill direkte.</p>
+							<p>Det dere jobber med nå, og tidligere temaer du kan gå tilbake til.</p>
 						</div>
 					</div>
-					<div class="formatvalg" role="group" aria-label="Vis aktivitetstype">
-						{#each formater as format (format.id)}<button
-								type="button"
-								class:valgt={valgtFormat === format.id}
-								aria-pressed={valgtFormat === format.id}
-								aria-controls="resultater"
-								onclick={() => (valgtFormat = format.id)}>{format.navn}</button
-							>{/each}
-					</div>
-					<div id="spill" class="anker" aria-hidden="true"></div>
-					<div id="ovingene" class="anker" aria-hidden="true"></div>
-					<div id="resultater">
-						{#if !resultater.activities.length}<div class="tomt-resultat">
-								<h3>Ingen aktiviteter passer til søket</h3>
-								<p>Prøv et annet søkeord eller en annen aktivitetstype.</p>
-								<button type="button" class="handling" onclick={nullstillSok}
-									>Vis innholdet i valgt fag</button
-								>
-							</div>{/if}
-						{#each fagGrupper as gruppe (gruppe.id)}
-							{#if gruppe.aktiviteter.length}<section
-									class="faggruppe"
-									aria-label={`Aktiviteter i ${gruppe.navn}`}
-								>
-									{#if valgtFag === 'alle'}<h3 class="group-label">{gruppe.navn}</h3>{/if}
-									<div class="kortliste">
-										{#each gruppe.aktiviteter as activity (activity.id)}<ActivityCard
-												{activity}
-											/>{/each}
-									</div>
-								</section>{/if}
-						{/each}
-					</div>
-				</details>
-			</section>
+					{@render moduleStatus()}
+					{#if $modulePublication.ready && !$connection.publicHttp}
+						{#if aktiveModuler.length}
+							<div class="module-group">
+								<h3 class="module-group-title">
+									{aktiveModuler.length === 1 ? 'Aktiv modul' : 'Aktive moduler'}
+								</h3>
+								<div class="modulkortliste">
+									{#each aktiveModuler as module (module.id)}<ModuleCard
+											{module}
+											publication={publicationFor(module.id, $modulePublication.modules)}
+											headingLevel={4}
+										/>{/each}
+								</div>
+							</div>
+						{/if}
+						{#if tidligereModuler.length}
+							<div class="module-group">
+								<h3 class="module-group-title">Tidligere moduler</h3>
+								<p class="module-group-description">
+									Finn igjen stoffet og øv videre når du trenger det.
+								</p>
+								<div class="modulkortliste">
+									{#each tidligereModuler as module (module.id)}<ModuleCard
+											{module}
+											publication={publicationFor(module.id, $modulePublication.modules)}
+											headingLevel={4}
+										/>{/each}
+								</div>
+							</div>
+						{/if}
+						{#if !resultater.modules.length}<p class="empty-modules">
+								Ingen moduler er åpnet for dette faget ennå. Utforsk aktivitetene nedenfor.
+							</p>{/if}
+					{/if}
+				</section>
+
+				<PersonalOverview subject={valgtFag} />
+
+				<section id="utforsk" class="oversikt" aria-labelledby="aktivitetstittel">
+					<details class="activity-browser" bind:open={activitiesOpen}>
+						<summary><h2 id="aktivitetstittel">Finn enkeltoppgaver <span class="count">{resultater.activities.length}</span></h2></summary>
+
+						<div id="spill" class="anker" aria-hidden="true"></div>
+						<div id="ovingene" class="anker" aria-hidden="true"></div>
+						<div id="resultater">
+							{#if !resultater.activities.length}<div class="tomt-resultat">
+									<h3>Ingen aktiviteter passer til søket</h3>
+									<p>Prøv et annet søkeord eller en annen aktivitetstype.</p>
+									<button type="button" class="handling" onclick={nullstillSok}
+										>Vis innholdet i valgt fag</button
+									>
+								</div>{/if}
+							{#each fagGrupper as gruppe (gruppe.id)}
+								{#if gruppe.aktiviteter.length}<section
+										class="faggruppe"
+										aria-label={`Aktiviteter i ${gruppe.navn}`}
+									>
+										{#if valgtFag === 'alle'}<h3 class="group-label">{gruppe.navn}</h3>{/if}
+										<div class="kortliste">
+											{#each gruppe.aktiviteter as activity (activity.id)}<ActivityCard
+													{activity}
+												/>{/each}
+										</div>
+									</section>{/if}
+							{/each}
+						</div>
+					</details>
+				</section>
+			{/if}
 			<footer>
 				<span>IT-laben.</span>
 				<p>Ta ett steg om gangen. Prøv igjen når du trenger det.</p>
@@ -377,6 +401,11 @@
 </div>
 
 <style>
+	.result-heading { margin-bottom: 12px; font-size: 1.15rem; }
+	.result-list { display: grid; gap: 8px; }
+	.matching-modules { margin-top: 28px; }
+	.matching-modules .module-notice { margin-top: 12px; }
+
 	.activity-browser > summary {
 		overflow-wrap: anywhere;
 		cursor: pointer;
@@ -389,6 +418,7 @@
 		outline: 3px solid var(--color-focus);
 		outline-offset: 4px;
 	}
+	.activity-browser > summary h2 { display: inline; font-size: inherit; }
 
 	.forside {
 		overflow-wrap: anywhere;
@@ -514,7 +544,7 @@
 		max-width: 60ch;
 	}
 	.search-tools {
-		margin-bottom: 28px;
+		margin-bottom: 16px;
 	}
 	.search-tools label {
 		display: block;
@@ -678,7 +708,7 @@
 		display: flex;
 		flex-wrap: wrap;
 		gap: 8px;
-		margin: 0 0 24px;
+		margin: 12px 0 0;
 	}
 	.formatvalg button {
 		min-height: 44px;
