@@ -27,6 +27,8 @@ Brukerbestilt forbedring etter kildegjennomgang: Elevene trenger å se hva de sk
 
 Øving 5–10 bruker de samme tre undersøkelsesoppgavene som før, nå med korte valg øverst i simulatoren. Den valgte oppgaven viser en handlingsrettet overskrift, «Gjør dette» og «Se etter». Hint og forklaring er tilgjengelige i egne åpne/lukke-felt. En mindre intro og fjerningen av den separate oppgavelisten nederst begrenser gjentakelser. Det tidligere tomme venteområdet viser et kort kodeeksempel før første kjøring. Eksemplene er utdrag, ikke komplette serverfiler.
 
+Fargejustering på dev: Både kodeeksemplet før kjøring og de klikkbare kodelinjene i øving 5–10 bruker nå `CodeTokens`, med samme farger og tekstoppdeling som `InteractiveCode` i chatrom. Nøkkelord, strenger, funksjoner, tall og kommentarer følger dermed den eksisterende kodevisningen. Komponenten er hentet ut av `InteractiveCode` og gjenbrukes begge steder. Koden rendres fortsatt som tekst, og linjevalg, forklaringer og progresjon er uendret. Diff er gjennomgått; samlet testing og visuell kontroll gjenstår før main.
+
 | Del | Hva eleven gjør | Hva responsen viser | Overføring med mindre støtte |
 | --- | --- | --- | --- |
 | Meldingens reise | Sender med POST og henter med GET. | Hvor data ligger, hvilken kode som kjører og hva frontend viser. | Lag rutene i egen chat og prøv med to nettlesere. |

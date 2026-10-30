@@ -1,5 +1,6 @@
 <script>
 	import PartnerContext from '#lib/components/PartnerContext.svelte';
+	import CodeTokens from '#lib/components/CodeTokens.svelte';
 	import { lessonChoices } from '#lib/partnerContext.js';
 
 	import { onMount } from 'svelte';
@@ -242,7 +243,7 @@
 										aria-pressed={selectedLine === i}
 										aria-label={`Forklar linje ${i + 1}: ${line[0]}`}
 										><span class="line-number" aria-hidden="true">{i + 1}</span><code
-											>{line[0]}</code
+											><CodeTokens source={line[0]} /></code
 										></button
 									>
 								{/each}
@@ -258,7 +259,7 @@
 						<div class="example">
 							<p class="eyebrow">KODEEKSEMPEL</p>
 							<h3>{lesson.example.title}</h3>
-							<pre><code>{lesson.example.code}</code></pre>
+							<pre><code><CodeTokens source={lesson.example.code} /></code></pre>
 							<p>{lesson.example.explanation}</p>
 							<p class="small">Velg innstillinger og kjør forsøket for å følge kode, data og svar steg for steg.</p>
 						</div>
