@@ -43,6 +43,10 @@ Faglig kontrollgrunnlag, lest 29. oktober 2026: [Cisco: inter-VLAN-ruting med ek
 
 Kartet har klientvalg, eth-navn ved kablene og en kompakt pingrad nederst. IP/gateway og kontroll ligger ved kartet på bred skjerm og under på mobil. Switchtabellen bruker U → E → T → U og egen PVID-rad; ny U erstatter tidligere U uten å endre PVID. Ruter og AP har egne tydelige områder, side ved side når plassen tillater det. Teori, hendelsesdetaljer og hjelp kan åpnes ved behov.
 
+Kartvalg fører mykt til PC-, switch-, ruter- eller AP-innstillingene og markerer panelet kort. Fast `/24` står i en kompakt boks ved IP-feltet; full maske annonseres som feltbeskrivelse. Modellen inneholder ingen oppdrag med redigerbar nettmaske.
+
+Kontroll kan kjøres både ved klienten og ved switch-/ruter-/AP-konfigurasjonen. Et felles resultatvindu åpnes ved svar fra serveren, viser tellingen og «Hva som er feil:» med faktiske avvik. Tre feil vises først; resten og det som er riktig kan åpnes. Feil SSID peker til klienten, mens feil SSID–VLAN-kobling peker til AP1. Gateway-, tag- og rutingfeil bruker faktiske ping-/konfigurasjonsfunn. Gjestefeil forklarer fortsatt forskjellen mellom en tilsiktet R1-sperre og en ødelagt forbindelse. «Se …» lukker vinduet og følger eleven til innstillingene; «Fortsett å konfigurere» og Escape lukker til arbeidet. Resultatet har ingen tidsfrist og kan åpnes igjen. Redigering merker historikken som utdatert. Sene svar åpner ikke vinduet hvis eleven allerede har valgt en annen enhet. Tekniske feil merkes «Kontroll ikke fullført», ikke som faglig underkjent. Lagringsdetaljer ligger under «Lagring og nytt forsøk».
+
 Dette viderefører gjenkjenning og kort respons fra lab 1 (designgrunnlagets U1/U6), samtidig som nye faglige valg får navn og forklaring. Native knapper, felt og avkrysninger støtter tastatur og berøring. Farge suppleres med hake/kryss, status og forklaring. Lyd styres av den globale knappen, og redusert bevegelse følger felles innstilling og operativsystemet. Ping kan pauses og undersøkes stegvis. Redigering gjør tidligere kontroll utdatert og skjuler gammel pakke.
 
 `013_network_labs.sql` lagrer siste **beståtte** konfigurasjon per konto, lab, oppdrag og innholdsversjon. Bare serverens modellkontroll kan opprette en slik rad. API-et kontrollerer pålogging, Origin, CSRF, konto, innholdsversjon, skjema, låste innstillinger, lab 1-kravet og tidligere oppdrag. Topologi og krav kommer fra serverens kilder. Innsendingen er begrenset til 32 KiB og rutene hastighetsbegrenset. Lagringen gir ingen XP, merker eller topplisteendringer.
@@ -62,3 +66,8 @@ Se etter om eleven kan forklare forskjellen mellom PVID, tag, gateway og regel, 
 ## Kontroll før publisering
 
 Se [publiseringskontrollen for lab 2](publisering-vlan-2.md). Svelte MCP var ikke tilgjengelig; offisiell Svelte-dokumentasjon for `$effect` og `$props`, prosjektets Svelte-sjekk og faktisk nettleserprøving brukes. Pedagogisk utprøving og kontroll mot skolens konkrete nettverksutstyr gjenstår.
+
+
+## Dev-justering 30. oktober 2026
+
+Flytjusteringen er bare kode-/diffgjennomgått. Samlet testing gjenstår før main, i tråd med dev-avtalen. Prøv den delte kontrolldialogen, feilsnarveier, tastatur/fokus, maskefelt, redusert bevegelse og sen/feilet serverrespons, samt begge temaer, mobil og zoom. Kontroller at eksisterende oppdrag fortsatt godkjennes/avvises etter samme kriterier. Forrige publiseringskontroll gjelder den tidligere versjonen.

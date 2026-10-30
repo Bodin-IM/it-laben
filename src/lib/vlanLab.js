@@ -1,3 +1,5 @@
+import { portFeedback } from './networkCheckFeedback.js';
+
 // A deliberately bounded Layer 2 teaching model, not a switch operating system.
 /** @typedef {'excluded'|'untagged'|'tagged'} Membership */
 /** @typedef {{pvid:number,members:Record<string,Membership>}} PortConfig */
@@ -331,7 +333,7 @@ export function pingVlan(task, config, sourceId, targetId) {
 }
 
 /** @typedef {{deviceId:string,portId?:string}} VlanCheckTarget */
-/** @typedef {{label:string,ok:boolean,targets:VlanCheckTarget[]}} VlanCheckRow */
+/** @typedef {{label:string,ok:boolean,error:string,targets:VlanCheckTarget[]}} VlanCheckRow */
 /** @param {VlanTask} task @param {VlanConfig} config */
 export function checkVlanTask(task, config) {
 	/** @type {VlanCheckRow[]} */
@@ -339,25 +341,40 @@ export function checkVlanTask(task, config) {
 	for (const pc of task.pcs) {
 		const address = hostAddress(config.ips[pc.id]);
 		const port = config.switches[pc.switchId].ports[pc.port];
-		rows.push({ label: task.discoverPorts ? `${pc.name}: adressen passer VLAN-et på ${pc.switchId.toUpperCase()} ${pc.port}` : `${pc.name}: vertsadresse i ${pc.network}.0/24`, ok: address?.network === pc.network, targets: [{ deviceId: pc.id }] });
+		const location = `${pc.switchId.toUpperCase()} ${pc.port}`;
+		rows.push({
+			label: task.discoverPorts ? `${pc.name}: adressen passer VLAN-et på ${location}` : `${pc.name}: vertsadresse i ${pc.network}.0/24`,
+			ok: address?.network === pc.network,
+			error: !address
+				? `${pc.name}: ${config.ips[pc.id] ? 'IP-adressen er ikke en gyldig vertsadresse.' : 'IP-adressen er tom.'} Skriv fire tall fra 0–255; siste tall må være 1–254.`
+				: task.discoverPorts
+					? `${pc.name}: ${address.address}/24 passer ikke VLAN-et på ${location}. Finn portens U/PVID, og bruk nettverksplanen til å velge IP-nett.`
+					: `${pc.name} har ${address.address}/24 og ligger i feil IP-nett. Velg en vertsadresse i ${pc.network}.0/24.`,
+			targets: [{ deviceId: pc.id }]
+		});
 		rows.push({ label: task.discoverPorts ? `${pc.name}: switchporten følger det ferdige oppsettet` : `${pc.name}: VLAN ${pc.vlan} Untagged, PVID ${pc.vlan} og andre VLAN Exclude`, ok:
 			port.pvid === pc.vlan && membership(port, pc.vlan) === 'untagged' &&
 			config.switches[pc.switchId].vlans.includes(pc.vlan) &&
 			Object.entries(port.members).every(([id, mode]) => mode === 'excluded' || Number(id) === pc.vlan),
+			error: task.discoverPorts ? `${location} avviker fra det låste startoppsettet. Start oppdraget på nytt for å gjenopprette portene.` : portFeedback(config.switches[pc.switchId], pc.switchId.toUpperCase(), pc.port, pc.vlan, 'untagged'),
 			targets: [{ deviceId: pc.switchId, portId: pc.port }] });
 	}
 	if (task.discoverPorts) {
 		const pairs = task.pcs.flatMap((a, i) => task.pcs.slice(i + 1).map((b) => ({ a, b })));
 		rows.push({ label: 'PC-er i samme VLAN kan kommunisere, og de to VLAN-ene er adskilt',
 			ok: pairs.every(({ a, b }) => a.vlan === b.vlan ? pingVlan(task, config, a.id, b.id).ok : !traceVlan(task, config, a.id, b.id).ok && !traceVlan(task, config, b.id, a.id).ok),
+			error: 'Minst én forbindelse følger ikke VLAN-inndelingen. Undersøk hvilke porter som har samme U/PVID, sjekk IP-nettene mot nettverksplanen og prøv ping mellom PC-ene. PC-er i samme nett må ha ulike vertsadresser.',
 			targets: [{ deviceId: 's1' }] });
 	} else {
 		for (let i = 0; i < task.pcs.length; i++) {
 			for (const b of task.pcs.slice(i + 1)) {
 				const a = task.pcs[i];
-				rows.push(a.vlan === b.vlan
-					? { label: `${a.name} ↔ ${b.name}: ping får svar`, ok: pingVlan(task, config, a.id, b.id).ok, targets: [{ deviceId: a.id }, { deviceId: b.id }] }
+				const ping = a.vlan === b.vlan ? pingVlan(task, config, a.id, b.id) : null;
+				rows.push(ping
+					? { label: `${a.name} ↔ ${b.name}: ping får svar`, ok: ping.ok,
+						error: `${a.name} ↔ ${b.name}: ${ping.message}`, targets: [{ deviceId: a.id }, { deviceId: b.id }] }
 					: { label: `${a.name} / ${b.name}: adskilt på VLAN-nivå`, ok: !traceVlan(task, config, a.id, b.id).ok && !traceVlan(task, config, b.id, a.id).ok,
+						error: `${a.name} og ${b.name} er fortsatt koblet sammen på VLAN-nivå. Kontroller U og PVID på PC-portene; de skal tilhøre hvert sitt VLAN.`,
 						targets: [{ deviceId: a.switchId, portId: a.port }, { deviceId: b.switchId, portId: b.port }] });
 			}
 		}
@@ -368,16 +385,18 @@ export function checkVlanTask(task, config) {
 		for (const vlan of task.groups) rows.push({
 			label: `${link.a.toUpperCase()} ↔ ${link.b.toUpperCase()}: ${vlanLabel(task, vlan)} Tagged i begge ender`,
 			ok: a.vlans.includes(vlan) && b.vlans.includes(vlan) && membership(left, vlan) === 'tagged' && membership(right, vlan) === 'tagged',
+			error: [portFeedback(a, link.a.toUpperCase(), link.aPort, vlan, 'tagged'), portFeedback(b, link.b.toUpperCase(), link.bPort, vlan, 'tagged')].filter(Boolean).join(' '),
 			targets: [{ deviceId: link.a, portId: link.aPort }, { deviceId: link.b, portId: link.bPort }]
 		});
 		const native = (/** @type {PortConfig} */ port) => Object.entries(port.members).find(([, mode]) => mode === 'untagged')?.[0];
 		const ln = native(left), rn = native(right);
 		rows.push({ label: `${link.a.toUpperCase()} ↔ ${link.b.toUpperCase()}: samsvar for untagged/native VLAN`,
 			ok: ln === rn && (ln === undefined || (Number(ln) === left.pvid && Number(rn) === right.pvid)),
+			error: `${link.a.toUpperCase()} ${link.aPort}: U = ${ln ?? 'ingen'}, PVID = ${left.pvid}. ${link.b.toUpperCase()} ${link.bPort}: U = ${rn ?? 'ingen'}, PVID = ${right.pvid}. Bruk samme untagged VLAN og tilhørende PVID i begge ender, eller fjern U i begge ender.`,
 			targets: [{ deviceId: link.a, portId: link.aPort }, { deviceId: link.b, portId: link.bPort }] });
 	}
 	return { passed: rows.every((row) => row.ok), rows };
 }
 
 /** Only explicit view state is shared with the labpartner; never IP inputs or entire configuration. */
-export const vlanContextLimit = 'Du ser valgt oppdrag, enhet, port og om en test er kjørt eller utdatert. Du ser IKKE IP-adressene, VLAN-oppsettet eller testresultatet. Ikke anta at oppsettet virker; be eleven beskrive ett relevant funn. Oppdragene må bestås i rekkefølge med «Kontroller oppdraget» i testområdet nederst. En enkelt ping åpner ikke neste oppdrag. Ingen XP eller godkjenning av forståelse.';
+export const vlanContextLimit = 'Du ser valgt oppdrag, enhet, port og om en test er kjørt eller utdatert. Du ser IKKE IP-adressene, VLAN-oppsettet eller testresultatet. Ikke anta at oppsettet virker; be eleven beskrive ett relevant funn. Oppdragene må bestås i rekkefølge med «Kontroller oppdraget» ved kartet eller konfigurasjonen. Resultatvinduet viser feilene og lenker til innstillingene. En enkelt ping åpner ikke neste oppdrag. Ingen XP eller godkjenning av forståelse.';
