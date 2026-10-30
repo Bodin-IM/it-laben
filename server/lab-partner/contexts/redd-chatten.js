@@ -16,9 +16,13 @@ export const rescueContext = {
 				title: mission.title,
 				goal: mission.goal,
 				brief: mission.brief,
+				instruction: mission.instruction,
+				example: mission.example,
+				transfer: mission.transfer,
 				requirements: mission.requirements,
 				contract: mission.contract,
 				hint: mission.hint,
+				hints: mission.hints,
 				takeaway: mission.takeaway
 			}
 		])

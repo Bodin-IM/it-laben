@@ -216,7 +216,7 @@
 			<p class="overlinje">UTVIKLING · Vg2 IT</p>
 			<h1 id="tittel">Frontend møter backend</h1>
 			<p class="ingress">
-				Fra klikk til melding. Send den til serveren. Hent den tilbake. Følg koden underveis.
+				Send en melding med POST, og hent den med GET. Følg hvor dataene er i nettleseren og på serveren.
 			</p>
 		</section>
 
@@ -245,6 +245,12 @@
 				>
 			</div>
 
+			<p class="oppgave">
+				<strong>Gjør dette:</strong>
+				{handling === 'post'
+					? 'Skriv avsender og tekst, trykk «Send melding» og følg stegene. Se når meldingen legges i serverens liste.'
+					: 'Trykk «Hent meldinger» og følg stegene. Sammenlign listen i backend med det nettsiden viser. Send en melding med POST først hvis listen er tom.'}
+			</p>
 			{#if handling === 'post'}
 				<div class="proveverdier">
 					<p>Verdier i frontend <span>endre og prøv</span></p>
@@ -528,6 +534,7 @@
 				<div class="detaljinnhold prosjekt">
 					<div>
 						<h2>Frontend · Svelte</h2>
+						<p><strong>Lag selv:</strong> Koble et meldingsfelt til POST og en henteknapp til GET i din egen chat. Send fra én nettleser og hent meldingen fra en annen.</p>
 						<p>{CODE_CONTEXTS.frontend}</p>
 						<pre><code
 								>{'const API = "http://localhost:3000";\nlet avsender = $state("");\nlet tekst = $state("");\nlet meldinger = $state([]);\nlet status = $state("");'}</code
@@ -576,6 +583,13 @@
 </div>
 
 <style>
+	.oppgave {
+		margin: 0;
+		padding: 12px 20px;
+		border-bottom: 1px solid var(--color-border);
+		font-size: var(--font-body);
+		color: var(--color-text);
+	}
 	:global(body) {
 		margin: 0;
 		background: var(--color-page);

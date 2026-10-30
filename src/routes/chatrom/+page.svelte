@@ -247,7 +247,7 @@
 		<ModuleContext />
 		<section class="intro" aria-labelledby="sidetittel">
 			<p class="overlinje"><span></span> BYGG VIDERE PÅ CHATTEN</p>
-			<h1 id="sidetittel">Samme chat.<br class="mobilbrudd" /> <em>Flere muligheter.</em></h1>
+			<h1 id="sidetittel">Chatrom, avsender og sletting</h1>
 			<p class="ingress">
 				Velg rom, finn avsenderen og slett en melding. Utforsk koden i tre små forsøk, med
 				forklaringer der du klikker.
@@ -278,7 +278,7 @@
 				<div>
 					<p class="overlinje">FORSØK {module.number} AV 03</p>
 					<h2 id="forsoktittel">{module.title}</h2>
-					<p>{module.goal}</p>
+					<p><strong>Gjør dette:</strong> {module.instruction}</p>
 				</div>
 				<button type="button" class="nullstill" onclick={reset}
 					>Nullstill data <span aria-hidden="true">↺</span></button
@@ -745,14 +745,6 @@
 		letter-spacing: -1.7px;
 		line-height: 1.18;
 		font-weight: 690;
-	}
-	h1 em {
-		font-family: Georgia, serif;
-		font-weight: 400;
-		color: var(--gronn);
-	}
-	.mobilbrudd {
-		display: none;
 	}
 	.ingress {
 		max-width: 660px;
@@ -1377,9 +1369,6 @@
 		h1 {
 			font-size: 37px;
 			letter-spacing: -1.3px;
-		}
-		.mobilbrudd {
-			display: block;
 		}
 		.ingress {
 			font-size: var(--font-body);

@@ -252,6 +252,13 @@
 															: 'Åpne oppdraget'}
 											<span aria-hidden="true">→</span></a
 										>{/if}
+									{#if step.practice}
+										<details class="section-practice">
+											<summary>Bruk denne delen i eget prosjekt</summary>
+											<p><strong>Lag selv:</strong> {step.practice.instruction}</p>
+											<p><strong>Undersøk resultatet:</strong> {step.practice.check}</p>
+										</details>
+									{/if}
 								</div>
 							</li>
 						{/each}
@@ -315,6 +322,21 @@
 </div>
 
 <style>
+	.section-practice {
+		margin-top: 12px;
+		border-top: 1px solid var(--color-border);
+		font-size: var(--font-small);
+	}
+	.section-practice summary {
+		min-height: 44px;
+		padding: 12px 0;
+		color: var(--color-action);
+	}
+	.section-practice p {
+		margin: 0 0 10px;
+		max-width: 75ch;
+		color: var(--color-text-muted);
+	}
 	.part-title {
 		grid-column: 1 / -1;
 		margin: 0 0 8px;

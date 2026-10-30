@@ -1,7 +1,7 @@
 import { aktiviteter, altElevinnhold, fag } from '#lib/innhold.js';
 import { teachingPlans } from '#lib/teaching.js';
 
-/** @typedef {{kind:'undervisning'|'teori'|'oving'|'oppdrag'|'praksis'|'repetisjon',id:string,section?:string,subject?:string}} ModuleStep */
+/** @typedef {{kind:'undervisning'|'teori'|'oving'|'oppdrag'|'praksis'|'repetisjon',id:string,section?:string,subject?:string,practice?:{instruction:string,check:string}}} ModuleStep */
 /** @typedef {{id:string,title:string,description:string,subject:string,goals:string[],prerequisites:string,steps:ModuleStep[],resources:{label:string,href:string}[],continuation?:{title:string,description:string}[]}} Module */
 
 // Modules group existing content. Activity IDs, assessment rules and XP stay in their own catalogues.
@@ -21,7 +21,13 @@ const originalModules = [
 		steps: [
 			{ kind: 'undervisning', id: 'meldingens-reise' },
 			{ kind: 'oving', id: 'frontend-backend' },
-			{ kind: 'oppdrag', id: 'chat' }
+			{
+				kind: 'oppdrag', id: 'chat',
+				practice: {
+					instruction: 'Lag POST og GET for meldinger i egen Express-backend, og kall rutene fra frontend med fetch.',
+					check: 'Send fra én nettleser og hent fra en annen. Forklar hvorfor meldingen ikke vises hos mottakeren før frontend henter den.'
+				}
+			}
 		],
 		resources: []
 	},
@@ -41,7 +47,13 @@ const originalModules = [
 			{ kind: 'oving', id: 'fillagring' },
 			{ kind: 'oving', id: 'oving-5' },
 			{ kind: 'oving', id: 'oving-6' },
-			{ kind: 'oving', id: 'oving-7' }
+			{
+				kind: 'oving', id: 'oving-7',
+				practice: {
+					instruction: 'Legg til JSON-fillagring, endring med ID og validering i egen chat. Avvis ugyldige requests før data endres.',
+					check: 'Undersøk en omstart, to meldinger med samme tekst, en lengdegrense og en lagringsfeil. Sammenlign HTTP-svar og data.'
+				}
+			}
 		],
 		resources: [{ label: 'Repeter frontend og backend', href: '/backend/' }]
 	},
@@ -63,7 +75,13 @@ const originalModules = [
 			{ kind: 'oving', id: 'oving-9' },
 			{ kind: 'oving', id: 'chatrom' },
 			{ kind: 'oppdrag', id: 'redd-chatten' },
-			{ kind: 'oppdrag', id: 'meldingsdetektiven' }
+			{
+				kind: 'oppdrag', id: 'meldingsdetektiven',
+				practice: {
+					instruction: 'Bruk innlogging og eierskap i egen chat. Sessionen skal bestemme hvem som sender og hvem som får endre data.',
+					check: 'Test som eier, annen bruker og gjest i separate nettleserprofiler. Send en falsk eier i body, og vis at backend fortsatt beskytter dataene.'
+				}
+			}
 		],
 		resources: [{ label: 'Repeter validering', href: '/oving-7/' }]
 	},
@@ -121,7 +139,7 @@ export const moduler = [
 		id: 'backend',
 		title: 'Backend',
 		description:
-			'Fra første forespørsel til en chat med lagring, innlogging og publisering. Følg delene, prøv koden og bruk det du lærer i oppdragene.',
+			'Undersøk koden i simulatorene, reparer chatten og bygg videre i eget prosjekt. Start med dataflyten, og legg til lagring, innlogging og publisering.',
 		subject: 'utvikling',
 		goals: [
 			'Forklare dataflyten mellom frontend og backend med GET og POST.',
@@ -143,12 +161,20 @@ export const moduler = [
 				kind: 'oving',
 				id: 'oving-10',
 				subject: 'drift',
-				section: 'Publisering og drift'
+				section: 'Publisering og drift',
+				practice: {
+					instruction: 'Publiser egen chat i det avtalte testmiljøet. Dokumenter bygging, publisering og kjøring som tjeneste.',
+					check: 'Åpne appen fra en annen PC, start tjenesten og VM-en på nytt, og prøv gjenoppretting fra backup. Forklar hva som skjer med sessions og filer.'
+				}
 			},
 			{
 				kind: 'repetisjon',
 				id: 'backend-oppsummering',
-				section: 'Repetisjon og ekstra utfordring'
+				section: 'Repetisjon og ekstra utfordring',
+				practice: {
+					instruction: 'Velg én rute i egen chat og forklar hele veien fra klikk til svar for en medelev. Lag deretter et nytt testtilfelle sammen.',
+					check: 'Vis request, kontrollene på serveren, endringen i data og det frontend viser. Forklar både et gyldig og et avvist forsøk. Nattevakten nedenfor er en ekstra utfordring.'
+				}
 			},
 			{ kind: 'oppdrag', id: 'nattvakt' }
 		],

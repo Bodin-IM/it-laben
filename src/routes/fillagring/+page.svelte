@@ -213,10 +213,10 @@
 			<div>
 				<p class="overlinje">FILLAGRING · KODEN I FOKUS</p>
 				<h1 id="tittel">Hva overlever en omstart?</h1>
-				<p class="ingress">Endre en melding, følg koden og se hva som blir lagret.</p>
+				<p class="ingress">Kjør oppstart, send en melding og start serveren på nytt. Se om meldingen kommer tilbake fra filen.</p>
 				<p class="ovingslenke">
-					Dette er den enkle innføringen. <a href="/oving-5/"
-						>Øving 5: trygg lagring med ny liste, midlertidig fil og feilhåndtering →</a
+					Først undersøker vi minne og fil. <a href="/oving-5/"
+						>Deretter: trygg lagring og feiltilfeller i øving 5 →</a
 					>
 				</p>
 			</div>

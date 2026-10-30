@@ -144,7 +144,9 @@ export function pageTask(page, moduleId) {
 			? {
 					learningQuestion: lesson.question,
 					framework: lesson.context,
-					tasks: lesson.tasks.map(({ title, hint }) => ({ title, hint })),
+					tasks: lesson.tasks.map(({ title, instruction, observe, hint }) => ({ title, instruction, observe, hint })),
+					example: lesson.example,
+					transfer: lesson.transfer,
 					related: lesson.related
 				}
 			: {})
@@ -238,8 +240,10 @@ export function pageWork(page, raw) {
 					selectedLine: v.line < 0 ? null : selected(frame.code, v.line)
 				}
 			: null;
-		work.task =
-			v.task < 0 ? null : { title: lesson.tasks[v.task].title, hint: lesson.tasks[v.task].hint };
+		const task = lesson.tasks[v.task];
+		work.task = task
+			? { title: task.title, instruction: task.instruction, observe: task.observe, hint: task.hint }
+			: null;
 	} else if (page.kind === 'backend') {
 		const lines = backendCode(v.kind, v.side, v.wrongKey);
 		work.code = codeText(lines);

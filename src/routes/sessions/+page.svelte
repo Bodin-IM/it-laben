@@ -263,11 +263,10 @@
 				<p class="overlinje">UTVIKLING · Vg2 IT</p>
 				<h1 id="sidetittel">Sessions og pålogging</h1>
 				<p class="ingress">
-					Hvordan husker serveren deg? Nettleseren har en ID. Serveren bruker den til å finne
-					brukeren. Prøv sammenhengen, ett spørsmål om gangen.
+					Følg en innlogging og finn samme session-ID i nettleseren og på serveren. Prøv deretter hva som skjer når cookien ikke sendes med.
 				</p>
 				<p class="ovingslenke">
-					<a href="/oving-8/">Øving 8: registrering, passordhash og innlogging fra øvingsarket →</a>
+					<a href="/oving-8/">Bygg videre i øving 8: registrering, passordhash og utlogging →</a>
 				</p>
 			</div>
 			<span class="intromerke" aria-hidden="true">ID <span>↔</span> bruker</span>

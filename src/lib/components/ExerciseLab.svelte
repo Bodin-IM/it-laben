@@ -23,7 +23,8 @@
 	let trace = $state([]);
 	let index = $state(0);
 	let selectedLine = $state(0);
-	let partnerTask = $state(-1);
+	let taskIndex = $state(0);
+	let task = $derived(lesson.tasks[taskIndex]);
 	let current = $derived(trace[index]);
 	let finished = $derived(trace.length > 0 && index === trace.length - 1);
 	let previous = $derived(lessons.find((item) => item.number === lesson.number - 1));
@@ -34,6 +35,7 @@
 		trace = [];
 		index = 0;
 		selectedLine = 0;
+		taskIndex = 0;
 	});
 
 	function clearTrace() {
@@ -85,7 +87,7 @@
 		choices: lessonChoices(lesson, values),
 		step: current ? index : -1,
 		line: current ? selectedLine : -1,
-		task: partnerTask
+		task: taskIndex
 	}}
 />
 
@@ -131,18 +133,32 @@
 			</p>
 			<h1 id="title">{lesson.title}</h1>
 			<p class="lead">{lesson.intro}</p>
-			<p class="simulation">
-				<span aria-hidden="true">◉</span> Prøv med eksempeldata.
-			</p>
 		</section>
 
 		<section id="forsok" class="lab" aria-labelledby="lab-title">
-			<div class="lab-heading">
-				<div>
-					<p class="eyebrow">SE. PRØV. FØLG KODEN.</p>
-					<h2 id="lab-title">{lesson.question}</h2>
-				</div>
-				<span class="lab-number">{String(lesson.number).padStart(2, '0')}</span>
+			<div class="task-picker" role="group" aria-label="Velg oppgave i simulatoren">
+				{#each lesson.tasks as item, i}
+					<button
+						type="button"
+						class:chosen={taskIndex === i}
+						aria-pressed={taskIndex === i}
+						aria-controls="task-brief"
+						onclick={() => (taskIndex = i)}
+						>{i + 1} · {item.label}</button
+					>
+				{/each}
+			</div>
+			<div class="task-brief" id="task-brief">
+				<p class="eyebrow">OPPGAVE {taskIndex + 1} / {lesson.tasks.length} · I SIMULATOREN</p>
+				<h2 id="lab-title">{task.title}</h2>
+				<p><strong>Gjør dette:</strong> {task.instruction}</p>
+				<p class="observe"><strong>Se etter:</strong> {task.observe}</p>
+				{#key `${lesson.number}-${taskIndex}`}
+					<div class="task-help">
+						<details><summary>Hint</summary><p>{task.hint}</p></details>
+						<details><summary>Forklaring</summary><p>{task.answer}</p></details>
+					</div>
+				{/key}
 			</div>
 			<div class="workbench">
 				<form
@@ -152,8 +168,7 @@
 						run();
 					}}
 				>
-					<h3>1. Velg et forsøk</h3>
-					<p>Endre én ting og se hva det gjør med resultatet.</p>
+					<h3>Prøv her</h3>
 					{#each lesson.fields as field}
 						{#if isRelevant(field.key)}
 							<label for={`field-${field.key}`}>{field.label}</label>
@@ -188,10 +203,10 @@
 						{/if}
 					{/each}
 					<button class="primary run" type="submit" disabled={Object.keys(values).length === 0}
-						>{trace.length ? 'Start forsøket på nytt' : 'Start forsøket'}
+						>{trace.length ? 'Kjør på nytt' : 'Kjør forsøket'}
 						<span aria-hidden="true">→</span></button
 					>
-					<p class="small">Forrige og Neste viser øyeblikksbilder. De sender ikke nye requests.</p>
+					<p class="small">Eksempeldata. Hver kjøring starter med samme utgangspunkt.</p>
 				</form>
 
 				<div class="execution">
@@ -240,17 +255,12 @@
 						</div>
 						<p class="response"><span>Svar / tilstand</span><strong>{current.status}</strong></p>
 					{:else}
-						<div class="waiting">
-							<span class="waiting-symbol" aria-hidden="true">{'{ }'}</span>
-							<p class="eyebrow">2. FØLG DET SOM SKJER</p>
-							<h3>Én handling. Ett steg om gangen.</h3>
-							<p>
-								Start forsøket til venstre. Her ser du koden, verdiene og svaret mens handlingen
-								utføres.
-							</p>
-							<div class="waiting-flow" aria-hidden="true">
-								<span>Inndata</span><b>→</b><span>Kode</span><b>→</b><span>Resultat</span>
-							</div>
+						<div class="example">
+							<p class="eyebrow">KODEEKSEMPEL</p>
+							<h3>{lesson.example.title}</h3>
+							<pre><code>{lesson.example.code}</code></pre>
+							<p>{lesson.example.explanation}</p>
+							<p class="small">Velg innstillinger og kjør forsøket for å følge kode, data og svar steg for steg.</p>
 						</div>
 					{/if}
 				</div>
@@ -271,46 +281,19 @@
 						{/each}
 					</div>
 					{#if finished}<div class="completed">
-							<span aria-hidden="true">✓</span>
 							<div>
-								<h3>Forsøket er ferdig</h3>
+								<h3>Kjøringen er ferdig · sammenlign med oppgaven</h3>
 								<p>{lesson.takeaway}</p>
-								<p class="small">
-									Velg en annen situasjon for å sammenligne. Startdataene nullstilles for hvert
-									forsøk.
-								</p>
 							</div>
 						</div>{/if}
 				</div>
 			{/if}
 		</section>
 
-		<section class="tasks" aria-labelledby="tasks-title">
-			<div>
-				<p class="eyebrow">PRØV SELV</p>
-				<h2 id="tasks-title">Tre ting å undersøke</h2>
-				<p>Gjør et forsøk først. Åpne forklaringen når du vil sjekke resonnementet ditt.</p>
-			</div>
-			<div class="task-grid">
-				{#each lesson.tasks as task, i}<article class="task">
-						<span class="task-number">0{i + 1}</span>
-						<h3>{task.title}</h3>
-						<p>{task.hint}</p>
-						<details
-							ontoggle={(event) => {
-								if (event.currentTarget.open) partnerTask = i;
-								else if (partnerTask === i) partnerTask = -1;
-							}}
-						>
-							<summary>Vis forklaring</summary>
-							<p>{task.answer}</p>
-						</details>
-					</article>{/each}
-			</div>
-		</section>
-
 		<details class="context">
-			<summary>Fra simuleringen til ditt eget prosjekt</summary>
+			<summary>Prøv i ditt eget prosjekt</summary>
+			<p><strong>Lag selv:</strong> {lesson.transfer.instruction}</p>
+			<p><strong>Undersøk resultatet:</strong> {lesson.transfer.check}</p>
 			<p>{lesson.context}</p>
 			<p>
 				Kodepanelene viser avgrensede utdrag, ikke komplette serverfiler. Bruk øvingsarket for hele
@@ -374,6 +357,7 @@
 		border-radius: 8px;
 	}
 	button {
+		min-height: 44px;
 		background: var(--color-surface);
 		color: var(--color-text);
 		padding: 0.65rem 0.9rem;
@@ -418,6 +402,7 @@
 		margin-right: 0.5rem;
 	}
 	.course a {
+		min-height: 44px;
 		display: flex;
 		align-items: center;
 		gap: 0.5rem;
@@ -438,7 +423,7 @@
 		background: var(--color-surface-hover);
 	}
 	.intro {
-		padding: 2.6rem 0 1.8rem;
+		padding: 1.25rem 0 1rem;
 		max-width: 900px;
 	}
 	.eyebrow {
@@ -452,7 +437,7 @@
 		padding: 0 0.5rem;
 	}
 	h1 {
-		font-size: clamp(2rem, 4vw, 3.4rem);
+		font-size: clamp(1.6rem, 3vw, 2.3rem);
 		letter-spacing: -0.04em;
 		line-height: 1.1;
 		margin: 0 0 1rem;
@@ -472,18 +457,10 @@
 		margin: 0.5rem 0 1rem;
 	}
 	.lead {
-		font-size: 1.15rem;
-		line-height: 1.65;
+		font-size: var(--font-body);
+		line-height: var(--leading-body);
 		max-width: 78ch;
 		color: var(--color-text-muted);
-	}
-	.simulation {
-		font-size: var(--font-small);
-		color: var(--color-text-muted);
-	}
-	.simulation span {
-		color: var(--color-accent);
-		margin-right: 0.3rem;
 	}
 	.lab {
 		background: var(--color-surface);
@@ -493,25 +470,75 @@
 		box-shadow: 0 8px 30px var(--color-shadow);
 		scroll-margin-top: 1rem;
 	}
-	.lab-heading {
-		padding: 1.5rem 1.75rem;
+	.task-picker {
 		display: flex;
-		align-items: center;
-		justify-content: space-between;
-		gap: 1rem;
+		flex-wrap: wrap;
+		gap: 0.4rem;
+		padding: 0.75rem;
+		background: var(--color-surface-soft);
 		border-bottom: 1px solid var(--color-border);
 	}
-	.lab-heading > div {
-		min-width: 0;
-		overflow-wrap: anywhere;
+	.task-picker button {
+		font-size: var(--font-small);
+		text-align: left;
 	}
-	.lab-number {
-		font: 3rem/1 monospace;
-		color: var(--color-border-strong);
+	.task-picker button.chosen {
+		background: var(--color-action);
+		color: var(--color-on-action);
+		border-color: var(--color-action);
+		text-decoration: underline;
+		text-underline-offset: 4px;
+	}
+	.task-brief {
+		padding: 1.2rem 1.5rem 0.7rem;
+		border-bottom: 1px solid var(--color-border);
+	}
+	.task-brief .eyebrow {
+		margin-bottom: 0.4rem;
+	}
+	.task-brief > p:not(.eyebrow) {
+		max-width: 95ch;
+		margin: 0.6rem 0;
+	}
+	.observe {
+		color: var(--color-text-muted);
+	}
+	.task-help {
+		display: flex;
+		flex-wrap: wrap;
+		gap: 0 1.5rem;
+	}
+	.task-help details[open] {
+		flex-basis: 100%;
+	}
+	.task-help summary,
+	.context summary {
+		min-height: 44px;
+		padding: 0.65rem 0;
+		color: var(--color-action);
+		font-size: var(--font-small);
+		font-weight: 700;
+	}
+	.task-help p {
+		max-width: 85ch;
+		border-left: 3px solid var(--color-border-strong);
+		padding-left: 1rem;
+	}
+	.example pre {
+		padding: 1rem;
+		border-radius: 8px;
+		background: var(--color-code-bg);
+		color: var(--color-code-text);
+		font: var(--font-code)/var(--leading-code) monospace;
+		overflow-x: auto;
+	}
+	.example p:not(.eyebrow) {
+		color: var(--color-text-muted);
+		max-width: 75ch;
 	}
 	.workbench {
 		display: grid;
-		grid-template-columns: 260px minmax(0, 1fr);
+		grid-template-columns: 280px minmax(0, 1fr);
 	}
 	.controls {
 		background: var(--color-surface-soft);
@@ -558,42 +585,6 @@
 	.execution {
 		padding: 1.5rem;
 		min-width: 0;
-	}
-	.waiting {
-		min-height: 390px;
-		height: 100%;
-		display: flex;
-		flex-direction: column;
-		align-items: center;
-		justify-content: center;
-		text-align: center;
-		padding: 1.5rem;
-	}
-	.waiting > p {
-		max-width: 48ch;
-		color: var(--color-text-muted);
-	}
-	.waiting-symbol {
-		font: 3rem/1 monospace;
-		color: var(--color-accent);
-		background: var(--color-accent-soft);
-		padding: 1rem;
-		border-radius: 14px;
-		margin-bottom: 1.5rem;
-	}
-	.waiting-flow {
-		display: flex;
-		align-items: center;
-		flex-wrap: wrap;
-		justify-content: center;
-		gap: 1rem;
-		margin-top: 1rem;
-		font-size: var(--font-small);
-	}
-	.waiting-flow span {
-		padding: 0.4rem 0.8rem;
-		border: 1px solid var(--color-border);
-		border-radius: 6px;
 	}
 	.step-toolbar {
 		display: flex;
@@ -669,6 +660,7 @@
 		padding: 0.75rem 0;
 	}
 	.code-lines button {
+		min-height: 32px;
 		display: flex;
 		align-items: baseline;
 		gap: 0.8rem;
@@ -780,49 +772,14 @@
 		margin-top: 1.5rem;
 		padding: 1.3rem;
 		border-radius: 8px;
-		border: 1px solid var(--color-success-border);
-		background: var(--color-success-soft);
-	}
-	.completed > span {
-		color: var(--color-success);
-		font-size: 1.6rem;
+		border: 1px solid var(--color-border);
+		background: var(--color-surface-soft);
 	}
 	.completed p:last-child {
 		margin-bottom: 0;
 	}
-	.tasks {
-		padding: 3rem 0 2rem;
-	}
-	.tasks > div > p:not(.eyebrow) {
-		color: var(--color-text-muted);
-	}
-	.task-grid {
-		display: grid;
-		grid-template-columns: repeat(3, minmax(0, 1fr));
-		gap: 1.2rem;
-		margin-top: 1.5rem;
-	}
-	.task {
-		border-top: 2px solid var(--color-border-strong);
-		padding: 1rem 0;
-	}
-	.task-number {
-		font: var(--font-meta)/2 monospace;
-		color: var(--color-accent);
-	}
-	.task p {
-		color: var(--color-text-muted);
-	}
-	.task summary {
-		color: var(--color-action);
-		font-size: var(--font-small);
-		font-weight: 700;
-	}
-	.task details p {
-		border-left: 3px solid var(--color-border-strong);
-		padding-left: 1rem;
-	}
 	.context {
+		margin-top: 1rem;
 		padding: 1.25rem;
 		border: 1px solid var(--color-border);
 		border-radius: 8px;
@@ -889,9 +846,6 @@
 		.course-name {
 			display: none;
 		}
-		.intro {
-			padding: 2rem 0 1rem;
-		}
 		.workbench {
 			grid-template-columns: minmax(0, 1fr);
 		}
@@ -903,14 +857,10 @@
 		.execution {
 			padding: 1.2rem;
 		}
-		.lab-heading,
+		.task-brief,
 		.data-area {
 			padding: 1.2rem;
 		}
-		.lab-number {
-			display: none;
-		}
-		.task-grid,
 		.data-grid {
 			grid-template-columns: minmax(0, 1fr);
 		}
@@ -925,10 +875,6 @@
 		}
 		.line-note {
 			min-height: 145px;
-		}
-		.waiting {
-			min-height: 300px;
-			padding: 0.5rem;
 		}
 		.lesson-footer {
 			flex-direction: column;

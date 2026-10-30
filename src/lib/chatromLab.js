@@ -1397,7 +1397,7 @@ export function planRun(state, kind, options = {}) {
 	return steps;
 }
 
-/** @type {{id: Kind, number: string, title: string, method: string, goal: string, question: string}[]} */
+/** @type {{id: Kind, number: string, title: string, method: string, goal: string, instruction: string, question: string}[]} */
 export const CHATROOM_LESSONS = [
 	{
 		id: 'rooms',
@@ -1405,6 +1405,7 @@ export const CHATROOM_LESSONS = [
 		title: 'Velg rom',
 		method: 'GET',
 		goal: 'Hent bare meldingene som tilhører rommet du har valgt.',
+		instruction: 'Velg et rom og trykk «Hent rommet». Følg stegene, bytt rom og hent igjen. Se hvilke meldinger backend sender tilbake.',
 		question: 'Hva må frontend sende for at backend skal vite hvilket rom du vil se?'
 	},
 	{
@@ -1413,6 +1414,7 @@ export const CHATROOM_LESSONS = [
 		title: 'Send som innlogget',
 		method: 'POST',
 		goal: 'La backend finne avsenderen i sessionen når en melding sendes.',
+		instruction: 'Velg en innlogget bruker og send en melding. Prøv igjen uten innlogging. Sammenlign avsender, HTTP-svar og serverlisten.',
 		question: 'Kan noen bytte avsender ved å endre det som sendes fra nettleseren?'
 	},
 	{
@@ -1421,6 +1423,7 @@ export const CHATROOM_LESSONS = [
 		title: 'Slett egen melding',
 		method: 'DELETE',
 		goal: 'Bruk meldings-ID og sjekk eierskap før backend sletter.',
+		instruction: 'Velg en melding og prøv å slette den som eier, deretter som en annen bruker. Nullstill dataene mellom forsøkene, og kontroller både svaret og meldingslisten.',
 		question: 'Hva stopper en bruker fra å slette en annens melding?'
 	}
 ];
