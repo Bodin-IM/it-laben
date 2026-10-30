@@ -2,7 +2,13 @@
 
 Moduler samler undervisning, øvinger og oppdrag. I elevens vanlige fagoversikt vises aktive moduler først og ferdige moduler etterpå. Kommende moduler er skjult fra elevoversikten til læreren aktiverer dem. Kortene har tekstmerket **Modul** og en tydelig status. Under modulene ligger et kompakt forslag til neste oppgave og «Finn enkeltoppgaver», som kan åpnes for å bla i øvinger, oppdrag og spill. Merker, XP og labnivå vises i Min lab, ikke som egne paneler på fagoversikten.
 
-Søk og typevalg ligger sammen øverst. Når eleven skriver et søk eller velger aktivitetstype, erstattes den vanlige oversikten av kompakte treff direkte under kontrollene: enkeltoppgaver først, deretter matchende åpne moduler. Neste-oppgave-forslaget skjules mens eleven søker. Søket finner både synlige moduler og enkeltaktiviteter. Typefilteret gjelder enkeltaktivitetene, mens fagvalget gjelder begge oversiktene. [Designvurderingen og utkastet](designvurdering-og-utkast.md) dokumenterer den første utformingen.
+Søket ligger øverst i hovedinnholdet, rett over de aktive modulkortene. Modulkortets eget statusmerke viser «Aktiv modul»; gjentatte overskrifter, modulteller og forklaringstekst er fjernet. Labpartneren ligger over fag- og typevalgene i venstrespalten, også på mellomstore skjermer. På mobil samles labpartnerknappen og den lukkede menyen «Fag og type» i én rad. Sidetittel, søkeetikett og moduloverskrift beholdes for skjermlesere.
+
+Når eleven skriver et søk eller velger aktivitetstype, erstattes den vanlige oversikten av kompakte treff direkte under søket: enkeltoppgaver først, deretter matchende åpne moduler. Neste-oppgave-forslaget skjules mens eleven søker. Søket finner både synlige moduler og enkeltaktiviteter. Typefilteret gjelder enkeltaktivitetene, mens fagvalget gjelder begge oversiktene. [Designvurderingen og utkastet](designvurdering-og-utkast.md) dokumenterer den første utformingen.
+
+Plasseringen er justert etter brukerens tilbakemelding om at aktiv modul kom for langt ned. Den følger U1/U3/U6 i [designgrunnlaget](webdesign-og-brukeropplevelse.md): prioriter dagens arbeid, bruk tydelig hierarki og la ekstra hjelp åpnes ved behov. Dette er lokale designvalg, ikke dokumentert brukereffekt. Sidekolonnen beholdes fra 801 CSS-piksler; labpartneren åpnes i dialog under 1200 piksler og i kolonnen fra 1200. Felles hovedmeny og elevens søke-/filterlenker beholdes.
+
+**Dev, 30. oktober 2026:** Kode og diff er gjennomgått. Samlet testing gjenstår før main. Prøv særlig overgangene ved 800/801 og 1199/1200 piksler, 320 px, zoom, tastatur, begge temaer, fag/type/søk og delte søkelenker, modulstatus ved lasting/feil, samt én labpartner med skjuling og gjenåpning fra hovedmenyen. Ingen tester, Svelte-sjekk, bygg eller nettleserprøving er kjørt for denne justeringen.
 
 ## Modulstatus og lærerens styring
 

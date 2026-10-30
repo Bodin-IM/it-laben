@@ -14,6 +14,8 @@ På elevsidene brukes `page-help` versjon 2 med kjent side-ID, eventuell valider
 
 Panelet har én figur i toppen, som vokser ved åpning. Sidehjelpen viser sidetittel og ett tips. «Mer hjelp» samler sideforklaring, hjelp om verktøyene og lenken «Vis meg rundt».
 
+På fagoversikten er den samme labpartnerkomponenten plassert over fagmenyen i venstrespalten, slik at søk og aktiv modul starter øverst i hovedinnholdet. Fra 1200 CSS-piksler åpnes panelet i kolonnen. På mindre skjermer åpner en kompakt knapp dialogen; inntil 800 piksler står knappen ved siden av den sammenleggbare fagmenyen. Den felles hovedmenyens labpartnerknapp åpner fortsatt samme panel. Denne dev-justeringen fra 30. oktober 2026 er gjennomgått i kode og diff; breddebytte, skjuling/gjenåpning, bevart samtale og tilgjengelighet prøves samlet før main.
+
 Panelet viser hva som følger med spørsmålet. Ingen fagsjekkspørsmål, Nattevakt-scenario eller vurderingsfasit hentes inn. Modellen kan forklare begreper og foreslå en undersøkelse, men skal ikke godkjenne arbeid eller gi XP. KI-generert veiledning må fortsatt prøves faglig med den lokale modellen; en systeminstruksjon garanterer ikke gode svar.
 
 Samtalen beholdes ved lukking og skjermbreddebytte, men tømmes ved bytte av sidegrunnlag, profil eller øvingskontekst. Pågående spørsmål avbrytes ved slikt bytte. Ukjente ruter får en generell navigasjonshjelp; bare kjente fagfiltre påvirker sidegrunnlaget. Ingen samtale lagres permanent. Presentasjonsvisningen beholder fraværet av elevverktøy.

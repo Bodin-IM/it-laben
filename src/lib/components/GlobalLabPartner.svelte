@@ -17,6 +17,8 @@
 	const channel = getContext(partnerChannelKey);
 	import { partnerPageFor } from '#lib/partnerPages.js';
 	import LabPartnerPanel from '#lib/components/LabPartnerPanel.svelte';
+	/** @type {{inSidebar?:boolean}} */
+	let { inSidebar = false } = $props();
 	const current = $derived(
 		partnerPageFor(
 			page.url.pathname,
@@ -98,7 +100,7 @@
 
 <svelte:document oninput={interact} />
 {#if current}
-	<aside class="global-partner" aria-label="Labpartner">
+	<aside class="global-partner" class:in-sidebar={inSidebar} aria-label="Labpartner">
 		{#key `${scope}:${current.id}:${moduleId ?? ''}:${taskKey}`}
 			<LabPartnerPanel
 				{snapshot}
@@ -106,7 +108,8 @@
 				accountId={$lab.user?.id ?? null}
 				csrf={$lab.csrfToken ?? ''}
 				avatarId={$lab.summary?.lab.avatarId ?? $labPreferences.partnerAvatar}
-				dialogBreakpoint={1799}
+				dialogBreakpoint={inSidebar ? 1199 : 1799}
+				compact={inSidebar}
 				reactionMood={$avatarReaction.mood}
 				reactionMessage={$avatarReaction.message}
 				onreset={() => {}}
@@ -133,5 +136,12 @@
 			position: sticky;
 			top: 24px;
 		}
+	}
+	.global-partner.in-sidebar {
+		width: 100%;
+		margin: 0;
+		position: static;
+		grid-column: auto;
+		grid-row: auto;
 	}
 </style>

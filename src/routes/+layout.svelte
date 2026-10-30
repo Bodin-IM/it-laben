@@ -40,7 +40,8 @@
 			setLearningContext({ activityId: '', mode: 'normal', openingId: null, untimed: false });
 	});
 	const showStudentTools = $derived(!presentationRequested || ($lab.ready && !presenting));
-	const localPartner = $derived(page.url.pathname.replace(/\/$/, '') === '/spill/redd-chatten');
+	// The catalogue places the shared partner above its own subject menu.
+	const localPartner = $derived(page.url.pathname === '/' || page.url.pathname.replace(/\/$/, '') === '/spill/redd-chatten');
 	const showCompanion = $derived(
 		!localPartner &&
 			showStudentTools &&

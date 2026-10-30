@@ -7,7 +7,7 @@
 	import Avatar from '#lib/components/Avatar.svelte';
 	import { MISSIONS, casesFor, programCode } from '#lib/reddChatten.js';
 	import { partnerRequest, partnerSnapshotKey } from '#lib/labPartner.js';
-	/** @type {{snapshot:import('#lib/labPartner.js').PartnerSnapshot, accountId:string|null, csrf:string, avatarId?:string, onreset:()=>void, contextError?:string, dialogBreakpoint?:number,reactionMood?:import('#lib/avatarFeedback.js').AvatarMood,reactionMessage?:string}} */
+	/** @type {{snapshot:import('#lib/labPartner.js').PartnerSnapshot, accountId:string|null, csrf:string, avatarId?:string, onreset:()=>void, contextError?:string, dialogBreakpoint?:number,compact?:boolean,reactionMood?:import('#lib/avatarFeedback.js').AvatarMood,reactionMessage?:string}} */
 	let {
 		snapshot,
 		contextError = '',
@@ -16,6 +16,7 @@
 		avatarId = 'robot',
 		onreset,
 		dialogBreakpoint = 600,
+		compact = false,
 		reactionMood = 'idle',
 		reactionMessage = ''
 	} = $props();
@@ -532,12 +533,14 @@
 		type="button"
 		id="labpartner-hjelp"
 		class="mobile-launch"
+		class:compact
 		aria-haspopup="dialog"
+		aria-label={newAnswerReady ? 'Spør labpartneren, nytt svar klart' : 'Spør labpartneren'}
 		onclick={openPanel}
 	>
-		<Avatar id={avatarId} {mood} size={44} /><span
-			>Spør labpartneren{#if newAnswerReady}<small>Nytt svar klart</small>{/if}</span
-		><span aria-hidden="true">→</span>
+		<Avatar id={avatarId} {mood} size={compact ? 32 : 44} decorative /><span class="launch-label"
+			>{compact ? 'Labpartner' : 'Spør labpartneren'}{#if newAnswerReady}<small>Nytt svar klart</small>{/if}</span
+		>{#if !compact}<span aria-hidden="true">→</span>{/if}
 	</button>
 	<dialog
 		class="partner-dialog"
@@ -571,7 +574,7 @@
 	>
 		<summary class="panel-heading"
 			><PartnerStage {avatarId} {mood} {expanded} /><span
-				><strong>{expanded ? 'Labpartneren' : 'Spør labpartneren'}</strong>{#if !expanded && reactionMessage}<small>{reactionMessage}</small>{/if}</span
+				><strong>{expanded ? 'Labpartneren' : compact ? 'Labpartner' : 'Spør labpartneren'}</strong>{#if !expanded && reactionMessage}<small>{reactionMessage}</small>{/if}</span
 			></summary
 		>
 		{@render body()}
@@ -868,6 +871,12 @@
 	}
 	.mobile-launch > span:last-child {
 		margin-left: auto;
+	}
+	.mobile-launch.compact { padding: 6px 8px; gap: 8px; min-height: 48px; }
+	.mobile-launch.compact > .launch-label { margin-left: 0; }
+	@media (max-width: 440px) {
+		.mobile-launch.compact { width: 48px; justify-content: center; }
+		.mobile-launch.compact .launch-label { display: none; }
 	}
 	.partner-dialog {
 		width: 100%;

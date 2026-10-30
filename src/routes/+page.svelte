@@ -1,5 +1,8 @@
 <script>
 	import { onMount, tick } from 'svelte';
+	import { MediaQuery } from 'svelte/reactivity';
+	import GlobalLabPartner from '#lib/components/GlobalLabPartner.svelte';
+	import { labPreferences } from '#lib/labPreferences.js';
 	import { afterNavigate, goto, replaceState } from '$app/navigation';
 	import { page } from '$app/state';
 	import PersonalOverview from '#lib/components/PersonalOverview.svelte';
@@ -12,6 +15,10 @@
 	import { connection, secureHref } from '#lib/connection.js';
 	import { publicationFor } from '#lib/modulePublication.js';
 	import { modulePublication, refreshModulePublication } from '#lib/modulePublicationStore.js';
+
+	const sidebarScreen = new MediaQuery('(min-width: 801px)', true);
+	let filtersOpen = $state(true);
+	$effect(() => { filtersOpen = sidebarScreen.current; });
 
 	let valgtFag = $state('alle');
 	let valgtFormat = $state('alle');
@@ -176,50 +183,54 @@
 
 <div class="forside">
 	<div class="catalogue-layout">
-		<aside class="sidebar" aria-label="Velg fag og finn innhold">
-			<p class="nav-label" id="fag-label">Fag</p>
-			<div class="fagliste" role="group" aria-labelledby="fag-label">
-				<button
-					type="button"
-					class="fagkort"
-					class:valgt={valgtFag === 'alle'}
-					aria-pressed={valgtFag === 'alle'}
-					aria-controls="moduler utforsk"
-					onclick={() => (valgtFag = 'alle')}
-				>
-					<span class="fagsymbol" aria-hidden="true">◫</span><span>Alle fag</span>
-				</button>
-				{#each fag as gruppe (gruppe.id)}
-					<button
-						type="button"
-						class="fagkort"
-						class:valgt={valgtFag === gruppe.id}
-						aria-pressed={valgtFag === gruppe.id}
-						aria-controls="moduler utforsk"
-						onclick={() => (valgtFag = gruppe.id)}
-					>
-						<span class="fagsymbol" aria-hidden="true">{gruppe.symbol.replaceAll(' ', '')}</span
-						><span>{gruppe.navn}</span>
-					</button>
-				{/each}
-			</div>
-			<nav class="section-nav" aria-label="På denne siden">
-				<p class="nav-label">På denne siden</p>
-				<a href="#moduler">Moduler <span aria-hidden="true">↓</span></a>
-				<a href="#utforsk" onclick={() => (activitiesOpen = true)}
-					>Finn enkeltoppgaver <span aria-hidden="true">↓</span></a
-				>
-			</nav>
-			<p class="sidebar-note">Se sammenhengen.<br />Prøv selv.<br />Forstå mer.</p>
-		</aside>
+		<div class="sidebar" class:with-partner={$labPreferences.companion}>
+			{#if $labPreferences.companion}<GlobalLabPartner inSidebar />{/if}
+			<details class="catalogue-filters" bind:open={filtersOpen}>
+				<summary>{valgtFag === 'alle' && valgtFormat === 'alle' ? 'Fag og type' : valgtFagnavn}{#if valgtFormat !== 'alle'}<small>{formater.find((item) => item.id === valgtFormat)?.navn}</small>{/if}</summary>
+				<div class="filter-content">
+					<p class="nav-label" id="fag-label">Fag</p>
+					<div class="fagliste" role="group" aria-labelledby="fag-label">
+						<button
+							type="button"
+							class="fagkort"
+							class:valgt={valgtFag === 'alle'}
+							aria-pressed={valgtFag === 'alle'}
+							aria-controls="moduler utforsk"
+							onclick={() => (valgtFag = 'alle')}
+						>
+							<span class="fagsymbol" aria-hidden="true">◫</span><span>Alle fag</span>
+						</button>
+						{#each fag as gruppe (gruppe.id)}
+							<button
+								type="button"
+								class="fagkort"
+								class:valgt={valgtFag === gruppe.id}
+								aria-pressed={valgtFag === gruppe.id}
+								aria-controls="moduler utforsk"
+								onclick={() => (valgtFag = gruppe.id)}
+							>
+								<span class="fagsymbol" aria-hidden="true">{gruppe.symbol.replaceAll(' ', '')}</span
+								><span>{gruppe.navn}</span>
+							</button>
+						{/each}
+					</div>
+					<label class="type-label" for="innholdstype">Type enkeltoppgave</label>
+					<select id="innholdstype" bind:value={valgtFormat} aria-controls="resultater">
+						{#each formater as format (format.id)}<option value={format.id}>{format.navn}</option>{/each}
+					</select>
+					<nav class="section-nav" aria-label="På denne siden">
+						<a href="#moduler">Moduler <span aria-hidden="true">↓</span></a>
+						<a href="#utforsk" onclick={() => (activitiesOpen = true)}>Finn enkeltoppgaver <span aria-hidden="true">↓</span></a>
+					</nav>
+				</div>
+			</details>
+		</div>
 
 		<main id="hovedinnhold" tabindex="-1">
-			<section class="intro" aria-labelledby="sidetittel">
-				<h1 id="sidetittel">{valgtFag === 'alle' ? 'Fagoversikt' : valgtFagnavn}</h1>
-			</section>
+			<h1 id="sidetittel" class="sr-only">{valgtFag === 'alle' ? 'Fagoversikt' : valgtFagnavn}</h1>
 
 			<div class="search-tools">
-				<label for="innholdssok"
+				<label for="innholdssok" class="sr-only"
 					>{valgtFag === 'alle'
 						? 'Søk i alle fag'
 						: `Søk i ${valgtFagnavn.toLocaleLowerCase('nb-NO')}`}</label
@@ -237,7 +248,7 @@
 						<input
 							id="innholdssok"
 							type="search"
-							placeholder="Tema, modul eller aktivitet …"
+							placeholder="Søk etter tema, modul eller oppgave …"
 							bind:value={sok}
 							bind:this={searchInput}
 							autocomplete="off"
@@ -245,16 +256,8 @@
 						/>
 					</div>
 				</div>
-				<div class="formatvalg" role="group" aria-label="Filtrer enkeltoppgaver etter type">
-					{#each formater as format (format.id)}<button
-							type="button"
-							class:valgt={valgtFormat === format.id}
-							aria-pressed={valgtFormat === format.id}
-							aria-controls="resultater"
-							onclick={() => (valgtFormat = format.id)}>{format.navn}</button
-						>{/each}
-				</div>
-				<div class="search-status">
+
+				<div class="search-status" class:sr-only={!filtering}>
 					<p role="status" aria-atomic="true">
 						{#if $modulePublication.ready}
 							{resultater.modules.length}
@@ -306,28 +309,15 @@
 				</div>
 			{:else}
 				<section id="moduler" class="moduloversikt" aria-labelledby="modultittel">
-					<div class="section-heading">
-						<div>
-							<h2 id="modultittel">
-								Moduler {#if $modulePublication.ready}<span class="count"
-										>{resultater.modules.length}</span
-									>{/if}
-							</h2>
-							<p>Det dere jobber med nå, og tidligere temaer du kan gå tilbake til.</p>
-						</div>
-					</div>
+					<h2 id="modultittel" class="sr-only">Moduler</h2>
 					{@render moduleStatus()}
 					{#if $modulePublication.ready && !$connection.publicHttp}
 						{#if aktiveModuler.length}
 							<div class="module-group">
-								<h3 class="module-group-title">
-									{aktiveModuler.length === 1 ? 'Aktiv modul' : 'Aktive moduler'}
-								</h3>
 								<div class="modulkortliste">
 									{#each aktiveModuler as module (module.id)}<ModuleCard
 											{module}
 											publication={publicationFor(module.id, $modulePublication.modules)}
-											headingLevel={4}
 										/>{/each}
 								</div>
 							</div>
@@ -335,9 +325,6 @@
 						{#if tidligereModuler.length}
 							<div class="module-group">
 								<h3 class="module-group-title">Tidligere moduler</h3>
-								<p class="module-group-description">
-									Finn igjen stoffet og øv videre når du trenger det.
-								</p>
 								<div class="modulkortliste">
 									{#each tidligereModuler as module (module.id)}<ModuleCard
 											{module}
@@ -395,6 +382,39 @@
 </div>
 
 <style>
+	.forside .sr-only {
+		position: absolute;
+		width: 1px;
+		height: 1px;
+		min-height: 0;
+		padding: 0;
+		margin: -1px;
+		overflow: hidden;
+		clip-path: inset(50%);
+		white-space: nowrap;
+		border: 0;
+	}
+	.catalogue-filters { min-width: 0; }
+	.catalogue-filters > summary {
+		min-height: 48px;
+		padding: 12px;
+		cursor: pointer;
+		font-size: var(--font-small);
+		font-weight: 650;
+	}
+	.catalogue-filters small { display: block; color: var(--color-text-muted); font-weight: 400; }
+	.type-label { display: block; margin: 20px 0 8px; font-size: var(--font-small); font-weight: 600; }
+	select {
+		width: 100%;
+		min-width: 0;
+		min-height: 44px;
+		padding: 8px;
+		border: 1px solid var(--color-border-strong);
+		border-radius: 8px;
+		background: var(--color-surface);
+		color: var(--color-text);
+	}
+
 	.result-heading { margin-bottom: 12px; font-size: 1.15rem; }
 	.result-list { display: grid; gap: 8px; }
 	.matching-modules { margin-top: 28px; }
@@ -424,16 +444,17 @@
 	}
 	.catalogue-layout {
 		display: grid;
-		grid-template-columns: 210px minmax(0, 1fr);
-		gap: 48px;
+		grid-template-columns: 300px minmax(0, 1fr);
+		gap: 24px;
 		width: min(var(--layout-width), calc(100% - 2 * var(--layout-gutter)));
 		margin: auto;
 		align-items: start;
 	}
 	.sidebar {
-		position: sticky;
-		top: 24px;
-		padding-top: 36px;
+		display: grid;
+		gap: 16px;
+		min-width: 0;
+		padding-top: 20px;
 	}
 	.nav-label {
 		font-size: var(--font-meta);
@@ -446,7 +467,8 @@
 		gap: 6px;
 	}
 	button,
-	input {
+	input,
+	select {
 		font: inherit;
 	}
 	button {
@@ -484,8 +506,8 @@
 	.section-nav {
 		display: grid;
 		border-top: 1px solid var(--color-border);
-		margin-top: 28px;
-		padding-top: 24px;
+		margin-top: 20px;
+		padding-top: 12px;
 	}
 	.section-nav a {
 		display: flex;
@@ -502,33 +524,12 @@
 		text-decoration: underline;
 		text-underline-offset: 4px;
 	}
-	.sidebar-note {
-		margin-top: 48px;
-		font-size: var(--font-small);
-		line-height: 1.8;
-		color: var(--color-text-muted);
-	}
 	main {
 		min-width: 0;
 		padding-top: 20px;
 	}
-	.intro {
-		margin-bottom: 12px;
-	}
-	h1 {
-		margin: 0;
-		font-size: 1.35rem;
-		line-height: 1.3;
-		letter-spacing: -0.02em;
-	}
 	.search-tools {
 		margin-bottom: 16px;
-	}
-	.search-tools label {
-		display: block;
-		margin-bottom: 8px;
-		font-size: var(--font-small);
-		font-weight: 600;
 	}
 	.search-row {
 		display: flex;
@@ -552,7 +553,7 @@
 	}
 	input {
 		width: 100%;
-		min-height: 54px;
+		min-height: 48px;
 		height: auto;
 		line-height: 1.4;
 		padding: 10px 16px 10px 46px;
@@ -605,13 +606,6 @@
 		text-decoration: underline;
 		text-underline-offset: 4px;
 	}
-	.section-heading {
-		display: flex;
-		align-items: center;
-		justify-content: space-between;
-		gap: 16px;
-		margin-bottom: 18px;
-	}
 	h2 {
 		display: flex;
 		align-items: center;
@@ -633,11 +627,6 @@
 		font-size: var(--font-meta);
 		font-weight: 600;
 	}
-	.section-heading p {
-		margin: 5px 0 0;
-		color: var(--color-text-muted);
-		font-size: var(--font-small);
-	}
 	.modulkortliste,
 	.kortliste {
 		display: grid;
@@ -654,11 +643,6 @@
 		margin: 0 0 12px;
 		font-size: 1.05rem;
 		font-weight: 650;
-	}
-	.module-group-description {
-		margin: -4px 0 16px;
-		color: var(--color-text-muted);
-		font-size: var(--font-small);
 	}
 	.module-notice {
 		padding: 18px 20px;
@@ -681,30 +665,6 @@
 	.oversikt {
 		border-top: 1px solid var(--color-border);
 		padding-top: 32px;
-	}
-	.formatvalg {
-		display: flex;
-		flex-wrap: wrap;
-		gap: 8px;
-		margin: 12px 0 0;
-	}
-	.formatvalg button {
-		min-height: 44px;
-		padding: 9px 16px;
-		border: 1px solid var(--color-border-strong);
-		border-radius: 8px;
-		background: var(--color-surface);
-		color: var(--color-text-muted);
-		font-size: var(--font-small);
-		font-weight: 600;
-	}
-	.formatvalg button:hover {
-		background: var(--color-surface-soft);
-	}
-	.formatvalg button.valgt {
-		color: var(--color-on-action);
-		background: var(--color-action);
-		border-color: var(--color-action);
 	}
 	.group-label {
 		color: var(--color-text-muted);
@@ -773,72 +733,36 @@
 	a:focus-visible,
 	button:focus-visible,
 	input:focus-visible,
+	select:focus-visible,
+	summary:focus-visible,
 	main:focus-visible {
 		outline: 3px solid var(--color-focus);
 		outline-offset: 4px;
 	}
 
+	@media (min-width: 801px) {
+		.catalogue-filters > summary { display: none; }
+	}
+	@media (min-width: 801px) and (max-width: 1199px) {
+		.catalogue-layout { grid-template-columns: 220px minmax(0, 1fr); }
+	}
 	@media (max-width: 1050px) {
-		.catalogue-layout {
-			grid-template-columns: 180px minmax(0, 1fr);
-			gap: 28px;
-		}
-		.search-row {
-			flex-wrap: wrap;
-			gap: 4px 20px;
-		}
-		.sokefelt {
-			flex-basis: 100%;
-		}
-		.kortliste {
-			grid-template-columns: 1fr;
-		}
+		.kortliste, .modulkortliste { grid-template-columns: 1fr; }
 	}
 	@media (max-width: 800px) {
-		.catalogue-layout {
-			grid-template-columns: 1fr;
-			gap: 0;
+		.catalogue-layout { grid-template-columns: 1fr; gap: 0; }
+		.sidebar { padding-top: 12px; gap: 12px; align-items: start; }
+		.sidebar.with-partner { grid-template-columns: auto minmax(0, 1fr); }
+		.catalogue-filters {
+			border: 1px solid var(--color-border-strong);
+			border-radius: 10px;
+			background: var(--color-surface);
 		}
-		.sidebar {
-			position: static;
-			padding-top: 22px;
-		}
-		.nav-label {
-			margin-bottom: 8px;
-		}
-		.fagliste {
-			display: flex;
-			flex-wrap: wrap;
-			gap: 8px;
-		}
-		.fagkort {
-			border-color: var(--color-border-strong);
-			padding: 9px 12px;
-			min-height: 44px;
-		}
-		.fagsymbol {
-			display: none;
-		}
-		.section-nav,
-		.sidebar-note {
-			display: none;
-		}
-		main {
-			padding-top: 16px;
-		}
-	}
-	@media (max-width: 550px) {
-		.modulkortliste {
-			grid-template-columns: 1fr;
-		}
-		.moduloversikt {
-			margin-bottom: 32px;
-		}
-		.formatvalg {
-			gap: 7px;
-		}
-		.formatvalg button {
-			padding-inline: 12px;
-		}
+		.filter-content { padding: 12px; border-top: 1px solid var(--color-border); }
+		.fagsymbol { display: none; }
+		.fagkort { padding: 8px; min-height: 44px; }
+		.section-nav { display: none; }
+		main { padding-top: 12px; }
+		.moduloversikt { margin-bottom: 24px; }
 	}
 </style>
