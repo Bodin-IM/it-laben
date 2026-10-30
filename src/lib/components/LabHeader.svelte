@@ -6,6 +6,7 @@
 	import ThemeToggle from '#lib/components/ThemeToggle.svelte';
 	import SoundToggle from '#lib/components/SoundToggle.svelte';
 	import AccountLink from '#lib/components/AccountLink.svelte';
+	import ActiveModuleLinks from '#lib/components/ActiveModuleLinks.svelte';
 	import { lab } from '#lib/lab.js';
 	import { hasTeacherRole } from '#lib/learning.js';
 	import { partnerAllowed } from '#lib/partnerPages.js';
@@ -100,9 +101,12 @@
 				<summary>Velg fag <span aria-hidden="true">⌄</span></summary>
 				<div class="subject-links">
 					{#each fag as subject (subject.id)}
-						<a href={`/?fag=${subject.id}${teacher ? '&visning=elev' : ''}`}
-							><strong>{subject.navn}</strong><span>{subject.beskrivelse}</span></a
-						>
+						<div>
+							<a href={`/?fag=${subject.id}${teacher ? '&visning=elev' : ''}`}
+								><strong>{subject.navn}</strong><span>{subject.beskrivelse}</span></a
+							>
+							<ActiveModuleLinks {subject} />
+						</div>
 					{/each}
 				</div>
 			</details>

@@ -8,9 +8,9 @@
 	import PersonalOverview from '#lib/components/PersonalOverview.svelte';
 	import ModuleCard from '#lib/components/ModuleCard.svelte';
 	import ActivityCard from '#lib/components/ActivityCard.svelte';
+	import ActiveModuleLinks from '#lib/components/ActiveModuleLinks.svelte';
 	import { altElevinnhold as aktiviteter, fag, innholdsformat } from '#lib/innhold.js';
 	import { searchCatalogue, normalizeSearch } from '#lib/catalogueSearch.js';
-	import { moduler } from '#lib/moduler.js';
 	import { lab } from '#lib/lab.js';
 	import { teacherLanding } from '#lib/teacherNavigation.js';
 	import { connection, secureHref } from '#lib/connection.js';
@@ -40,13 +40,6 @@
 		...Array.from(new Set(aktiviteter.map((item) => item.format))).map(innholdsformat)
 	];
 	const valgtFagnavn = $derived(fag.find((item) => item.id === valgtFag)?.navn ?? 'Alle fag');
-	const aktiveSnarveier = $derived(
-		$modulePublication.ready && !$connection.publicHttp
-			? moduler.filter(
-					(module) => publicationFor(module.id, $modulePublication.modules).status === 'active'
-				)
-			: []
-	);
 	const resultater = $derived(
 		searchCatalogue({
 			subject: valgtFag,
@@ -209,7 +202,6 @@
 							<span class="fagsymbol" aria-hidden="true">◫</span><span>Alle fag</span>
 						</button>
 						{#each fag as gruppe (gruppe.id)}
-							{@const fagmoduler = aktiveSnarveier.filter((module) => module.subject === gruppe.id)}
 							<div class="fagvalg">
 								<button
 									type="button"
@@ -222,13 +214,7 @@
 									<span class="fagsymbol" aria-hidden="true">{gruppe.symbol.replaceAll(' ', '')}</span
 									><span>{gruppe.navn}</span>
 								</button>
-								{#if fagmoduler.length}
-									<ul class="modulsnarveier" aria-label={`Moduler i ${gruppe.navn}`}>
-										{#each fagmoduler as module (module.id)}
-											<li><a href={`/moduler/${module.id}/`}>{module.title}</a></li>
-										{/each}
-									</ul>
-								{/if}
+								<ActiveModuleLinks subject={gruppe} />
 							</div>
 						{/each}
 					</div>
@@ -484,27 +470,9 @@
 		display: grid;
 		gap: 6px;
 	}
-	.fagvalg { min-width: 0; }
-	.modulsnarveier {
-		list-style: none;
-		margin: 0 0 4px 34px;
-		padding: 0;
-	}
-	.modulsnarveier a {
-		display: flex;
-		align-items: center;
-		min-height: 44px;
-		padding: 8px 12px;
-		border-radius: 8px;
-		color: var(--color-text);
-		font-size: var(--font-small);
-		overflow-wrap: anywhere;
-		text-decoration: underline;
-		text-underline-offset: 3px;
-	}
-	.modulsnarveier a:hover {
-		background: var(--color-surface-soft);
-		color: var(--color-accent);
+	.fagvalg {
+		min-width: 0;
+		--module-link-indent: 34px;
 	}
 	button,
 	input,
@@ -802,8 +770,7 @@
 		.filter-content { padding: 12px; border-top: 1px solid var(--color-border); }
 		.fagsymbol { display: none; }
 		.fagkort { padding: 8px; min-height: 44px; }
-		.modulsnarveier { margin-left: 16px; }
-		.modulsnarveier a { padding-inline: 8px; }
+		.fagvalg { --module-link-indent: 16px; --module-link-padding: 8px; }
 		.section-nav { display: none; }
 		main { padding-top: 12px; }
 		.moduloversikt { margin-bottom: 24px; }

@@ -11,7 +11,7 @@ Den største gjenværende ulikheten var at hver side kunne definere sin egen top
 | Område | Ny løsning |
 | --- | --- |
 | Hovednavigasjon | Én `LabHeader` i SvelteKits rotlayout. Fagoversikt, fagvalg, toppliste, Min lab, lydknapp og temavelger har samme plassering på alle vanlige sider. Lærerpanel vises for lærer og administrator. |
-| Fag | «Velg fag» gir tilgang til fagene fra alle sider. Faglisten på forsiden er fortsatt et lokalt filter for katalogen. Valg gjennom hovedmenyen oppdaterer også en allerede åpen forside. |
+| Fag | «Velg fag» gir tilgang til fagene fra alle sider, med aktive modulnavn som direkte lenker under hvert fag. De samme modulnavnene finnes i forsidens fagmeny. Faglisten på forsiden er fortsatt et lokalt filter for katalogen. Valg gjennom hovedmenyen oppdaterer også en allerede åpen forside. |
 | Mobil | En navngitt menyknapp viser og skjuler navigasjonen. Menyen lukkes ved navigasjon og kan lukkes med Escape. XP-tallet skjules i den kompakte kontolenken; det er fortsatt tilgjengelig i Min lab. |
 | Hvor man er | Hovedmenyen, Min lab og lærerfanene markerer gjeldende side eller område med tekstfarge, bakgrunn og `aria-current`. |
 | Lærerpanel | Oversikt, Undervisning, Elever og Felles aktiviteter bruker samme `TeacherShell`, sidebredde, kort, kontrollstiler og tekstskala. Administratorkontrollene beholder eksisterende rollekrav. |
@@ -20,6 +20,8 @@ Den største gjenværende ulikheten var at hver side kunne definere sin egen top
 | Tastatur og feilside | En felles hopplenke fører til sidens hovedinnhold. Den nye feilsiden arver også hovedmenyen og gir en vei tilbake til fagoversikten. |
 
 Presentasjonsvisning er et bevisst unntak: læreren får presentasjonskontrollene i stedet for hovedmenyen. «Avslutt visning» går tilbake til læreropplegget og gjenoppretter vanlig navigasjon.
+
+**Dev-tillegg 30. oktober 2026:** Modulnavnene i «Velg fag» gjenbruker `ActiveModuleLinks` fra forsiden. Ingen ekstra overskrift eller teller legges til. Bare aktive moduler med hentet status vises; valgt søk/fag/type påvirker ikke snarveiene. Gjeldende modul markeres med `aria-current`, vekt og temafarge. Diff er gjennomgått; samlet testing av modulnavigasjon, statusendringer, tastatur/Escape, fokus, mobil og begge temaer gjenstår før main. Kontrollhistorikken nedenfor gjelder den tidligere menyversjonen.
 
 Dette følger særlig U1 og U6 i [designgrunnlaget](webdesign-og-brukeropplevelse.md): gjenkjennelig navigasjon, forståelig plassering og tydelige tilbakeveier. Utforming og plassering er prosjektvalg. [Pedagogikkgrunnlaget](pedagogisk-grunnlag.md) videreføres; oppgaver, vurdering, progresjon og XP-regler er ikke endret.
 
