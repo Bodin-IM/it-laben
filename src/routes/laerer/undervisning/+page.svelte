@@ -1,4 +1,5 @@
 <script>
+	import TeacherSettings from '#lib/components/TeacherSettings.svelte';
 	import { page } from '$app/state';
 	import { lab, schoolRequest } from '#lib/lab.js';
 	import { hasTeacherRole } from '#lib/learning.js';
@@ -146,6 +147,7 @@
 			? 'Velg status for hver modul, og åpne modulen for innhold og undervisningsopplegg.'
 			: 'Finn støtte til felles gjennomgang eller en elevleksjon å vise på storskjerm.'}
 >
+	<TeacherSettings />
 	{#if planId}
 		<div class="return-links">
 			{#if planModule}<a href={`/moduler/${planModule.id}/`}>← Til {planModule.title}</a>{/if}

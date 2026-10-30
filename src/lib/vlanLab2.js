@@ -1,5 +1,5 @@
 import { hostAddress, membership } from './vlanLab.js';
-import { portFeedback } from './networkCheckFeedback.js';
+import { portFeedback, untaggedVlan } from './networkCheckFeedback.js';
 
 /** @typedef {{id:string,name:string,vlan:number,network:string,gateway:string}} Network */
 /** @typedef {{id:string,name:string,kind:'pc'|'switch'|'router'|'ap',x:number,y:number}} Device */
@@ -381,7 +381,8 @@ function layer2(task, config, source, target) {
 		source.switchId,
 		`${source.switchId.toUpperCase()} ${source.port} mottar ${source.tag === null ? 'untagged' : `tagged VLAN ${source.tag}`}.`
 	);
-	let vlan = source.tag ?? config.switches[source.switchId].ports[source.port].pvid;
+	let vlan = source.tag ?? untaggedVlan(config.switches[source.switchId].ports[source.port]);
+	if (vlan === null) return stop(source.switchId, `${source.switchId.toUpperCase()} ${source.port} avviser umerket trafikk. Sett U på riktig VLAN-rad.`);
 	if (!allowed(source.switchId, source.port, vlan))
 		return stop(
 			source.switchId,
@@ -401,13 +402,15 @@ function layer2(task, config, source, target) {
 			incoming = link.a === next ? link.aPort : link.bPort;
 		if (!allowed(here, out, vlan))
 			return stop(here, `${here.toUpperCase()} ${out}: VLAN ${vlan} er Exclude eller mangler.`);
+		/** @type {number|null} */
 		const tag = membership(config.switches[here].ports[out], vlan) === 'tagged' ? vlan : null;
 		move(
 			here,
 			next,
 			`${here.toUpperCase()} ${out} → ${next.toUpperCase()} ${incoming}: ${tag === null ? 'untagged' : `tagged VLAN ${tag}`}.`
 		);
-		vlan = tag ?? config.switches[next].ports[incoming].pvid;
+		vlan = tag ?? untaggedVlan(config.switches[next].ports[incoming]);
+		if (vlan === null) return stop(next, `${next.toUpperCase()} ${incoming} har ikke et Untagged-VLAN for umerket trafikk.`);
 		if (!allowed(next, incoming, vlan))
 			return stop(next, `${next.toUpperCase()} ${incoming} avviser VLAN ${vlan}.`);
 		i += direction;
@@ -650,8 +653,8 @@ export function checkVlan2Task(task, config) {
 		} else {
 			const sw = config.switches[pc.switchId], p = sw.ports[pc.port];
 			row(
-				`${pc.switchId.toUpperCase()} ${pc.port}: bare VLAN ${n.vlan} Untagged, PVID ${n.vlan}`,
-				sw.vlans.includes(n.vlan) && p.pvid === n.vlan && membership(p, n.vlan) === 'untagged' &&
+				`${pc.switchId.toUpperCase()} ${pc.port}: bare VLAN ${n.vlan} Untagged`,
+				sw.vlans.includes(n.vlan) && membership(p, n.vlan) === 'untagged' &&
 					Object.entries(p.members).every(([v, mode]) => mode === 'excluded' || Number(v) === n.vlan),
 				pc.switchId,
 				portFeedback(sw, pc.switchId.toUpperCase(), pc.port, n.vlan, 'untagged')

@@ -162,7 +162,7 @@ export function createApp({ db, config, clock = Date.now, limits = true }) {
 		next();
 	};
 	app.use('/api/lab-partner', labPartnerRouter({ db, config, authenticated, limits }));
-	app.get('/api/network-labs/:labId', authenticated, (req, res) => res.json(networkLabSnapshot(db, req.labUser.id, req.params.labId)));
+	app.get('/api/network-labs/:labId', authenticated, (req, res) => res.json(networkLabSnapshot(db, req.labUser.id, req.params.labId, req.query.preview === '1')));
 	app.post('/api/network-labs/:labId/:taskId/check', authenticated, (req, res) => res.json(checkNetworkLab(db, req.labUser.id, req.params.labId, req.params.taskId, req.body, clock())));
 	const cookieOptions = { httpOnly: true, secure: config.secure, sameSite: 'lax', path: '/' };
 	function newSession(userId, remember) {

@@ -1,5 +1,6 @@
 import { isDeepStrictEqual } from 'node:util';
 import { transaction } from './database.js';
+import { requireTeacher } from './learning-access.js';
 import { vlanTasks, initialVlanConfig, checkVlanTask } from '../src/lib/vlanLab.js';
 import {
 	vlan2Tasks,
@@ -145,13 +146,15 @@ function lab1Passed(db, userId) {
 	const ids = new Set(passes(db, userId, 'vlan-lab').map((r) => r.task_id));
 	return vlanTasks.every((t) => ids.has(t.id));
 }
-export function networkLabSnapshot(db, userId, labId) {
+export function networkLabSnapshot(db, userId, labId, preview = false) {
+	if (preview) requireTeacher(db, userId);
 	const def = definition(labId);
-	const unlocked = labId === 'vlan-lab' || lab1Passed(db, userId);
-	const saved = unlocked ? passes(db, userId, labId) : [];
+	const unlocked = preview || labId === 'vlan-lab' || lab1Passed(db, userId);
+	const saved = unlocked && !preview ? passes(db, userId, labId) : [];
 	return {
 		version: NETWORK_LAB_VERSION,
 		unlocked,
+		preview,
 		prerequisitePassed: lab1Passed(db, userId),
 		tasks: saved
 			.filter((r) => def.tasks.some((t) => t.id === r.task_id))
@@ -162,7 +165,9 @@ export function checkNetworkLab(db, userId, labId, taskId, body, now = Date.now(
 	const def = definition(labId),
 		index = def.tasks.findIndex((t) => t.id === taskId);
 	if (index < 0) throw new TypeError('Ukjent oppdrag.');
-	record(body, ['accountId', 'version', 'config']);
+	const preview = body?.preview === true;
+	record(body, preview ? ['accountId', 'version', 'config', 'preview'] : ['accountId', 'version', 'config']);
+	if (preview) requireTeacher(db, userId);
 	if (body.version !== NETWORK_LAB_VERSION)
 		throw new TypeError('Oppdater siden for å bruke gjeldende labversjon.');
 	if (body.accountId !== userId)
@@ -171,18 +176,18 @@ export function checkNetworkLab(db, userId, labId, taskId, body, now = Date.now(
 			status: 409
 		});
 	return transaction(db, () => {
-		if (labId === 'vlan-lab-2' && !lab1Passed(db, userId))
+		if (!preview && labId === 'vlan-lab-2' && !lab1Passed(db, userId))
 			locked('Bestå alle seks oppdrag i VLAN-lab 1 før du starter lab 2.');
 		const saved = new Set(passes(db, userId, labId).map((r) => r.task_id));
-		if (def.tasks.slice(0, index).some((t) => !saved.has(t.id)))
+		if (!preview && def.tasks.slice(0, index).some((t) => !saved.has(t.id)))
 			locked('Bestå de foregående oppdragene først.');
 		const config = validateNetworkConfig(labId, def.tasks[index], body.config);
 		const result = def.check(def.tasks[index], config);
-		if (result.passed)
+		if (result.passed && !preview)
 			db.prepare(
 				`INSERT INTO network_lab_passes VALUES (?,?,?,?,?,?)
 			ON CONFLICT(user_id,lab_id,task_id,version) DO UPDATE SET config_json=excluded.config_json`
 			).run(userId, labId, taskId, NETWORK_LAB_VERSION, JSON.stringify(config), now);
-		return { result, saved: result.passed, ...networkLabSnapshot(db, userId, labId) };
+		return { result, saved: result.passed && !preview, ...networkLabSnapshot(db, userId, labId, preview) };
 	});
 }

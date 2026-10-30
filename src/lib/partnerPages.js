@@ -130,7 +130,7 @@ export const partnerPages = [
 			tips: activity.id === 'vlan-lab'
 				? [
 						'Velg en PC eller switch i kartet. Gjør én endring, prøv ping og undersøk hendelsene.',
-						'PVID velger VLAN for umerket trafikk inn. Tagged/untagged beskriver hvordan trafikken sendes ut. En trunk frakter VLAN mellom switcher; den ruter ikke mellom IP-nett.'
+						'I denne forenklede laben velger U VLAN for umerket trafikk inn og sender samme VLAN uten tag ut. T sender med VLAN-tag. Det finnes ikke et separat valg for innkommende VLAN. En trunk frakter VLAN mellom switcher; den ruter ikke mellom IP-nett.'
 					]
 				: lesson
 				? [lesson.context, ...lesson.tasks.slice(0, 2).map((task) => task.hint)]

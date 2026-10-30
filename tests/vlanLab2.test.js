@@ -36,7 +36,7 @@ test('VLAN 2: routing needs both gateways; same VLAN does not require a gateway'
 	assert.equal(pingVlan2(wifi, ready, 'pc1', 'pc3').ok, true);
 	assert.equal(pingVlan2(wifi, ready, 'pc1', 'pc2').code, 'gateway');
 });
-test('VLAN 2: actual VLAN tags, ingress, PVID, all trunk hops and return direction matter', () => {
+test('VLAN 2: actual VLAN tags, ingress, U membership, all trunk hops and return direction matter', () => {
 	const t = vlan2Tasks[4],
 		c = solveLab2(t);
 	c.switches.s2.ports.eth5.members['37'] = 'excluded';
@@ -51,7 +51,9 @@ test('VLAN 2: actual VLAN tags, ingress, PVID, all trunk hops and return directi
 	assert.match(back.message, /Returen/);
 	const base = solveLab2(t);
 	base.switches.s1.ports.eth4.pvid = 214;
-	assert.equal(pingVlan2(t, base, 'pc1', 'r1').ok, false);
+	assert.equal(pingVlan2(t, base, 'pc1', 'r1').ok, true, 'legacy PVID does not override U');
+	base.switches.s1.ports.eth4.members['37'] = 'excluded';
+	assert.equal(pingVlan2(t, base, 'pc1', 'r1').ok, false, 'a port without U rejects untagged ingress');
 	const router = solveLab2(t);
 	router.router.interfaces[0].vlan = 38;
 	assert.equal(pingVlan2(t, router, 'pc1', 'r1').steps.at(-1).to, 'r1');
@@ -129,4 +131,21 @@ test('VLAN 2: partner context only accepts known public task/view state', () => 
 	assert.equal(work.openHints.length, 1);
 	assert.match(work.limit, /ikke elevens/);
 	assert.equal(JSON.stringify(work).includes('10.48.12.20'), false);
+});
+
+
+test('VLAN 2: U controls ingress without separate PVID configuration', () => {
+	for (const task of vlan2Tasks) {
+		const config = solveLab2(task);
+		for (const sw of Object.values(config.switches))
+			for (const port of Object.values(sw.ports)) port.pvid = 1;
+		assert.equal(checkVlan2Task(task, config).passed, true, task.id);
+		const pc = task.pcs.find((p) => !p.wireless);
+		const port = config.switches[pc.switchId].ports[pc.port];
+		for (const id of Object.keys(port.members)) port.members[id] = 'excluded';
+		const ping = pingVlan2(task, config, pc.id, 'r1');
+		assert.equal(ping.ok, false);
+		assert.equal(ping.steps.at(-1).to, pc.switchId);
+		assert.match(ping.message, /Sett U/);
+	}
 });

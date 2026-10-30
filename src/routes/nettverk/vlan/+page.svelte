@@ -1,5 +1,7 @@
 <script>
 	import { onMount, tick, untrack } from 'svelte';
+	import { teacherPreview } from '#lib/teacherPreview.js';
+	import { untaggedVlan } from '#lib/networkCheckFeedback.js';
 	import VlanMap from '#lib/components/VlanMap.svelte';
 	import NetworkCheckDialog from '#lib/components/NetworkCheckDialog.svelte';
 	import { createNetworkEditorNavigation } from '#lib/networkEditorNavigation.js';
@@ -49,7 +51,7 @@
 	let loadError = $state(false);
 	let lab2Unlocked = $state(false);
 	let loadSequence = 0;
-	const scope = $derived(`${$lab.user?.id ?? 'guest'}:${$learningContext.mode}:${$learningContext.openingId ?? ''}`);
+	const scope = $derived(`${$lab.user?.id ?? 'guest'}:${$teacherPreview}:${$learningContext.mode}:${$learningContext.openingId ?? ''}`);
 	$effect(() => {
 		scope;
 		work = freshWork();
@@ -60,10 +62,10 @@
 	async function restoreSaved() {
 		const sequence = ++loadSequence, currentScope = scope;
 		lab2Unlocked = false; saveMessage = ''; loadError = false; saving = false;
-		if (!$lab.user || $learningContext.mode !== 'normal') { loadingSaved = false; return; }
+		if (!$lab.user || ($learningContext.mode !== 'normal' && !$teacherPreview)) { loadingSaved = false; return; }
 		loadingSaved = true;
 		try {
-			const saved = await loadNetworkLab('vlan-lab');
+			const saved = await loadNetworkLab('vlan-lab', $teacherPreview);
 			if (scope !== currentScope || sequence !== loadSequence) return;
 			for (const item of saved.tasks) {
 				const current = work[item.taskId];
@@ -93,7 +95,7 @@
 	const stale = $derived(!!run && (run.revision !== attempt.revision || run.source !== source || run.target !== target));
 	const checkStale = $derived(!!attempt.check && attempt.check.revision !== attempt.revision);
 	const passed = $derived(vlanCheckPassed(attempt));
-	const availableThrough = $derived(vlanAvailableThrough(work));
+	const availableThrough = $derived($teacherPreview ? vlanTasks.length - 1 : vlanAvailableThrough(work));
 	const missingRows = $derived(attempt.check?.result.rows.filter((row) => !row.ok) ?? []);
 	const checkTotal = $derived(attempt.check?.result.rows.length ?? 0);
 	const checkPassedCount = $derived(checkTotal - missingRows.length);
@@ -202,11 +204,11 @@
 			for (const key of Object.keys(item.members)) if (item.members[key] === 'untagged') item.members[key] = 'excluded';
 		}
 		item.members[String(vlan)] = mode;
+		item.pvid = untaggedVlan(item) ?? 1;
 		changed();
 		portMessage = `${sw?.name} port ${id}, VLAN ${vlan}: ${membershipLabels[mode]}.`;
 		if (mode === 'untagged') {
 			if (previousUntagged !== undefined) portMessage += ` VLAN ${previousUntagged} ble satt til Exclude på samme port.`;
-			portMessage += ` PVID er fortsatt ${item.pvid}.`;
 		}
 	}
 	function addVlan() {
@@ -223,11 +225,11 @@
 	async function removeVlan(id) {
 		if (!task.editableSwitches || !switchConfig || id === 1) return;
 		selected = switchId;
-		if (Object.values(switchConfig.ports).some((item) => item.pvid === id || membership(item, id) !== 'excluded')) {
-			settingMessage = `VLAN ${id} er i bruk. Flytt PVID og sett portene til Exclude først.`; return;
+		if (Object.values(switchConfig.ports).some((item) => membership(item, id) !== 'excluded')) {
+			settingMessage = `VLAN ${id} er i bruk. Sett portene til Exclude først.`; return;
 		}
 		switchConfig.vlans = switchConfig.vlans.filter((vlan) => vlan !== id);
-		for (const item of Object.values(switchConfig.ports)) delete item.members[String(id)];
+		for (const item of Object.values(switchConfig.ports)) { delete item.members[String(id)]; item.pvid = untaggedVlan(item) ?? 1; }
 		changed(); settingMessage = `VLAN ${id} er fjernet.`;
 		await tick();
 		document.getElementById('new-vlan')?.focus();
@@ -262,16 +264,16 @@
 		attempt.check = { revision: attempt.revision, result };
 		showCheck = true;
 		if ($labPreferences.sound) void controlAudio.play(result.passed, $labPreferences.volume);
-		if (!$lab.user || $learningContext.mode !== 'normal') {
+		if (!$lab.user || ($learningContext.mode !== 'normal' && !$teacherPreview)) {
 			saveMessage = 'Kontrollert lokalt. Logg inn og bruk vanlig modus for å lagre bestått og åpne lab 2.'; return;
 		}
-		saving = true; saveMessage = 'Kontrollerer og lagrer på serveren …';
+		saving = true; saveMessage = $teacherPreview ? 'Kontrollerer forhåndsvisningen …' : 'Kontrollerer og lagrer på serveren …';
 		try {
-			const saved = await saveNetworkCheck('vlan-lab', id, submitted);
+			const saved = await saveNetworkCheck('vlan-lab', id, submitted, $teacherPreview);
 			if (scope !== currentScope) return;
 			if (work[id] === submittedAttempt && work[id].revision === revision) work[id].check = { revision, result: saved.result };
 			lab2Unlocked = saved.prerequisitePassed;
-			saveMessage = saved.saved ? 'Bestått oppsett lagret på kontoen.' : 'Kontrollen fant feil. Tidligere beståtte oppsett beholdes.';
+			saveMessage = $teacherPreview ? 'Lærerforhåndsvisning · kontrollert uten å lagre bestått.' : saved.saved ? 'Bestått oppsett lagret på kontoen.' : 'Kontrollen fant feil. Tidligere beståtte oppsett beholdes.';
 		} catch (error) {
 			if (scope === currentScope) saveMessage = `Ikke lagret. ${error instanceof Error ? error.message : 'Prøv kontrollen igjen.'}`;
 		} finally { if (scope === currentScope) saving = false; }
@@ -308,10 +310,10 @@
 			</button>
 		{/each}
 	</nav>
-	<p class="progress-rule" id="progress-rule">{completed}/{vlanTasks.length} bestått · Bestå kontrollen for å åpne neste oppdrag.</p>
-	{#if loadingSaved}<p role="status">Henter beståtte oppsett …</p>{/if}
+	<p class="progress-rule" id="progress-rule">{#if $teacherPreview}Lærerforhåndsvisning · alle oppdrag åpne. <a href='/min-lab/?visning=innstillinger#laererinnstillinger'>Innstillinger</a>{:else}{completed}/{vlanTasks.length} bestått · Bestå kontrollen for å åpne neste oppdrag.{/if}</p>
+	{#if loadingSaved}<p role="status">{$teacherPreview ? 'Henter forhåndsvisningen …' : 'Henter beståtte oppsett …'}</p>{/if}
 	{#if loadError}<p role="alert">{saveMessage}</p><button type="button" onclick={restoreSaved}>Hent lagrede oppsett på nytt</button>{/if}
-	{#if lab2Unlocked}<p><a href="/nettverk/vlan-2/">✓ VLAN-lab 1 bestått · Start lab 2: Ruter og Wi-Fi →</a></p>{:else}<p class="muted"><a href="/nettverk/vlan-2/">VLAN-lab 2</a> åpnes når alle seks oppdrag er bestått og lagret.</p>{/if}
+	{#if $teacherPreview}<p><a href="/nettverk/vlan-2/">Åpne VLAN-lab 2 →</a></p>{:else if lab2Unlocked}<p><a href="/nettverk/vlan-2/">✓ VLAN-lab 1 bestått · Start lab 2: Ruter og Wi-Fi →</a></p>{:else}<p class="muted"><a href="/nettverk/vlan-2/">VLAN-lab 2</a> åpnes når alle seks oppdrag er bestått og lagret.</p>{/if}
 	<section class="mission" aria-labelledby="task-heading">
 		<p class="eyebrow">OPPDRAG {index + 1} AV {vlanTasks.length}</p>
 		<h2 id="task-heading" tabindex="-1">{task.title}</h2>
@@ -395,7 +397,7 @@
 							<div class="ip-with-mask"><input id="pc-ip" type="text" inputmode="decimal" autocomplete="off" spellcheck="false" maxlength="15"
 								value={config.ips[pc.id]} aria-describedby="ip-help pc-mask" onfocus={() => selectPc(pc.id)}
 								oninput={(event) => { config.ips[pc.id] = event.currentTarget.value; changed(); }} /><span id="pc-mask" class="mask" title="Fast nettmaske: 255.255.255.0"><span aria-hidden="true">/24</span><span class="sr-only">Fast nettmaske 255.255.255.0, prefiks 24</span></span></div>
-							<p class="muted" id="ip-help">{#if task.discoverPorts}Finn IP-nettet via portens U/PVID.{:else}Mål: {pc.network}.0/24.{/if}</p>
+							<p class="muted" id="ip-help">{#if task.discoverPorts}Finn IP-nettet via portens U-rad.{:else}Mål: {pc.network}.0/24.{/if}</p>
 							{#if !task.discoverPorts}<p class="target-vlan">Mål: {vlanLabel(task, pc.vlan)}</p>{/if}
 							<button type="button" class="secondary" onclick={() => inspect({ deviceId: pc.switchId, portId: pc.port })}>Vis {pc.switchId.toUpperCase()} {pc.port} ↓</button>
 							<details class="ip-help"><summary>IP-hjelp</summary><p>Fast maske: 255.255.255.0 (/24). Bruk en unik vertsadresse med siste tall 1–254.</p></details>
@@ -410,7 +412,7 @@
 								<span class="sr-only">{checkStale ? 'Oppsettet er endret. Kontroller på nytt.' : attempt.check ? `${checkPassedCount} av ${checkTotal} krav oppfylt. ${passed ? 'Oppdraget består.' : 'Åpne kontrollresultatet for å se feilene.'}` : 'Kontrollen er ikke kjørt.'}</span>
 							</span>
 						</div>
-						<button type="button" class="primary" disabled={loadingSaved} aria-disabled={saving || loadingSaved} onclick={check}>{saving ? 'Lagrer …' : 'Kontroller oppdraget'}</button>
+						<button type="button" class="primary" disabled={loadingSaved} aria-disabled={saving || loadingSaved} onclick={check}>{saving ? 'Kontrollerer …' : 'Kontroller oppdraget'}</button>
 						{#if saveMessage}<small role="status">{saveMessage}</small>{/if}
 						{#if attempt.check}<button type="button" class="disclosure" onclick={() => showCheck = true}>Se kontrollresultat</button>{/if}
 						<a href="#testing">Hint og refleksjon ↓</a>
@@ -456,7 +458,7 @@
 						<thead><tr>
 							<th scope="col">ID</th><th scope="col">Navn</th>
 							{#each sw.ports as item (item.id)}
-								<th scope="col" class:selected-port={selected === switchId && portId === item.id} id={`port-heading-${item.id}`} tabindex="-1"><span>Port</span><strong>{item.id}</strong><span class="port-selection">{selected === switchId && portId === item.id ? 'Valgt' : ''}</span></th>
+								<th scope="col" class:selected-port={selected === switchId && portId === item.id} id={`port-heading-${item.id}`} tabindex="-1"><span>Port</span><strong>{item.id}</strong><small class="port-peer">{item.peer}</small><span class="port-selection">{selected === switchId && portId === item.id ? 'Valgt' : ''}</span></th>
 							{/each}
 						</tr></thead>
 						<tbody>
@@ -480,36 +482,19 @@
 					</table>
 					</div>
 				</div>
-				<fieldset class="pvid-settings" disabled={!task.editableSwitches} aria-describedby="pvid-help">
-					<legend>PVID · VLAN for umerket trafikk inn</legend>
-					<div class="pvid-grid">
-						{#each sw.ports as item (item.id)}
-							<label class:selected-port={selected === switchId && portId === item.id}><span class="pvid-port">Port {item.id}<small>{item.peer}</small></span>
-								<select value={switchConfig.ports[item.id].pvid} onfocus={() => selectPort(item.id)}
-									onchange={(event) => {
-										if (!task.editableSwitches || !switchConfig) return;
-										selectPort(item.id);
-										switchConfig.ports[item.id].pvid = Number(event.currentTarget.value);
-										changed();
-									}}>
-									{#each switchConfig.vlans as id}<option value={id}>{vlanLabel(task, id)}</option>{/each}
-								</select>
-							</label>
-						{/each}
-					</div>
-				</fieldset>
+
 				<p class="setting-status" role="status">{portMessage}</p>
 				<details class="membership-help">
-					<summary>Hjelp til U, E, T og PVID</summary>
+					<summary>Hjelp til U, E og T</summary>
 					<p id="membership-cycle">{task.editableSwitches ? 'Trykk på en portrute for å bytte: U → E → T → U. Hver rad gjelder ett VLAN.' : 'Hver rad viser ett VLAN. Bokstaven i portruten viser portens medlemskap.'}</p>
 					<p><strong>U · Untagged:</strong> send uten tag. <strong>E · Exclude:</strong> ikke medlem. <strong>T · Tagged:</strong> send med VLAN-ID.</p>
-					<p id="pvid-help"><strong>PVID</strong> velger VLAN for umerket trafikk inn. Når du setter U på et nytt VLAN, blir tidligere U til E på samme port. PVID endres ikke automatisk. Kontroller PVID når du flytter en PC-port til et annet VLAN.</p>
+					<p>I denne laben velger <strong>U</strong> også VLAN for umerket trafikk inn. Ny U erstatter tidligere U på samme port. En port uten U avviser umerket trafikk.</p>
 				</details>
 			{/if}
 			</div>
 			<div class="editor-footer">
 				<p class="check-count" class:success={passed} class:failure={!!attempt.check && !checkStale && !passed}>{checkStale ? 'Endret · kontroller på nytt' : attempt.check ? `${passed ? '✓' : '×'} ${checkPassedCount}/${checkTotal}` : 'Kontroll'}</p>
-				<button type="button" class="primary" disabled={loadingSaved} aria-disabled={saving || loadingSaved} onclick={check}>{saving ? 'Lagrer …' : 'Kontroller oppdraget'}</button>
+				<button type="button" class="primary" disabled={loadingSaved} aria-disabled={saving || loadingSaved} onclick={check}>{saving ? 'Kontrollerer …' : 'Kontroller oppdraget'}</button>
 			</div>
 		</section>
 	</div>
@@ -518,12 +503,12 @@
 
 		<div class="actions">
 			{#if index < vlanTasks.length - 1}
-				<button class="secondary" type="button" disabled={!passed} aria-describedby="check-status" onclick={() => selectTask(vlanTasks[index + 1].id)}>Neste oppdrag →</button>
+				<button class="secondary" type="button" disabled={!passed && !$teacherPreview} aria-describedby="check-status" onclick={() => selectTask(vlanTasks[index + 1].id)}>Neste oppdrag →</button>
 			{/if}
 			<button type="button" class="secondary" disabled={hints >= task.hints.length} onclick={() => hints += 1}>Vis {hints ? 'neste ' : ''}hint</button>
 		</div>
 		<div class="check-result" class:passed>
-			<p id="check-status">{checkStale ? 'Oppsettet er endret etter kontrollen. Kontroller på nytt.' : attempt.check ? passed ? index < vlanTasks.length - 1 ? '✓ Oppsettet består. Neste oppdrag er åpent.' : `✓ Oppsettet består. Du har bestått alle ${vlanTasks.length} oppdrag.` : `${missingRows.length} krav gjenstår. Rett oppsettet og kontroller igjen.` : 'Kontrollen er ikke kjørt ennå.'}</p>
+			<p id="check-status">{checkStale ? 'Oppsettet er endret etter kontrollen. Kontroller på nytt.' : attempt.check ? passed ? index < vlanTasks.length - 1 ? '✓ Oppsettet består. Neste oppdrag er åpent.' : $teacherPreview ? '✓ Oppsettet består forhåndsvisningen.' : `✓ Oppsettet består. Du har bestått alle ${vlanTasks.length} oppdrag.` : `${missingRows.length} krav gjenstår. Rett oppsettet og kontroller igjen.` : 'Kontrollen er ikke kjørt ennå.'}</p>
 			{#if attempt.check}<button type="button" onclick={() => showCheck = true}>Se kontrollresultat</button>{/if}
 		</div>
 		{#if hints}<aside class="hints" aria-label="Hint" aria-live="polite">{#each task.hints.slice(0, hints) as hint}<p>{hint}</p>{/each}</aside>{/if}
@@ -535,7 +520,7 @@
 	</section>
 	<details class="model-notes"><summary>Om modellen, lagring og videre arbeid</summary>
 		<p>Beståtte oppsett lagres på kontoen i vanlig modus. Omlasting henter sist beståtte versjon; ukontrollerte endringer beholdes bare mens siden er åpen. Endrede oppsett må kontrolleres på nytt før neste oppdrag åpnes. Ingen XP.</p>
-		<p>Dette er en lokal simulering. Ingen ping eller konfigurasjon sendes til skolens nett. Modellen bruker faste kabler uten løkker, IPv4 med /24, PVID og VLAN-medlemskap. PC-ene bruker ikke VLAN-tagging.</p>
+		<p>Dette er en lokal simulering. Ingen ping eller konfigurasjon sendes til skolens nett. Modellen bruker faste kabler uten løkker, IPv4 med /24 og VLAN-medlemskap. PC-ene bruker ikke VLAN-tagging.</p>
 		<p>Ruting, DHCP, ARP-tabeller, MAC-læring, STP og leverandørspesifikke kommandoer er ikke simulert. Tagged/untagged beskriver trafikken på en port; begrepene og standardvalgene kan variere mellom switchmerker.</p>
 		<p>Labpartneren får valgt oppdrag, enhet og port samt om et forsøk er kjørt eller utdatert. IP-adressene, portoppsettet og testresultatet deles ikke i utkastet.</p>
 		<p><strong>Ny anvendelse:</strong> Tegn først port- og adresseplanen for to nye VLAN med andre ID-er. Bygg den på reelt utstyr eller i Packet Tracer, og dokumenter en forbindelse som virker og en som skal være adskilt.</p>
@@ -549,7 +534,7 @@
 <NetworkCheckDialog bind:open={showCheck} title={`Oppdrag ${index + 1} · ${task.title}`}
 	rows={(attempt.check?.result.rows ?? []).map((row) => ({ ...row, targets: row.targets.map((destination) => ({ ...destination, label: targetLabel(destination) })) }))}
 	stale={checkStale} status={saveMessage} nextDisabled={saving}
-	nextLabel={index < vlanTasks.length - 1 ? 'Neste oppdrag →' : lab2Unlocked ? 'Start VLAN-lab 2 →' : ''}
+	nextLabel={index < vlanTasks.length - 1 ? 'Neste oppdrag →' : (lab2Unlocked || $teacherPreview) ? 'Start VLAN-lab 2 →' : ''}
 	onnext={() => { if (index < vlanTasks.length - 1) void selectTask(vlanTasks[index + 1].id); else window.location.assign('/nettverk/vlan-2/'); }}
 	oninspect={inspect} />
 
@@ -659,8 +644,6 @@
 	.vlan-list button { font-size: var(--font-meta); }
 	.setting-status { font-size: var(--font-small); color: var(--color-accent); margin: 0; }
 	.setting-status:not(:empty) { margin: 8px 0; }
-	fieldset { border: 0; border-top: 1px solid var(--color-border); margin: 20px 0 0; padding: 14px 0 0; min-width: 0; }
-	legend { padding-right: 10px; font-size: var(--font-small); font-weight: 650; }
 	.matrix-panel { border: 1px solid var(--color-border); border-radius: 8px; }
 	.matrix-heading { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px 20px; padding: 10px 12px; background: var(--color-surface-soft); border-radius: 7px 7px 0 0; }
 	.matrix-heading h3 { margin: 0; font-size: var(--font-small); font-weight: 650; }
@@ -677,6 +660,7 @@
 	.vlan-matrix thead strong { display: block; color: var(--color-text); font-size: var(--font-small); }
 	.vlan-matrix .selected-port { background: var(--color-accent-soft); }
 	.vlan-matrix th.selected-port { box-shadow: inset 0 3px 0 var(--color-accent); }
+	.port-peer { display: block; max-width: 9rem; margin-inline: auto; font-weight: 400; }
 	.port-selection { display: block; min-height: 1.5em; color: var(--color-accent); }
 	.vlan-matrix th:nth-child(2), .vlan-matrix .vlan-name { text-align: left; }
 	.vlan-name { min-width: 5rem; overflow-wrap: anywhere; }
@@ -687,12 +671,6 @@
 	.membership-cell[data-mode='tagged'] { color: var(--color-info); background: var(--color-info-soft); border-color: var(--color-info); }
 	.membership-cell:not(:disabled):hover { box-shadow: inset 0 0 0 2px currentColor; }
 	.membership-cell:disabled { opacity: 1; }
-	.pvid-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 130px), 1fr)); gap: 8px 12px; }
-	.pvid-grid label { margin: 0; padding: 8px; border: 1px solid transparent; border-radius: 8px; }
-	.pvid-port { display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: 2px 10px; }
-	.pvid-grid label.selected-port { border-color: var(--color-accent); background: var(--color-accent-soft); }
-	.pvid-grid small { font-size: var(--font-meta); font-weight: 400; color: var(--color-text-muted); overflow-wrap: anywhere; }
-	.pvid-grid select { margin-top: 4px; font-size: var(--font-small); }
 	.membership-help { font-size: var(--font-small); margin-top: 16px; border-top: 1px solid var(--color-border); }
 	.primary { background: var(--color-action); color: var(--color-on-action); border-color: var(--color-action); font-weight: 650; }
 	.primary:hover { background: var(--color-action); filter: brightness(1.08); }

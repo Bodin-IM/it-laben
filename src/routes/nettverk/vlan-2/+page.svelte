@@ -1,5 +1,6 @@
 <script>
 	import { onMount, tick, untrack } from 'svelte';
+	import { teacherPreview } from '#lib/teacherPreview.js';
 	import { lab, learningContext } from '#lib/lab.js';
 	import { labPreferences, reducedMotion, registerSoundPlayer } from '#lib/labPreferences.js';
 	import { createVlanAudio } from '#lib/vlanAudio.js';
@@ -61,7 +62,7 @@
 		};
 	});
 	const scope = $derived(
-		`${$lab.user?.id ?? 'guest'}:${$learningContext.mode}:${$learningContext.openingId ?? ''}`
+		`${$lab.user?.id ?? 'guest'}:${$teacherPreview}:${$learningContext.mode}:${$learningContext.openingId ?? ''}`
 	);
 	const task = $derived(vlan2Tasks.find((t) => t.id === taskId) ?? vlan2Tasks[0]);
 	const index = $derived(vlan2Tasks.indexOf(task));
@@ -71,7 +72,7 @@
 	const selectedSwitch = $derived(task.switches.find((s) => s.id === switchId) ?? task.switches[0]);
 	/** @param {Attempt} a */
 	const passes = (a) => !!a.check && a.check.revision === a.revision && a.check.result.passed;
-	const available = $derived(vlan2Tasks.findIndex((t) => !passes(work[t.id])));
+	const available = $derived($teacherPreview ? -1 : vlan2Tasks.findIndex((t) => !passes(work[t.id])));
 	const passed = $derived(passes(attempt));
 	const stale = $derived.by(
 		() =>
@@ -100,10 +101,10 @@
 		saving = false;
 		loadError = '';
 		saveMessage = '';
-		if (!$lab.user || $learningContext.mode !== 'normal') return;
+		if (!$lab.user || ($learningContext.mode !== 'normal' && !$teacherPreview)) return;
 		loading = true;
 		try {
-			const saved = await loadNetworkLab('vlan-lab-2');
+			const saved = await loadNetworkLab('vlan-lab-2', $teacherPreview);
 			if (request !== sequence) return;
 			unlocked = saved.unlocked;
 			for (const item of saved.tasks) {
@@ -253,10 +254,10 @@
 		saving = true; checkError = false;
 		saveMessage = 'Kontrollerer på serveren …';
 		try {
-			const saved = await saveNetworkCheck('vlan-lab-2', id, JSON.parse(JSON.stringify(config)));
+			const saved = await saveNetworkCheck('vlan-lab-2', id, JSON.parse(JSON.stringify(config)), $teacherPreview);
 			if (request !== sequence) return;
 			if (work[id].revision === revision) work[id].check = { revision, result: saved.result };
-			saveMessage = saved.saved
+			saveMessage = $teacherPreview ? 'Lærerforhåndsvisning · kontrollert uten å lagre bestått.' : saved.saved
 				? 'Bestått oppsett lagret.'
 				: 'Ikke bestått ennå. Åpne kontrollresultatet for å se feilene.';
 			if (view === checkViewSequence && task.id === id && work[id].revision === revision) showCheck = true;
@@ -319,7 +320,7 @@
 				href="/nettverk/vlan/">Til VLAN-lab 1</a
 			>
 		</section>
-	{:else if $learningContext.mode !== 'normal'}<section class="gate">
+	{:else if ($learningContext.mode !== 'normal' && !$teacherPreview)}<section class="gate">
 			<h2>Åpne laben i vanlig modus</h2>
 			<p>VLAN-labene bruker beståtte oppsett på kontoen, uten XP.</p>
 			<a class="action" href="/nettverk/vlan-2/">Åpne vanlig lab</a>
@@ -366,7 +367,7 @@
 				>{/each}
 		</nav>
 		<p class="muted">
-			Bestå kontrollen for å åpne neste oppdrag.
+			{#if $teacherPreview}Lærerforhåndsvisning · alle oppdrag åpne. <a href='/min-lab/?visning=innstillinger#laererinnstillinger'>Innstillinger</a>{:else}Bestå kontrollen for å åpne neste oppdrag.{/if}
 		</p>
 		<section class="mission">
 			<p class="eyebrow">OPPDRAG {index + 1} AV 5</p>
@@ -751,10 +752,10 @@
 			<div class="actions">
 				{#if index < vlan2Tasks.length - 1}<button
 						class="primary"
-						disabled={!passed || saving}
+						disabled={(!passed && !$teacherPreview) || saving}
 						onclick={() => selectTask(vlan2Tasks[index + 1].id)}>Neste oppdrag →</button
 					>{:else if passed}<p class="good">
-						<strong>✓ Alle fem oppdrag er bestått og lagret.</strong>
+						<strong>{$teacherPreview ? '✓ Dette oppdraget består forhåndsvisningen.' : '✓ Alle fem oppdrag er bestått og lagret.'}</strong>
 					</p>{/if}<button disabled={hints === task.hints.length} onclick={() => hints++}
 					>Vis {hints ? 'neste ' : ''}hint</button
 				>

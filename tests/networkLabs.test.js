@@ -71,6 +71,34 @@ test('network lab API: real session, server gate, sequential validation, no XP a
 		(await post('vlan-lab', vlanTasks[0], solveLab1(vlanTasks[0]), { accountId: 'other' })).status,
 		409
 	);
+	await t.test('teacher preview is role checked and never creates passed records', async () => {
+		const path = '/network-labs/vlan-lab-2?preview=1';
+		assert.equal((await request(path)).status, 403);
+		assert.equal((await post('vlan-lab-2', vlan2Tasks[4], solveLab2(vlan2Tasks[4]), { preview: true })).status, 403);
+		for (const role of ['teacher', 'admin']) {
+			db.prepare('INSERT OR REPLACE INTO user_roles VALUES (?,?,?)').run(id, role, 1);
+			const opened = await request(path);
+			assert.equal(opened.status, 200);
+			assert.equal(opened.value.unlocked, true);
+			assert.equal(opened.value.prerequisitePassed, false);
+			assert.deepEqual(opened.value.tasks, []);
+			for (const [labId, task, solve] of [['vlan-lab', vlanTasks[5], solveLab1], ['vlan-lab-2', vlan2Tasks[4], solveLab2]]) {
+				const preview = await post(labId, task, solve(task), { preview: true });
+				assert.equal(preview.status, 200, JSON.stringify(preview.value));
+				assert.equal(preview.value.result.passed, true);
+				assert.equal(preview.value.saved, false);
+				assert.equal((await post(labId, task, solve(task))).status, 403, 'normal mode still requires prior tasks');
+			}
+			const failed = await post('vlan-lab', vlanTasks[0], initialVlanConfig(vlanTasks[0]), { preview: true });
+			assert.equal(failed.value.result.passed, false);
+			assert.equal(failed.value.saved, false);
+			assert.equal(db.prepare('SELECT count(*) AS n FROM network_lab_passes').get().n, 0);
+			assert.equal((await request('/me')).value.summary.xp, 0);
+		}
+		db.prepare('DELETE FROM user_roles WHERE user_id=?').run(id);
+		assert.equal((await request(path)).status, 403, 'revoking the role also revokes preview');
+		assert.equal((await request('/network-labs/vlan-lab-2')).value.unlocked, false);
+	});
 	const wrong = await post('vlan-lab', vlanTasks[0], initialVlanConfig(vlanTasks[0]));
 	assert.equal(wrong.value.saved, false);
 	assert.equal(wrong.value.tasks.length, 0);

@@ -209,8 +209,8 @@ test('VLAN: isolation playback stops at the rejecting switch, including differen
 	const ingress = pingVlan(task, config, 'pc1', 'pc4');
 	assert.deepEqual(ingress.steps.at(-1).to, { node: 's2', port: 'eth2' });
 	config.switches.s1.ports.eth0.members['10'] = 'excluded';
-	const pvid = pingVlan(task, config, 'pc1', 'pc4');
-	assert.deepEqual(pvid.steps.at(-1).to, { node: 's1', port: 'eth0' });
+	const noUntagged = pingVlan(task, config, 'pc1', 'pc4');
+	assert.deepEqual(noUntagged.steps.at(-1).to, { node: 's1', port: 'eth0' });
 
 	const shared = initialVlanConfig(vlanTask('porter'));
 	const routing = pingVlan(vlanTask('porter'), shared, 'pc1', 'pc3');
@@ -223,4 +223,24 @@ test('VLAN: isolation playback stops at the rejecting switch, including differen
 	assert.equal(invalid.code, 'ip');
 	assert.equal(invalid.steps.length, 1);
 	assert.deepEqual(invalid.steps[0].from, invalid.steps[0].to);
+});
+
+
+test('VLAN: U is sufficient for ingress; absent or ambiguous U stops at the switch', () => {
+	for (const task of vlanTasks) {
+		const config = configured(task);
+		for (const sw of Object.values(config.switches))
+			for (const port of Object.values(sw.ports)) port.pvid = 1;
+		assert.equal(checkVlanTask(task, config).passed, true, task.id);
+		const pc = task.pcs[0], other = task.pcs.find((p) => p.id !== pc.id && p.vlan === pc.vlan);
+		assert.equal(pingVlan(task, config, pc.id, other.id).ok, true, task.id);
+		const port = config.switches[pc.switchId].ports[pc.port];
+		port.members[String(pc.vlan)] = 'excluded';
+		const absent = pingVlan(task, config, pc.id, other.id);
+		assert.equal(absent.code, 'ingress');
+		assert.deepEqual(absent.steps.at(-1).to, { node: pc.switchId, port: pc.port });
+		port.members[String(pc.vlan)] = 'untagged';
+		port.members['4094'] = 'untagged';
+		assert.equal(pingVlan(task, config, pc.id, other.id).code, 'ingress');
+	}
 });
