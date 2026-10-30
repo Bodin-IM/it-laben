@@ -215,13 +215,7 @@
 
 		<main id="hovedinnhold" tabindex="-1">
 			<section class="intro" aria-labelledby="sidetittel">
-				<p class="eyebrow">Fagoversikt <span aria-hidden="true">/</span> {valgtFagnavn}</p>
-				<h1 id="sidetittel">{valgtFag === 'alle' ? 'Finn det du trenger' : valgtFagnavn}</h1>
-				<p class="lead">
-					{valgtFag === 'alle'
-						? 'Finn et tema, følg en modul eller gå rett til en aktivitet.'
-						: fag.find((item) => item.id === valgtFag)?.beskrivelse}
-				</p>
+				<h1 id="sidetittel">{valgtFag === 'alle' ? 'Fagoversikt' : valgtFagnavn}</h1>
 			</section>
 
 			<div class="search-tools">
@@ -516,32 +510,16 @@
 	}
 	main {
 		min-width: 0;
-		padding-top: 32px;
+		padding-top: 20px;
 	}
 	.intro {
-		margin-bottom: 26px;
-	}
-	.eyebrow {
-		margin: 0 0 12px;
-		font-size: var(--font-meta);
-		color: var(--color-text-muted);
-	}
-	.eyebrow span {
-		padding-inline: 7px;
-		color: var(--color-border-strong);
+		margin-bottom: 12px;
 	}
 	h1 {
-		margin: 0 0 12px;
-		font-size: clamp(1.9rem, 3.1vw, 2.65rem);
-		line-height: 1.16;
-		letter-spacing: -0.04em;
-		text-wrap: balance;
-	}
-	.lead {
 		margin: 0;
-		font-size: 1.125rem;
-		color: var(--color-text-muted);
-		max-width: 60ch;
+		font-size: 1.35rem;
+		line-height: 1.3;
+		letter-spacing: -0.02em;
 	}
 	.search-tools {
 		margin-bottom: 16px;
@@ -846,21 +824,12 @@
 			display: none;
 		}
 		main {
-			padding-top: 26px;
-		}
-		.eyebrow {
-			display: none;
-		}
-		.intro {
-			margin-bottom: 22px;
+			padding-top: 16px;
 		}
 	}
 	@media (max-width: 550px) {
 		.modulkortliste {
 			grid-template-columns: 1fr;
-		}
-		.intro h1 {
-			max-width: 18ch;
 		}
 		.moduloversikt {
 			margin-bottom: 32px;
