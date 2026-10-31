@@ -1,6 +1,9 @@
 <script>
 	import PartnerContext from '#lib/components/PartnerContext.svelte';
 	import CodeTokens from '#lib/components/CodeTokens.svelte';
+	import ValidationJourney from '#lib/components/ValidationJourney.svelte';
+	import ValidationProject from '#lib/components/ValidationProject.svelte';
+	import { validationJourney } from '#lib/backendValidation.js';
 	import { lessonChoices } from '#lib/partnerContext.js';
 
 	import { onMount } from 'svelte';
@@ -9,7 +12,7 @@
 	import ModuleContext from '#lib/components/ModuleContext.svelte';
 	import { avatarFeedback } from '#lib/avatarFeedback.js';
 	import { lessons } from '#lib/ovingene.js';
-	import { buildTrace } from '#lib/ovingModel.js';
+	import { buildTrace, validationFeedback } from '#lib/ovingModel.js';
 	import { noteFeedbackAttempt, finishFeedbackAttempt } from '#lib/activityFeedbackClient.js';
 	let ready = $state(false);
 	onMount(() => {
@@ -27,8 +30,15 @@
 	let selectedLine = $state(0);
 	let taskIndex = $state(0);
 	let task = $derived(lesson.tasks[taskIndex]);
+	// Preserve existing task indices in the partner contract while choosing the clearest entry point.
+	const taskOrder = $derived([
+		lesson.firstTask ?? 0,
+		...lesson.tasks.map((_, i) => i).filter((i) => i !== (lesson.firstTask ?? 0))
+	]);
+	const taskPosition = $derived(taskOrder.indexOf(taskIndex));
 	let current = $derived(trace[index]);
 	let finished = $derived(trace.length > 0 && index === trace.length - 1);
+	const feedback = $derived(lesson.number === 7 && finished ? validationFeedback(trace) : null);
 	let previous = $derived(lessons.find((item) => item.number === lesson.number - 1));
 	let next = $derived(lessons.find((item) => item.number === lesson.number + 1));
 
@@ -37,7 +47,7 @@
 		trace = [];
 		index = 0;
 		selectedLine = 0;
-		taskIndex = 0;
+		taskIndex = lesson.firstTask ?? 0;
 	});
 
 	function clearTrace() {
@@ -139,24 +149,30 @@
 			<p class="lead">{lesson.intro}</p>
 		</section>
 
+		{#if lesson.number === 7}
+			<ValidationJourney current={ready && page.url.hash === '#eget-prosjekt' ? 'bruk-selv' : 'undersok'} {moduleId} />
+		{/if}
+
 		<section id="forsok" class="lab" aria-labelledby="lab-title">
 			<div class="task-picker" role="group" aria-label="Velg oppgave i simulatoren">
-				{#each lesson.tasks as item, i}
+				{#each taskOrder as taskId, i}
+					{@const item = lesson.tasks[taskId]}
 					<button
 						type="button"
-						class:chosen={taskIndex === i}
-						aria-pressed={taskIndex === i}
+						class:chosen={taskIndex === taskId}
+						aria-pressed={taskIndex === taskId}
 						aria-controls="task-brief"
-						onclick={() => (taskIndex = i)}
+						onclick={() => (taskIndex = taskId)}
 						>{i + 1} · {item.label}</button
 					>
 				{/each}
 			</div>
 			<div class="task-brief" id="task-brief">
-				<p class="eyebrow">OPPGAVE {taskIndex + 1} / {lesson.tasks.length} · I SIMULATOREN</p>
+				<p class="eyebrow">OPPGAVE {taskPosition + 1} / {lesson.tasks.length} · I SIMULATOREN</p>
 				<h2 id="lab-title">{task.title}</h2>
 				<p><strong>Gjør dette:</strong> {task.instruction}</p>
 				<p class="observe"><strong>Se etter:</strong> {task.observe}</p>
+				{#if lesson.number === 7}<p class="small">Dette er en simulator. Valg og kjøringssteg starter på nytt når du åpner siden igjen. Min lab lagrer gjennomgangsstatusen når du markerer leksjonen som gjennomgått nedenfor.</p>{/if}
 				{#key `${lesson.number}-${taskIndex}`}
 					<div class="task-help">
 						<details><summary>Hint</summary><p>{task.hint}</p></details>
@@ -288,12 +304,25 @@
 							<div>
 								<h3>Kjøringen er ferdig · sammenlign med oppgaven</h3>
 								<p>{lesson.takeaway}</p>
+								{#if feedback}
+									<p><strong>Dette skjedde:</strong> {feedback.result}</p>
+									<p><strong>Derfor:</strong> {feedback.cause}</p>
+									<p><strong>Prøv videre:</strong> {feedback.next}</p>
+								{/if}
 							</div>
 						</div>{/if}
 				</div>
 			{/if}
 		</section>
 
+		{#if lesson.number === 7}
+			<div class="validation-next">
+				<h2>Bruk det du undersøkte til å reparere en feil</h2>
+				<p>Åpne tekstreparasjonen i Redd chatten. Få både vanlig tekst og ugyldig tekst til å gi riktig svar uten feil lagring.</p>
+				<a href={moduleLink(validationJourney[1].href, moduleId)}>Reparer tekstkontrollen →</a>
+			</div>
+			<ValidationProject />
+		{:else}
 		<details class="context">
 			<summary>Prøv i ditt eget prosjekt</summary>
 			<p><strong>Lag selv:</strong> {lesson.transfer.instruction}</p>
@@ -319,10 +348,12 @@
 				</p>{/if}
 			{#each lesson.related as related}<a href={related.href}>{related.label} →</a>{/each}
 		</details>
+		{/if}
 		<nav class="lesson-footer" aria-label="Forrige og neste øving">
 			<a href={previous ? moduleLink(`/oving-${previous.number}/`, moduleId) : '/#ovingene'}
 				>← {previous ? `Øving ${previous.number}: ${previous.title}` : 'Til oversikten'}</a
-			>{#if next}<a href={moduleLink(`/oving-${next.number}/`, moduleId)}
+			>{#if lesson.number === 7}<a href={moduleLink(validationJourney[1].href, moduleId)}>Neste i valideringsforløpet: Reparer →</a>
+			{:else if next}<a href={moduleLink(`/oving-${next.number}/`, moduleId)}
 					>Øving {next.number}: {next.title} →</a
 				>{:else}<a href="/#ovingene">Til oversikten →</a>{/if}
 		</nav>
@@ -330,6 +361,10 @@
 </div>
 
 <style>
+	.validation-next { margin-block: 28px; padding: 20px; border: 1px solid var(--color-info-border); border-radius: var(--radius-card); background: var(--color-info-soft); }
+	.validation-next h2 { font-size: 1.25rem; }
+	.validation-next p { max-width: 65ch; font-size: var(--font-body); line-height: var(--leading-body); }
+	.validation-next a { display: inline-flex; align-items: center; min-height: 44px; }
 	.lesson-page {
 		overflow-wrap: anywhere;
 		font-family: var(--font-ui);
@@ -889,3 +924,4 @@
 		}
 	}
 </style>
+

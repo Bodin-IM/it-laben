@@ -1,12 +1,16 @@
 <script>
 	import { page } from '$app/state';
-	import { moduleContext } from '#lib/moduleNavigation.js';
+	import { moduleContext, moduleLink } from '#lib/moduleNavigation.js';
+	import ValidationJourney from '#lib/components/ValidationJourney.svelte';
+	import { validationJourney } from '#lib/backendValidation.js';
+	import { attemptStorageStatus } from '#lib/attemptStorageStatus.js';
 	const partnerModule = $derived(
 		typeof window !== 'undefined'
 			? (moduleContext('/spill/redd-chatten/', page.url.searchParams.get('modul'))?.module.id ??
 					null)
 			: null
 	);
+	const inValidationJourney = $derived(typeof window !== 'undefined' && page.url.searchParams.get('forlop') === 'validering');
 	import PageLinks from '#lib/components/PageLinks.svelte';
 	import ModuleContext from '#lib/components/ModuleContext.svelte';
 	import { activityLab as account, learningContext, saveAttempt } from '#lib/lab.js';
@@ -249,6 +253,12 @@
 	const savedProgress = $derived(
 		$account.summary?.progress.find((item) => item.id === 'redd-chatten')
 	);
+	const storageStatus = $derived(attemptStorageStatus({
+		signedIn: Boolean($account.user), loaded: Boolean($account.summary),
+		pending: $account.pendingObjectives.includes(`redd-chatten:${mission.id}`),
+		error: Boolean($account.error), storageWarning: $account.storageWarning,
+		program, savedSolution: savedProgress?.objectives.find((item) => item.id === mission.id)?.solution
+	}));
 	$effect(() => {
 		const userId = $account.user
 			? `${$account.user.id}:${$learningContext.mode}:${$learningContext.openingId}`
@@ -502,7 +512,7 @@
 		selectedCaseIndex = firstFailure >= 0 ? firstFailure : 0;
 		inspectedTraceIndex = -1;
 		revision += 1;
-		announcement = `${pendingRun.passed} av ${pendingRun.total} situasjoner håndtert riktig. ${pendingRun.success ? 'Reparasjonen er godkjent.' : 'Velg en feil, undersøk hva som skjedde, og juster koden.'}`;
+		announcement = `${pendingRun.passed} av ${pendingRun.total} situasjoner håndtert riktig. ${pendingRun.success ? 'Funksjonstestene er bestått for denne koden.' : 'Velg en feil, undersøk hva som skjedde, og juster koden.'}`;
 	}
 	function finishNow() {
 		if (running) complete();
@@ -604,6 +614,7 @@
 			</div>
 		</div>
 
+		{#if mission.id === 'tekst'}<ValidationJourney current="reparer" moduleId={partnerModule} />{/if}
 		<section class="mission" aria-labelledby="mission-title">
 			<span class="issue-icon" aria-hidden="true">!</span>
 			<div class="mission-copy">
@@ -674,6 +685,12 @@
 				<p class="editor-intro">
 					Flytt, bytt eller legg til kodeblokker. Trykk på en kodelinje for forklaring.
 				</p>
+				<div class="storage-status" role="status" aria-live="polite" aria-atomic="true">
+					<strong>{storageStatus.label}</strong>
+					<p>{storageStatus.detail}</p>
+					{#if $learningContext.mode !== 'normal'}<p>Lagringen gjelder {$learningContext.mode === 'practice' ? 'øvingsmodus' : 'denne lærerøkten'}, atskilt fra ordinær fremgang.</p>{/if}
+					{#if !$account.user}<a href="/min-lab/">Start Min lab →</a>{/if}
+				</div>
 				{#key mission.id}
 					<details class="code-example">
 						<summary>Se et kort kodeeksempel</summary>
@@ -825,7 +842,7 @@
 						</div>
 						{#if currentPassed && !running}
 							<section class="mission-win" data-testid="rescue-win" aria-labelledby="win-title">
-								<p class="eyebrow">✓ REPARASJON {mission.number} GODKJENT</p>
+								<p class="eyebrow">✓ FUNKSJONSTESTENE ER BESTÅTT</p>
 								<h3 id="win-title">Dette fikk du til</h3>
 								<dl class="takeaway">
 									<div>
@@ -841,19 +858,24 @@
 										<dd>{mission.takeaway.transfer}</dd>
 									</div>
 								</dl>
+								{#if mission.id === 'tekst'}
+									<p>Bruk nå prinsippet på et annet felt. Lag validering for et visningsnavn i eget prosjekt, og undersøk både svaret og dataene.</p>
+									<a class="project-link" href={moduleLink(validationJourney[2].href, partnerModule)}>Neste: Valider et visningsnavn i egen kode →</a>
+								{:else}
 								<details class="transfer-task">
 									<summary>Prøv prinsippet i egen kode</summary>
 									<p>{mission.transfer}</p>
 									<p>Forklar hvilken kontroll som beskytter dataene. Dette er en ekstra oppgave i eget prosjekt.</p>
 								</details>
-								{#if missionIndex < MISSIONS.length - 1}
+								{/if}
+								{#if missionIndex < MISSIONS.length - 1 && !(inValidationJourney && mission.id === 'tekst')}
 									<button
 										type="button"
 										class="next-mission"
 										onclick={() => changeMission(missionIndex + 1)}
 										>Neste reparasjon <span aria-hidden="true">→</span></button
 									>
-								{:else}<a class="next-mission" href="/spill/chat/">Sammenlign med første spill ↗</a
+								{:else if missionIndex === MISSIONS.length - 1}<a class="next-mission" href="/spill/chat/">Sammenlign med første spill ↗</a
 									>{/if}
 							</section>
 						{/if}
@@ -1123,6 +1145,10 @@
 </div>
 
 <style>
+	.storage-status { margin-block: 12px; padding: 12px 16px; background: var(--color-surface-soft); border: 1px solid var(--color-border); border-radius: 8px; font-size: var(--font-small); color: var(--color-text); }
+	.storage-status p { margin: 6px 0 0; line-height: var(--leading-body); }
+	.storage-status a, .project-link { display: inline-flex; align-items: center; min-height: 44px; color: var(--color-action); text-underline-offset: 4px; }
+	.storage-status a:focus-visible, .project-link:focus-visible { outline: 3px solid var(--color-focus); outline-offset: 3px; }
 	:global(body) {
 		margin: 0;
 		background: var(--color-page);
@@ -2609,3 +2635,4 @@
 		}
 	}
 </style>
+

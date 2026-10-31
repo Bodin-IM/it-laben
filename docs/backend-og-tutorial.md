@@ -1,5 +1,7 @@
 # Backend og elevens kom-i-gang-veiledning
 
+**Nyeste videreutvikling, dev 31. oktober 2026:** [Validering fra øving til egen kode](backend-validering.md) beskriver det sammenhengende forløpet, relevante neste steg, presis lagringsstatus og gjenstående utprøving. Dette konkretiserer videre arbeid etter oppryddingen nedenfor.
+
 28. oktober 2026. Brukerbestilt opprydding: ett Backend-forløp under Utvikling, et tannhjul for labpartnerens utseende og en egen tutorial på `/tutorial/`.
 
 ## Backend: mål og avgrensning
@@ -129,3 +131,4 @@ Ollamas faktiske svar på tutorialen og elevenes bruk er ikke prøvd. Kontrakt o
 ## Frivillig spørsmål om tydelighet, 31. oktober 2026 (dev)
 
 Øving 5, 8 og 10 kan tilby ett kort spørsmål ved slutten av en simulert kjøring eller etter intern navigasjon bort fra et påbegynt forsøk. Eleven velger Ja, Delvis eller Nei til «Var det tydelig hva du skulle gjøre?», kan hoppe over og kan slå av spørsmålene. Svaret har ingen kobling til vurdering eller XP. Se [elevtilbakemeldinger](elevtilbakemeldinger.md) for forskningsgrunnlag, hyppighetsgrenser, sidekontekst, lagring, adminvisning og gjenstående kontroller før main.
+

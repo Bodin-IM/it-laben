@@ -1,7 +1,8 @@
 import { aktiviteter, altElevinnhold, fag } from '#lib/innhold.js';
 import { teachingPlans } from '#lib/teaching.js';
+import { validationFollowUp } from '#lib/backendValidation.js';
 
-/** @typedef {{kind:'undervisning'|'teori'|'oving'|'oppdrag'|'praksis'|'repetisjon',id:string,section?:string,subject?:string,practice?:{instruction:string,check:string}}} ModuleStep */
+/** @typedef {{kind:'undervisning'|'teori'|'oving'|'oppdrag'|'praksis'|'repetisjon',id:string,section?:string,subject?:string,practice?:{instruction:string,check:string},followUp?:{activityId:string,objectiveId:string,instruction:string,href?:string}}} ModuleStep */
 /** @typedef {{id:string,title:string,description:string,subject:string,goals:string[],prerequisites:string,steps:ModuleStep[],resources:{label:string,href:string}[],continuation?:{title:string,description:string}[]}} Module */
 
 // Modules group existing content. Activity IDs, assessment rules and XP stay in their own catalogues.
@@ -49,6 +50,7 @@ const originalModules = [
 			{ kind: 'oving', id: 'oving-6' },
 			{
 				kind: 'oving', id: 'oving-7',
+				followUp: validationFollowUp,
 				practice: {
 					instruction: 'Legg til JSON-fillagring, endring med ID og validering i egen chat. Avvis ugyldige requests før data endres.',
 					check: 'Undersøk en omstart, to meldinger med samme tekst, en lengdegrense og en lagringsfeil. Sammenlign HTTP-svar og data.'
@@ -308,3 +310,4 @@ export function validateModules(modules = moduler) {
 	}
 }
 validateModules();
+

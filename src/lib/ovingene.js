@@ -1,10 +1,11 @@
 // Øvingsarkene er kilden. Alle forsøk kjøres lokalt som undervisningsmodeller.
+import { validationTransfer } from '#lib/backendValidation.js';
 /** @typedef {{value: string, label: string}} Choice */
 /** @typedef {{key: string, label: string, kind: string, value: string, choices?: Choice[]}} Field */
 /** @typedef {{title: string, label: string, instruction: string, observe: string, hint: string, answer: string}} Task */
 /** @typedef {{title: string, code: string, explanation: string}} Example */
 /** @typedef {{instruction: string, check: string}} Transfer */
-/** @typedef {{number: number, title: string, question: string, intro: string, category: string, fields: Field[], tasks: Task[], example: Example, transfer: Transfer, takeaway: string, context: string, related: {href: string, label: string}[]}} Lesson */
+/** @typedef {{number: number, title: string, question: string, intro: string, category: string, fields: Field[], tasks: Task[], firstTask?:number, example: Example, transfer: Transfer, takeaway: string, context: string, related: {href: string, label: string}[]}} Lesson */
 /** @param {string} key @param {string} label @param {string[][]} choices @returns {Field} */
 const select = (key, label, choices) => ({
 	key,
@@ -148,6 +149,7 @@ export const lessons = [
 	},
 	{
 		number: 7,
+		firstTask: 3,
 		title: 'Stopp feil før de lagres',
 		question: 'Hvor skal en ugyldig request stoppe?',
 		category: 'Utvikling',
@@ -160,14 +162,12 @@ export const lessons = [
 			code: 'if (typeof tekst !== "string") {\n  return "Tekst må være en streng";\n}\nif (!tekst.trim()) {\n  return "Tekst kan ikke være tom";\n}',
 			explanation: 'Utdrag fra valideringen: Et tall har ingen trim-metode. Rekkefølgen gjør at ugyldig innhold kan avvises kontrollert, før det når lagringen.'
 		},
-		transfer: {
-			instruction: 'Lag servervalidering for et visningsnavn: en streng på 1–30 tegn etter trim. Vis en forståelig feil i frontend.',
-			check: 'Velg egne tester for normal tekst, tom tekst, bare mellomrom, feil datatype og begge sider av lengdegrensen. Kontroller også at avviste requests ikke lagres.'
-		},
+		transfer: validationTransfer,
 		fields: [
 			select('scenario', 'Prøv en feiltype', [
 				['custom', 'Bruk JSON-feltet nedenfor'],
-				['empty', 'Tom tekst'],
+				['empty', 'Bare mellomrom'],
+				['blank', 'Tom tekst'],
 				['number', 'tekst er tallet 123'],
 				['500', '500 tegn'],
 				['501', '501 tegn'],
@@ -211,6 +211,14 @@ export const lessons = [
 				hint: 'Se på svaret og frontend-koden.',
 				answer:
 					'fetch gir et Response-objekt ved HTTP 400; du må sjekke svar.ok. Ved nettverksfeil blir promise avvist, og catch håndterer feilen uten en HTTP-status.'
+			},
+			{
+				title: 'Hvorfor er mellomrom ikke en melding?',
+				label: 'Mellomrom',
+				instruction: 'Velg «Bare mellomrom». Forutsi om listen vil endres, og kjør steg for steg. Sammenlign deretter med vanlig tekst i JSON-feltet.',
+				observe: 'Se lengden før og etter trim, HTTP-svaret og om minnet og filen endres.',
+				hint: 'En streng med tre mellomrom har lengde 3. Hva blir lengden etter trim?',
+				answer: 'Etter trim er strengen tom. Kontrollen gir HTTP 400 og return stopper ruten før lagring. En vanlig melding skal fortsatt kunne lagres med 201.'
 			}
 		],
 		takeaway:
@@ -422,3 +430,4 @@ export const lessons = [
 		related: []
 	}
 ];
+

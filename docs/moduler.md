@@ -1,5 +1,7 @@
 # Fag, moduler og enkeltinnhold
 
+**Dev, 31. oktober 2026:** Forslag til neste oppgave bruker nå aktiv modul, fagvalg og modulrekkefølge. Påbegynt elevarbeid prioriteres; ferdige moduler merkes som repetisjon når ingen relevante moduler er aktive. Moduler uten kontolagret progresjon leder til sin oversikt. Øving 7 har en avgrenset overgang til eksisterende tekstreparasjon og egen kode. Modulsidens delnumre, aliaser og progresjon er bevart. Se [valg, lagring og kontroller](backend-validering.md).
+
 Moduler samler undervisning, øvinger og oppdrag. I elevens vanlige fagoversikt vises aktive moduler først og ferdige moduler etterpå. Kommende moduler er skjult fra elevoversikten til læreren aktiverer dem. Kortene har tekstmerket **Modul** og en tydelig status. Under modulene ligger et kompakt forslag til neste oppgave og «Finn enkeltoppgaver», som kan åpnes for å bla i øvinger, oppdrag og spill. Merker, XP og labnivå vises i Min lab, ikke som egne paneler på fagoversikten.
 
 Søket ligger øverst i hovedinnholdet, rett over de aktive modulkortene. Modulkortets eget statusmerke viser «Aktiv modul»; gjentatte overskrifter, modulteller og forklaringstekst er fjernet. Labpartneren ligger over fag- og typevalgene i venstrespalten, også på mellomstore skjermer. På mobil samles labpartnerknappen og den lukkede menyen «Fag og type» i én rad. Sidetittel, søkeetikett og moduloverskrift beholdes for skjermlesere.
@@ -101,3 +103,4 @@ Brukerproblemet var avstanden fra søkefeltet til enkeltoppgavene og at personli
 Dette er et lokalt valg etter U1/U3/U6 i designgrunnlaget: prioritere det eleven forsøker å finne, samle sammenhørende informasjon og redusere konkurrerende framhevinger. Forslaget til neste oppgave bruker samme progresjonsgrunnlag som før, men uten merker, nivålinje, XP og velkomsttekst. Det er en anbefaling, ikke en vurdering av forståelse.
 
 Kode og diff er gjennomgått på dev. Ingen tester, Svelte-sjekk, bygg eller nettleserprøving er kjørt i denne leveransen, etter avtalen om samlet testing før main. Før publisering: prøv søk etter eksempelvis VLAN og Øving 6, null treff, fag/type-kombinasjoner, nullstilling, delte søkelenker/tilbakeknapp, modulstatus ved lasting/feil/HTTP, og anbefaling for innlogget/gjest. Kontroller tastaturfokus, 320 px, tekstzoom og begge temaer sammen med labpartnerendringen. Utprøving med elever gjenstår.
+

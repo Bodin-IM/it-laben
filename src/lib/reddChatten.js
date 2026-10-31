@@ -1,3 +1,5 @@
+import { validationTransfer } from './backendValidation.js';
+
 /**
  * Ren, deterministisk modell for «Redd chatten».
  * En kodeblokk har samme virkning som Express-koden eleven ser.
@@ -238,7 +240,7 @@ export const MISSIONS = Object.freeze([
 			'Kontrollene må kjøre før lagringen. Bruk «Rydd teksten» før du vurderer om teksten er tom; en streng med bare mellomrom er ikke tom før trim.',
 			'Et løsningsprinsipp: rydd teksten → stopp ugyldig tekst med return → lagre én gang → svar 201. Test også manglende tekst og tall.'
 		],
-		transfer: 'Lag en rute for å opprette et chatrom i eget prosjekt. Romnavnet må være tekst og kan ikke være tomt etter trim. Velg selv tester som viser både riktig svar og at avviste rom ikke lagres.',
+		transfer: `${validationTransfer.instruction} ${validationTransfer.check}`,
 		requirements: [
 			'Gyldig tekst lagres én gang, ryddes for mellomrom foran og bak, og får 201.',
 			'Tom tekst, bare mellomrom, manglende tekst og tall får 400.',
@@ -993,11 +995,14 @@ function feedbackFor(testCase, runtime, passed) {
 				? 'en tom melding'
 				: 'en melding';
 		const change = removed.length ? 'slettet' : 'lagret';
+		const next = testCase.id === 'mellomrom'
+			? ' Mellomrom teller som tegn før trim. Undersøk tekstverdien ved kontrollen og om kontrollen kjører før lagringen.'
+			: ' Følg kjøringen og finn den første blokken som endrer listen. Hvilken kontroll må stoppe requesten før den blokken?';
 		if (runtime.status !== null && runtime.status >= 400) {
 			const cause = runtime.error ? 'En kodefeil' : 'En avvisning';
-			return `${testCase.actor} fikk ${runtime.status}, men ${subject} ble likevel ${change}. ${cause} gjør ikke tidligere endringer ugjort.`;
+			return `${testCase.actor} fikk ${runtime.status}, men ${subject} ble likevel ${change}. ${cause} gjør ikke tidligere endringer ugjort.${next}`;
 		}
-		return `${testCase.actor} fikk ${runtime.status ?? 'ikke noe svar'}, og ${subject} ble ${change}. Denne requesten skal få ${expected.status} uten å endre serverlisten.`;
+		return `${testCase.actor} fikk ${runtime.status ?? 'ikke noe svar'}, og ${subject} ble ${change}. Denne requesten skal få ${expected.status} uten å endre serverlisten.${next}`;
 	}
 	if (runtime.error) return `Koden stoppet med 500. ${runtime.error}`;
 	if (runtime.status === null)
@@ -1270,3 +1275,4 @@ export function evaluateProgram(missionId, program) {
 	const passed = results.filter((result) => result.passed).length;
 	return { results, passed, total: results.length, success: passed === results.length };
 }
+

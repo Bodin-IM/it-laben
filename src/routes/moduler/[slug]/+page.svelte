@@ -11,6 +11,8 @@
 	import { modulePublication, refreshModulePublication } from '#lib/modulePublicationStore.js';
 	import ModuleAdministration from '#lib/components/ModuleAdministration.svelte';
 	import ModuleTeachingSuggestions from '#lib/components/ModuleTeachingSuggestions.svelte';
+	import PersonalOverview from '#lib/components/PersonalOverview.svelte';
+	import ValidationJourney from '#lib/components/ValidationJourney.svelte';
 	/** @type {{data:{module:import('#lib/moduler.js').Module}}} */
 	let { data } = $props();
 	const module = $derived(data.module);
@@ -53,7 +55,7 @@
 	function status(/** @type {string} */ id) {
 		const value = $lab.summary?.progress.find((item) => item.id === id)?.status;
 		return value === 'passed'
-			? 'Bestått'
+			? 'Funksjonstester bestått'
 			: value === 'reviewed'
 				? 'Gjennomgått'
 				: value === 'started'
@@ -196,6 +198,7 @@
 				</div>
 			</details>
 			{#if teacher}<ModuleTeachingSuggestions {module} />{/if}
+			{#if !teacher}<PersonalOverview moduleId={module.id} />{/if}
 			<div class="layout">
 				<section id="forlop" aria-labelledby="forlop-title" tabindex="-1">
 					<div class="section-heading">
@@ -252,6 +255,9 @@
 															: 'Åpne oppdraget'}
 											<span aria-hidden="true">→</span></a
 										>{/if}
+									{#if module.id === 'backend' && step.id === 'oving-7'}
+										<ValidationJourney moduleId={module.id} />
+									{/if}
 									{#if step.practice}
 										<details class="section-practice">
 											<summary>Bruk denne delen i eget prosjekt</summary>
@@ -293,6 +299,7 @@
 							></progress>
 							<p class="muted">
 								Status hentes fra øvingene og oppdragene. Felles gjennomgang telles ikke med.
+								Arbeidet i egen kode følges opp sammen med læreren.
 							</p>
 						</section>{/if}
 					{#if module.resources.length}<section class="panel">
@@ -723,3 +730,4 @@
 		}
 	}
 </style>
+
