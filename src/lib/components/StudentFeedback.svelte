@@ -8,6 +8,9 @@
 	import { connection, secureHref } from '#lib/connection.js';
 	import { feedbackCategories, feedbackMaxLength, feedbackPage } from '#lib/feedback.js';
 	import { feedbackRequest } from '#lib/feedbackClient.js';
+	import { feedbackAnswers } from '#lib/activityFeedback.js';
+	import ActivityFeedbackPrompt from '#lib/components/ActivityFeedbackPrompt.svelte';
+	import FeedbackPromptSettings from '#lib/components/FeedbackPromptSettings.svelte';
 	/** @type {{enabled:boolean}} */
 	let { enabled } = $props();
 	/** @type {HTMLDialogElement|undefined} */
@@ -18,6 +21,8 @@
 	let heading = $state();
 	/** @type {ReturnType<typeof feedbackPage>} */
 	let source = $state(null);
+	/** @type {{prompt:import('#lib/activityFeedback.js').FeedbackPrompt,answer:string}|null} */
+	let survey = $state(null);
 	let message = $state(''),
 		category = $state('problem'),
 		error = $state('');
@@ -36,6 +41,7 @@
 	const accountId = $derived($lab.user?.id ?? null);
 
 	function reset() {
+		survey = null;
 		source = currentPage;
 		message = '';
 		category = 'problem';
@@ -46,11 +52,23 @@
 	}
 	async function open() {
 		if (!source || (!sent && !message.trim())) reset();
+		await show();
+	}
+	async function show() {
 		openedAtHref = page.url.href;
 		opened = true;
 		dialog?.showModal();
 		await tick();
 		heading?.focus();
+	}
+	async function openForPrompt(/** @type {import('#lib/activityFeedback.js').FeedbackPrompt} */ prompt, /** @type {string} */ answer) {
+		// An existing unsent message takes priority; do not overwrite it.
+		if (!sent && message.trim()) { await show(); return; }
+		reset();
+		survey = { prompt, answer };
+		source = feedbackPage(prompt.pageHref);
+		category = 'other';
+		await show();
 	}
 	function close() {
 		opened = false;
@@ -73,6 +91,7 @@
 		busy = false;
 		message = '';
 		source = null;
+		survey = null;
 		sent = false;
 		error = '';
 		draftId = '';
@@ -94,7 +113,7 @@
 			error = 'Skriv hva du vil gi tilbakemelding om.';
 			return;
 		}
-		const payload = JSON.stringify([category, message.trim(), source.href]);
+		const payload = JSON.stringify([category, message.trim(), source.href, survey?.prompt.id]);
 		if (!draftId || payload !== lastPayload) {
 			draftId = randomId();
 			lastPayload = payload;
@@ -106,7 +125,7 @@
 		try {
 			await feedbackRequest(
 				'/feedback',
-				{ id: draftId, category, message: message.trim(), pageHref: source.href },
+				{ id: draftId, category, message: message.trim(), pageHref: source.href, ...(survey ? { promptId: survey.prompt.id } : {}) },
 				controller.signal
 			);
 			if (request !== serial) return;
@@ -123,6 +142,13 @@
 		}
 	}
 </script>
+
+<ActivityFeedbackPrompt
+	enabled={visible && !opened && !message.trim() && !$rewardNotice && $labPreferences.companion}
+	{avatar}
+	oncomment={openForPrompt}
+	onclose={() => launcher?.focus({ preventScroll: true })}
+/>
 
 {#if visible}
 	<div class="feedback-space" aria-hidden="true"></div>
@@ -172,18 +198,19 @@
 		<Avatar id={avatar} size={64} animate={false} mood={sent ? 'success' : 'greeting'} decorative />
 		<div>
 			<h2 id="feedback-heading" bind:this={heading} tabindex="-1">
-				{sent ? 'Takk! Meldingen er sendt.' : 'Hva kan bli bedre?'}
+				{sent ? 'Takk! Meldingen er sendt.' : survey ? 'Utdyp svaret ditt' : 'Hva kan bli bedre?'}
 			</h2>
 			<p>
 				{sent
 					? 'Administratorene kan nå lese tilbakemeldingen din.'
-					: 'Fant du en feil, eller har du et forslag? Fortell oss om det.'}
+					: survey ? 'Hva fungerte bra, eller hva kunne vært tydeligere?' : 'Fant du en feil, eller har du et forslag? Fortell oss om det.'}
 			</p>
 		</div>
 	</div>
+	{#if survey && !sent}<p><strong>{survey.prompt.question}</strong> {feedbackAnswers.find((item) => item.id === survey.answer)?.label}</p>{/if}
 	{#if source}<div class="source">
 			<span>Gjelder siden</span><strong>{source.title}</strong><code>{source.href}</code><small
-				>Siden ble lagt ved automatisk da du åpnet skjemaet.</small
+				>{survey ? 'Siden følger svaret ditt på oppgaven.' : 'Siden ble lagt ved automatisk da du åpnet skjemaet.'}</small
 			>
 			{#if !sent && source.href !== currentPage?.href}
 				<small>Du har gått videre til en annen side. Utkastet gjelder fortsatt siden over.</small>
@@ -240,9 +267,12 @@
 			</p>
 		</form>
 	{/if}
+	{#if $lab.user?.role === 'student'}<details class="prompt-settings"><summary>Innstillinger for spørsmål</summary><FeedbackPromptSettings /></details>{/if}
 </dialog>
 
 <style>
+	.prompt-settings { margin-top: 20px; border-top: 1px solid var(--color-border); padding-top: 8px; }
+	.prompt-settings summary { min-height: 44px; align-content: center; cursor: pointer; font-size: var(--font-small); }
 	.feedback-space {
 		height: calc(76px + env(safe-area-inset-bottom));
 	}

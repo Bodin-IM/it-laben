@@ -10,6 +10,7 @@
 	import { avatarFeedback } from '#lib/avatarFeedback.js';
 	import { lessons } from '#lib/ovingene.js';
 	import { buildTrace } from '#lib/ovingModel.js';
+	import { noteFeedbackAttempt, finishFeedbackAttempt } from '#lib/activityFeedbackClient.js';
 	let ready = $state(false);
 	onMount(() => {
 		ready = true;
@@ -45,6 +46,7 @@
 		selectedLine = 0;
 	}
 	function run() {
+		noteFeedbackAttempt(`oving-${lesson.number}`, page.url.pathname + page.url.search);
 		avatarFeedback(
 			`oving-${lesson.number}`,
 			'working',
@@ -63,6 +65,7 @@
 		);
 		index = Math.max(0, Math.min(trace.length - 1, index + delta));
 		selectedLine = 0;
+		if (delta > 0 && index === trace.length - 1) finishFeedbackAttempt(`oving-${lesson.number}`);
 	}
 	/** @param {unknown} value */
 	function display(value) {

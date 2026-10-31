@@ -40,6 +40,7 @@ import { avatars } from '../src/lib/avatars.js';
 import { schoolClasses, classCapacities } from '../src/lib/classes.js';
 import { labPartnerRouter } from './lab-partner/router.js';
 import { saveFeedback, listFeedback, setFeedbackStatus } from './feedback.js';
+import { feedbackPreferences, setFeedbackPreferences, offerFeedbackPrompt, respondToFeedbackPrompt, feedbackTotals } from './activity-feedback.js';
 import { networkLabSnapshot, checkNetworkLab } from './network-labs.js';
 
 const DAY = 86400000;
@@ -521,6 +522,21 @@ export function createApp({ db, config, clock = Date.now, limits = true }) {
 	});
 	app.get('/api/admin/feedback', authenticated, (req, res) =>
 		res.json(listFeedback(db, req.labUser.id, req.query))
+	);
+	app.get('/api/feedback/preferences', authenticated, (req, res) =>
+		res.json(feedbackPreferences(db, req.labUser.id))
+	);
+	app.post('/api/feedback/preferences', authenticated, accountMatches, (req, res) =>
+		res.json(setFeedbackPreferences(db, req.labUser.id, req.body))
+	);
+	app.post('/api/feedback/prompts', authenticated, accountMatches, (req, res) =>
+		res.json(offerFeedbackPrompt(db, req.labUser.id, req.body, clock()))
+	);
+	app.post('/api/feedback/prompts/:id', authenticated, accountMatches, (req, res) =>
+		res.json(respondToFeedbackPrompt(db, req.labUser.id, req.params.id, req.body, clock()))
+	);
+	app.get('/api/admin/feedback/activities', authenticated, (req, res) =>
+		res.json(feedbackTotals(db, req.labUser.id))
 	);
 	app.post('/api/admin/feedback/:id/status', authenticated, accountMatches, (req, res) =>
 		res.json(setFeedbackStatus(db, req.labUser.id, req.params.id, req.body, clock()))
