@@ -377,13 +377,13 @@ export async function deleteProfile() {
 	rewardNotice.set(null);
 	broadcast();
 }
-/** @param {RecoveryKey} file */
-export function downloadKey(file) {
+/** @param {RecoveryKey} file @param {string} [filename] */
+export function downloadKey(file, filename = 'min-it-lab-nokkel.json') {
 	const blob = new Blob([JSON.stringify(file, null, 2)], { type: 'application/json' });
 	const url = URL.createObjectURL(blob),
 		link = document.createElement('a');
 	link.href = url;
-	link.download = 'min-it-lab-nokkel.json';
+	link.download = filename;
 	document.body.append(link);
 	link.click();
 	link.remove();

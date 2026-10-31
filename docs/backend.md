@@ -127,7 +127,7 @@ Ved gjenoppretting stoppes API-et først, gjeldende database og tilhørende WAL/
 - `journalctl -u it-laben-api -n 60 --no-pager` viser driftsfeil. Logg aldri innloggingsbody, nøkkelfiler eller rå cookies.
 - «Forespørselen kommer ikke fra IT-laben»: kontroller `APP_ORIGIN` mot adressen i elevens nettleser.
 - «Bruk nettstedets HTTPS-adresse»: kontroller Nginx sitt `X-Forwarded-Proto` og at TLS faktisk er aktivt.
-- Mistet nettleserdata: logg inn med filen. Hvis både filen og alle økter er borte, finnes ingen identitetskobling for sikker gjenoppretting i denne versjonen.
+- Mistet nettleserdata: logg inn med filen. På dev kan administrator gi en ny nøkkelfil til en eksisterende elevprofil når både fil og alle økter er borte. Administratoren må identifisere riktig elev før overlevering; profilen har ingen automatisk kobling til skolens identitetssystem. Se [gjenoppretting i elevadministrasjonen](elevadministrasjon.md#mistet-nøkkelfil-gi-eleven-tilgang-igjen).
 - Kunne ikke kontakte Min lab: undervisningen virker fortsatt. Ventende innsendinger er knyttet til kontoen og synkroniseres når den samme brukeren er pålogget og tilkoblingen er tilbake.
 
 [Undervisningsmodus](undervisning.md) gir egne læreropplegg og storskjermvisning. Lærernotater hentes fra et lærerbeskyttet API, mens elevkatalogen og vurderingsreglene beholdes.

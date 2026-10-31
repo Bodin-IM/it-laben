@@ -1,6 +1,6 @@
 # Elevadministrasjon, tildelte brukernavn og toppliste
 
-Denne videreutviklingen ligger på **`dev`**. Skolens automatiske publisering henter fortsatt bare `main`; push til `dev` endrer ikke serveren. Klasseadministrasjon og gjenopprettingskoder er senere utvidelser.
+Denne videreutviklingen ligger på **`dev`**. Skolens automatiske publisering henter fortsatt bare `main`; push til `dev` endrer ikke serveren. Administrator kan klargjøre en ny nøkkelfil til en eksisterende elevprofil, som beskrevet nedenfor.
 
 Eksempelvisninger med oppdiktede profiler: [oversikt](admin-overview.png), [elevliste](admin-students.png), [toppliste](leaderboard.png) og [toppliste på mobil](leaderboard-mobile.png).
 
@@ -87,6 +87,7 @@ De eksisterende verktøyene **Test selv**, test uten tidsfrist og **Åpne for al
 | Test selv og åpne aktiviteter              | Ja    | Ja            |
 | Elevliste, oversikt og progresjonsdetaljer | Ja    | Ja            |
 | Tildele nytt generert brukernavn           | Ja    | Ja            |
+| Gi ny nøkkelfil til en elev                | Nei   | Ja            |
 | Deaktivere og reaktivere elever            | Nei   | Ja            |
 | Slette en deaktivert elevprofil            | Nei   | Ja            |
 | Endre roller fra nettleseren               | Nei   | Nei           |
@@ -108,6 +109,25 @@ npm run admin -- revoke PROFIL_ID
 ```
 
 `revoke` gjør en administrator til lærer. Siste administrator kan ikke fjernes eller slette seg selv før en annen profil har fått rollen. Den eksisterende lærerkommandoen kan ikke nedgradere en administrator. Listene viser aldri innloggingshemmeligheter.
+
+### Mistet nøkkelfil: gi eleven tilgang igjen
+
+På dev finnes **Lærerpanel → Elever → velg elevprofil → Gi ny nøkkelfil** for administratorer. Vanlige lærere har ikke denne handlingen. Den gjelder aktive elevprofiler; en deaktivert profil må først aktiveres. Lærer- og administratorprofiler kan ikke gjenopprettes gjennom elevlisten.
+
+1. Kontroller elevens tildelte brukernavn og profil-ID sammen med eleven, og velg **Gi ny nøkkelfil**.
+2. Velg **Lag ny nøkkelfil**, deretter **Last ned ny nøkkelfil**. Filnavnet inneholder elevprofilens navn og en del av ID-en, slik at filer kan skilles fra hverandre.
+3. Bekreft at filen er lagret og at du har valgt riktig elevprofil. Velg **Aktiver nøkkelfilen** innen 30 minutter.
+4. Gi filen til riktig elev gjennom en privat kanal. Eleven bruker den vanlige nøkkelinnloggingen i Min lab. Filen gir tilgang til kontoen; fjern administratorkopien når overleveringen er ferdig.
+
+Den gamle nøkkelen og elevens pålogginger beholdes frem til aktiveringen. Avbrudd før aktivering endrer ikke tilgangen. Ved aktivering sperres alle gamle nøkler, klargjøringer og pålogginger for eleven. Administratorens egen pålogging beholdes. Konto-ID, brukernavn, klasse, labfigur, XP, merker, innsendte svar og serverlagret progresjon beholdes. Arbeid som ennå ikke er sendt fra en gammel elevøkt, er ikke omfattet av serverlagringen.
+
+Et tapt svar etter aktivering kan prøves igjen med samme fil og hendelses-ID. Det logger ikke ut en elev som allerede har brukt den nye filen. En fil som senere er erstattet, kan ikke gjenaktiveres gjennom et gammelt omforsøk. Ved utløp eller en nyere klargjøring må administratoren lage og laste ned en ny fil. En vellykket aktivering viser også **Last ned filen igjen** frem til dialogen lukkes.
+
+Implementasjon: `StudentKeyRecovery.svelte`, `server/student-recovery.js` og migrasjon `015_admin_recovery_keys.sql`. API-rutene `POST /api/teacher/students/:id/recovery/prepare` og `/activate` krever innlogging, aktiv administratorrolle, riktig Origin, CSRF og aktørens konto-ID. Klargjøringen er bundet til både elev, administrator, nåværende navn og nøkkelsett. Bare SHA-256-verifikatorer lagres på serveren. Aktivering og historikk (`management_actions`, handling `recover-key`) skrives i samme transaksjon; historikken inneholder ikke nøkkelen. Ny klargjøring for samme elev erstatter en tidligere klargjøring. Elevens eget nøkkelbytte og administrerte navne-/statusendringer opphever en ventende admin-klargjøring.
+
+Valgene om tilfeldig nøkkel, tidsavgrenset klargjøring, ingen sperring før bekreftelse og tilbakekalling av tidligere økter støtter seg på [OWASPs veiledning om kontogjenoppretting](https://cheatsheetseries.owasp.org/cheatsheets/Forgot_Password_Cheat_Sheet.html). Den konkrete flyten er et lokalt designvalg for skolens profiler: administratoren må identifisere eleven, siden tildelt brukernavn alene ikke beviser identitet. Dialogen gjenbruker lærerpanelets tema, fokusmarkering og knapper og viser bare det aktuelle trinnet.
+
+**Kontrollstatus på dev:** Kode og diff gjennomgått. Fire nye regresjonstester er skrevet for tilgangskontroll, bevart profil, tilbakekalling, omforsøk, utløp og samtidige endringer; de er ikke kjørt i denne dev-runden. Før main gjenstår samlet testing, Svelte-sjekk, bygg og nettleserprøving av nedlasting, aktivering, feil/omforsøk, tastatur/Escape, smal skjerm/zoom, begge temaer og konto-/elevbytte under en forespørsel. Migrasjonen legger bare til en tabell og indeks og omskriver ingen elevdata.
 
 ### Deaktivering og sletting
 
