@@ -12,7 +12,8 @@
 	import { moduleLink } from '#lib/moduleNavigation.js';
 	import ModuleContext from '#lib/components/ModuleContext.svelte';
 	import { avatarFeedback } from '#lib/avatarFeedback.js';
-	import { lessons } from '#lib/ovingene.js';
+	import { lessons, taskStartValues } from '#lib/ovingene.js';
+	import ProjectTask from '#lib/components/ProjectTask.svelte';
 	import { buildTrace, validationFeedback } from '#lib/ovingModel.js';
 	import { noteFeedbackAttempt, finishFeedbackAttempt } from '#lib/activityFeedbackClient.js';
 	const interfaceHelp = getInterfaceHelp();
@@ -47,11 +48,9 @@
 	let current = $derived(trace[index]);
 	let finished = $derived(trace.length > 0 && index === trace.length - 1);
 	const feedback = $derived(lesson.number === 7 && finished ? validationFeedback(trace) : null);
-	let previous = $derived(lessons.find((item) => item.number === lesson.number - 1));
-	let next = $derived(lessons.find((item) => item.number === lesson.number + 1));
 
 	$effect(() => {
-		values = Object.fromEntries(lesson.fields.map((field) => [field.key, field.value]));
+		values = taskStartValues(lesson);
 		trace = [];
 		index = 0;
 		selectedLine = 0;
@@ -62,6 +61,10 @@
 		trace = [];
 		index = 0;
 		selectedLine = 0;
+	}
+	function prepareTask() {
+		values = taskStartValues(lesson, taskIndex);
+		clearTrace();
 	}
 	function run() {
 		noteFeedbackAttempt(`oving-${lesson.number}`, page.url.pathname + page.url.search);
@@ -180,7 +183,7 @@
 				<h2 id="lab-title">{task.title}</h2>
 				<p><strong>Gjør dette:</strong> {task.instruction}</p>
 				<p class="observe"><strong>Se etter:</strong> {task.observe}</p>
-				{#if lesson.number === 7}<p class="small">Dette er en simulator. Valg og kjøringssteg starter på nytt når du åpner siden igjen. Min lab lagrer gjennomgangsstatusen når du markerer leksjonen som gjennomgått nedenfor.</p>{/if}
+				<p class="small">Dette er en simulator. Valg og kjøringssteg starter på nytt når du åpner siden igjen. Når du er innlogget, kan du lagre din egen gjennomgangsmarkering nedenfor.</p>
 				{#key `${lesson.number}-${taskIndex}`}
 					<div class="task-help">
 						<details><summary use:helpTarget={{ label: 'Finn hint', hint: 'Åpne Hint for et lite tips til oppgaven.', order: 5 }}>Hint</summary><p>{task.hint}</p></details>
@@ -198,6 +201,8 @@
 					}}
 				>
 					<h3>Prøv her</h3>
+					<button type="button" class="prepare-task" onclick={prepareTask}>Still inn første forsøk</button>
+					<p class="small">Fyller inn startvalgene til denne oppgaven og tømmer forrige kjøring. Endre deretter valgene for å sammenligne.</p>
 					{#each lesson.fields as field}
 						{#if isRelevant(field.key)}
 							<label for={`field-${field.key}`}>{field.label}</label>
@@ -333,17 +338,16 @@
 			</div>
 			<ValidationProject />
 		{:else}
+		<ProjectTask id="eget-prosjekt" instruction={lesson.transfer.instruction} check={lesson.transfer.check} />
 		<details class="context">
-			<summary>Prøv i ditt eget prosjekt</summary>
-			<p><strong>Lag selv:</strong> {lesson.transfer.instruction}</p>
-			<p><strong>Undersøk resultatet:</strong> {lesson.transfer.check}</p>
+			<summary>Oppsett og kodehjelp til prosjektet</summary>
 			<p>{lesson.context}</p>
 			<p>
 				Kodepanelene viser avgrensede utdrag, ikke komplette serverfiler. Bruk øvingsarket for hele
 				oppsettet og test endringene i din egen app.
 			</p>
 			{#if lesson.number === 8}<p>
-					Oppsettet trenger en hemmelig SESSION_SECRET, express.json før rutene og
+					Øving 8 lagrer brukerId i sessionen og slår opp brukeren. Sessions-innføringen viser et brukerobjekt i sessionen; bruk én konsekvent variant i ditt prosjekt. Oppsettet trenger en hemmelig SESSION_SECRET, express.json før rutene og
 					session-middleware før /meg. Ved separate origins bruker du CORS med den konkrete
 					frontendadressen og credentials: true. Bruk konsekvent localhost eller samme vertsnavn.
 					Øvingsarkets Origin-kontroll for POST, PATCH og DELETE skal også være med.
@@ -356,21 +360,14 @@
 					Øvingsarket bruker intern HTTP og testkontoer. En offentlig tjeneste trenger blant annet
 					HTTPS, riktig secure-cookie, varig sessionlager og begrensning av innloggingsforsøk.
 				</p>{/if}
-			{#each lesson.related as related}<a href={related.href}>{related.label} →</a>{/each}
+			{#each lesson.related as related}<a href={moduleLink(related.href, moduleId)}>{related.label} →</a>{/each}
 		</details>
 		{/if}
-		<nav class="lesson-footer" aria-label="Forrige og neste øving">
-			<a href={previous ? moduleLink(`/oving-${previous.number}/`, moduleId) : '/#ovingene'}
-				>← {previous ? `Øving ${previous.number}: ${previous.title}` : 'Til oversikten'}</a
-			>{#if lesson.number === 7}<a href={moduleLink(validationJourney[1].href, moduleId)}>Neste i valideringsforløpet: Reparer →</a>
-			{:else if next}<a href={moduleLink(`/oving-${next.number}/`, moduleId)}
-					>Øving {next.number}: {next.title} →</a
-				>{:else}<a href="/#ovingene">Til oversikten →</a>{/if}
-		</nav>
 	</main>
 </div>
 
 <style>
+	.prepare-task { width: 100%; min-height: 44px; margin-bottom: 6px; padding: 10px; border: 1px solid var(--color-border); border-radius: 7px; background: var(--color-surface); color: var(--color-accent); font: inherit; cursor: pointer; }
 	.validation-next { margin-block: 28px; padding: 20px; border: 1px solid var(--color-info-border); border-radius: var(--radius-card); background: var(--color-info-soft); }
 	.validation-next h2 { font-size: 1.25rem; }
 	.validation-next p { max-width: 65ch; font-size: var(--font-body); line-height: var(--leading-body); }
@@ -845,16 +842,6 @@
 		display: block;
 		margin-top: 0.5rem;
 	}
-	.lesson-footer {
-		display: flex;
-		justify-content: space-between;
-		gap: 2rem;
-		padding-top: 2rem;
-		font-size: var(--font-small);
-	}
-	.lesson-footer a:last-child {
-		text-align: right;
-	}
 	.skip {
 		position: absolute;
 		top: -100px;
@@ -925,13 +912,5 @@
 		.line-note {
 			min-height: 145px;
 		}
-		.lesson-footer {
-			flex-direction: column;
-			gap: 1rem;
-		}
-		.lesson-footer a:last-child {
-			text-align: left;
-		}
 	}
 </style>
-

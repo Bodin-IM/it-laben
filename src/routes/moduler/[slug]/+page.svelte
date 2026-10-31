@@ -13,6 +13,9 @@
 	import ModuleTeachingSuggestions from '#lib/components/ModuleTeachingSuggestions.svelte';
 	import PersonalOverview from '#lib/components/PersonalOverview.svelte';
 	import ValidationJourney from '#lib/components/ValidationJourney.svelte';
+	import BackendStart from '#lib/components/BackendStart.svelte';
+	import ProjectTask from '#lib/components/ProjectTask.svelte';
+	import { backendSections } from '#lib/backendCourse.js';
 	/** @type {{data:{module:import('#lib/moduler.js').Module}}} */
 	let { data } = $props();
 	const module = $derived(data.module);
@@ -55,7 +58,7 @@
 	function status(/** @type {string} */ id) {
 		const value = $lab.summary?.progress.find((item) => item.id === id)?.status;
 		return value === 'passed'
-			? 'Funksjonstester bestått'
+			? 'Oppdragstester bestått'
 			: value === 'reviewed'
 				? 'Gjennomgått'
 				: value === 'started'
@@ -182,6 +185,7 @@
 					>
 				</div>
 			{/if}
+			{#if module.id === 'backend'}<BackendStart />{/if}
 			<details class="module-guide">
 				<summary>Mål og forkunnskaper</summary>
 				<div class="guide-content">
@@ -212,14 +216,16 @@
 								tabindex="-1"
 								class:teaching={step.kind === 'undervisning'}
 							>
-								{#if step.section}<h3 class="part-title">{step.section}</h3>{/if}
+								{#if step.section}<div class="part-title"><h3>{step.section}</h3>
+									{#if module.id === 'backend'}<p>{backendSections[step.section]}</p>{/if}
+								</div>{/if}
 								<span class="step-number" aria-hidden="true"
 									>{String(index + 1).padStart(2, '0')}</span
 								>
 								<div class="step-content">
 									<div class="step-top">
 										<span class="step-type"
-											>{moduleTypes[step.kind].label}{step.format === 'spill'
+											>{step.optional ? 'Valgfri ekstrautfordring' : moduleTypes[step.kind].label}{step.format === 'spill'
 												? ' · Spill'
 												: ''}</span
 										>{#if step.kind !== 'undervisning' && status(step.id)}<span class="status"
@@ -259,11 +265,7 @@
 										<ValidationJourney moduleId={module.id} />
 									{/if}
 									{#if step.practice}
-										<details class="section-practice">
-											<summary>Bruk denne delen i eget prosjekt</summary>
-											<p><strong>Lag selv:</strong> {step.practice.instruction}</p>
-											<p><strong>Undersøk resultatet:</strong> {step.practice.check}</p>
-										</details>
+										<ProjectTask instruction={step.practice.instruction} check={step.practice.check} />
 									{/if}
 								</div>
 							</li>
@@ -300,6 +302,7 @@
 							<p class="muted">
 								Status hentes fra øvingene og oppdragene. Felles gjennomgang telles ikke med.
 								Arbeidet i egen kode følges opp sammen med læreren.
+								{#if module.id === 'backend'}Nattevakten er valgfri og telles ikke i denne oversikten.{/if}
 							</p>
 						</section>{/if}
 					{#if module.resources.length}<section class="panel">
@@ -329,27 +332,14 @@
 </div>
 
 <style>
-	.section-practice {
-		margin-top: 12px;
-		border-top: 1px solid var(--color-border);
-		font-size: var(--font-small);
-	}
-	.section-practice summary {
-		min-height: 44px;
-		padding: 12px 0;
-		color: var(--color-action);
-	}
-	.section-practice p {
-		margin: 0 0 10px;
-		max-width: 75ch;
-		color: var(--color-text-muted);
-	}
 	.part-title {
 		grid-column: 1 / -1;
 		margin: 0 0 8px;
 		color: var(--color-info);
 		font-size: 1.1rem;
 	}
+	.part-title h3 { margin: 0 0 8px; font-size: 1.15rem; }
+	.part-title p { margin: 0; max-width: 75ch; color: var(--color-text-muted); font: 400 var(--font-body)/1.6 var(--font-ui); }
 	.continuation {
 		margin-top: 24px;
 	}

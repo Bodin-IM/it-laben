@@ -106,7 +106,7 @@ export const partnerPages = [
 		kind: 'overview',
 		contents: moduleContents(module).map((step) => ({
 			title: step.title,
-			description: step.description,
+			description: `${step.optional ? 'Valgfri ekstrautfordring. ' : ''}${step.description}${step.practice ? ` Eget prosjekt: ${step.practice.instruction} Test og forklar: ${step.practice.check}` : ''}`,
 			links: step.href ? [{ title: step.title, href: step.href }] : step.lessons
 		})),
 		path: `/moduler/${module.id}/`,
@@ -115,7 +115,8 @@ export const partnerPages = [
 		topics: module.goals,
 		tips: [
 			`Forkunnskaper: ${module.prerequisites}`,
-			'Følg modulens steg og bruk målene til å forklare hva du har undersøkt. Prøv deretter en beslektet oppgave med mindre hjelp.'
+			'Følg modulens steg og bruk målene til å forklare hva du har undersøkt. Prøv deretter en beslektet oppgave med mindre hjelp.',
+			...(module.id === 'backend' ? ['Bygg videre på samme Svelte- og Express-chat med JSON-filer. Bruk lærerens øvingsark. Simulatorer og oppdrag er støtte til arbeidet på egen maskin; du ser ikke elevens prosjektkode. Nattevakten er valgfri.'] : [])
 		]
 	})),
 	...altElevinnhold.map((activity) => {
@@ -171,3 +172,4 @@ export function partnerPageFor(pathname, subject = null) {
 export function partnerAllowed(pathname) {
 	return !/^\/(laerer|admin)(\/|$)/.test(pathname);
 }
+

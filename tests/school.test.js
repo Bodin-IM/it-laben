@@ -652,7 +652,7 @@ test('backup inkluderer tildelte navn, administrator, kontostatus, deltakelse og
 });
 
 test('undervisning: læreropplegg og egne lærersider er adskilt fra elevkatalogen og kan utvides med drift', () => {
-	assert.equal(teachingPlans.length, 3);
+	assert.equal(teachingPlans.length, 5);
 	assert.ok(!teachingPlans.some((plan) => plan.id === 'fra-kode-til-tjeneste'));
 	assert.ok(!teachingGuides.some((guide) => guide.planId === 'fra-kode-til-tjeneste'));
 	assert.ok(aktiviteter.every((item) => item.audience === 'student'));

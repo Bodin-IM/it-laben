@@ -53,7 +53,7 @@ Start med en liten før-oppgave: Vis en kontroll som bare undersøker om tekstfe
 
 Etterpå viser eleven sin egen validering av visningsnavn, en avvist request uten dataendring og et gyldig forsøk. Be om en forklaring på hvorfor kontrollen må komme før lagring. I en senere økt: la eleven validere et romnavn med en annen lengdegrense, med mindre støtte. Noter hvilken hjelp eleven brukte. En vellykket funksjonstest alene dokumenterer ikke forståelse eller varig læring.
 
-Prøv først med 3–5 elever med ulike forkunnskaper. Gi målet uten å navngi knapper. Skill mellom navigasjonsproblemer, faglige misforståelser og interesse/frustrasjon. Undersøk særlig om eleven finner overgangen til egen kode og faktisk bruker prinsippet der. Antallet er et praktisk utgangspunkt for å finne problemer, ikke dokumentasjon på læringseffekt.
+Etter brukerens avklaring prøves hele Backend-modulen i ordinær undervisning fra neste uke, uten en separat pilot som vilkår. Se [samlet undervisningsforløp](backend-undervisning.md). Gi målet uten å navngi knapper. Skill mellom navigasjonsproblemer, faglige misforståelser og interesse/frustrasjon. Undersøk særlig om eleven finner overgangen til egen kode og faktisk bruker prinsippet der.
 
 ## Teknisk kontroll og gjenstående arbeid
 

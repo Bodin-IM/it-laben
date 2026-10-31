@@ -58,7 +58,7 @@ export const teachingPlans = [
 			'Skille mellom POST og GET.',
 			'Forklare forskjellen mellom data i nettleseren og på serveren.'
 		],
-		lessonIds: ['frontend-backend', 'chatrom'],
+		lessonIds: ['frontend-backend'],
 		selfWorkIds: ['chat']
 	},
 	{
@@ -72,8 +72,8 @@ export const teachingPlans = [
 			'Følge sammenhengen mellom cookie og session.',
 			'Forklare hvorfor serveren bestemmer avsender og eierskap.'
 		],
-		lessonIds: ['sessions', 'chatrom', 'oving-9'],
-		selfWorkIds: ['oving-8', 'redd-chatten']
+		lessonIds: ['sessions', 'oving-8', 'oving-9', 'chatrom'],
+		selfWorkIds: ['oving-8', 'oving-9', 'redd-chatten', 'meldingsdetektiven']
 	},
 	{
 		id: 'data-som-overlever',
@@ -88,6 +88,28 @@ export const teachingPlans = [
 		],
 		lessonIds: ['fillagring', 'oving-5', 'oving-6'],
 		selfWorkIds: ['oving-5', 'oving-6']
+	},
+	{
+		id: 'backend-validering',
+		audience: 'teacher',
+		title: 'Validering: undersøk, reparer og bruk selv',
+		subject: 'utvikling',
+		minutes: 25,
+		description: 'Følg mellomrom, feil datatype og lengdegrense fra request til lagring. Fortsett med reparasjon og egen kode.',
+		goals: ['Velge tester på begge sider av en grense.', 'Forklare hvorfor ugyldige data skal avvises før lagring.'],
+		lessonIds: ['oving-7'],
+		selfWorkIds: ['oving-7', 'redd-chatten']
+	},
+	{
+		id: 'backend-publisering',
+		audience: 'teacher',
+		title: 'Publiser og kontroller egen chat',
+		subject: 'drift',
+		minutes: 25,
+		description: 'Skill kildekode, bygg og kjørende prosess. Forbered praktisk publisering, omstart og gjenoppretting.',
+		goals: ['Forklare hvilken versjon nettleseren får.', 'Teste tjenesten fra en annen PC og etter omstart.'],
+		lessonIds: ['oving-10'],
+		selfWorkIds: ['oving-10']
 	}
 ];
 
@@ -142,3 +164,4 @@ export function studentLessonLink(href) {
 		url.searchParams.delete(name);
 	return url.pathname + url.search + url.hash;
 }
+

@@ -24,6 +24,7 @@
 	const plan = $derived(teachingPlans.find((item) => item.id === planId));
 	const planModule = $derived(
 		moduler.find((item) =>
+			item.teachingPlanIds?.includes(planId ?? '') ||
 			item.steps.some((step) => step.kind === 'undervisning' && step.id === planId)
 		)
 	);

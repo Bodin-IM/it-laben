@@ -2,7 +2,7 @@ import { publicationFor } from './modulePublication.js';
 
 /** @typedef {import('./progression.js').ActivityProgress} ActivityProgress */
 /** @typedef {import('./progression.js').ObjectiveProgress} ObjectiveProgress */
-/** @typedef {{id:string,title:string,subject:string,steps:{id:string,kind:string,href:string,description:string,subject?:string,followUp?:{activityId:string,objectiveId:string,instruction:string,href?:string}}[]}} RecommendationModule */
+/** @typedef {{id:string,title:string,subject:string,steps:{id:string,kind:string,href:string,description:string,subject?:string,optional?:boolean,followUp?:{activityId:string,objectiveId:string,instruction:string,href?:string}}[]}} RecommendationModule */
 /** @typedef {{id:string,title:string,href:string,description:string,reason:string,action:string,moduleId:string}} Recommendation */
 
 /** Read-only recommendation: publication controls navigation, never completion or XP.
@@ -15,7 +15,7 @@ import { publicationFor } from './modulePublication.js';
  */
 export function recommendNextActivity(progress, modules, publications, subject = 'alle') {
 	const relevant = modules.filter((module) =>
-		module.steps.some((step) => step.kind !== 'undervisning' &&
+		module.steps.some((step) => step.kind !== 'undervisning' && !step.optional &&
 			(subject === 'alle' || (step.subject ?? module.subject) === subject))
 	);
 	const active = relevant.filter((module) => publicationFor(module.id, publications).status === 'active');
@@ -59,7 +59,7 @@ export function recommendNextActivity(progress, modules, publications, subject =
 		let untracked = false;
 		let hasTracked = false;
 		for (const step of module.steps) {
-			if (step.kind === 'undervisning' || (subject !== 'alle' && (step.subject ?? module.subject) !== subject)) continue;
+			if (step.kind === 'undervisning' || step.optional || (subject !== 'alle' && (step.subject ?? module.subject) !== subject)) continue;
 			const activity = progress.find((item) => item.id === step.id);
 			if (!activity) { untracked = true; continue; }
 			hasTracked = true;

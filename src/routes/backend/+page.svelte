@@ -2,7 +2,7 @@
 	import PartnerContext from '#lib/components/PartnerContext.svelte';
 	import { textShape } from '#lib/partnerContext.js';
 
-	import PageLinks from '#lib/components/PageLinks.svelte';
+	import ProjectTask from '#lib/components/ProjectTask.svelte';
 	import ModuleContext from '#lib/components/ModuleContext.svelte';
 	import { avatarFeedback } from '#lib/avatarFeedback.js';
 	import { onMount } from 'svelte';
@@ -527,6 +527,9 @@
 					<p class="tenk">Blir meldingen lagt til før backend svarer med 400?</p>
 				</div>
 			</details>
+			<ProjectTask id="eget-prosjekt"
+				instruction="Koble meldingsfeltet i Svelte til POST /meldinger, og lag en henteknapp som bruker GET /meldinger i egen Express-backend."
+				check="Send fra én nettleser og hent fra en annen. Forklar hvorfor mottakerens liste ikke endres før GET. Prøv også tom tekst og kontroller at serverlisten er uendret." />
 			<details>
 				<summary
 					><span>Koble til eget prosjekt</span><small>Hvor hører utdragene hjemme?</small></summary
@@ -534,7 +537,6 @@
 				<div class="detaljinnhold prosjekt">
 					<div>
 						<h2>Frontend · Svelte</h2>
-						<p><strong>Lag selv:</strong> Koble et meldingsfelt til POST og en henteknapp til GET i din egen chat. Send fra én nettleser og hent meldingen fra en annen.</p>
 						<p>{CODE_CONTEXTS.frontend}</p>
 						<pre><code
 								>{'const API = "http://localhost:3000";\nlet avsender = $state("");\nlet tekst = $state("");\nlet meldinger = $state([]);\nlet status = $state("");'}</code
@@ -578,7 +580,6 @@
 		<footer>
 			<a href="/">← Flere forsøk i IT-laben</a><span>Prøv. Les koden. Prøv igjen.</span>
 		</footer>
-		<PageLinks links={[{ href: '/chatrom/', label: 'Videre til chatrom →' }]} />
 	</main>
 </div>
 

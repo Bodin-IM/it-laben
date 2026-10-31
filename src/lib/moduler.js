@@ -2,8 +2,8 @@ import { aktiviteter, altElevinnhold, fag } from '#lib/innhold.js';
 import { teachingPlans } from '#lib/teaching.js';
 import { validationFollowUp } from '#lib/backendValidation.js';
 
-/** @typedef {{kind:'undervisning'|'teori'|'oving'|'oppdrag'|'praksis'|'repetisjon',id:string,section?:string,subject?:string,practice?:{instruction:string,check:string},followUp?:{activityId:string,objectiveId:string,instruction:string,href?:string}}} ModuleStep */
-/** @typedef {{id:string,title:string,description:string,subject:string,goals:string[],prerequisites:string,steps:ModuleStep[],resources:{label:string,href:string}[],continuation?:{title:string,description:string}[]}} Module */
+/** @typedef {{kind:'undervisning'|'teori'|'oving'|'oppdrag'|'praksis'|'repetisjon',id:string,section?:string,subject?:string,optional?:boolean,practice?:{instruction:string,check:string},followUp?:{activityId:string,objectiveId:string,instruction:string,href?:string}}} ModuleStep */
+/** @typedef {{id:string,title:string,description:string,subject:string,goals:string[],prerequisites:string,steps:ModuleStep[],teachingPlanIds?:string[],resources:{label:string,href:string}[],continuation?:{title:string,description:string}[]}} Module */
 
 // Modules group existing content. Activity IDs, assessment rules and XP stay in their own catalogues.
 /** @type {Module[]} */
@@ -140,6 +140,7 @@ export const moduler = [
 	{
 		id: 'backend',
 		title: 'Backend',
+		teachingPlanIds: ['meldingens-reise', 'data-som-overlever', 'backend-validering', 'hvem-er-logget-inn', 'backend-publisering'],
 		description:
 			'Undersøk koden i simulatorene, reparer chatten og bygg videre i eget prosjekt. Start med dataflyten, og legg til lagring, innlogging og publisering.',
 		subject: 'utvikling',
@@ -178,7 +179,7 @@ export const moduler = [
 					check: 'Vis request, kontrollene på serveren, endringen i data og det frontend viser. Forklar både et gyldig og et avvist forsøk. Nattevakten nedenfor er en ekstra utfordring.'
 				}
 			},
-			{ kind: 'oppdrag', id: 'nattvakt' }
+			{ kind: 'oppdrag', id: 'nattvakt', optional: true }
 		],
 		resources: []
 	},
@@ -249,7 +250,7 @@ export function moduleProgress(module, progress = []) {
 			module.steps
 				.filter(
 					(step) =>
-						step.kind !== 'undervisning' && aktiviteter.some((activity) => activity.id === step.id)
+						step.kind !== 'undervisning' && !step.optional && aktiviteter.some((activity) => activity.id === step.id)
 				)
 				.map((step) => step.id)
 		)
@@ -303,6 +304,9 @@ export function validateModules(modules = moduler) {
 					throw new Error(`Feil innholdstype eller fag: ${key}`);
 			}
 		}
+		for (const planId of module.teachingPlanIds ?? [])
+			if (!teachingPlans.some((plan) => plan.id === planId))
+				throw new Error(`Ukjent læreropplegg i modulen: ${planId}`);
 		moduleContents(module);
 		for (const resource of module.resources)
 			if (!altElevinnhold.some((item) => item.href === resource.href))

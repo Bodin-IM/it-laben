@@ -2,7 +2,7 @@
 import { validationTransfer } from '#lib/backendValidation.js';
 /** @typedef {{value: string, label: string}} Choice */
 /** @typedef {{key: string, label: string, kind: string, value: string, choices?: Choice[]}} Field */
-/** @typedef {{title: string, label: string, instruction: string, observe: string, hint: string, answer: string}} Task */
+/** @typedef {{title: string, label: string, instruction: string, observe: string, hint: string, answer: string, start: Record<string,string>}} Task */
 /** @typedef {{title: string, code: string, explanation: string}} Example */
 /** @typedef {{instruction: string, check: string}} Transfer */
 /** @typedef {{number: number, title: string, question: string, intro: string, category: string, fields: Field[], tasks: Task[], firstTask?:number, example: Example, transfer: Transfer, takeaway: string, context: string, related: {href: string, label: string}[]}} Lesson */
@@ -51,6 +51,7 @@ export const lessons = [
 			{
 				title: 'Finn øyeblikket data blir varige',
 				label: 'Følg lagringen',
+				start: { scenario: 'save' },
 				instruction: 'Skriv en melding og kjør «Lagre en melding». Gå stegvis gjennom koden og finn når meldingen kommer i den varige filen.',
 				observe: 'Når endres filen, når endres minnet, og når får nettleseren svar?',
 				hint: 'Sammenlign nyListe, .tmp-filen og meldinger.json.',
@@ -60,6 +61,7 @@ export const lessons = [
 			{
 				title: 'Undersøk en feil ved lagring',
 				label: 'Lagringsfeil',
+				start: { scenario: 'fail' },
 				instruction: 'Velg «Skrivingen feiler» og kjør. Følg hva som skjer med meldingen når serveren ikke får lagret filen.',
 				observe: 'Sammenlign serverens svar, listen i minnet og datafilen med det vellykkede forsøket.',
 				hint: 'Velg «Skrivingen feiler». Følg minnet helt til siste steg.',
@@ -69,6 +71,7 @@ export const lessons = [
 			{
 				title: 'Sammenlign manglende og ødelagt fil',
 				label: 'Oppstart',
+				start: { scenario: 'missing' },
 				instruction: 'Kjør først «Filen finnes ikke», deretter «Filen har ugyldig JSON». Undersøk hvorfor oppstarten håndterer dem forskjellig.',
 				observe: 'Hvilket forsøk får en tom liste, og hvilket stopper oppstarten for å beskytte dataene?',
 				hint: 'Bare én av feilene skal gi en tom liste.',
@@ -118,6 +121,7 @@ export const lessons = [
 			{
 				title: 'Endre bare Noahs melding',
 				label: 'Endre',
+				start: { method: 'PATCH', id: 'm2', disk: 'ok' },
 				instruction: 'Velg PATCH, finn Noahs meldings-ID og skriv en ny tekst. Kjør og følg oppdateringen helt tilbake til nettleseren.',
 				observe: 'Adas melding skal være uendret. Noahs melding skal ha ny tekst, men samme ID og avsender.',
 				hint: 'Velg m2. Sammenlign ID, avsender og opprettet før og etter.',
@@ -127,6 +131,7 @@ export const lessons = [
 			{
 				title: 'Slett en ID som ikke finnes',
 				label: 'Slette',
+				start: { method: 'DELETE', id: 'ukjent', disk: 'ok' },
 				instruction: 'Velg DELETE og en ukjent ID. Kjør og finn hvor requesten stopper.',
 				observe: 'Hvilket svar får nettleseren? Ble noen av de eksisterende meldingene endret?',
 				hint: 'Velg DELETE og ukjent.',
@@ -136,6 +141,7 @@ export const lessons = [
 			{
 				title: 'Stopp før siste GET',
 				label: 'Oppdater visningen',
+				start: { method: 'PATCH', id: 'm2', disk: 'ok' },
 				instruction: 'Kjør en vellykket endring av en melding. Stopp rett etter svaret fra backend, og gå så videre til siste GET.',
 				observe: 'Sammenlign serverens liste med nettleserens liste før og etter GET.',
 				hint: 'Se på «Nettleserens liste» etter at backend har svart.',
@@ -188,6 +194,7 @@ export const lessons = [
 			{
 				title: 'Test grensen på 500 tegn',
 				label: 'Grensetester',
+				start: { scenario: '500' },
 				instruction: 'Kjør ett forsøk med 500 tegn og ett med 501. Finn kontrollen som avgjør om meldingen kan lagres.',
 				observe: 'Sammenlign HTTP-status og serverlisten. Hvilken side av grensen godtas?',
 				hint: 'Kjør både 500 og 501 tegn.',
@@ -197,6 +204,7 @@ export const lessons = [
 			{
 				title: 'Send et tall som tekst',
 				label: 'Datatype',
+				start: { scenario: 'number' },
 				instruction: 'Velg «tekst er tallet 123» og kjør. Følg valideringen og finn hvorfor koden sjekker typen før den bruker trim.',
 				observe: 'Requesten skal avvises kontrollert, og serverlisten skal være uendret.',
 				hint: 'Hvorfor kommer typeof før trim?',
@@ -206,6 +214,7 @@ export const lessons = [
 			{
 				title: 'Sammenlign 400 og avslått backend',
 				label: 'Feilsvar',
+				start: { scenario: 'blank' },
 				instruction: 'Kjør «Tom tekst» og deretter «Backend er avslått». Undersøk hva frontend mottar i de to forsøkene.',
 				observe: 'Hvilket forsøk gir et HTTP-svar, og hvilket går direkte til catch uten et svar?',
 				hint: 'Se på svaret og frontend-koden.',
@@ -215,6 +224,7 @@ export const lessons = [
 			{
 				title: 'Hvorfor er mellomrom ikke en melding?',
 				label: 'Mellomrom',
+				start: { scenario: 'empty' },
 				instruction: 'Velg «Bare mellomrom». Forutsi om listen vil endres, og kjør steg for steg. Sammenlign deretter med vanlig tekst i JSON-feltet.',
 				observe: 'Se lengden før og etter trim, HTTP-svaret og om minnet og filen endres.',
 				hint: 'En streng med tre mellomrom har lengde 3. Hva blir lengden etter trim?',
@@ -261,6 +271,7 @@ export const lessons = [
 			{
 				title: 'Sammenlign registrering og innlogging',
 				label: 'Bruker og session',
+				start: { scenario: 'register' },
 				instruction: 'Kjør «Registrer en ny bruker» og deretter «Logg inn med riktig passord». Sammenlign hva de to handlingene oppretter.',
 				observe: 'Se på brukere.json, sessionlageret og cookien. En registrert bruker er ikke automatisk innlogget.',
 				hint: 'Sammenlign brukere.json med sessionlageret.',
@@ -270,6 +281,7 @@ export const lessons = [
 			{
 				title: 'Sammenlign med og uten cookie',
 				label: 'Cookie',
+				start: { scenario: 'meg' },
 				instruction: 'Sammenlign «Spør /meg med cookie» og «Spør /meg uten cookie». Finn hvordan backend kobler requesten til riktig session.',
 				observe: 'Hvorfor kan serveren ha en gyldig session, men likevel svare 401 på en request?',
 				hint: 'Velg «Spør /meg uten cookie».',
@@ -279,6 +291,7 @@ export const lessons = [
 			{
 				title: 'Start serveren på nytt',
 				label: 'Omstart',
+				start: { scenario: 'restart' },
 				instruction: 'Velg «Omstart: hva overlever?» og kjør. Undersøk hva som finnes igjen når serverprosessen starter på nytt.',
 				observe: 'Sammenlign brukeren på disk, sessionen i minnet og den gamle cookien.',
 				hint: 'Hvilken informasjon ligger på disk?',
@@ -335,6 +348,7 @@ export const lessons = [
 			{
 				title: 'Prøv som gjest',
 				label: 'Innlogging',
+				start: { actor: 'guest', method: 'GET' },
 				instruction: 'Velg gjest som avsender. Kjør først GET, deretter POST, og undersøk hvor de to requestene slipper gjennom eller stopper.',
 				observe: 'Kan en gjest lese? Kan samme gjest opprette en melding? Finn kontrollen som avgjør dette.',
 				hint: 'Sammenlign GET og POST.',
@@ -344,6 +358,7 @@ export const lessons = [
 			{
 				title: 'La Noah slette Adas melding',
 				label: 'Eierskap',
+				start: { actor: 'noah', method: 'DELETE', id: 'm1' },
 				instruction: 'Velg Noah, DELETE og Adas meldings-ID. Kjør og undersøk om innlogging alene gir lov til å slette.',
 				observe: 'Se forskjellen på å være innlogget og å eie meldingen. Adas melding skal fortsatt finnes.',
 				hint: 'Noah er logget inn, men eier ikke m1.',
@@ -353,6 +368,7 @@ export const lessons = [
 			{
 				title: 'Forsøk å velge avsender selv',
 				label: 'Falsk avsender',
+				start: { actor: 'ada', method: 'POST', forge: 'yes' },
 				instruction: 'Velg Ada og POST. Send falsk eier i body og følg hvilken identitet backend bruker når meldingen opprettes.',
 				observe: 'Sammenlign avsenderen i request-body med eieren av den lagrede meldingen.',
 				hint: 'Velg Ada, POST og falsk eier i body.',
@@ -400,6 +416,7 @@ export const lessons = [
 			{
 				title: 'Endre kode uten et nytt bygg',
 				label: 'Publisering',
+				start: { scenario: 'source' },
 				instruction: 'Velg «Endre kildekode uten å bygge» og kjør. Sammenlign deretter med «Bygg og publiser ny frontend».',
 				observe: 'Når blir endringen synlig for nettleseren? Følg kildekoden, byggmappen og public hver for seg.',
 				hint: 'Sammenlign kildekode og serverens public-mappe.',
@@ -409,6 +426,7 @@ export const lessons = [
 			{
 				title: 'Sammenlign restart og omstart av VM',
 				label: 'Omstart',
+				start: { scenario: 'restart' },
 				instruction: 'Kjør «Start Node-prosessen på nytt» og «Start VM-en på nytt med systemd». Finn hvem som starter tjenesten, og hvilke data som overlever.',
 				observe: 'Se forskjellen på JSON-filer på disk, sessions i minnet og tjenestens kjørestatus.',
 				hint: 'Se på hva systemd gjør, og hva som skjer med data og sessions.',
@@ -418,6 +436,7 @@ export const lessons = [
 			{
 				title: 'Finn riktig localhost',
 				label: 'Fra en annen PC',
+				start: { scenario: 'localhost' },
 				instruction: 'Velg «Besøk fra en annen PC» og kjør. Følg hvilken maskin nettleseren prøver å kontakte.',
 				observe: 'Hva betyr localhost på elevens PC, og hvor går et relativt kall til /meldinger?',
 				hint: 'Hvilken maskin kjører nettleseren på?',
@@ -431,3 +450,13 @@ export const lessons = [
 	}
 ];
 
+/** Start values for an explicit new attempt; never mutate the catalogue or saved progress.
+ * @param {Lesson} lesson
+ * @param {number} [taskIndex]
+ * @returns {Record<string,string>}
+ */
+export function taskStartValues(lesson, taskIndex = lesson.firstTask ?? 0) {
+	const task = lesson.tasks[taskIndex];
+	if (!task) throw new RangeError('Ukjent oppgave i øvingen.');
+	return { ...Object.fromEntries(lesson.fields.map((field) => [field.key, field.value])), ...task.start };
+}

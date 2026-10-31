@@ -16,6 +16,8 @@
 	import { labPreferences } from '#lib/labPreferences.js';
 	import { initializeExperience } from '#lib/labPreferences.js';
 	import ActivityProgress from '#lib/components/ActivityProgress.svelte';
+	import BackendContinuation from '#lib/components/BackendContinuation.svelte';
+	import { altElevinnhold } from '#lib/innhold.js';
 	import RewardToast from '#lib/components/RewardToast.svelte';
 	import LearningAccess from '#lib/components/LearningAccess.svelte';
 	import GlobalLabPartner from '#lib/components/GlobalLabPartner.svelte';
@@ -32,6 +34,7 @@
 	setContext(interfaceHelpKey, createInterfaceHelp());
 	const browser = typeof window !== 'undefined';
 	const activity = $derived(presentationLessons.find((item) => item.href === page.url.pathname));
+	const courseActivity = $derived(altElevinnhold.find((item) => item.href === page.url.pathname));
 	const presentationRequested = $derived(
 		browser &&
 			page.url.searchParams.get('visning') === 'presentasjon' &&
@@ -80,7 +83,9 @@
 		{#if showCompanion}<GlobalLabPartner />{/if}
 		<div class="activity-content">
 			{@render children()}
-			{#if showStudentTools}<ActivityProgress /><RewardToast />{/if}
+			{#if showStudentTools}<ActivityProgress /><RewardToast />
+				{#if courseActivity}<BackendContinuation activityId={courseActivity.id} />{/if}
+			{/if}
 		</div>
 	</div>
 	<StudentFeedback

@@ -7,12 +7,13 @@ export const teachingGuides = [
 		planId: 'meldingens-reise',
 		preparation: [
 			'Åpne første leksjon og nullstill forsøket før gjennomgangen.',
-			'La elevene forutsi svaret før du trykker på en handling.'
+			'La elevene forutsi svaret før du trykker på en handling. Avtal hvor frontend, backend og øvingsark finnes.',
+			'Bruk samme chatprosjekt videre. Første egen test: GET /meldinger skal gi en JSON-liste.'
 		],
 		steps: [
 			{
 				activityId: 'frontend-backend',
-				minutes: 20,
+				minutes: 25,
 				focus: 'Send først, hent etterpå.',
 				questions: [
 					'Hva ligger på serveren etter POST?',
@@ -23,23 +24,11 @@ export const teachingGuides = [
 					'Bytt mellom frontend- og backendkode ved samme steg. La klassen forklare req.body og JSON-svaret.'
 				]
 			},
-			{
-				activityId: 'chatrom',
-				minutes: 10,
-				focus: 'Samme server, forskjellige rom.',
-				questions: [
-					'Hvilket rom ber nettleseren om?',
-					'Hvorfor endres ikke den viste listen bare fordi serveren har fått en ny melding?'
-				],
-				notes: [
-					'Endre rommet og sammenlign request og svar.',
-					'Bruk ett eksempel om gangen; spar innlogging og sletting til neste opplegg.'
-				]
-			}
 		],
 		wrapUp: [
 			'Bruk fem minutter på at elevene forklarer POST og GET til sidemannen.',
-			'La elevene løse To nettlesere, én chat i elevvisningen.'
+			'La elevene løse To nettlesere, én chat. Bygg deretter POST og GET i egen app; send fra én nettleser og hent fra en annen.',
+			'Avslutt med å vise request, svar og de to listene. Rom, innlogging og sletting tas senere i modulen.'
 		]
 	},
 	{
@@ -51,7 +40,7 @@ export const teachingGuides = [
 		steps: [
 			{
 				activityId: 'sessions',
-				minutes: 15,
+				minutes: 10,
 				focus: 'Følg en ID mellom nettleseren og serveren.',
 				questions: ['Hva inneholder cookien?', 'Hvor finner serveren brukerdataene?'],
 				notes: [
@@ -60,18 +49,15 @@ export const teachingGuides = [
 				]
 			},
 			{
-				activityId: 'chatrom',
+				activityId: 'oving-8',
 				minutes: 10,
-				focus: 'Hvem bestemmer avsenderen?',
-				questions: ['Kan klienten bestemme hvem som sender?', 'Hvor bør avsenderen hentes fra?'],
-				notes: [
-					'Send et forsøk med endret avsender i klientdataene.',
-					'Pek på serverens sessionoppslag og sammenlign med den lagrede meldingen.'
-				]
+				focus: 'En brukerfil er ikke en innlogget session.',
+				questions: ['Hva oppretter registrering?', 'Hva finnes etter omstart av backend?'],
+				notes: ['Sammenlign registrering og innlogging. Bruk bare eksempelpassord.', 'Øving 8 bruker brukerId i sessionen; innføringen viser et brukerobjekt. Begge henter identiteten fra serverens session, aldri fra et fritt avsenderfelt.']
 			},
 			{
 				activityId: 'oving-9',
-				minutes: 15,
+				minutes: 10,
 				focus: 'Innlogging gir ikke eierskap til alt.',
 				questions: [
 					'Hva er forskjellen på 401 og 403?',
@@ -81,11 +67,22 @@ export const teachingGuides = [
 					'Sammenlign et eget og et fremmed objekt.',
 					'Vent med å åpne oppgaveforklaringene til elevene har begrunnet svaret.'
 				]
+			},
+			{
+				activityId: 'chatrom',
+				minutes: 10,
+				focus: 'Bruk kontrollene i et chatrom.',
+				questions: ['Kan klienten bestemme hvem som sender?', 'Hvilke meldinger kommer tilbake ved rombytte?'],
+				notes: [
+					'Send et forsøk med endret avsender i klientdataene.',
+					'Sammenlign sessionoppslaget med den lagrede meldingen. Prøv sletting som en annen bruker.'
+				]
 			}
 		],
 		wrapUp: [
 			'Be elevene beskrive cookie, session og eierskap med egne ord.',
-			'Fortsett med Øving 8 eller avsenderoppdraget i Redd chatten.'
+			'La elevene teste egen app som eier, annen bruker og gjest. To vanlige faner deler innlogging; bruk separate profiler eller privat vindu.',
+			'Bruk avsender og sletting i Redd chatten, og deretter Meldingsdetektiven. Be eleven velge og begrunne ett feiltilfelle i egen kode.'
 		]
 	},
 	{
@@ -130,9 +127,34 @@ export const teachingGuides = [
 		],
 		wrapUp: [
 			'Bruk fem minutter på en felles forklaring av en trygg lagringsrekkefølge.',
-			'Elevene prøver flere situasjoner i Øving 5 og 6 på egen hånd.'
+			'Elevene bruker lagring og CRUD i egen chat. Prøv omstart og to meldinger med samme tekst; bare riktig ID skal endres.',
+			'Innføringen endrer minnet før skriving og forutsetter fungerende disk. Øving 5 forbedrer dette: lagre en ny liste før den tas i bruk. Gjør forskjellen eksplisitt.',
+			'Fortsett med læreropplegget Validering før dere går videre til innlogging.'
 		]
+	},
+	{
+		planId: 'backend-validering',
+		preparation: ['Åpne øving 7 med oppgaven Mellomrom. Ha en vanlig melding og en streng med bare mellomrom klare.', 'Elevene trenger fungerende POST/GET og kjennskap til betingelser. Bruk README eller testnotater i eget prosjekt til å ta vare på resultatene.'],
+		steps: [{
+			activityId: 'oving-7', minutes: 20,
+			focus: 'Se både på HTTP-svaret og på om data endres.',
+			questions: ['Hva blir lengden før og etter trim?', 'Hvorfor er HTTP 400 ikke nok hvis data allerede er lagret?', 'Hvilke to tester undersøker en lengdegrense?'],
+			notes: ['La elevene forutsi før kjøringen. Sammenlign normal tekst, mellomrom, feil datatype og grensen 500/501.', 'Skill feil i JSON-parsing fra feil verdi og fra manglende nettverkskontakt. fetch avviser ikke automatisk ved HTTP 400.']
+		}],
+		wrapUp: ['Reparer tekstoppdraget i Redd chatten; de andre oppdragene kommer etter innlogging.', 'La elevene lage visningsnavn med 1–30 tegn etter trim i egen app, velge tester og forklare kontrollrekkefølgen.', 'I en senere time: bruk samme prinsipp på et annet felt og en annen grense. Noter hva eleven klarer med og uten hjelp.']
+	},
+	{
+		planId: 'backend-publisering',
+		preparation: ['Avtal testmaskin, adresse, porter og hvordan elevene starter tjenesten. Bruk testdata og ta backup av prosjektet.', 'Bestem frontendtype. SvelteKit med adapter-static bygger normalt til build; et vanlig Vite-prosjekt bruker dist. Data og hemmeligheter skal ligge utenfor public.'],
+		steps: [{
+			activityId: 'oving-10', minutes: 20,
+			focus: 'Hva kjører, og hvilke filer blir faktisk sendt til nettleseren?',
+			questions: ['Hvorfor vises ikke en endring i kildekoden med en gang?', 'Hva betyr localhost på medelevens PC?', 'Hva skjer med filer og sessions når Node starter på nytt?'],
+			notes: ['Sammenlign kildeendring uten bygg, full publisering og besøk fra en annen PC.', 'Vis at enabled systemd-tjeneste starter etter VM-omstart. Standard sessionlager i minnet bevares ikke.', 'Gjenoppretting gjøres i en egen testkopi. Ikke overskriv eneste kopi av elevenes data.']
+		}],
+		wrapUp: ['La elevene publisere egen app, teste fra en annen PC og kontrollere omstart. Dokumenter kommandoer, adresse og hva som ble testet.', 'Avslutt modulen med én rute fra klikk til svar og et nytt feiltilfelle. Oppsummeringen er fri repetisjon; Nattevakten er valgfri.', 'Samle erfaringer i den ordinære undervisningen: hva var uklart, hvilken hjelp ble brukt, og hva fikk eleven til i egen kode?']
 	}
+
 ];
 
 export function validateTeachingGuides(plans = teachingPlans, guides = teachingGuides) {

@@ -1,6 +1,6 @@
 # Backend og elevens kom-i-gang-veiledning
 
-**Nyeste videreutvikling, dev 31. oktober 2026:** [Validering fra øving til egen kode](backend-validering.md) beskriver det sammenhengende forløpet, relevante neste steg, presis lagringsstatus og gjenstående utprøving. Dette konkretiserer videre arbeid etter oppryddingen nedenfor.
+**Nyeste videreutvikling, dev 31. oktober 2026:** [Samlet undervisningsforløp for Backend](backend-undervisning.md) beskriver hele modulen, forberedelser, nye læreropplegg og kontroll før bruk. Utprøvingen skjer i ordinær undervisning. [Validering fra øving til egen kode](backend-validering.md) beskriver første del av arbeidet nærmere.
 
 28. oktober 2026. Brukerbestilt opprydding: ett Backend-forløp under Utvikling, et tannhjul for labpartnerens utseende og en egen tutorial på `/tutorial/`.
 
