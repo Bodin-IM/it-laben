@@ -1275,4 +1275,3 @@ export function evaluateProgram(missionId, program) {
 	const passed = results.filter((result) => result.passed).length;
 	return { results, passed, total: results.length, success: passed === results.length };
 }
-

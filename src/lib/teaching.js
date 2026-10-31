@@ -164,4 +164,3 @@ export function studentLessonLink(href) {
 		url.searchParams.delete(name);
 	return url.pathname + url.search + url.hash;
 }
-

@@ -57,4 +57,3 @@
 	}
 	a:focus-visible { outline: 3px solid var(--color-focus); outline-offset: 4px; }
 </style>
-

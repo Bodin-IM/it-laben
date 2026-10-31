@@ -99,7 +99,7 @@
 	let currentCaseIndex = $derived(running && frame ? frame.caseIndex : selectedCaseIndex);
 	let scenario = $derived(cases[currentCaseIndex]);
 	let predictionKey = $derived(`${mission.id}:${programKey}:${scenario.id}`);
-	let activePrediction = $derived(prediction?.key === predictionKey ? prediction : null);
+	let activePrediction = $derived.by(() => prediction?.key === predictionKey ? prediction : null);
 	let walkthroughFrame = $derived.by(() => walkthrough?.frames[walkthroughIndex] ?? null);
 	let previousWalkthroughFrame = $derived.by(
 		() => walkthrough?.frames[walkthroughIndex - 1] ?? null
@@ -757,6 +757,7 @@
 								class="server-led"
 								class:good={currentPassed && !running}
 								class:working={running && !paused}
+								role="img"
 								aria-label={running
 									? 'Prøver kode'
 									: currentPassed
@@ -1293,6 +1294,9 @@
 	.mission-tabs .chosen > span,
 	.mission-tabs .solved > span {
 		color: var(--color-success);
+	}
+	.mission-tabs .chosen small {
+		color: var(--color-text);
 	}
 	.mission-tabs button:disabled {
 		opacity: 0.4;
@@ -2635,4 +2639,3 @@
 		}
 	}
 </style>
-

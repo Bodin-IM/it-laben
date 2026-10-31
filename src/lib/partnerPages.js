@@ -172,4 +172,3 @@ export function partnerPageFor(pathname, subject = null) {
 export function partnerAllowed(pathname) {
 	return !/^\/(laerer|admin)(\/|$)/.test(pathname);
 }
-

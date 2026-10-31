@@ -3,7 +3,8 @@ import { validationFeedback } from './ovingModel.js';
 /** @typedef {import('./ovingModel.js').Step} Step */
 /** @typedef {{result:string,cause:string,next:string}} Feedback */
 /** @param {unknown} value @returns {Record<string,unknown>} */
-const record = (value) => value !== null && typeof value === 'object' && !Array.isArray(value) ? value : {};
+const record = (value) => value !== null && typeof value === 'object' && !Array.isArray(value)
+	? /** @type {Record<string,unknown>} */ (value) : {};
 /** @param {unknown} value */
 const count = (value) => Array.isArray(value) ? value.length : 0;
 /** @param {string} result @param {string} cause @param {string} next @returns {Feedback} */

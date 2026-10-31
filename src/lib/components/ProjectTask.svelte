@@ -3,7 +3,7 @@
 	let { instruction, check, id, guide } = $props();
 </script>
 
-<section class="project-task" {id} tabindex={id ? -1 : undefined} aria-label="Arbeid i eget prosjekt">
+<section class="project-task" {id} tabindex="-1" aria-label="Arbeid i eget prosjekt">
 	<h3>Bygg videre i egen chat</h3>
 	<p><strong>Lag selv:</strong> {instruction}</p>
 	{#if guide}

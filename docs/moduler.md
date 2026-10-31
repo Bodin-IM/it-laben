@@ -103,4 +103,3 @@ Brukerproblemet var avstanden fra søkefeltet til enkeltoppgavene og at personli
 Dette er et lokalt valg etter U1/U3/U6 i designgrunnlaget: prioritere det eleven forsøker å finne, samle sammenhørende informasjon og redusere konkurrerende framhevinger. Forslaget til neste oppgave bruker samme progresjonsgrunnlag som før, men uten merker, nivålinje, XP og velkomsttekst. Det er en anbefaling, ikke en vurdering av forståelse.
 
 Kode og diff er gjennomgått på dev. Ingen tester, Svelte-sjekk, bygg eller nettleserprøving er kjørt i denne leveransen, etter avtalen om samlet testing før main. Før publisering: prøv søk etter eksempelvis VLAN og Øving 6, null treff, fag/type-kombinasjoner, nullstilling, delte søkelenker/tilbakeknapp, modulstatus ved lasting/feil/HTTP, og anbefaling for innlogget/gjest. Kontroller tastaturfokus, 320 px, tekstzoom og begge temaer sammen med labpartnerendringen. Utprøving med elever gjenstår.
-

@@ -209,7 +209,7 @@
 			</p>
 		</div>
 	</div>
-	{#if survey && !sent}<p><strong>{survey.prompt.question}</strong> {feedbackAnswers.find((item) => item.id === survey.answer)?.label}</p>{/if}
+	{#if survey && !sent}<p><strong>{survey.prompt.question}</strong> {feedbackAnswers.find((item) => item.id === survey?.answer)?.label}</p>{/if}
 	{#if source}<div class="source">
 			<span>Gjelder siden</span><strong>{source.title}</strong><code>{source.href}</code><small
 				>{survey ? 'Siden følger svaret ditt på oppgaven.' : 'Siden ble lagt ved automatisk da du åpnet skjemaet.'}</small

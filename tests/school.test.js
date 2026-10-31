@@ -838,9 +838,9 @@ test('undervisning: lærernotater krever serverrolle ved hvert kall og endrer ik
 	assert.equal((await admin.request('/api/teacher/teaching')).status, 200);
 	const response = await teacher.request('/api/teacher/teaching');
 	assert.equal(response.status, 200);
-	assert.equal(response.result.plans.length, 3);
+	assert.equal(response.result.plans.length, 5);
 	assert.ok(!response.result.plans.some((plan) => plan.id === 'fra-kode-til-tjeneste'));
-	assert.equal(response.result.guides.length, 3);
+	assert.equal(response.result.guides.length, 5);
 	assert.ok(!response.result.guides.some((guide) => guide.planId === 'fra-kode-til-tjeneste'));
 	assert.deepEqual(response.result.guides[0].preparation, teachingGuides[0].preparation);
 	assert.ok(

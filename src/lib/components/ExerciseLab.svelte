@@ -294,7 +294,8 @@
 						<div class="example">
 							<p class="eyebrow">KODEEKSEMPEL</p>
 							<h3>{lesson.example.title}</h3>
-							<pre><code><CodeTokens source={lesson.example.code} /></code></pre>
+							<!-- svelte-ignore a11y_no_noninteractive_tabindex (The code region scrolls horizontally on narrow screens and must support keyboard scrolling.) -->
+							<pre role="region" aria-label="Kodeeksempel" tabindex="0"><code><CodeTokens source={lesson.example.code} /></code></pre>
 							<p>{lesson.example.explanation}</p>
 							<p class="small">Velg innstillinger og kjør forsøket for å følge kode, data og svar steg for steg.</p>
 						</div>
@@ -312,7 +313,8 @@
 						{#each Object.entries(current.data) as [label, value], i (label)}
 							<details class="data-card" open={i < 3}>
 								<summary>{label}</summary>
-								<pre>{display(value)}</pre>
+								<!-- svelte-ignore a11y_no_noninteractive_tabindex (Long data values can scroll inside this bounded region.) -->
+								<pre role="region" aria-label={`Data: ${label}`} tabindex="0">{display(value)}</pre>
 							</details>
 						{/each}
 					</div>
@@ -418,7 +420,7 @@
 		opacity: 0.45;
 		cursor: default;
 	}
-	:is(a, button, input, select, textarea, summary):focus-visible {
+	:is(a, button, input, select, textarea, summary, pre):focus-visible {
 		outline: 3px solid var(--color-focus);
 		outline-offset: 3px;
 	}

@@ -1476,4 +1476,3 @@ export function buildTrace(number, values) {
 	if (!run) throw new Error('Ukjent øving: ' + number);
 	return run({ ...values });
 }
-

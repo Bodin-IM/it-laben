@@ -85,4 +85,3 @@ test('offentlig modulinnhold inneholder bare felles undervisningsmetadata og ele
 			}
 		}
 });
-
