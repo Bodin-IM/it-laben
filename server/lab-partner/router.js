@@ -1,50 +1,8 @@
 import { Router } from 'express';
 import { rateLimit } from 'express-rate-limit';
 import { buildPartnerMessages, partnerError } from './context.js';
+import { requestPartnerAnswer } from './model-client.js';
 import { PARTNER_VERSION } from '../../src/lib/labPartner.js';
-
-async function readAnswer(response, controller) {
-	if (!response.ok || !response.body) {
-		await response.body?.cancel();
-		throw partnerError(
-			response.status === 503 ? 503 : 502,
-			'PARTNER_UPSTREAM',
-			'KI-tjenesten kunne ikke svare. Prøv igjen litt senere, eller bruk oppgavens hint.'
-		);
-	}
-	const reader = response.body.getReader();
-	const chunks = [];
-	let bytes = 0;
-	try {
-		while (true) {
-			const { done, value } = await reader.read();
-			if (done) break;
-			bytes += value.byteLength;
-			if (bytes > 65536) {
-				controller.abort();
-				throw new Error('Upstream response too large');
-			}
-			chunks.push(Buffer.from(value));
-		}
-	} finally {
-		reader.releaseLock();
-	}
-	const result = JSON.parse(Buffer.concat(chunks).toString('utf8'));
-	const answer = result.message?.content;
-	if (
-		result.done !== true ||
-		result.message?.role !== 'assistant' ||
-		typeof answer !== 'string' ||
-		!answer.trim() ||
-		answer.length > 3000
-	)
-		throw partnerError(
-			502,
-			'PARTNER_RESPONSE',
-			'Labpartneren ga ikke et brukbart svar. Prøv et kortere spørsmål, eller bruk oppgavens hint.'
-		);
-	return answer.trim();
-}
 
 export function labPartnerRouter({ db, config, authenticated, limits }) {
 	const router = Router();
@@ -111,23 +69,7 @@ export function labPartnerRouter({ db, config, authenticated, limits }) {
 		res.on('close', disconnect);
 		active.add(account);
 		try {
-			const headers = { 'Content-Type': 'application/json' };
-			if (settings.token) headers.Authorization = `Bearer ${settings.token}`;
-			const upstream = await fetch(settings.endpoint, {
-				method: 'POST',
-				redirect: 'error',
-				headers,
-				signal: controller.signal,
-				body: JSON.stringify({
-					...(settings.think === undefined ? {} : { think: settings.think }),
-					model: settings.model,
-					messages,
-					stream: false,
-					keep_alive: '10m',
-					options: { num_ctx: 8192, num_predict: 450, temperature: 0.3 }
-				})
-			});
-			const answer = await readAnswer(upstream, controller);
+			const answer = await requestPartnerAnswer(settings, messages, controller);
 			if (!res.destroyed) res.json({ answer, version: PARTNER_VERSION });
 		} catch (error) {
 			if (res.destroyed) return;

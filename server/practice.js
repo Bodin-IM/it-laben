@@ -105,6 +105,7 @@ function ownRun(db, userId, activityId, objectiveId, attemptId) {
 function checkpointRow(row) {
 	return {
 		id: row.id,
+		activity_id: row.activity_id,
 		sequence: row.revision + 1,
 		questions_json: row.snapshot_json,
 		submitted_at: row.ended_at,
@@ -122,7 +123,7 @@ function practiceCheckState(db, userId, activityId, objectiveId, now) {
 		canStart: access.allowed || row?.status === 'active',
 		hasPending: row?.status === 'active',
 		nextAttemptAt: null,
-		lastResult: row?.result_json ? JSON.parse(row.result_json) : null,
+		lastResult: row?.result_json ? publicResult(checkpointRow(row)) : null,
 		practice: true,
 		openingClosed: !access.allowed
 	};
@@ -326,7 +327,7 @@ function gradeRun(db, userId, activity, objective, body, now) {
 					'PRACTICE_SUBMITTED',
 					'Øvingsforsøket er levert. Åpne et nytt forsøk for å prøve igjen.'
 				);
-			return { passed: row.status === 'passed', assessmentResult: JSON.parse(row.result_json) };
+			return { passed: row.status === 'passed', assessmentResult: publicResult(checkpointRow(row)) };
 		}
 		const score = questions.filter(
 			(item) => body.solution[item.id] === item.correctChoiceId

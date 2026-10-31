@@ -10,6 +10,7 @@
 	} from '#lib/lab.js';
 	import { rewardPolicy } from '#lib/progression.js';
 	import { assessmentPolicy } from '#lib/assessmentPolicy.js';
+	import { moduleLink } from '#lib/moduleNavigation.js';
 	/** @type {{question:import('#lib/checkpoints.js').Checkpoint}} */
 	let { question } = $props();
 	const saved = $derived(
@@ -199,6 +200,19 @@
 						<p>Ditt svar: {item.selectedLabel}</p>
 						{#if !item.correct}<p>Riktig svar: {item.correctLabel}</p>{/if}
 						<p>{item.explanation}</p>
+						{#if !item.correct}
+							<div class="practice-next">
+								{#if item.practice}
+									<p><strong>Øv på dette:</strong> {item.practice.instruction}</p>
+									<p><strong>Se etter:</strong> {item.practice.lookFor}</p>
+									<a href={moduleLink(item.practice.href, 'backend')}>{item.practice.title} →</a>
+								{:else}
+									<p>Bruk forklaringen til å finne temaet du vil øve mer på.</p>
+									<a href="/aktiviteter/backend-oppsummering/?modul=backend">Åpne fri backend-repetisjon →</a>
+								{/if}
+								<small>Du kan øve videre nå, også mens du venter på et nytt fagsjekkforsøk.</small>
+							</div>
+						{/if}
 					</div>
 				{/each}
 			</details>
@@ -263,6 +277,17 @@
 		margin-top: 12px;
 		padding-top: 8px;
 	}
+	.practice-next {
+		margin: 12px 0;
+		padding: 12px 16px;
+		border-left: 3px solid var(--color-accent);
+		background: var(--color-accent-soft);
+		color: var(--color-text);
+		overflow-wrap: anywhere;
+	}
+	.practice-next p { margin: 0 0 8px; }
+	.practice-next a { display: inline-flex; align-items: center; min-height: 44px; font-weight: 650; }
+	.practice-next small { display: block; color: var(--color-text-muted); }
 	fieldset {
 		padding: 0;
 		border: 0;

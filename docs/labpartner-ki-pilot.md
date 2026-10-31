@@ -50,7 +50,7 @@ Målgruppen er Vg2 IT med kjennskap til `if`, lister, `req.body` og HTTP-svar. E
 
 Veilederen følger [det pedagogiske grunnlaget](pedagogisk-grunnlag.md): korte, anvendelige svar, konkretisering ved behov og elevens styring over hjelpen. Ingen obligatorisk spørsmålsrekke eller poengtrekk ved hjelp. Responsen skiller hva forsøket viste fra en mulig forklaring og neste handling. Et åpnet hint eller bestått test dokumenterer ikke forståelse.
 
-Læreren bør først prøve kjente feil, utestede kodeendringer og riktige løsninger med den valgte modellen. Prøv deretter med 3–5 elever: Får eleven brukt rådet? Stemmer forklaringen med det synlige steget? Kan eleven forklare årsaken? Som ny anvendelse kan eleven overføre valideringsprinsippet til en romrute i eget prosjekt med mindre støtte. Dette følger [aktivitetsmalen](aktivitetsmal.md); brukertesting og dokumentasjon av læringseffekt er ikke gjennomført.
+Læreren bør først prøve kjente feil, utestede kodeendringer og riktige løsninger med den valgte modellen. Etter brukerens avklaring skjer elevutprøvingen i ordinær undervisning: Får eleven brukt rådet? Stemmer forklaringen med det synlige steget? Kan eleven forklare årsaken? Som ny anvendelse kan eleven overføre valideringsprinsippet til en romrute i eget prosjekt med mindre støtte. Dette følger [aktivitetsmalen](aktivitetsmal.md); brukertesting og dokumentasjon av læringseffekt er ikke gjennomført.
 
 ## Slik settes konteksten sammen
 
@@ -133,3 +133,10 @@ Sidehjelpen prioriterer ett konkret tips og «Et annet tips». Sidebeskrivelse, 
 Valgene følger designgrunnlagets U1/U3/U6 om relevant innhold, tydelig hierarki og hjelp ved behov, samt pedagogikkens del 3–5 om elevstyrt støtte. Kontekstkontrakter, spørsmål/svar, kontobytter, vurdering og XP endres ikke. Portrettets bevegelse er dekorasjon, ikke et tegn på at eleven har lært noe.
 
 Kode og diff er gjennomgått. Svelte MCP er ikke tilgjengelig; offisiell Svelte-dokumentasjon er brukt. Tester, Svelte-sjekk, bygg og nettleserprøving er utsatt til før main i tråd med dev-avtalen. Før publisering: prøv åpning/lukking og breddebytte, én figur per åpent panel, bevart samtale/utkast, KI av/på/feil, omvisningslenke, utseende/bakgrunn, tastatur/Escape, smal og lav skjerm, tekstzoom, begge temaer og begge innstillingene for redusert bevegelse. Dette er ikke elevutprøving eller dokumentasjon av forbedret læring.
+
+
+## Gjentakbar kvalitetsprøve – dev, 31. oktober 2026
+
+[Kvalitetsprøven](labpartner-kvalitetsprove.md) gjør den faglige modellkontrollen konkret: 14 oppdiktede elevsituasjoner, faktiske kontekster og modellinnstillinger, fortløpende rapport og kriterier for manuell gjennomgang. Kjør `npm run partner:eval -- --repeat=2` på serveren med samme modellkonfigurasjon som API-et. `--dry-run` kontrollerer eksemplene uten modellkall. Dette erstatter ikke prøving av elevpanelet, kapasitet eller elevenes nytte i ordinære timer.
+
+Sideinstruksjonen for Backend er presisert, og modellklienten deles av API og kvalitetsprøve. API-ets innlogging, samtidighet, avbrudd og grenser beholdes. I denne leveransen er bare eksempelkontekstene og åtte avgrensede regresjonstester kontrollert. Skolens modell er ikke tilgjengelig her; dens faktiske svar er ikke evaluert. Historiske kontrolltall ovenfor gjelder tidligere leveranser.

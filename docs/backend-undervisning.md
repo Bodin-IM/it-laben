@@ -90,7 +90,7 @@ I en senere time brukes et nytt felt, en annen grense eller en ny rute med mindr
 
 Prøv særlig: direkte lenker og tilbakeknapp, valideringssløyfen, ny og eksisterende konto, gjest, lærer-/øvingsmodus, modulstatus og lagringsfeil, bytte av oppgave og nullstilling, «Vis meg hvor» sammen med startknappen, og veien til egen kode. Kontroller tastaturfokus, 320 px, zoom og lyst/mørkt tema. Sammenlign tidligere resultater og XP. Prøv den faktiske undervisningsadressen fra en elevmaskin før første time.
 
-## Respons på forsøket og hjelp til egen kode – neste dev-leveranse
+## Respons på forsøket og hjelp til egen kode – punkt 1 og 2
 
 Brukerbestilt videreføring av strategiens punkt 1 og 2, 31. oktober 2026. Samme målgruppe, forkunnskaper og læreplanavgrensning som ovenfor gjelder. Særlig UTV-08 følges opp ved at eleven bruker et resultat til å velge neste test, og deretter undersøker egen løsning. Endringen i seg selv dokumenterer ikke bedre forståelse eller læringseffekt.
 
@@ -111,3 +111,20 @@ Lærerens oppfølging: Be eleven forutsi ett resultat, bruke responsen til å ve
 Labpartnerens eksisterende kontekst gjenbruker prosjektstøtten. Ved siste steg får den også respons beregnet fra de godkjente eksempelverdiene. Kilden merkes som rekonstruerte eksempeldata; tall og tekst er ikke elevens faktiske input. Ingen ny rå fritekst, prosjektkode, forsøksstatus eller klientkontrakt er lagt til.
 
 **Kontroll av denne leveransen:** 46 avgrensede tester bestod i exerciseFeedback, backendCourse, ovingModel og learningFlow, etter retting og ny kjøring av den nye testfilen. De kontrollerer respons for alle valgbare kombinasjoner, konkrete feiltilfeller, uendrede data ved avvisning, koblingen til riktig kjøring, eksisterende validering og labpartnerens kontekstgrense og avgrensede deling. JavaScript-syntaks og diff er kontrollert. Full testsuite, Svelte-sjekk, produksjonsbygg og nettleserprøving gjenstår før main etter repoets arbeidsflyt; Svelte-avhengigheter og MCP er ikke tilgjengelige her. Før publisering må særlig respons ved siste/forrige steg, nytt forsøk, oppgavebytte, prosjektstøttens detaljer, tastatur og smal skjerm prøves i den samlede versjonen.
+
+
+## Oppfølging etter fagsjekk og kvalitetsprøve av Labpartneren
+
+Strategiens punkt 3 og 4, dev 31. oktober 2026. Målgruppe og læreplanavgrensning er de samme som ovenfor, særlig UTV-08: bruke responsen til å velge en relevant test og undersøke resultatet.
+
+Et feil svar i en levert fagsjekk viser nå **Øv på dette**, **Se etter** og en lenke til relevant simulator eller aktivitet. Alle 39 spørsmålsvariantene i de 13 Backend-fagsjekkene har en kobling. For eksempel leder en misforståelse om skrivefeil til sammenligning av minne, fil og HTTP-svar i øving 5; et spørsmål om cookie leder til /meg med og uten cookie i øving 8. Eleven stiller inn og kjører selv. Lenken markerer ikke arbeid som gjennomført eller forstått.
+
+Koblingen eies av serveren og legges bare til feil svar etter levering. Åpne fagsjekker deler fortsatt bare de utstedte spørsmålene og svaralternativene. Eksisterende forklaring og vurdering beholdes. Ordinære forsøk, undervisningsåpninger og øvingsmodus bruker samme resultatvisning. Tidligere resultater med kjent kilde-ID får koblingen ved henting, uten omskriving av historikk. En ukjent eldre variant eller en gammel lokal resultatkopi får lenke til fri Backend-repetisjon. Spørsmålsvalg, XP, forsøk, døgnsgrense og tilgang til øvingsmodus er uendret.
+
+Læreren kan be eleven forutsi utfallet før hen følger lenken, og forklare forskjellen etterpå. En beslektet feil i egen chat eller en ny rute brukes senere med mindre hjelp. Observer i vanlig undervisning om eleven faktisk bruker oppfølgingen til å velge et nytt forsøk, fremfor bare å lese fasiten.
+
+Labpartnerens sideinstruksjon for Backend er presisert: kort hjelp tilpasset spørsmålstypen, ett konkret neste steg, tydelig skille mellom vist og utestet arbeid, og bruk av prosjektguiden ved spørsmål om egen chat. Hjelpen skal ikke hevde å ha sett lokal kode, faktiske tekstverdier eller en usynlig sluttstatus. Eksisterende hintknapper, Sidehjelp og delingskontrakter beholdes. Fagsjekkinnhold sendes fortsatt ikke til modellen.
+
+[Kvalitetsprøven for Labpartneren](labpartner-kvalitetsprove.md) har 14 faste eksempler, en kjørekommando og faglige kriterier. Den gjenbruker API-ets faktiske kontekst og modellklient, sender bare oppdiktede eksempeldata og skriver ingen elevresultater. Kriteriene sendes ikke til modellen. Det er ikke tilgang til skolens modell fra dette arbeidsmiljøet; punkt 4 er derfor klargjort, men den faglige vurderingen av reelle modellsvar gjenstår på skoleserveren.
+
+**Kontroll:** Åtte avgrensede regresjonstester bestod. De dekker alle koblinger, fravær av fasit/hjelpekoblinger før levering, gammel resultathistorikk, ordinær døgnsgrense, uendrede poeng, kontekstbygging og modellklientens format-/svargrenser, timeout og avbrudd. De 14 kontekstene er også kontrollert gjennom CLI-en uten modellkall. Svelte MCP og prosjektets Svelte-avhengigheter er ikke tilgjengelige her; offisiell dokumentasjon er brukt. Samlet testsuite, Svelte-sjekk, bygg og nettleserprøving gjenstår før main. Prøv spesielt lenke til øvelse fra ordinært, undervisnings- og øvingsforsøk, gammel resultatvisning, tastatur, smal skjerm og begge temaer. Ingen læringseffekt eller faglig kvalitet på skolens faktiske modellsvar er dokumentert av disse kontrollene.

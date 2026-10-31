@@ -2,6 +2,7 @@ import { randomInt, randomUUID, randomBytes } from 'node:crypto';
 import { checkpoints } from '../src/lib/checkpoints.js';
 import { assessmentPolicy } from '../src/lib/assessmentPolicy.js';
 import { assessmentBanks } from './assessment-bank.js';
+import { checkpointPractice } from './checkpoint-practice.js';
 
 for (const definition of checkpoints) {
 	const bank = assessmentBanks[definition.activityId];
@@ -29,7 +30,7 @@ function shuffle(items) {
 }
 
 export function publicResult(row) {
-	if (!row) return null;
+	if (!row || row.submitted_at == null) return null;
 	const questions = JSON.parse(row.questions_json);
 	const answers = JSON.parse(row.answers_json);
 	return {
@@ -43,7 +44,10 @@ export function publicResult(row) {
 			selectedLabel: item.choices.find((choice) => choice.id === answers[item.id]).label,
 			correctLabel: item.choices.find((choice) => choice.id === item.correctChoiceId).label,
 			explanation: item.explanation,
-			correct: answers[item.id] === item.correctChoiceId
+			correct: answers[item.id] === item.correctChoiceId,
+			...(answers[item.id] !== item.correctChoiceId
+				? { practice: checkpointPractice(row.activity_id, item.sourceId) }
+				: {})
 		}))
 	};
 }

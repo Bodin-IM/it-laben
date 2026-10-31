@@ -112,3 +112,10 @@ Backend-modulen samler de tidligere tre utviklingsmodulene. Gamle modulparametre
 Øving 5–10 bruker `exerciseFeedback` til oppsummering av det viste, fullførte forsøket. `pageWork` gjenbruker denne når valgt steg er det siste i den rekonstruerte kjøringen. Responsen følger derfor med ved siste steg, men ikke før kjøring eller ved et tidligere steg. `feedbackSource` forklarer at dette gjelder godkjente eksempeldata: tall og tekst er ikke elevens faktiske input, og responsen gjelder ikke elevens eksterne kode eller forståelse. Ingen nye klientfelt eller kontraktversjoner er innført.
 
 `lesson.transfer.guide` gjenbrukes av ProjectTask og det eksisterende sidegrunnlaget. Det inneholder arbeidssted, første endring, valgfri hjelp og tester for eget prosjekt. De tidligere kontrollresultatene ovenfor er historikk. Denne leveransen har avgrensede kontroller av siste steg, fravær av rå fritekst, størrelsesgrense og metadata i `tests/exerciseFeedback.test.js` og `tests/backendCourse.test.js`. Samlet Svelte-, API- og nettleserkontroll gjenstår før main. Svarene fra skolens faktiske modell er ikke evaluert i denne leveransen.
+
+
+## Faglig kvalitetsprøve – punkt 4, dev 31. oktober 2026
+
+`server/lab-partner/evaluation-cases.js` definerer 14 syntetiske situasjoner. `npm run partner:eval` bygger dem med `buildPartnerMessages` og bruker samme modellklient som elev-API-et. Vurderingskriterier blir i rapporten og sendes ikke til modellen. `--dry-run` bygger bare konteksten. Se [kjøring, kriterier og status](labpartner-kvalitetsprove.md).
+
+Sideinstruksjonen er flyttet til `instructions.js` og presisert for Backend med kort, tilpasset støtte, begrensning til vist steg, håndtering av utestet/gammel kjøring og hjelp i egen chat fra `transfer.guide`. Ingen nye klientfelt eller rå inndata er lagt til. Fagsjekkenes nye oppfølgingskoblinger er servereid vurderingsrespons og inngår ikke i modellkonteksten. Den nye kontrollen er åtte fokuserte tester og 14 bygde eksempelkontekster; tidligere test- og nettleserresultater i dokumentet er historikk. Reelle svar fra skolens modell og samlet kontroll før main gjenstår.
