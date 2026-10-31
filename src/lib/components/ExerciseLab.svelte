@@ -14,7 +14,8 @@
 	import { avatarFeedback } from '#lib/avatarFeedback.js';
 	import { lessons, taskStartValues } from '#lib/ovingene.js';
 	import ProjectTask from '#lib/components/ProjectTask.svelte';
-	import { buildTrace, validationFeedback } from '#lib/ovingModel.js';
+	import { buildTrace } from '#lib/ovingModel.js';
+	import { exerciseFeedback } from '#lib/exerciseFeedback.js';
 	import { noteFeedbackAttempt, finishFeedbackAttempt } from '#lib/activityFeedbackClient.js';
 	const interfaceHelp = getInterfaceHelp();
 	const helpTarget = interfaceHelp.target;
@@ -47,7 +48,7 @@
 	const taskPosition = $derived(taskOrder.indexOf(taskIndex));
 	let current = $derived(trace[index]);
 	let finished = $derived(trace.length > 0 && index === trace.length - 1);
-	const feedback = $derived(lesson.number === 7 && finished ? validationFeedback(trace) : null);
+	const feedback = $derived(finished ? exerciseFeedback(lesson.number, trace) : null);
 
 	$effect(() => {
 		values = taskStartValues(lesson);
@@ -318,11 +319,12 @@
 					{#if finished}<div class="completed">
 							<div>
 								<h3>Kjøringen er ferdig · sammenlign med oppgaven</h3>
-								<p>{lesson.takeaway}</p>
 								{#if feedback}
 									<p><strong>Dette skjedde:</strong> {feedback.result}</p>
 									<p><strong>Derfor:</strong> {feedback.cause}</p>
 									<p><strong>Prøv videre:</strong> {feedback.next}</p>
+								{:else}
+									<p>{lesson.takeaway}</p>
 								{/if}
 							</div>
 						</div>{/if}
@@ -338,7 +340,7 @@
 			</div>
 			<ValidationProject />
 		{:else}
-		<ProjectTask id="eget-prosjekt" instruction={lesson.transfer.instruction} check={lesson.transfer.check} />
+		<ProjectTask id="eget-prosjekt" instruction={lesson.transfer.instruction} check={lesson.transfer.check} guide={lesson.transfer.guide} />
 		<details class="context">
 			<summary>Oppsett og kodehjelp til prosjektet</summary>
 			<p>{lesson.context}</p>

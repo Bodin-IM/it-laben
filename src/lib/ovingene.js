@@ -1,10 +1,11 @@
 // Øvingsarkene er kilden. Alle forsøk kjøres lokalt som undervisningsmodeller.
 import { validationTransfer } from '#lib/backendValidation.js';
+import { backendProjectGuides } from '#lib/backendProjectGuides.js';
 /** @typedef {{value: string, label: string}} Choice */
 /** @typedef {{key: string, label: string, kind: string, value: string, choices?: Choice[]}} Field */
 /** @typedef {{title: string, label: string, instruction: string, observe: string, hint: string, answer: string, start: Record<string,string>}} Task */
 /** @typedef {{title: string, code: string, explanation: string}} Example */
-/** @typedef {{instruction: string, check: string}} Transfer */
+/** @typedef {{instruction: string, check: string, guide?:import("./backendProjectGuides.js").ProjectGuide}} Transfer */
 /** @typedef {{number: number, title: string, question: string, intro: string, category: string, fields: Field[], tasks: Task[], firstTask?:number, example: Example, transfer: Transfer, takeaway: string, context: string, related: {href: string, label: string}[]}} Lesson */
 /** @param {string} key @param {string} label @param {string[][]} choices @returns {Field} */
 const select = (key, label, choices) => ({
@@ -33,6 +34,7 @@ export const lessons = [
 			explanation: 'Utdrag fra ruten: Den nye listen lagres før den erstatter minnet og serveren svarer. I forsøket åpner vi lagreListe og følger filskrivingen.'
 		},
 		transfer: {
+			guide: backendProjectGuides[5],
 			instruction: 'Lagre chatmeldingene i en JSON-fil i eget prosjekt. La en mislykket lagring beholde den gamle listen i minnet.',
 			check: 'Send en melding, start backend på nytt og hent listen. Prøv deretter en kontrollert skrivefeil i testmiljøet: ingen ny melding skal vises som lagret.'
 		},
@@ -98,6 +100,7 @@ export const lessons = [
 			explanation: 'map går gjennom listen. Bare meldingen med ID-en fra adressen får ny tekst; de andre beholdes. Forsøket viser også lagringen og oppdateringen i nettleseren.'
 		},
 		transfer: {
+			guide: backendProjectGuides[6],
 			instruction: 'Legg til endring og sletting med meldings-ID i din egen chat. Hent listen på nytt etter en vellykket endring.',
 			check: 'Lag to meldinger med samme tekst. Endre bare den ene, og slett deretter en ukjent ID. Forklar hvorfor tekst eller plass i listen ikke er en trygg ID.'
 		},
@@ -250,6 +253,7 @@ export const lessons = [
 			explanation: 'Cookie-ID-en brukes av session-middleware til å finne req.session. Selve innloggingen må ha kontrollert passordet og lagt brukerId i sessionen først.'
 		},
 		transfer: {
+			guide: backendProjectGuides[8],
 			instruction: 'Koble registrering, innlogging, /meg og utlogging sammen i egen app med eksempelbrukere.',
 			check: 'Prøv /meg før innlogging, etter innlogging og etter utlogging. Undersøk deretter hva som skjer etter omstart. Forklar hvor brukeren, sessionen og cookien finnes.'
 		},
@@ -318,6 +322,7 @@ export const lessons = [
 			explanation: 'Her er brukeren allerede innlogget og meldingen funnet. Backend må likevel undersøke eierskap før data endres. Å skjule en knapp i frontend gir ikke denne beskyttelsen.'
 		},
 		transfer: {
+			guide: backendProjectGuides[9],
 			instruction: 'Beskytt endring og sletting i egen chat. Hent identiteten fra sessionen på serveren, og kontroller hvem som eier meldingen.',
 			check: 'Prøv med eier, en annen innlogget bruker og en gjest. Send også en request utenom knappene i nettsiden. Sjekk både svaret og at avviste forsøk lar data være uendret.'
 		},
@@ -395,6 +400,7 @@ export const lessons = [
 			explanation: 'Express svarer på API-kall og leverer frontendfilene fra public. En endring i frontendens kildekode kommer ikke hit før du bygger og publiserer filene.'
 		},
 		transfer: {
+			guide: backendProjectGuides[10],
 			instruction: 'Publiser egen app i lærerens avtalte testmiljø. Dokumenter bygging, publisering, oppstart som tjeneste og plasseringen av data og hemmeligheter.',
 			check: 'Åpne appen fra en annen PC, prøv en endring og kontroller tjenesten etter omstart. Gjenopprett en backup i testmiljøet og forklar hvilke data som bevares.'
 		},

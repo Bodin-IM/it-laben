@@ -89,3 +89,25 @@ I en senere time brukes et nytt felt, en annen grense eller en ny rute med mindr
 **Før main:** kjør full testsuite, Svelte-sjekk og produksjonsbygg på den samlede versjonen, og prøv elev-/lærerflyten i nettleseren. SvelteKit-avhengigheter og Svelte MCP er ikke tilgjengelige i dette arbeidsmiljøet; en eksisterende navigasjonstest stoppet ved manglende @sveltejs/kit. Samlet kontroll før main følger repoets dev-arbeidsflyt.
 
 Prøv særlig: direkte lenker og tilbakeknapp, valideringssløyfen, ny og eksisterende konto, gjest, lærer-/øvingsmodus, modulstatus og lagringsfeil, bytte av oppgave og nullstilling, «Vis meg hvor» sammen med startknappen, og veien til egen kode. Kontroller tastaturfokus, 320 px, zoom og lyst/mørkt tema. Sammenlign tidligere resultater og XP. Prøv den faktiske undervisningsadressen fra en elevmaskin før første time.
+
+## Respons på forsøket og hjelp til egen kode – neste dev-leveranse
+
+Brukerbestilt videreføring av strategiens punkt 1 og 2, 31. oktober 2026. Samme målgruppe, forkunnskaper og læreplanavgrensning som ovenfor gjelder. Særlig UTV-08 følges opp ved at eleven bruker et resultat til å velge neste test, og deretter undersøker egen løsning. Endringen i seg selv dokumenterer ikke bedre forståelse eller læringseffekt.
+
+Etter siste kjøringssteg viser alle øvingene 5–10 tre korte deler: **Dette skjedde**, **Derfor** og **Prøv videre**. Responsen kommer fra den fullførte kjøringens data, ikke fra nåværende feltverdier eller en generell påstand om at eleven er ferdig. Den skiller blant annet mellom:
+
+- avvist tekst, skrivefeil og feil ved oppstart; oppstart omtales ikke som et HTTP-svar
+- valgt ID og metode i CRUD, lagring og frontendens neste GET
+- feil passord, cookie som ikke sendes, utlogging og sessioner som forsvinner ved omstart
+- offentlig lesing, innlogging, ukjent ID, feil eier og ugyldig tekst
+- HTTP 200 og riktig publisert versjon, feil og rettet API-adresse, og hva backup og omstart bevarer
+
+`exerciseFeedback.js` gjenbruker responsen fra øving 7 og beskriver de øvrige modellene. Modeller, scenarier, vurdering og poengregler er uendret. Oppsummeringen vises bare ved siste steg. Endrede input fjerner den gamle kjøringen som før. Prøv-videre-teksten foreslår en undersøkelse uten å endre elevens valg eller kjøre automatisk.
+
+Prosjektoppgavene i øving 5, 6, 8, 9 og 10 bruker felles metadata i `backendProjectGuides.js`. De viser arbeidssted, første lille endring og konkrete tester. **Hjelp til å bygge videre** åpner forkunnskaper, en kort arbeidsrekkefølge og råd ved vanlige feil. Eleven som allerede har funksjonen, kan gå rett til testene. Filnavnene tilpasses eget prosjekt. Øving 7 beholder visningsnavnoppgaven. Egen kode er fortsatt utenfor IT-labens automatiske vurdering.
+
+Lærerens oppfølging: Be eleven forutsi ett resultat, bruke responsen til å velge neste forsøk og vise tilsvarende kontroll i egen chat. Etterpå kan eleven foreslå en test som ikke er oppgitt i listen. I en senere time brukes en beslektet rute med mindre hjelp, som beskrevet ovenfor. Observer om responsen faktisk brukes, om arbeidsstedet er forståelig og om eleven kommer videre. Dette prøves i ordinære timer.
+
+Labpartnerens eksisterende kontekst gjenbruker prosjektstøtten. Ved siste steg får den også respons beregnet fra de godkjente eksempelverdiene. Kilden merkes som rekonstruerte eksempeldata; tall og tekst er ikke elevens faktiske input. Ingen ny rå fritekst, prosjektkode, forsøksstatus eller klientkontrakt er lagt til.
+
+**Kontroll av denne leveransen:** 46 avgrensede tester bestod i exerciseFeedback, backendCourse, ovingModel og learningFlow, etter retting og ny kjøring av den nye testfilen. De kontrollerer respons for alle valgbare kombinasjoner, konkrete feiltilfeller, uendrede data ved avvisning, koblingen til riktig kjøring, eksisterende validering og labpartnerens kontekstgrense og avgrensede deling. JavaScript-syntaks og diff er kontrollert. Full testsuite, Svelte-sjekk, produksjonsbygg og nettleserprøving gjenstår før main etter repoets arbeidsflyt; Svelte-avhengigheter og MCP er ikke tilgjengelige her. Før publisering må særlig respons ved siste/forrige steg, nytt forsøk, oppgavebytte, prosjektstøttens detaljer, tastatur og smal skjerm prøves i den samlede versjonen.
