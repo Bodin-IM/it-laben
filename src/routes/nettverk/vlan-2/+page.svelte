@@ -15,8 +15,11 @@
 	import RoutedNetworkMap from '#lib/components/RoutedNetworkMap.svelte';
 	import NetworkSwitchEditor from '#lib/components/NetworkSwitchEditor.svelte';
 	import PartnerContext from '#lib/components/PartnerContext.svelte';
+	import { getInterfaceHelp } from '#lib/interfaceHelp.js';
 	import NetworkCheckDialog from '#lib/components/NetworkCheckDialog.svelte';
 	import { createNetworkEditorNavigation } from '#lib/networkEditorNavigation.js';
+	const interfaceHelp = getInterfaceHelp();
+	const helpTarget = interfaceHelp.target;
 	/** @typedef {{config:import('#lib/vlanLab2.js').Config,revision:number,check:{revision:number,result:ReturnType<typeof checkVlan2Task>}|null}} Attempt */
 	/** @returns {Record<string,Attempt>} */
 	const fresh = () =>
@@ -65,6 +68,7 @@
 		`${$lab.user?.id ?? 'guest'}:${$teacherPreview}:${$learningContext.mode}:${$learningContext.openingId ?? ''}`
 	);
 	const task = $derived(vlan2Tasks.find((t) => t.id === taskId) ?? vlan2Tasks[0]);
+	$effect(() => { taskId; interfaceHelp.clear(); });
 	const index = $derived(vlan2Tasks.indexOf(task));
 	const attempt = $derived(work[task.id]),
 		config = $derived(attempt.config);
@@ -405,7 +409,7 @@
 				>Ruter</a
 			>{#if task.ap}<a href="#wifi">Wi-Fi</a>{/if}<a href="#control">Kontroll</a>
 		</nav>
-		<section id="network">
+		<section id="network" use:helpTarget={!pc ? { label: 'Velg PC', hint: 'Trykk på en PC i kartet for å åpne IP-adresse og gateway.', order: 1 } : null}>
 			<div class="heading">
 				<h2>Nettverket ditt</h2>
 				<span class="muted"
@@ -426,6 +430,7 @@
 					/>
 					<form
 						class="ping"
+						use:helpTarget={{ label: 'Send ping', hint: 'Velg Fra og Til, og trykk Ping for å prøve forbindelsen.', order: 5 }}
 						onsubmit={(event) => {
 							event.preventDefault();
 							ping();
@@ -506,7 +511,7 @@
 					</details>
 				</div>
 				<aside>
-					<section class="client" id="client">
+					<section class="client" id="client" use:helpTarget={pc ? { label: 'Endre IP og gateway', hint: `Her endrer du ${pc.name}. Velg en annen PC i kartet for å konfigurere den.`, order: 1 } : null}>
 						<h3 id="client-title" tabindex="-1">{pc?.name ?? 'Velg en klient i kartet'}</h3>
 						{#if pc}<fieldset disabled={saving}>
 								<p class="muted">
@@ -554,7 +559,7 @@
 								>
 							</fieldset>{/if}
 					</section>
-					<section id="control">
+					<section id="control" use:helpTarget={{ label: 'Kontroller oppdraget', hint: 'Trykk «Kontroller oppdraget» for å teste hele oppsettet og se hva som eventuelt må rettes.', order: 6 }}>
 						<div class="heading">
 							<h3>Kontroll</h3>
 							<span
@@ -578,7 +583,7 @@
 				</aside>
 			</div>
 		</section>
-		<section id="switches">
+		<section id="switches" use:helpTarget={{ label: task.editSwitches ? 'Endre switch og VLAN' : 'Undersøk switch og VLAN', hint: task.editSwitches ? 'Velg switch. Trykk på en portrute for å bytte mellom U, E og T.' : 'Velg switch og les portrutene. Oppsettet er låst i dette oppdraget.', order: 2 }}>
 			<div class="heading">
 				<h2 id="switch-title" tabindex="-1">{selectedSwitch.name} · Switcher og VLAN</h2>
 				<a href="#network">Til kartet ↑</a>
@@ -607,7 +612,7 @@
 			{@render configControl()}
 		</section>
 		<div class="infrastructure">
-			<section id="router">
+			<section id="router" use:helpTarget={{ label: task.editRouter ? 'Konfigurer ruteren' : 'Undersøk ruteren', hint: task.editRouter ? 'Her finner du ruterens VLAN-interfacer og IP-adresser.' : 'Her ser du ruterens VLAN-interfacer. De er ferdig oppsatt i dette oppdraget.', order: 3 }}>
 				<div class="heading">
 					<h2 id="router-title" tabindex="-1">R1 · Ruter</h2>
 					<a href="#network">Til kartet ↑</a>
@@ -698,7 +703,7 @@
 					</p>{/if}
 				{@render configControl()}
 			</section>
-			{#if task.ap}<section id="wifi">
+			{#if task.ap}<section id="wifi" use:helpTarget={{ label: 'Finn Wi-Fi-oppsettet', hint: 'Her finner du AP1 og koblingen mellom SSID og VLAN.', order: 4 }}>
 					<div class="heading">
 						<h2 id="wifi-title" tabindex="-1">AP1 · Wi-Fi</h2>
 						<a href="#network">Til kartet ↑</a>

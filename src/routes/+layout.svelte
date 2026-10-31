@@ -1,6 +1,8 @@
 <script>
 	import { setContext } from 'svelte';
 	import { createPartnerChannel, partnerChannelKey } from '#lib/partnerChannel.js';
+	import { createInterfaceHelp, interfaceHelpKey } from '#lib/interfaceHelp.js';
+	import InterfaceHelpNotice from '#lib/components/InterfaceHelpNotice.svelte';
 	import { partnerAllowed } from '#lib/partnerPages.js';
 	import { onMount } from 'svelte';
 	import { page } from '$app/state';
@@ -27,6 +29,7 @@
 	/** @type {{children: import('svelte').Snippet}} */
 	let { children } = $props();
 	setContext(partnerChannelKey, createPartnerChannel());
+	setContext(interfaceHelpKey, createInterfaceHelp());
 	const browser = typeof window !== 'undefined';
 	const activity = $derived(presentationLessons.find((item) => item.href === page.url.pathname));
 	const presentationRequested = $derived(
@@ -85,6 +88,7 @@
 			!hasTeacherRole($lab.user?.role) &&
 			!page.url.pathname.startsWith('/laerer/')}
 	/>
+	<InterfaceHelpNotice />
 </div>
 
 <style>

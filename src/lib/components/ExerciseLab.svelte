@@ -1,5 +1,6 @@
 <script>
 	import PartnerContext from '#lib/components/PartnerContext.svelte';
+	import { getInterfaceHelp } from '#lib/interfaceHelp.js';
 	import CodeTokens from '#lib/components/CodeTokens.svelte';
 	import ValidationJourney from '#lib/components/ValidationJourney.svelte';
 	import ValidationProject from '#lib/components/ValidationProject.svelte';
@@ -14,6 +15,8 @@
 	import { lessons } from '#lib/ovingene.js';
 	import { buildTrace, validationFeedback } from '#lib/ovingModel.js';
 	import { noteFeedbackAttempt, finishFeedbackAttempt } from '#lib/activityFeedbackClient.js';
+	const interfaceHelp = getInterfaceHelp();
+	const helpTarget = interfaceHelp.target;
 	let ready = $state(false);
 	onMount(() => {
 		ready = true;
@@ -30,6 +33,11 @@
 	let selectedLine = $state(0);
 	let taskIndex = $state(0);
 	let task = $derived(lesson.tasks[taskIndex]);
+	$effect(() => {
+		lesson.number;
+		taskIndex;
+		interfaceHelp.clear();
+	});
 	// Preserve existing task indices in the partner contract while choosing the clearest entry point.
 	const taskOrder = $derived([
 		lesson.firstTask ?? 0,
@@ -167,7 +175,7 @@
 					>
 				{/each}
 			</div>
-			<div class="task-brief" id="task-brief">
+			<div class="task-brief" id="task-brief" use:helpTarget={{ label: 'Hva skal jeg gjøre?', hint: 'Start med «Gjør dette». «Se etter» forteller hva du skal undersøke.', order: 1 }}>
 				<p class="eyebrow">OPPGAVE {taskPosition + 1} / {lesson.tasks.length} · I SIMULATOREN</p>
 				<h2 id="lab-title">{task.title}</h2>
 				<p><strong>Gjør dette:</strong> {task.instruction}</p>
@@ -175,7 +183,7 @@
 				{#if lesson.number === 7}<p class="small">Dette er en simulator. Valg og kjøringssteg starter på nytt når du åpner siden igjen. Min lab lagrer gjennomgangsstatusen når du markerer leksjonen som gjennomgått nedenfor.</p>{/if}
 				{#key `${lesson.number}-${taskIndex}`}
 					<div class="task-help">
-						<details><summary>Hint</summary><p>{task.hint}</p></details>
+						<details><summary use:helpTarget={{ label: 'Finn hint', hint: 'Åpne Hint for et lite tips til oppgaven.', order: 5 }}>Hint</summary><p>{task.hint}</p></details>
 						<details><summary>Forklaring</summary><p>{task.answer}</p></details>
 					</div>
 				{/key}
@@ -183,6 +191,7 @@
 			<div class="workbench">
 				<form
 					class="controls"
+					use:helpTarget={{ label: 'Endre forsøket', hint: 'Gjør valgene dine under «Prøv her», og kjør forsøket.', order: 2 }}
 					onsubmit={(event) => {
 						event.preventDefault();
 						run();
@@ -223,6 +232,7 @@
 						{/if}
 					{/each}
 					<button class="primary run" type="submit" disabled={Object.keys(values).length === 0}
+						use:helpTarget={Object.keys(values).length ? { label: 'Kjør forsøket', hint: 'Trykk her for å kjøre med valgene dine. Deretter kan du følge stegene.', order: 3 } : null}
 						>{trace.length ? 'Kjør på nytt' : 'Kjør forsøket'}
 						<span aria-hidden="true">→</span></button
 					>
@@ -231,7 +241,7 @@
 
 				<div class="execution">
 					{#if current}
-						<div class="step-toolbar">
+						<div class="step-toolbar" use:helpTarget={{ label: 'Følg kjøringen', hint: 'Bruk Neste og Forrige for å følge hva koden gjør, ett steg om gangen.', order: 4 }}>
 							<span class="step-count">STEG {index + 1} / {trace.length}</span>
 							<div class="step-actions">
 								<button type="button" onclick={() => move(-1)} disabled={index === 0}

@@ -6,11 +6,14 @@
 	import NetworkCheckDialog from '#lib/components/NetworkCheckDialog.svelte';
 	import { createNetworkEditorNavigation } from '#lib/networkEditorNavigation.js';
 	import PartnerContext from '#lib/components/PartnerContext.svelte';
+	import { getInterfaceHelp } from '#lib/interfaceHelp.js';
 	import { lab, learningContext } from '#lib/lab.js';
 	import { loadNetworkLab, saveNetworkCheck } from '#lib/networkLabApi.js';
 	import { createVlanAudio } from '#lib/vlanAudio.js';
 	import { labPreferences, reducedMotion, registerSoundPlayer } from '#lib/labPreferences.js';
 	import { vlanTasks, vlanTask, vlanLabel, vlanCheckPassed, vlanAvailableThrough, initialVlanConfig, membership, pingVlan, checkVlanTask } from '#lib/vlanLab.js';
+	const interfaceHelp = getInterfaceHelp();
+	const helpTarget = interfaceHelp.target;
 	/** @typedef {{config:import('#lib/vlanLab.js').VlanConfig,revision:number,run:{revision:number,source:string,target:string,result:import('#lib/vlanLab.js').PingResult}|null,check:{revision:number,result:ReturnType<typeof checkVlanTask>}|null}} Workspace */
 	/** @returns {Record<string,Workspace>} */
 	function freshWork() {
@@ -18,6 +21,7 @@
 	}
 	let work = $state(freshWork());
 	let taskId = $state('ip');
+	$effect(() => { taskId; interfaceHelp.clear(); });
 	let selected = $state('pc1');
 	let pcId = $state('pc1');
 	let switchId = $state('s1');
@@ -345,7 +349,7 @@
 			<div class="network-workspace">
 				<div class="map-area">
 					<VlanMap {task} {config} {selected} onselect={selectDevice} step={activeStep} progress={travelProgress} vlanDiagnostic={!stale && !!run?.result.vlanDiagnostic} />
-					<section class="map-ping" id="map-ping" aria-label="Ping" tabindex="-1">
+					<section class="map-ping" id="map-ping" aria-label="Ping" tabindex="-1" use:helpTarget={{ label: 'Send ping', hint: 'Velg Fra og Til, og trykk Ping for å prøve forbindelsen.', order: 3 }}>
 						<div class="ping-bar">
 							<form class="ping-controls" onsubmit={(event) => { event.preventDefault(); ping(); }}>
 								<label>Fra<select bind:value={source} onchange={changePingPair}>{#each task.pcs as item}<option value={item.id}>{item.name}</option>{/each}</select></label>
@@ -388,7 +392,7 @@
 					</section>
 				</div>
 				<div class="device-sidebar">
-					<section class="pc-editor" id="pc-editor" aria-labelledby="pc-editor-title" tabindex="-1">
+					<section class="pc-editor" id="pc-editor" aria-labelledby="pc-editor-title" tabindex="-1" use:helpTarget={pc ? { label: 'Endre IP-adresse', hint: `Her endrer du ${pc.name}. Velg en annen PC i kartet for å konfigurere den.`, order: 1 } : null}>
 						<h3 id="pc-editor-title" tabindex="-1">{pc?.name ?? 'PC-innstillinger'}</h3>
 
 						{#if pc}
@@ -404,7 +408,7 @@
 						{/if}
 						<a class="pc-back" href="#network-panel">Tilbake til kartet ↑</a>
 					</section>
-					<section class="quick-check" id="quick-check" aria-labelledby="quick-check-title" tabindex="-1">
+					<section class="quick-check" id="quick-check" aria-labelledby="quick-check-title" tabindex="-1" use:helpTarget={{ label: 'Kontroller oppdraget', hint: 'Trykk «Kontroller oppdraget» for å teste hele oppsettet og se hva som eventuelt må rettes.', order: 4 }}>
 						<div class="quick-check-heading">
 							<h3 id="quick-check-title">Kontroll</h3>
 							<span class="check-count" class:success={passed} class:failure={!!attempt.check && !checkStale && !passed} role="status" aria-atomic="true">
@@ -420,7 +424,7 @@
 				</div>
 			</div>
 		</section>
-		<section class="editor" id="device-editor" aria-labelledby="editor-title" tabindex="-1">
+		<section class="editor" id="device-editor" aria-labelledby="editor-title" tabindex="-1" use:helpTarget={{ label: task.editableSwitches ? 'Endre switch og VLAN' : 'Undersøk switch og VLAN', hint: task.editableSwitches ? 'Velg switch. Trykk på en portrute for å bytte mellom U, E og T.' : 'Velg switch og les portrutene. Oppsettet er låst i dette oppdraget.', order: 2 }}>
 			<div class="panel-heading"><h2 id="editor-title" tabindex="-1">{sw?.name} · Switcher og VLAN</h2><a href="#network-panel">Tilbake til kart og PC-er ↑</a></div>
 			<div class="switch-picker" role="group" aria-label="Velg switch">
 				{#each task.switches as item}

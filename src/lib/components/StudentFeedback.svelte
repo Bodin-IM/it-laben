@@ -11,6 +11,8 @@
 	import { feedbackAnswers } from '#lib/activityFeedback.js';
 	import ActivityFeedbackPrompt from '#lib/components/ActivityFeedbackPrompt.svelte';
 	import FeedbackPromptSettings from '#lib/components/FeedbackPromptSettings.svelte';
+	import { getInterfaceHelp } from '#lib/interfaceHelp.js';
+	const interfaceHelp = getInterfaceHelp();
 	/** @type {{enabled:boolean}} */
 	let { enabled } = $props();
 	/** @type {HTMLDialogElement|undefined} */
@@ -144,7 +146,7 @@
 </script>
 
 <ActivityFeedbackPrompt
-	enabled={visible && !opened && !message.trim() && !$rewardNotice && $labPreferences.companion}
+	enabled={visible && !opened && !message.trim() && !$rewardNotice && !$interfaceHelp.active && $labPreferences.companion}
 	{avatar}
 	oncomment={openForPrompt}
 	onclose={() => launcher?.focus({ preventScroll: true })}
@@ -154,7 +156,7 @@
 	<div class="feedback-space" aria-hidden="true"></div>
 	<button
 		class="feedback-launcher"
-		class:above-reward={$rewardNotice !== null}
+		class:above-reward={$rewardNotice !== null || $interfaceHelp.active !== null}
 		bind:this={launcher}
 		onclick={open}
 		aria-haspopup="dialog"

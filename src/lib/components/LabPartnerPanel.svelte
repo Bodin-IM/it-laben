@@ -7,6 +7,9 @@
 	import Avatar from '#lib/components/Avatar.svelte';
 	import { MISSIONS, casesFor, programCode } from '#lib/reddChatten.js';
 	import { partnerRequest, partnerSnapshotKey } from '#lib/labPartner.js';
+	import { getInterfaceHelp } from '#lib/interfaceHelp.js';
+	const interfaceHelp = getInterfaceHelp();
+	let whereError = $state('');
 	/** @type {{snapshot:import('#lib/labPartner.js').PartnerSnapshot, accountId:string|null, csrf:string, avatarId?:string, onreset:()=>void, contextError?:string, dialogBreakpoint?:number,compact?:boolean,reactionMood?:import('#lib/avatarFeedback.js').AvatarMood,reactionMessage?:string}} */
 	let {
 		snapshot,
@@ -127,6 +130,19 @@
 		if (opener?.isConnected) opener.focus({ preventScroll: true });
 		window.scrollTo({ top: savedScroll, behavior: 'instant' });
 	}
+	/** @param {symbol} key */
+	async function showWhere(key) {
+		// Release the modal/focus trap before revealing the destination. Keep chat and draft.
+		whereError = '';
+		expanded = false;
+		dialog?.close();
+		await tick();
+		if (disposed) return;
+		if (!interfaceHelp.show(key)) {
+			expanded = true;
+			whereError = 'Dette området er ikke tilgjengelig nå. Velg et annet sted.';
+		}
+	}
 	$effect(() => {
 		if (mobile.current && expanded && dialog && !dialog.open) dialog.showModal();
 	});
@@ -156,6 +172,7 @@
 	}
 	onDestroy(() => {
 		disposed = true;
+		interfaceHelp.clear();
 		requestSerial += 1;
 		requestController?.abort();
 		statusController?.abort();
@@ -280,7 +297,10 @@
 
 {#snippet body()}
 	<div class="partner-body ready" class:ai-ready={mode === 'ai' && enabled === true && !!accountId}>
-		<div class="mode-switch" aria-label="Labpartnerens verktøy">
+		<div class="mode-switch" class:with-where={$interfaceHelp.targets.length > 0} aria-label="Labpartnerens verktøy">
+			{#if $interfaceHelp.targets.length}
+				<button type="button" aria-pressed={mode === 'where'} onclick={() => chooseMode('where')}>Vis meg hvor</button>
+			{/if}
 			<button type="button" aria-pressed={mode === 'guide'} onclick={() => chooseMode('guide')}
 				>Sidehjelp</button
 			>
@@ -493,10 +513,18 @@
 			<div
 				class="answer-scroll local-help"
 				role="region"
-				aria-label={mode === 'style' ? 'Utseende' : 'Sidehjelp'}
+				aria-label={mode === 'style' ? 'Utseende' : mode === 'where' ? 'Vis meg hvor' : 'Sidehjelp'}
 				tabindex="0"
 			>
 				{#if mode === 'style'}<PartnerAppearance />
+				{:else if mode === 'where'}
+					<h3>Hva leter du etter?</h3>
+					<div class="where-choices">
+						{#each $interfaceHelp.targets as target (target.key)}
+							<button type="button" onclick={() => showWhere(target.key)}>{target.label}<span aria-hidden="true">→</span></button>
+						{:else}<p>Ingen veivisere på denne siden ennå.</p>{/each}
+					</div>
+					{#if whereError}<p role="status">{whereError}</p>{/if}
 				{:else}
 					<h3>{pageHelp.title}</h3>
 					<div class="guide-tip">
@@ -599,6 +627,20 @@
 		flex: none;
 	}
 	.mode-switch button {
+		background: var(--color-surface-soft);
+		color: var(--color-text);
+	}
+	.mode-switch.with-where {
+		grid-template-columns: minmax(0, 1.5fr) minmax(0, 1.1fr) minmax(40px, .6fr) 44px;
+	}
+	.mode-switch.with-where button { padding-inline: 6px; }
+	.where-choices { display: grid; gap: 8px; }
+	.where-choices button {
+		display: flex;
+		align-items: center;
+		justify-content: space-between;
+		gap: 12px;
+		text-align: left;
 		background: var(--color-surface-soft);
 		color: var(--color-text);
 	}

@@ -55,6 +55,20 @@ Ugyldig lokal status stopper KI-spørringen med en synlig melding. Sidehjelp vir
 
 ## Nye moduler, øvinger og leksjoner
 
+### «Vis meg hvor» – lokal hjelp til å finne fram
+
+Første utkast på dev dekker VLAN-lab 1 og 2 og øving 5–10 i `ExerciseLab`. Eleven åpner labpartneren, velger **Vis meg hvor** og deretter en handling, for eksempel **Send ping**. Panelet lukkes, siden ruller til kontrollen og flytter tastaturfokus dit. En tydelig ramme og én kort forklaring viser hvor eleven kan fortsette. Forklaringen kan lukkes med kryss eller Escape, og forsvinner når eleven bruker siden videre. Redusert bevegelse gir umiddelbar rulling. Tilbakemeldingsinvitasjoner og feedback-knappen viker mens veiviseren vises.
+
+Dette er navigasjonshjelp uten modellkall, automatisk registrering av «står fast» eller innsamling av elevhandlinger. Oppgavenes valg, svar, vurdering, progresjon og XP endres ikke. Det lokale designvalget følger grunnlagets prinsipper om hjelp ved behov, korte forklaringer ved handlingen og at eleven beholder kontrollen. Nytte og forståelighet må prøves med elever; funksjonen dokumenterer ikke læring.
+
+`interfaceHelp.js` oppretter et separat register per layout. Siden registrerer konkrete, monterte elementer med Svelte-handlingen `helpTarget` og et fast navn, en forklaring og en sorteringsrekkefølge. Registeret og elementreferansene deles aldri med `PartnerContext`, serveren eller KI-modellen. Betinget innhold, som Wi-Fi og kjøringssteg, registreres bare når det er tilgjengelig. Ferdig oppsatte switcher omtales som noe eleven kan undersøke. Markeringer ryddes ved oppdrags-, side- og kontobytte.
+
+Nye veivisere legges på det aktuelle elementet via `getInterfaceHelp().target`; unngå globale selektorer, fritekst som bestemmer mål, og handlinger som kjører tester eller endrer oppsett på elevens vegne. Ved nye interne oppdrag skal aktiv markering fjernes når oppdraget byttes.
+
+**Status for dette utkastet:** Kildekode og diff er gjennomgått. Samlet testing gjenstår før main, inkludert tastatur, fokus etter lukking av labpartnerens dialog, smal skjerm/zoom, begge temaer, redusert bevegelse, låst VLAN-lab 2, betinget Wi-Fi, rydding ved oppdragsbytte og samspill med tilbakemeldinger. Tidligere testresultater nedenfor gjelder ikke dette nye utkastet.
+
+### Utvidelser av KI-konteksten
+
 **Ny modul:** Registrer den i `moduler.js` med gyldige innholds-ID-er. Mål, forkunnskaper og rekkefølge følger automatisk med. Bruk `moduleLink`/`ModuleContext` slik at tilhørigheten bevares mellom sider.
 
 **Nytt øvingsark i `ExerciseLab`:** Registrer leksjonen i `ovingene.js` og dens modell i `ovingModel.js`, samt den vanlige innholdsruten. Felleskomponenten publiserer status automatisk. Menyfelter får tillatte verdier fra leksjonsmetadataene. Et nytt fritekstfelt må få en eksplisitt klassifiseringsregel i `partnerContext.js` og en tilsvarende eksempelverdi i serverens kontekstbygger. Ikke fall tilbake til å sende teksten. `validatePartnerLessons()` stopper manglende delingsregler tidlig; kontrakttesten går gjennom alle leksjonenes valg og synlige steg.
