@@ -1,4 +1,5 @@
 <script>
+	import TeacherSettings from '#lib/components/TeacherSettings.svelte';
 	import { connection } from '#lib/connection.js';
 	import SecureAccessGuide from '#lib/components/SecureAccessGuide.svelte';
 	import { onMount } from 'svelte';
@@ -383,6 +384,7 @@
 				{message}
 			</p>{/if}
 		{#if settingsView}
+			<TeacherSettings open />
 			<ExperienceSettings />
 			<details class="settings">
 				<summary>Utseende <span>Tema, avatar og labkort</span></summary>

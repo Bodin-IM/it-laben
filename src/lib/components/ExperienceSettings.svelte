@@ -1,4 +1,5 @@
 <script>
+	import FeedbackPromptSettings from '#lib/components/FeedbackPromptSettings.svelte';
 	import {
 		labPreferences,
 		setLabPreferences,
@@ -14,6 +15,7 @@
 <details class="experience">
 	<summary>Labpartner, lyd og animasjoner <span>{$labPreferences.sound ? 'Lyd på' : 'Lyd av'}</span></summary>
 	<div class="controls">
+		<FeedbackPromptSettings />
 		<div>
 			<label class="toggle"
 				><input

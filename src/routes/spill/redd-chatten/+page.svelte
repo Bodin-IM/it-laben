@@ -1,12 +1,16 @@
 <script>
 	import { page } from '$app/state';
-	import { moduleContext } from '#lib/moduleNavigation.js';
+	import { moduleContext, moduleLink } from '#lib/moduleNavigation.js';
+	import ValidationJourney from '#lib/components/ValidationJourney.svelte';
+	import { validationJourney } from '#lib/backendValidation.js';
+	import { attemptStorageStatus } from '#lib/attemptStorageStatus.js';
 	const partnerModule = $derived(
 		typeof window !== 'undefined'
 			? (moduleContext('/spill/redd-chatten/', page.url.searchParams.get('modul'))?.module.id ??
 					null)
 			: null
 	);
+	const inValidationJourney = $derived(typeof window !== 'undefined' && page.url.searchParams.get('forlop') === 'validering');
 	import PageLinks from '#lib/components/PageLinks.svelte';
 	import ModuleContext from '#lib/components/ModuleContext.svelte';
 	import { activityLab as account, learningContext, saveAttempt } from '#lib/lab.js';
@@ -62,6 +66,9 @@
 	let speed = $state(1);
 	let revision = $state(0);
 	let hintOpen = $state(false);
+	let hintLevel = $state(1);
+	/** @type {{key:string, changes:boolean}|null} */
+	let prediction = $state(null);
 	let traceOpen = $state(false);
 	let dataOpen = $state(false);
 	let announcement = $state('');
@@ -91,6 +98,8 @@
 	let frame = $derived(frameIndex >= 0 ? playback[frameIndex] : null);
 	let currentCaseIndex = $derived(running && frame ? frame.caseIndex : selectedCaseIndex);
 	let scenario = $derived(cases[currentCaseIndex]);
+	let predictionKey = $derived(`${mission.id}:${programKey}:${scenario.id}`);
+	let activePrediction = $derived.by(() => prediction?.key === predictionKey ? prediction : null);
 	let walkthroughFrame = $derived.by(() => walkthrough?.frames[walkthroughIndex] ?? null);
 	let previousWalkthroughFrame = $derived.by(
 		() => walkthrough?.frames[walkthroughIndex - 1] ?? null
@@ -115,6 +124,9 @@
 				: (run?.results[currentCaseIndex] ?? null)
 	);
 	let currentTraceIndex = $derived(running && frame ? frame.traceIndex : inspectedTraceIndex);
+	let dataChanged = $derived(
+		currentResult !== null && JSON.stringify(currentResult.before) !== JSON.stringify(currentResult.after)
+	);
 	let currentStep = $derived(
 		currentTraceIndex >= 0 ? (currentResult?.trace[currentTraceIndex] ?? null) : null
 	);
@@ -241,6 +253,12 @@
 	const savedProgress = $derived(
 		$account.summary?.progress.find((item) => item.id === 'redd-chatten')
 	);
+	const storageStatus = $derived(attemptStorageStatus({
+		signedIn: Boolean($account.user), loaded: Boolean($account.summary),
+		pending: $account.pendingObjectives.includes(`redd-chatten:${mission.id}`),
+		error: Boolean($account.error), storageWarning: $account.storageWarning,
+		program, savedSolution: savedProgress?.objectives.find((item) => item.id === mission.id)?.solution
+	}));
 	$effect(() => {
 		const userId = $account.user
 			? `${$account.user.id}:${$learningContext.mode}:${$learningContext.openingId}`
@@ -357,6 +375,7 @@
 	}
 	function resetMission() {
 		if (running) return;
+		prediction = null;
 		recordPartnerEvent({ type: 'reset' });
 		partnerLastRun = null;
 		programs[missionIndex] = initialProgram(mission.id);
@@ -377,12 +396,14 @@
 		if (running || index < 0 || index >= MISSIONS.length || index > unlocked) return;
 		clearTimer();
 		missionIndex = index;
+		prediction = null;
 		selectedCaseIndex = 0;
 		sample = null;
 		pendingRun = null;
 		playback = [];
 		frameIndex = -1;
 		hintOpen = false;
+		hintLevel = 1;
 		dataOpen = false;
 		executionError = '';
 		closeInspection();
@@ -491,7 +512,7 @@
 		selectedCaseIndex = firstFailure >= 0 ? firstFailure : 0;
 		inspectedTraceIndex = -1;
 		revision += 1;
-		announcement = `${pendingRun.passed} av ${pendingRun.total} situasjoner håndtert riktig. ${pendingRun.success ? 'Reparasjonen er godkjent.' : 'Velg en feil, undersøk hva som skjedde, og juster koden.'}`;
+		announcement = `${pendingRun.passed} av ${pendingRun.total} situasjoner håndtert riktig. ${pendingRun.success ? 'Funksjonstestene er bestått for denne koden.' : 'Velg en feil, undersøk hva som skjedde, og juster koden.'}`;
 	}
 	function finishNow() {
 		if (running) complete();
@@ -568,10 +589,7 @@
 			<div>
 				<p class="eyebrow">SPILL 02 <span>DU BYGGER BACKEND</span></p>
 				<h1>Redd <em>chatten.</em></h1>
-				<p>Reparer koden. Slipp inn brukerne. Se om den holder.</p>
-				<p>
-					<a href="/spill/redd-chatten/pilot/">Ny pilot: Forutsi, undersøk og reparer én feil →</a>
-				</p>
+				<p>Reparer serverkoden her i simulatoren, og test både vanlig bruk og feilforsøk.</p>
 			</div>
 			<div class="campaign">
 				<span>{progressCount} av 3 reparasjoner løst</span>
@@ -596,16 +614,14 @@
 			</div>
 		</div>
 
+		{#if mission.id === 'tekst'}<ValidationJourney current="reparer" moduleId={partnerModule} />{/if}
 		<section class="mission" aria-labelledby="mission-title">
 			<span class="issue-icon" aria-hidden="true">!</span>
 			<div class="mission-copy">
 				<p class="eyebrow">FEILRAPPORT {mission.number} / 3</p>
 				<h2 id="mission-title" tabindex="-1" bind:this={missionHeading}>{mission.title}</h2>
-				<p>{mission.brief}</p>
-				<strong>{mission.goal}</strong>
-				<ul class="mission-requirements" aria-label="De viktigste kravene">
-					{#each mission.requirements as requirement}<li>{requirement}</li>{/each}
-				</ul>
+				<p><strong>Gjør dette:</strong> {mission.instruction}</p>
+				<strong>Dette skal fungere: {mission.goal}</strong>
 			</div>
 			<div class="mission-tools">
 				<a
@@ -636,7 +652,23 @@
 					</ul>
 				</details>
 			</div>
-			{#if hintOpen}<p class="hint" id="mission-hint">{mission.hint}</p>{/if}
+			{#if hintOpen}
+				<div class="hint" id="mission-hint">
+					<ol>
+						{#each mission.hints.slice(0, hintLevel) as hint}<li>{hint}</li>{/each}
+					</ol>
+					<button
+						type="button"
+						class="quiet"
+						disabled={hintLevel >= mission.hints.length}
+						onclick={() => {
+							hintLevel += 1;
+							recordPartnerEvent({ type: 'hint-opened' });
+						}}
+						>{hintLevel >= mission.hints.length ? 'Alle hint er åpnet' : 'Vis et tydeligere hint'}</button
+					>
+				</div>
+			{/if}
 		</section>
 
 		<div class="workbench" class:without-partner={!$labPreferences.companion}>
@@ -644,16 +676,28 @@
 				<div class="section-heading">
 					<div>
 						<p class="eyebrow">01 / REPARER</p>
-						<h2 id="code-title">Serveren din</h2>
+						<h2 id="code-title">Reparer {mission.method}-ruten</h2>
 					</div>
 					<button type="button" class="text-button" disabled={running} onclick={resetMission}
 						>Til startkoden ↺</button
 					>
 				</div>
 				<p class="editor-intro">
-					Flytt kontrollene, bytt kode eller legg til en blokk. Klikk på en kodelinje for
-					forklaring.
+					Flytt, bytt eller legg til kodeblokker. Trykk på en kodelinje for forklaring.
 				</p>
+				<div class="storage-status" role="status" aria-live="polite" aria-atomic="true">
+					<strong>{storageStatus.label}</strong>
+					<p>{storageStatus.detail}</p>
+					{#if $learningContext.mode !== 'normal'}<p>Lagringen gjelder {$learningContext.mode === 'practice' ? 'øvingsmodus' : 'denne lærerøkten'}, atskilt fra ordinær fremgang.</p>{/if}
+					{#if !$account.user}<a href="/min-lab/">Start Min lab →</a>{/if}
+				</div>
+				{#key mission.id}
+					<details class="code-example">
+						<summary>Se et kort kodeeksempel</summary>
+						<pre><code>{mission.example.code}</code></pre>
+						<p>{mission.example.explanation}</p>
+					</details>
+				{/key}
 				<BackendRouteEditor
 					{blocks}
 					{program}
@@ -707,12 +751,13 @@
 						<div class="section-heading">
 							<div>
 								<p class="eyebrow">02 / PRØV DET</p>
-								<h2 id="test-title">Tåler den brukerne?</h2>
+								<h2 id="test-title">Test reparasjonen</h2>
 							</div>
 							<span
 								class="server-led"
 								class:good={currentPassed && !running}
 								class:working={running && !paused}
+								role="img"
 								aria-label={running
 									? 'Prøver kode'
 									: currentPassed
@@ -728,7 +773,7 @@
 										: 'Brukerne prøver koden …'
 									: attempts[missionIndex]
 										? 'Test hele chatten igjen'
-										: 'Slipp inn brukerne'}<span class="launch-count">{cases.length}</span></button
+										: 'Test hele chatten'}<span class="launch-count">{cases.length}</span></button
 							>
 							<div class="play-controls">
 								{#if running}<button type="button" class="pill-button" onclick={togglePause}
@@ -798,7 +843,7 @@
 						</div>
 						{#if currentPassed && !running}
 							<section class="mission-win" data-testid="rescue-win" aria-labelledby="win-title">
-								<p class="eyebrow">✓ REPARASJON {mission.number} GODKJENT</p>
+								<p class="eyebrow">✓ FUNKSJONSTESTENE ER BESTÅTT</p>
 								<h3 id="win-title">Dette fikk du til</h3>
 								<dl class="takeaway">
 									<div>
@@ -814,14 +859,24 @@
 										<dd>{mission.takeaway.transfer}</dd>
 									</div>
 								</dl>
-								{#if missionIndex < MISSIONS.length - 1}
+								{#if mission.id === 'tekst'}
+									<p>Bruk nå prinsippet på et annet felt. Lag validering for et visningsnavn i eget prosjekt, og undersøk både svaret og dataene.</p>
+									<a class="project-link" href={moduleLink(validationJourney[2].href, partnerModule)}>Neste: Valider et visningsnavn i egen kode →</a>
+								{:else}
+								<details class="transfer-task">
+									<summary>Prøv prinsippet i egen kode</summary>
+									<p>{mission.transfer}</p>
+									<p>Forklar hvilken kontroll som beskytter dataene. Dette er en ekstra oppgave i eget prosjekt.</p>
+								</details>
+								{/if}
+								{#if missionIndex < MISSIONS.length - 1 && !(inValidationJourney && mission.id === 'tekst')}
 									<button
 										type="button"
 										class="next-mission"
 										onclick={() => changeMission(missionIndex + 1)}
 										>Neste reparasjon <span aria-hidden="true">→</span></button
 									>
-								{:else}<a class="next-mission" href="/spill/chat/">Sammenlign med første spill ↗</a
+								{:else if missionIndex === MISSIONS.length - 1}<a class="next-mission" href="/spill/chat/">Sammenlign med første spill ↗</a
 									>{/if}
 							</section>
 						{/if}
@@ -903,6 +958,26 @@
 										</dd>
 									</div>{/if}
 							</dl>
+							{#if !running && !resultIsCurrent}
+								<details class="prediction">
+									<summary>Forutsi før du kjører</summary>
+									<p>Vil den nåværende koden endre serverlisten med denne requesten?</p>
+									<div role="group" aria-label="Din forutsigelse om serverlisten">
+										{#each [true, false] as changes}
+											<button type="button"
+												aria-pressed={activePrediction?.changes === changes}
+												onclick={() => (prediction = { key: predictionKey, changes })}
+												>{changes ? 'Listen endres' : 'Listen er uendret'}</button>
+										{/each}
+									</div>
+								</details>
+							{:else if !running && resultIsCurrent && activePrediction}
+								<p class="prediction-result">
+									Du forventet {activePrediction.changes ? 'en endring' : 'en uendret liste'}.
+									Etter hele kjøringen er listen {dataChanged ? 'endret' : 'uendret'}.
+									{dataChanged === activePrediction.changes ? 'Finn koden som forklarer resultatet.' : 'Undersøk kjøringen for å finne hvorfor.'}
+								</p>
+							{/if}
 							{#if currentStep}<p class="step-now" data-testid="rescue-current-step">
 									<span
 										>{running ? 'KJØRER NÅ' : 'TILBAKEBLIKK'} · {currentStep.executed
@@ -1043,10 +1118,7 @@
 					Innloggede brukere kommer fra en session som serveren opprettet ved innlogging. I første
 					oppdrag øver vi bare på teksten; neste oppdrag tar for seg avsenderen.
 				</p>
-				<p>
-					Fremdriften beholdes mens denne spillsiden er åpen. Alle kravene i et oppdrag står under
-					«Se alle krav og detaljer».
-				</p>
+				<p><strong>Lag selv:</strong> {mission.transfer}</p>
 				<details class="full-source">
 					<summary>Se din nåværende rute som samlet kode</summary>
 					<pre><code>{fullCode}</code></pre>
@@ -1056,6 +1128,11 @@
 						>Hvordan fungerer sessions? ↗</a
 					>
 				</div>
+				<details class="legacy-pilot">
+					<summary>Tidligere læringspilot</summary>
+					<p>Har du påbegynt arbeid i piloten, kan du fortsette der med den samme nettleserfanen og lagringen.</p>
+					<a href="/spill/redd-chatten/pilot/">Åpne den tidligere piloten →</a>
+				</details>
 			</div>
 		</details>
 		<footer>
@@ -1064,16 +1141,15 @@
 			>
 		</footer>
 		<p class="sr-only" aria-live="polite" aria-atomic="true">{announcement}</p>
-		<PageLinks
-			links={[
-				{ href: '/spill/redd-chatten/pilot/', label: 'Prøv læringspiloten' },
-				{ href: '/#spill', label: 'Alle oppdrag og spill' }
-			]}
-		/>
+		<PageLinks links={[{ href: '/#spill', label: 'Alle oppdrag og spill' }]} />
 	</main>
 </div>
 
 <style>
+	.storage-status { margin-block: 12px; padding: 12px 16px; background: var(--color-surface-soft); border: 1px solid var(--color-border); border-radius: 8px; font-size: var(--font-small); color: var(--color-text); }
+	.storage-status p { margin: 6px 0 0; line-height: var(--leading-body); }
+	.storage-status a, .project-link { display: inline-flex; align-items: center; min-height: 44px; color: var(--color-action); text-underline-offset: 4px; }
+	.storage-status a:focus-visible, .project-link:focus-visible { outline: 3px solid var(--color-focus); outline-offset: 3px; }
 	:global(body) {
 		margin: 0;
 		background: var(--color-page);
@@ -1218,6 +1294,9 @@
 	.mission-tabs .chosen > span,
 	.mission-tabs .solved > span {
 		color: var(--color-success);
+	}
+	.mission-tabs .chosen small {
+		color: var(--color-text);
 	}
 	.mission-tabs button:disabled {
 		opacity: 0.4;
@@ -2365,14 +2444,81 @@
 		}
 	}
 
-	.mission-requirements {
-		margin: 12px 0 0;
-		padding-left: 20px;
-		font-size: var(--font-body);
-		color: var(--color-text-muted);
+	.hint ol {
+		margin: 0;
+		padding-left: 1.2rem;
 	}
-	.mission-requirements li + li {
-		margin-top: 5px;
+	.hint li + li {
+		margin-top: 0.75rem;
+	}
+	.hint button,
+	.mission-tools button,
+	.mission-tools summary,
+	.code-example summary,
+	.prediction summary,
+	.transfer-task summary,
+	.legacy-pilot summary {
+		min-height: 44px;
+		padding-block: 0.65rem;
+	}
+	.code-example,
+	.prediction,
+	.transfer-task {
+		margin: 0.75rem 0;
+		border: 1px solid var(--color-border);
+		border-radius: 8px;
+		padding: 0 0.9rem;
+		background: var(--color-surface-soft);
+		color: var(--color-text);
+		font-size: var(--font-small);
+		overflow-wrap: anywhere;
+	}
+	.code-example summary,
+	.prediction summary,
+	.transfer-task summary {
+		font-weight: 650;
+		color: var(--color-action);
+	}
+	.code-example pre {
+		margin: 0 0 0.75rem;
+		padding: 0.85rem;
+		background: var(--color-code-bg);
+		color: var(--color-code-text);
+		font: var(--font-code-small)/var(--leading-code) monospace;
+		overflow: auto;
+		border-radius: 6px;
+	}
+	.code-example p,
+	.prediction p,
+	.transfer-task p {
+		margin: 0 0 0.75rem;
+	}
+	.prediction [role='group'] {
+		display: flex;
+		flex-wrap: wrap;
+		gap: 0.5rem;
+		margin-bottom: 0.75rem;
+	}
+	.prediction button {
+		min-height: 44px;
+		padding: 0.5rem 0.75rem;
+		border: 1px solid var(--color-border-strong);
+		border-radius: 6px;
+		background: var(--color-surface);
+		color: var(--color-text);
+	}
+	.prediction button[aria-pressed='true'] {
+		background: var(--color-action);
+		color: var(--color-on-action);
+		border-color: var(--color-action);
+		text-decoration: underline;
+		text-underline-offset: 3px;
+	}
+	.prediction-result {
+		padding-left: 0.75rem;
+		border-left: 3px solid var(--color-info-border);
+		font-size: var(--font-small);
+		color: var(--color-text-muted);
 	}
 	.mission-copy {
 		min-width: 0;

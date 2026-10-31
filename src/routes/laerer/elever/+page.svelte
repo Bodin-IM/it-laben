@@ -8,6 +8,7 @@
 	import { fag } from '#lib/innhold.js';
 	import TeacherShell from '#lib/components/TeacherShell.svelte';
 	import BadgeIcon from '#lib/components/BadgeIcon.svelte';
+	import StudentKeyRecovery from '#lib/components/StudentKeyRecovery.svelte';
 	const browser = typeof window !== 'undefined';
 	/** @type {import('#lib/school.js').StudentList|null} */
 	let listing = $state(null);
@@ -96,6 +97,7 @@
 				!busy &&
 				!loading &&
 				!pendingAction &&
+				!document.querySelector('dialog[open]') &&
 				document.visibilityState === 'visible'
 			)
 				void load();
@@ -200,7 +202,10 @@
 						disabled={busy}
 						onclick={() => openAction('rename')}>Tildel nytt brukernavn</button
 					>
-					{#if administrator}<button
+					{#if administrator}
+						<StudentKeyRecovery student={detail.student} disabled={busy} oncomplete={() => { message = 'Ny nøkkelfil er aktivert. Elevens progresjon, XP og merker er beholdt.'; }} />
+						{#if detail.student.disabledAt !== null}<p class="small">Aktiver profilen før du gir en ny nøkkelfil.</p>{/if}
+						<button
 							class="secondary"
 							type="button"
 							disabled={busy}

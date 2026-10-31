@@ -450,10 +450,60 @@ function crud(v) {
 	return steps;
 }
 
+/** Interpret the completed trace, not current form fields or a guessed success state.
+ * @param {Step[]} trace
+ * @returns {{result:string,cause:string,next:string}|null}
+ */
+export function validationFeedback(trace) {
+	const last = trace.at(-1);
+	if (!last) return null;
+	if (last.status.startsWith('201')) return {
+		result: 'Meldingen ble lagret, og backend svarte 201.',
+		cause: 'Verdiene ble kontrollert før filen og minnet ble oppdatert.',
+		next: 'Prøv samme rute med bare mellomrom. Undersøk at den avvises uten å endre listen.'
+	};
+	if (last.status.startsWith('400')) {
+		const error = last.data.Validering;
+		const empty = error === 'Skriv en melding.';
+		return {
+			result: 'Requesten ble avvist med 400. Minnet og filen er uendret.',
+			cause: empty
+				? `Teksten hadde ${last.data['Tekstlengde før trim']} tegn før trim og 0 etterpå. return stoppet ruten før lagring.`
+				: typeof error === 'string'
+					? `${error} Valideringen stoppet requesten før lagring.`
+					: 'JSON-parseren kunne ikke lese innholdet. Selve ruten ble ikke kjørt.',
+			next: empty ? 'Prøv en vanlig melding med samme kontroll, og sammenlign svar og data.'
+				: typeof error === 'string' ? 'Rett verdien som ble avvist, og prøv igjen. Undersøk også grensen eller datatypen som utløste feilen.'
+					: 'Rett JSON-formatet først. Undersøk deretter hva som skjer med gyldig JSON og en ugyldig verdi.'
+		};
+	}
+	if (last.status.startsWith('413')) return {
+		result: 'Backend svarte 413. Ingen melding ble lagret.',
+		cause: 'Requesten oversteg parserens grense på 10 kB og nådde ikke valideringen i ruten.',
+		next: 'Prøv 501 tegn. Hvorfor gir en for lang melding nå 400 i stedet for 413?'
+	};
+	if (last.status.startsWith('500')) return {
+		result: 'Backend svarte 500. Den gamle listen ble beholdt.',
+		cause: 'Input var gyldig, men filen kunne ikke lagres. Minnet ble derfor ikke byttet ut.',
+		next: 'Sammenlign med vanlig sending. Finn linjen som bekrefter lagring, og forklar hvorfor den ikke skal kjøres ved feil.'
+	};
+	if (last.status.startsWith('404')) return {
+		result: 'Backend svarte 404. Ingen melding ble lagret.',
+		cause: 'Ingen av rutene passet med request-adressen.',
+		next: 'Sammenlign adressen i fetch med adressen backend lytter på, og prøv den riktige ruten.'
+	};
+	return {
+		result: 'Frontend fikk ikke et HTTP-svar. Ingen melding ble lagret.',
+		cause: 'Backend var avslått i dette forsøket. fetch ble avvist og catch tok over.',
+		next: 'Sammenlign med tom tekst mot en kjørende backend. Hvorfor kan svar.ok sjekkes i det forsøket?'
+	};
+}
+
 /** @param {Values} v */
 function validation(v) {
 	let raw = v.scenario === 'custom' ? v.body : '{"avsender":"Ada","tekst":"Hei fra laben!"}';
 	if (v.scenario === 'empty') raw = '{"avsender":"Ada","tekst":"   "}';
+	if (v.scenario === 'blank') raw = '{"avsender":"Ada","tekst":""}';
 	if (v.scenario === 'number') raw = '{"avsender":"Ada","tekst":123}';
 	if (['500', '501', 'large'].includes(v.scenario))
 		raw = JSON.stringify({
@@ -582,6 +632,7 @@ function validation(v) {
 			],
 			{
 				Validering: error || 'Godkjent',
+				'Tekstlengde før trim': typeof body?.tekst === 'string' ? body.tekst.length : 'Ikke en streng',
 				'Tekstlengde etter trim':
 					typeof body?.tekst === 'string' ? body.tekst.trim().length : 'Ikke en streng'
 			}

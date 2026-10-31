@@ -4,7 +4,7 @@ Rute: `/nettverk/vlan-2/`, under Driftsstøtte. Fortsettelse av [VLAN-lab 1](vla
 
 ## Mål og utgangspunkt
 
-Målgruppe: Vg2 informasjonsteknologi, elever som har arbeidet med /24, unike vertsadresser, VLAN, U/E/T, PVID, trunk og ping i lab 1. Ny teori introduserer gateway, VLAN-interfacer og SSID før eleven konfigurerer dem. Laben er avgrenset øving før implementering i et faktisk driftsmiljø.
+Målgruppe: Vg2 informasjonsteknologi, elever som har arbeidet med /24, unike vertsadresser, VLAN, U/E/T, trunk og ping i lab 1. Ny teori introduserer gateway, VLAN-interfacer og SSID før eleven konfigurerer dem. Laben er avgrenset øving før implementering i et faktisk driftsmiljø.
 
 Hovedmål fra **ITK02-01, driftsstøtte**, med lokale målreferanser og læreplanens ordlyd:
 
@@ -32,7 +32,7 @@ Fast topologi holder oppmerksomheten på konfigurasjon og årsak/virkning. Eleve
 ## Modell og faglige grenser
 
 - Alle klienter bruker statiske IPv4-adresser og maske /24. R1 har direkte tilkoblede ruter via tagged VLAN-interfacer på én fysisk kabel. Egen gateway betyr den konfigurerte gatewayen til valgt klient.
-- Switchtrafikken følger faktisk PVID, VLAN-medlemskap, utgående tag og hver fysisk forbindelse. Ingen forventet fasit brukes til å «teleportere» en pakke. Ping prøver både fram- og returvei og oppdager relevante adressekonflikter.
+- Switchtrafikken følger faktisk U-medlemskap for umerket trafikk, VLAN-medlemskap, utgående tag og hver fysisk forbindelse. Ingen forventet fasit brukes til å «teleportere» en pakke. Ping prøver både fram- og returvei og oppdager relevante adressekonflikter.
 - AP1 har to faste SSID-navn, Lab-Ansatt og Lab-Gjest. Eleven velger aktivering, VLAN og klientens SSID. AP-trafikken på kabelen er tagged. Modellen undersøker ikke radio, autentisering, kryptering eller AP-administrasjon.
 - R1s tilgangstabell tillater/sperrer hvert nettpar i begge retninger. Dette er en forenkling, ikke en full tilstandsbasert brannmur eller en produktspesifikk ACL. R1s egen adresse kan nås fra sitt VLAN selv når ruting til andre nett er sperret.
 - Ingen DHCP, DNS, NAT, internett, dynamisk ruting, ARP-tidsforløp, pakketap, STP eller løkker simuleres. Kartet viser ett forklart forløp, ikke en faktisk pakkefangst. Trådløs trafikk undersøkes via AP-uplinken; optimal lokal videresending inne i AP-et inngår ikke.
@@ -41,7 +41,11 @@ Faglig kontrollgrunnlag, lest 29. oktober 2026: [Cisco: inter-VLAN-ruting med ek
 
 ## Grensesnitt og lagring
 
-Kartet har klientvalg, eth-navn ved kablene og en kompakt pingrad nederst. IP/gateway og kontroll ligger ved kartet på bred skjerm og under på mobil. Switchtabellen bruker U → E → T → U og egen PVID-rad; ny U erstatter tidligere U uten å endre PVID. Ruter og AP har egne tydelige områder, side ved side når plassen tillater det. Teori, hendelsesdetaljer og hjelp kan åpnes ved behov.
+Kartet har klientvalg, eth-navn ved kablene og en kompakt pingrad nederst. IP/gateway og kontroll ligger ved kartet på bred skjerm og under på mobil. Switchtabellen bruker U → E → T → U. Ny U erstatter tidligere U og velger også VLAN for umerket trafikk inn; ingen separat PVID-rad vises. Ruter og AP har egne tydelige områder, side ved side når plassen tillater det. Teori, hendelsesdetaljer og hjelp kan åpnes ved behov.
+
+Kartvalg fører mykt til PC-, switch-, ruter- eller AP-innstillingene og markerer panelet kort. Fast `/24` står i en kompakt boks ved IP-feltet; full maske annonseres som feltbeskrivelse. Modellen inneholder ingen oppdrag med redigerbar nettmaske.
+
+Kontroll kan kjøres både ved klienten og ved switch-/ruter-/AP-konfigurasjonen. Et felles resultatvindu åpnes ved svar fra serveren, viser tellingen og «Hva som er feil:» med faktiske avvik. Tre feil vises først; resten og det som er riktig kan åpnes. Feil SSID peker til klienten, mens feil SSID–VLAN-kobling peker til AP1. Gateway-, tag- og rutingfeil bruker faktiske ping-/konfigurasjonsfunn. Gjestefeil forklarer fortsatt forskjellen mellom en tilsiktet R1-sperre og en ødelagt forbindelse. «Se …» lukker vinduet og følger eleven til innstillingene; «Fortsett å konfigurere» og Escape lukker til arbeidet. Resultatet har ingen tidsfrist og kan åpnes igjen. Redigering merker historikken som utdatert. Sene svar åpner ikke vinduet hvis eleven allerede har valgt en annen enhet. Tekniske feil merkes «Kontroll ikke fullført», ikke som faglig underkjent. Lagringsdetaljer ligger under «Lagring og nytt forsøk».
 
 Dette viderefører gjenkjenning og kort respons fra lab 1 (designgrunnlagets U1/U6), samtidig som nye faglige valg får navn og forklaring. Native knapper, felt og avkrysninger støtter tastatur og berøring. Farge suppleres med hake/kryss, status og forklaring. Lyd styres av den globale knappen, og redusert bevegelse følger felles innstilling og operativsystemet. Ping kan pauses og undersøkes stegvis. Redigering gjør tidligere kontroll utdatert og skjuler gammel pakke.
 
@@ -57,8 +61,19 @@ Labpartneren bruker adapter `vlan2`, protokoll 2 / adapterversjon 1. Bare kjent 
 
 La elevene arbeide i par: én forklarer forventet pakkevei, den andre velger en test. Bytt roller. Etter sluttnøtta: gi et nytt VLAN/IP-oppsett på faktiske switcher/ruter/AP eller en egnet nettverkssimulator. Be dem lage en port- og adresseplan og dokumentere to tillatte forbindelser og én tilsiktet sperre, med returvei og begrunnelse. Legg gjerne inn en ny skriver-/IoT-sone. Nettsidens hint er ikke en fasit til det nye nettet.
 
-Se etter om eleven kan forklare forskjellen mellom PVID, tag, gateway og regel, og bruke stoppstedet til å snevre inn feilen. Stadig klikk gjennom U/E/T uten testhypotese kan tyde på gjetting. Oppfølgingen må skille faglige vansker fra navigasjonsvansker. Teknisk kontroll erstatter ikke utprøving med elever; prøv gjerne 3–5 elever med ulike forkunnskaper og følg opp en ny situasjon senere.
+Se etter om eleven kan forklare forskjellen mellom U/T, gateway og regel, og bruke stoppstedet til å snevre inn feilen. Stadig klikk gjennom U/E/T uten testhypotese kan tyde på gjetting. Oppfølgingen må skille faglige vansker fra navigasjonsvansker. Teknisk kontroll erstatter ikke utprøving med elever; prøv gjerne 3–5 elever med ulike forkunnskaper og følg opp en ny situasjon senere.
 
 ## Kontroll før publisering
 
 Se [publiseringskontrollen for lab 2](publisering-vlan-2.md). Svelte MCP var ikke tilgjengelig; offisiell Svelte-dokumentasjon for `$effect` og `$props`, prosjektets Svelte-sjekk og faktisk nettleserprøving brukes. Pedagogisk utprøving og kontroll mot skolens konkrete nettverksutstyr gjenstår.
+
+
+## Dev-justering 30. oktober 2026
+
+Flytjusteringen er bare kode-/diffgjennomgått. Samlet testing gjenstår før main, i tråd med dev-avtalen. Prøv den delte kontrolldialogen, feilsnarveier, tastatur/fokus, maskefelt, redusert bevegelse og sen/feilet serverrespons, samt begge temaer, mobil og zoom. Kontroller at eksisterende oppdrag fortsatt godkjennes/avvises etter samme kriterier. Forrige publiseringskontroll gjelder den tidligere versjonen.
+
+## Lærerforhåndsvisning og U/E/T
+
+Med «Lås opp alle oppgaver for meg» (på som standard under Lærerinnstillinger) kan lærer/administrator åpne lab 2 direkte og velge alle fem oppdrag. Serveren kontrollerer rollen ved både henting og kontroll; et elevkall med forhåndsvisningsflagget avvises. Forhåndsvisning hopper over adgangskrav, men validerer konfigurasjonen og gir et faktisk kontrollresultat. Den skriver ingen bestått-rader eller XP. Avslått innstilling bruker vanlig lagring og progresjon. Andre aktiviteter gjenbruker eksisterende øvingsmodus uten XP.
+
+PVID er fjernet som elevvalg. U styrer umerket trafikk inn og ut i begge labene. R1 og AP1 bruker fortsatt tagged VLAN, og ruting-/Wi-Fi-/regelkravene beholdes. Se [lab 1](vlan-lab.md#lærerforhåndsvisning-og-forenklet-vlan-konfigurasjon) for modellavgrensning, kompatibilitet og gjenstående kontroll før main. Oppdaterte tester er ikke kjørt på dev.

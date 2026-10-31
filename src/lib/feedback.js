@@ -74,5 +74,5 @@ export function feedbackPage(href) {
 	return { path: url.pathname, href: url.pathname + (clean.size ? `?${clean}` : ''), title: label };
 }
 
-/** @typedef {{id:string,category:string,message:string,pageHref:string,pageTitle:string,createdAt:number,status:'new'|'handled',handledAt:number|null,nickname:string|null}} FeedbackItem */
+/** @typedef {{id:string,category:string,message:string,pageHref:string,pageTitle:string,createdAt:number,status:'new'|'handled',handledAt:number|null,nickname:string|null,question:string|null,answer:string|null,activityVersion:string|null}} FeedbackItem */
 /** @typedef {{items:FeedbackItem[],total:number,newCount:number,page:number,pages:number}} FeedbackList */

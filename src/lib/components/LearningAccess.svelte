@@ -5,9 +5,10 @@
 	import { aktiviteter } from '#lib/innhold.js';
 	import { lab, learningContext, setLearningContext, refreshLearningActivity } from '#lib/lab.js';
 	import { learningLink, hasTeacherRole } from '#lib/learning.js';
+	import { teacherPreview } from '#lib/teacherPreview.js';
 	const activity = $derived(aktiviteter.find((item) => item.href === page.url.pathname));
 	const mode = $derived(
-		browser && page.url.searchParams.get('modus') === 'oving'
+		(activity && $teacherPreview) || (browser && page.url.searchParams.get('modus') === 'oving')
 			? 'practice'
 			: browser && page.url.searchParams.get('modus') === 'undervisning'
 				? 'teaching'
@@ -22,7 +23,7 @@
 			activityId: activity?.id ?? '',
 			mode,
 			openingId: mode === 'teaching' ? openingId : null,
-			untimed: mode === 'practice' && page.url.searchParams.get('utenTid') === '1'
+			untimed: mode === 'practice' && ($teacherPreview || page.url.searchParams.get('utenTid') === '1')
 		});
 	});
 	onMount(() => {
@@ -45,7 +46,7 @@
 	>
 		<div>
 			<strong
-				>{mode === 'practice'
+				>{$teacherPreview ? 'Lærer · alle oppgaver åpne' : mode === 'practice'
 					? 'Øving · uten XP'
 					: mode === 'teaching'
 						? 'Undervisningsforsøk'
@@ -54,7 +55,7 @@
 							: 'Åpent for alle'}</strong
 			>
 			<p>
-				{mode === 'practice'
+				{$teacherPreview ? 'Forhåndsvisning uten XP. Elevenes progresjonskrav er uendret.' : mode === 'practice'
 					? 'Egen øvingsprogresjon. Du bruker ingen ordinære forsøk og får ingen XP eller merker.'
 					: mode === 'teaching'
 						? 'Ett ekstra forsøk i denne åpningen. XP gis ved bestått, én gang per mål.'
@@ -64,7 +65,8 @@
 			</p>
 		</div>
 		<div class="actions">
-			{#if mode !== 'normal'}<a href={activity.href}>Til vanlig aktivitet →</a>{/if}
+			{#if $teacherPreview}<a href="/min-lab/?visning=innstillinger#laererinnstillinger">Lærerinnstillinger →</a>
+			{:else if mode !== 'normal'}<a href={activity.href}>Til vanlig aktivitet →</a>{/if}
 			{#if mode === 'normal' && teacher}<a href={learningLink(activity.href, 'practice')}
 					>Test selv →</a
 				>{/if}

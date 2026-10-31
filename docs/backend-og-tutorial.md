@@ -1,5 +1,7 @@
 # Backend og elevens kom-i-gang-veiledning
 
+**Nyeste videreutvikling, dev 31. oktober 2026:** [Samlet undervisningsforløp for Backend](backend-undervisning.md) beskriver hele modulen, forberedelser, nye læreropplegg og kontroll før bruk. Utprøvingen skjer i ordinær undervisning. [Validering fra øving til egen kode](backend-validering.md) beskriver første del av arbeidet nærmere.
+
 28. oktober 2026. Brukerbestilt opprydding: ett Backend-forløp under Utvikling, et tannhjul for labpartnerens utseende og en egen tutorial på `/tutorial/`.
 
 ## Backend: mål og avgrensning
@@ -18,6 +20,55 @@ Forkunnskaper er JavaScript-variabler, objekter, lister og funksjoner. Arbeidet 
 Lærerens videre oppfølging: La eleven bygge en tilsvarende rute for eksempel for visningsnavn i eget prosjekt. Be om begrunnede testtilfeller og en forklaring av hvor serveren avviser ugyldige data. Vurder både funksjonen og forklaringen; modulens progresjon er ikke dokumentert forståelse.
 
 Etter Øving 10 kan eleven publisere egen backend i et avtalt testmiljø, kontrollere tjenesten etter omstart og dokumentere fremgangsmåte og testresultat. Be eleven forklare forskjellen på kildekode, frontendbygg og serverprosess, og hvilke data som bevares eller forsvinner ved omstart. Dette undersøker overføring til egen løsning med mindre støtte enn simuleringen.
+
+## Tydeligere oppgaver og samlet støtte, 30. oktober 2026 (dev)
+
+Brukerbestilt forbedring etter kildegjennomgang: Elevene trenger å se hva de skal gjøre ved arbeidsflaten, og flere parallelle pilotinnganger gjør valget unødvendig vanskelig. De fem hoveddelene og de eksisterende aktivitetene er beholdt. Målgruppe, forkunnskaper og kompetansemål UTV-01, UTV-07, UTV-08 og DRS-06 med ordlyd og avgrensning står ovenfor.
+
+### Elevhandling, støtte og respons
+
+Øving 5–10 bruker de samme tre undersøkelsesoppgavene som før, nå med korte valg øverst i simulatoren. Den valgte oppgaven viser en handlingsrettet overskrift, «Gjør dette» og «Se etter». Hint og forklaring er tilgjengelige i egne åpne/lukke-felt. En mindre intro og fjerningen av den separate oppgavelisten nederst begrenser gjentakelser. Det tidligere tomme venteområdet viser et kort kodeeksempel før første kjøring. Eksemplene er utdrag, ikke komplette serverfiler.
+
+Fargejustering på dev: Både kodeeksemplet før kjøring og de klikkbare kodelinjene i øving 5–10 bruker nå `CodeTokens`, med samme farger og tekstoppdeling som `InteractiveCode` i chatrom. Nøkkelord, strenger, funksjoner, tall og kommentarer følger dermed den eksisterende kodevisningen. Komponenten er hentet ut av `InteractiveCode` og gjenbrukes begge steder. Koden rendres fortsatt som tekst, og linjevalg, forklaringer og progresjon er uendret. Diff er gjennomgått; samlet testing og visuell kontroll gjenstår før main.
+
+| Del | Hva eleven gjør | Hva responsen viser | Overføring med mindre støtte |
+| --- | --- | --- | --- |
+| Meldingens reise | Sender med POST og henter med GET. | Hvor data ligger, hvilken kode som kjører og hva frontend viser. | Lag rutene i egen chat og prøv med to nettlesere. |
+| Øving 5 | Følger lagring og sammenligner normal kjøring, skrivefeil og feil ved oppstart. | Fil, arbeidskopi, minne og HTTP-svar i hvert steg. | Lag varig lagring og kontroller både omstart og skrivefeil i testmiljøet. |
+| Øving 6 | Endrer én meldings-ID, sletter ukjent ID og sammenligner før/etter GET. | Serverlisten kan være oppdatert før listen i nettleseren. | Bygg endring og sletting, og prøv to meldinger med lik tekst. |
+| Øving 7 | Velger grensetester og sammenligner feil datatype, HTTP-feil og nettverksfeil. | Hvilken kontroll som stopper requesten, svar og uendret lagring. | Valider et visningsnavn og velg egne testtilfeller. |
+| Øving 8–9 | Undersøker bruker, cookie, session og eierskap med ulike avsendere. | Hvilken identitet backend bruker og hvor tilgang avgjøres. | Bygg innlogging og beskyttede ruter; prøv også requests utenom knappene. |
+| Redd chatten | Undersøker, reparerer og prøver både normal- og feiltilfeller. Kan forutsi om serverlisten vil endres. | Faktisk endring sammenlignes med forutsigelsen. Eksisterende tester vurderer funksjonen. | Bruk validering, session-eier og sletting på chatrom i egen app. |
+| Øving 10 | Sammenligner kildekode, publiserte filer, prosess og VM-omstart. | Hva nettleseren faktisk får, og hvilke data som overlever. | Publiser og dokumenter egen app i avtalt testmiljø. |
+
+Oppgavevalg i øving 5–10 endrer veiledningen, men beholder innstillinger og pågående kjøring. Eleven kan sammenligne og utforske fritt. Endring av simulatorens innstillinger tømmer fortsatt den gamle kjøringen. «Kjøringen er ferdig» vises nøytralt; det er ikke en godkjenning av oppgaven. Oppgavevalg, hint eller gjennomgåtte simulatorsteg registrerer ingen ny fullføring og gir ingen XP.
+
+Fillagring og sessions merkes som innføring med en konkret overgang til øving 5 og 8. Chatrom får en tydelig fagtittel og en oppgave ved kontrollene for hvert forsøk. Moduloversikten har en sammenleggbar oppgave for eget prosjekt ved slutten av hver hoveddel (repetisjonsdelen før den valgfrie Nattevakten). Disse oppgavene legger ikke til nye progresjonskrav.
+
+Redd chatten viser én hovedinngang. Tre hintnivåer, et kort kodeeksempel og en frivillig forutsigelse er integrert i de vanlige oppdragene. Forutsigelsen gjelder gjeldende oppdrag, request og kode; ved en kodeendring vises ikke sammenligningen for den gamle koden. Den sammenlignes med faktisk før/etter-liste og gir verken poeng, godkjenning eller trekk. Den detaljerte linjegjennomgangen beholdes for første oppdrag; de to andre beholder eksisterende blokkspor. De eksisterende funksjonstestene, løsningene og kravene er uendret.
+
+Den separate pilotinngangen er flyttet til «Tidligere læringspilot» under hjelpen for egen chat. Den gamle siden, pilotpoengene og lagret arbeid i sessionStorage beholdes. Ingen pilotdata flyttes, slettes eller oppgraderes. Støtten samles uten å gjøre alle de seks pilotfasene obligatoriske eller å introdusere et nytt poengsystem.
+
+### Design, kontekst og vurdering
+
+Dette bruker [designgrunnlagets](webdesign-og-brukeropplevelse.md) prinsipper om hierarki, tydelige handlinger, konsistens og hjelp ved behov. Knapper har synlig valgt tilstand og `aria-pressed`; hovedvalg og hjelp har minst 44 piksler høye treffområder. Kompakt kodevisning beholder mindre linjeknapper. Oppgavevalg bryter over flere linjer, og oppsettet går til én kolonne på smal skjerm. Eksisterende tema- og fokusvariabler brukes. Dette beskriver implementasjonen; nettleserverifikasjon gjenstår.
+
+[Pedagogikkgrunnlaget](pedagogisk-grunnlag.md) begrunner konkrete problemer, variasjon i elevhandling, kodeeksempel før utforsking og faglig respons som kan brukes i neste forsøk. Tre oppgaver og tre hintnivåer er lokale designvalg. Læreren undersøker forståelse gjennom elevens forklaring og en beslektet rute med egne testtilfeller. Hverken en forutsigelse, et åpnet hint, «gjennomgått» eller funksjonstester er alene dokumentasjon på forståelse.
+
+Labpartneren i øving 5–10 får den valgte oppgaven via den eksisterende validerte oppgaveindeksen, også før eleven åpner en forklaring. Serveren gjenbruker instruksjon, observasjonsspørsmål, kodeeksempel og overføringsoppgave fra innholdsmetadata. Redd chattens servergrunnlag gjenbruker samme nye støtte. Ingen nye klientfelter eller rå fritekst er lagt til. Den frivillige forutsigelsen og valgt hintnivå i Redd chatten deles ikke med KI; partneren får fortsatt bare de allerede godkjente hendelsene og arbeidsstatusen. Ingen vurderingsfasit til fagsjekker deles.
+
+### Bevaring av progresjon og kontroll før main
+
+- Alle 14 registrerte backendaktiviteter, adresser, rekkefølger og deloppgave-ID-er er beholdt. Gamle modulaliaser og posisjoner er uendret.
+- Ingen endring i `server/catalog.js`, `server/progress.js`, `checkpoints.js`, databaseversjon, XP-nøkler, opplåsing, lagrede løsningsformater eller klientens kø for usendte progresjonshendelser.
+- `review`, `check-v2` og utfordringenes deloppgaver beholder samme vurderingsregler. Simulatorenes beregninger og Redd chattens startkode, kodeblokk-ID-er og evaluatorer er uendret.
+- Pilotens side, sessionStorage-nøkkel `it-laben:redd-chatten-pilot:v1` og innholdet i lagringen er urørt. De nye støttevalgene er midlertidig visningstilstand i besøket.
+
+Diff og kildekode er gjennomgått på dev. Ingen testsuite, Svelte-sjekk, bygg eller nettleserprøving er kjørt i denne leveransen, i tråd med dev-avtalen. Historiske kontroller nedenfor gjelder tidligere versjoner.
+
+Før main: kjør samlet testsuite, Svelte-sjekk og produksjonsbygg, og prøv oppgavebytte, hjelp, gyldige/ugyldige forsøk og nytt forsøk i de endrede flytene. Prøv forutsigelse mot både endret og uendret serverliste, kode-/requestbytte, omstart av oppdrag og gamle resultater. Kontroller tastatur, fokus, smal skjerm, berøring, zoom og begge temaer. Kontroller kontoer med gjennomgåtte, beståtte og påbegynte aktiviteter, gjenlasting av lagrede løsninger, lærerens øvingsmodus, ventende innsendinger og en påbegynt pilotøkt. Sammenlign progresjon og XP før og etter oppgraderingen.
+
+Utprøving med elever gjenstår: Kan eleven finne første handling uten muntlig navigasjonshjelp, bruke responsen til neste forsøk og anvende prinsippet i egen kode? Skill grensesnittproblemer fra faglige misforståelser. Ingen læringseffekt er dokumentert av denne endringen.
 
 ## Tutorial: mål og elevhandling
 
@@ -76,3 +127,7 @@ Ollamas faktiske svar på tutorialen og elevenes bruk er ikke prøvd. Kontrakt o
 ![Tutorialens prøveforsøk](designutkast/tutorial-practice.png)
 
 ![Tannhjulet i mobilvisningen](designutkast/labpartner-tannhjul-mobil.png)
+
+## Frivillig spørsmål om tydelighet, 31. oktober 2026 (dev)
+
+Øving 5, 8 og 10 kan tilby ett kort spørsmål ved slutten av en simulert kjøring eller etter intern navigasjon bort fra et påbegynt forsøk. Eleven velger Ja, Delvis eller Nei til «Var det tydelig hva du skulle gjøre?», kan hoppe over og kan slå av spørsmålene. Svaret har ingen kobling til vurdering eller XP. Se [elevtilbakemeldinger](elevtilbakemeldinger.md) for forskningsgrunnlag, hyppighetsgrenser, sidekontekst, lagring, adminvisning og gjenstående kontroller før main.

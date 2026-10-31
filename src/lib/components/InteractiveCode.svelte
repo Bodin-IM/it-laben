@@ -1,10 +1,10 @@
 <script>
 	import { onMount } from 'svelte';
 	import CodeExplanation from '#lib/components/CodeExplanation.svelte';
+	import CodeTokens from '#lib/components/CodeTokens.svelte';
 
 	/** @typedef {'frontend' | 'backend'} CodeSide */
 	/** @typedef {{ id: string, text: string, title: string, explanation: string }} CodeLine */
-	/** @typedef {{ text: string, type: string }} Token */
 	/**
 	 * The parent owns the selected side and execution state. Change resetKey when
 	 * the step, input or example changes to close the current line explanation.
@@ -73,35 +73,6 @@
 		selectedButton = event.currentTarget;
 		selectedId = id;
 	}
-
-	/** @param {string} source @returns {Token[]} */
-	function highlight(source) {
-		const pattern =
-			/\/\/.*|"(?:[^"\\]|\\.)*"|'(?:[^'\\]|\\.)*'|`(?:[^`\\]|\\.)*`|\b(?:import|from|const|let|if|else|return|async|await|function|try|catch|throw|new|typeof|for|of|export|true|false|null)\b|\b(?:fetch|stringify|json|push|trim|status|post|get|set|use|filter|map|Error|JSON|express|URLSearchParams|encodeURIComponent)\b|\b\d+\b/g;
-		/** @type {Token[]} */
-		const tokens = [];
-		let end = 0;
-		for (const match of source.matchAll(pattern)) {
-			const index = match.index ?? 0;
-			if (index > end) tokens.push({ text: source.slice(end, index), type: 'vanlig' });
-			const word = match[0];
-			const type = word.startsWith('//')
-				? 'kommentar'
-				: /^["'`]/.test(word)
-					? 'streng'
-					: /^\d+$/.test(word)
-						? 'tall'
-						: /^(import|from|const|let|if|else|return|async|await|function|try|catch|throw|new|typeof|for|of|export|true|false|null)$/.test(
-									word
-							  )
-							? 'nokkelord'
-							: 'funksjon';
-			tokens.push({ text: word, type });
-			end = index + word.length;
-		}
-		if (end < source.length) tokens.push({ text: source.slice(end), type: 'vanlig' });
-		return tokens;
-	}
 </script>
 
 <div class="arbeidsflate">
@@ -156,8 +127,7 @@
 							<span class="linjenummer" aria-hidden="true">{index + 1}</span>
 							<span class="kjorepil" aria-hidden="true">{active ? '→' : ''}</span>
 							<code
-								>{#each highlight(line.text) as token}<span class={token.type}>{token.text}</span
-									>{/each}</code
+								><CodeTokens source={line.text} /></code
 							>
 							<span class="forklaringsmerke" aria-hidden="true"
 								>{selectedId === line.id ? '←' : '?'}</span
@@ -428,22 +398,6 @@
 	}
 	.tomlinje .linjenummer {
 		line-height: 18px;
-	}
-	.nokkelord {
-		color: #9cded1;
-	}
-	.streng {
-		color: #e0d29f;
-	}
-	.funksjon {
-		color: #e6bd8c;
-	}
-	.tall {
-		color: #d8c0e4;
-	}
-	.kommentar {
-		color: #8fa98d;
-		font-style: italic;
 	}
 	.kodefot {
 		display: flex;

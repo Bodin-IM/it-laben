@@ -1,5 +1,6 @@
 <script>
 	import { onMount, tick, untrack } from 'svelte';
+	import { teacherPreview } from '#lib/teacherPreview.js';
 	import { lab, learningContext } from '#lib/lab.js';
 	import { labPreferences, reducedMotion, registerSoundPlayer } from '#lib/labPreferences.js';
 	import { createVlanAudio } from '#lib/vlanAudio.js';
@@ -14,6 +15,11 @@
 	import RoutedNetworkMap from '#lib/components/RoutedNetworkMap.svelte';
 	import NetworkSwitchEditor from '#lib/components/NetworkSwitchEditor.svelte';
 	import PartnerContext from '#lib/components/PartnerContext.svelte';
+	import { getInterfaceHelp } from '#lib/interfaceHelp.js';
+	import NetworkCheckDialog from '#lib/components/NetworkCheckDialog.svelte';
+	import { createNetworkEditorNavigation } from '#lib/networkEditorNavigation.js';
+	const interfaceHelp = getInterfaceHelp();
+	const helpTarget = interfaceHelp.target;
 	/** @typedef {{config:import('#lib/vlanLab2.js').Config,revision:number,check:{revision:number,result:ReturnType<typeof checkVlan2Task>}|null}} Attempt */
 	/** @returns {Record<string,Attempt>} */
 	const fresh = () =>
@@ -44,19 +50,25 @@
 	/** @type {{revision:number,source:string,target:string,result:import('#lib/vlanLab2.js').Ping}|null} */
 	let run = $state(null);
 	let sequence = 0;
+	let checkViewSequence = 0;
+	let showCheck = $state(false);
+	let checkError = $state(false);
+	const navigation = createNetworkEditorNavigation(() => $reducedMotion);
 	const sound = createVlanAudio();
 	onMount(() => {
 		const unregister = registerSoundPlayer(sound);
 		return () => {
 			sequence++;
+			navigation.cancel();
 			unregister();
 			sound.destroy();
 		};
 	});
 	const scope = $derived(
-		`${$lab.user?.id ?? 'guest'}:${$learningContext.mode}:${$learningContext.openingId ?? ''}`
+		`${$lab.user?.id ?? 'guest'}:${$teacherPreview}:${$learningContext.mode}:${$learningContext.openingId ?? ''}`
 	);
 	const task = $derived(vlan2Tasks.find((t) => t.id === taskId) ?? vlan2Tasks[0]);
+	$effect(() => { taskId; interfaceHelp.clear(); });
 	const index = $derived(vlan2Tasks.indexOf(task));
 	const attempt = $derived(work[task.id]),
 		config = $derived(attempt.config);
@@ -64,7 +76,7 @@
 	const selectedSwitch = $derived(task.switches.find((s) => s.id === switchId) ?? task.switches[0]);
 	/** @param {Attempt} a */
 	const passes = (a) => !!a.check && a.check.revision === a.revision && a.check.result.passed;
-	const available = $derived(vlan2Tasks.findIndex((t) => !passes(work[t.id])));
+	const available = $derived($teacherPreview ? -1 : vlan2Tasks.findIndex((t) => !passes(work[t.id])));
 	const passed = $derived(passes(attempt));
 	const stale = $derived.by(
 		() =>
@@ -93,10 +105,10 @@
 		saving = false;
 		loadError = '';
 		saveMessage = '';
-		if (!$lab.user || $learningContext.mode !== 'normal') return;
+		if (!$lab.user || ($learningContext.mode !== 'normal' && !$teacherPreview)) return;
 		loading = true;
 		try {
-			const saved = await loadNetworkLab('vlan-lab-2');
+			const saved = await loadNetworkLab('vlan-lab-2', $teacherPreview);
 			if (request !== sequence) return;
 			unlocked = saved.unlocked;
 			for (const item of saved.tasks) {
@@ -116,7 +128,9 @@
 			if (request === sequence) loading = false;
 		}
 	}
+	$effect(() => { if ($reducedMotion) navigation.cancel(); });
 	function resetView() {
+		showCheck = false; checkError = false; checkViewSequence++; navigation.cancel();
 		sound.stop();
 		selected = 'pc1';
 		switchId = 's1';
@@ -144,6 +158,7 @@
 		document.getElementById('task-title')?.focus();
 	}
 	function changed() {
+		showCheck = false; checkError = false; checkViewSequence++;
 		sound.stop();
 		attempt.revision++;
 		playing = false;
@@ -152,20 +167,11 @@
 	}
 	/** @param {string} id */
 	async function selectDevice(id) {
+		showCheck = false; checkViewSequence++;
 		selected = id;
 		if (task.switches.some((s) => s.id === id)) switchId = id;
-		await tick();
-		const target = document.getElementById(
-			task.pcs.some((p) => p.id === id)
-				? 'client-title'
-				: id === 'r1'
-					? 'router-title'
-					: id === 'ap1'
-						? 'wifi-title'
-						: 'switch-title'
-		);
-		target?.scrollIntoView({ block: 'nearest' });
-		target?.focus({ preventScroll: true });
+		const region = task.pcs.some((p) => p.id === id) ? 'client' : id === 'r1' ? 'router' : id === 'ap1' ? 'wifi' : 'switches';
+		await navigation.reveal(region === 'switches' ? 'switch-title' : `${region}-title`, region);
 	}
 	function ping() {
 		run = {
@@ -244,22 +250,28 @@
 	}
 	async function check() {
 		if (saving) return;
+		playing = false;
 		const request = sequence,
+			view = ++checkViewSequence,
 			id = task.id,
 			revision = attempt.revision;
-		saving = true;
+		saving = true; checkError = false;
 		saveMessage = 'Kontrollerer på serveren …';
 		try {
-			const saved = await saveNetworkCheck('vlan-lab-2', id, JSON.parse(JSON.stringify(config)));
+			const saved = await saveNetworkCheck('vlan-lab-2', id, JSON.parse(JSON.stringify(config)), $teacherPreview);
 			if (request !== sequence) return;
 			if (work[id].revision === revision) work[id].check = { revision, result: saved.result };
-			saveMessage = saved.saved
+			saveMessage = $teacherPreview ? 'Lærerforhåndsvisning · kontrollert uten å lagre bestått.' : saved.saved
 				? 'Bestått oppsett lagret.'
-				: 'Ikke bestått ennå. Se hva som mangler.';
+				: 'Ikke bestått ennå. Åpne kontrollresultatet for å se feilene.';
+			if (view === checkViewSequence && task.id === id && work[id].revision === revision) showCheck = true;
 			if ($labPreferences.sound) void sound.play(saved.result.passed, $labPreferences.volume);
 		} catch (error) {
-			if (request === sequence)
-				saveMessage = `Ikke lagret. ${error instanceof Error ? error.message : 'Prøv igjen.'}`;
+			if (request === sequence) {
+				saveMessage = `Kontrollen kunne ikke fullføres. ${error instanceof Error ? error.message : 'Prøv igjen.'}`;
+				checkError = true;
+				if (view === checkViewSequence && task.id === id) showCheck = true;
+			}
 		} finally {
 			if (request === sequence) saving = false;
 		}
@@ -312,7 +324,7 @@
 				href="/nettverk/vlan/">Til VLAN-lab 1</a
 			>
 		</section>
-	{:else if $learningContext.mode !== 'normal'}<section class="gate">
+	{:else if ($learningContext.mode !== 'normal' && !$teacherPreview)}<section class="gate">
 			<h2>Åpne laben i vanlig modus</h2>
 			<p>VLAN-labene bruker beståtte oppsett på kontoen, uten XP.</p>
 			<a class="action" href="/nettverk/vlan-2/">Åpne vanlig lab</a>
@@ -359,8 +371,7 @@
 				>{/each}
 		</nav>
 		<p class="muted">
-			Bestå kontrollen før neste oppdrag. Beståtte oppsett lagres; andre endringer beholdes bare
-			mens siden er åpen. Ingen XP.
+			{#if $teacherPreview}Lærerforhåndsvisning · alle oppdrag åpne. <a href='/min-lab/?visning=innstillinger#laererinnstillinger'>Innstillinger</a>{:else}Bestå kontrollen for å åpne neste oppdrag.{/if}
 		</p>
 		<section class="mission">
 			<p class="eyebrow">OPPDRAG {index + 1} AV 5</p>
@@ -398,7 +409,7 @@
 				>Ruter</a
 			>{#if task.ap}<a href="#wifi">Wi-Fi</a>{/if}<a href="#control">Kontroll</a>
 		</nav>
-		<section id="network">
+		<section id="network" use:helpTarget={!pc ? { label: 'Velg PC', hint: 'Trykk på en PC i kartet for å åpne IP-adresse og gateway.', order: 1 } : null}>
 			<div class="heading">
 				<h2>Nettverket ditt</h2>
 				<span class="muted"
@@ -419,6 +430,7 @@
 					/>
 					<form
 						class="ping"
+						use:helpTarget={{ label: 'Send ping', hint: 'Velg Fra og Til, og trykk Ping for å prøve forbindelsen.', order: 5 }}
 						onsubmit={(event) => {
 							event.preventDefault();
 							ping();
@@ -499,7 +511,7 @@
 					</details>
 				</div>
 				<aside>
-					<section class="client">
+					<section class="client" id="client" use:helpTarget={pc ? { label: 'Endre IP og gateway', hint: `Her endrer du ${pc.name}. Velg en annen PC i kartet for å konfigurere den.`, order: 1 } : null}>
 						<h3 id="client-title" tabindex="-1">{pc?.name ?? 'Velg en klient i kartet'}</h3>
 						{#if pc}<fieldset disabled={saving}>
 								<p class="muted">
@@ -520,17 +532,18 @@
 												>{/each}</select
 										></label
 									>{/if}<label
-									>IP-adresse<input
+									>IP-adresse<span class="ip-with-mask"><input aria-label="IP-adresse"
 										maxlength="15"
 										inputmode="decimal"
 										autocomplete="off"
 										spellcheck="false"
+										aria-describedby="client-mask"
 										value={config.ips[pc.id]}
 										oninput={(event) => {
 											if (pc) config.ips[pc.id] = event.currentTarget.value;
 											changed();
 										}}
-									/></label
+									/><span id="client-mask" class="mask" title="Fast nettmaske: 255.255.255.0"><span aria-hidden="true">/24</span><span class="sr-only">Fast nettmaske 255.255.255.0, prefiks 24</span></span></span></label
 								><label
 									>Default gateway<input
 										maxlength="15"
@@ -544,10 +557,9 @@
 										}}
 									/></label
 								>
-								<p class="muted">Maske 255.255.255.0 (/24)</p>
 							</fieldset>{/if}
 					</section>
-					<section id="control">
+					<section id="control" use:helpTarget={{ label: 'Kontroller oppdraget', hint: 'Trykk «Kontroller oppdraget» for å teste hele oppsettet og se hva som eventuelt må rettes.', order: 6 }}>
 						<div class="heading">
 							<h3>Kontroll</h3>
 							<span
@@ -565,14 +577,15 @@
 							>{saving ? 'Kontrollerer …' : 'Kontroller oppdraget'}</button
 						>
 						<p class="save-status" role="status">{saveMessage}</p>
-						<a href="#results">{passed ? 'Se resultat og gå videre ↓' : 'Se hva som mangler ↓'}</a>
+						{#if attempt.check || checkError}<button type="button" onclick={() => showCheck = true}>Se kontrollresultat</button>{/if}
+						<a href="#results">Hint og refleksjon ↓</a>
 					</section>
 				</aside>
 			</div>
 		</section>
-		<section id="switches">
+		<section id="switches" use:helpTarget={{ label: task.editSwitches ? 'Endre switch og VLAN' : 'Undersøk switch og VLAN', hint: task.editSwitches ? 'Velg switch. Trykk på en portrute for å bytte mellom U, E og T.' : 'Velg switch og les portrutene. Oppsettet er låst i dette oppdraget.', order: 2 }}>
 			<div class="heading">
-				<h2 id="switch-title" tabindex="-1">Switcher og VLAN</h2>
+				<h2 id="switch-title" tabindex="-1">{selectedSwitch.name} · Switcher og VLAN</h2>
 				<a href="#network">Til kartet ↑</a>
 			</div>
 			<div class="actions" role="group" aria-label="Velg switch">
@@ -581,6 +594,8 @@
 						onclick={() => {
 							switchId = s.id;
 							selected = s.id;
+							checkViewSequence++;
+							void navigation.reveal('switch-title', 'switches');
 						}}>{s.name}</button
 					>{/each}
 			</div>
@@ -594,9 +609,10 @@
 						changed();
 					}}
 				/>{/key}
+			{@render configControl()}
 		</section>
 		<div class="infrastructure">
-			<section id="router">
+			<section id="router" use:helpTarget={{ label: task.editRouter ? 'Konfigurer ruteren' : 'Undersøk ruteren', hint: task.editRouter ? 'Her finner du ruterens VLAN-interfacer og IP-adresser.' : 'Her ser du ruterens VLAN-interfacer. De er ferdig oppsatt i dette oppdraget.', order: 3 }}>
 				<div class="heading">
 					<h2 id="router-title" tabindex="-1">R1 · Ruter</h2>
 					<a href="#network">Til kartet ↑</a>
@@ -685,8 +701,9 @@
 				{#if !task.editPolicy}<p class="muted">
 						Ferdig satt til tillat. Du styrer disse reglene fra oppdrag 4.
 					</p>{/if}
+				{@render configControl()}
 			</section>
-			{#if task.ap}<section id="wifi">
+			{#if task.ap}<section id="wifi" use:helpTarget={{ label: 'Finn Wi-Fi-oppsettet', hint: 'Her finner du AP1 og koblingen mellom SSID og VLAN.', order: 4 }}>
 					<div class="heading">
 						<h2 id="wifi-title" tabindex="-1">AP1 · Wi-Fi</h2>
 						<a href="#network">Til kartet ↑</a>
@@ -725,33 +742,25 @@
 							på switchporten. Velg deretter SSID på laptoppen i kartet.
 						</p>
 					</details>
+					{@render configControl()}
 				</section>{/if}
 		</div>
 		<section id="results">
 			<div class="heading">
-				<h2>Resultat og neste oppdrag</h2>
+				<h2>Hint og neste oppdrag</h2>
 				<a href="#control">Til kontroll ↑</a>
 			</div>
 			{#if checkStale}<p role="status">
 					Oppsettet er endret. Kontroller på nytt før du går videre.
 				</p>{/if}
-			{#if attempt.check}<ul class="results">
-					{#each attempt.check.result.rows as row}<li class:bad={!row.ok && !checkStale}>
-							<span aria-hidden="true">{checkStale ? '—' : row.ok ? '✓' : '×'}</span><span
-								>{row.label}</span
-							>{#if !row.ok}<button onclick={() => selectDevice(row.deviceId)}>Undersøk</button
-								>{/if}
-						</li>{/each}
-				</ul>{:else}<p>
-					Kontrollen tester adresser, porter, Wi-Fi, ruting, returveier og tilgangsregler.
-				</p>{/if}
+			{#if attempt.check || checkError}<button type="button" onclick={() => showCheck = true}>Se kontrollresultat</button>{/if}
 			<div class="actions">
 				{#if index < vlan2Tasks.length - 1}<button
 						class="primary"
-						disabled={!passed || saving}
+						disabled={(!passed && !$teacherPreview) || saving}
 						onclick={() => selectTask(vlan2Tasks[index + 1].id)}>Neste oppdrag →</button
 					>{:else if passed}<p class="good">
-						<strong>✓ Alle fem oppdrag er bestått og lagret.</strong>
+						<strong>{$teacherPreview ? '✓ Dette oppdraget består forhåndsvisningen.' : '✓ Alle fem oppdrag er bestått og lagret.'}</strong>
 					</p>{/if}<button disabled={hints === task.hints.length} onclick={() => hints++}
 					>Vis {hints ? 'neste ' : ''}hint</button
 				>
@@ -766,7 +775,8 @@
 				</p>
 			</details>
 			<details>
-				<summary>Start dette oppdraget på nytt</summary>
+				<summary>Lagring og nytt forsøk</summary>
+				<p>Beståtte oppsett lagres på kontoen. Omlasting henter sist beståtte versjon; andre endringer beholdes bare mens siden er åpen. Ingen XP.</p>
 				<p>
 					Dette erstatter det åpne oppsettet med startverdiene. Sist beståtte oppsett på kontoen
 					beholdes og hentes ved omlasting.
@@ -783,7 +793,31 @@
 	{/if}
 </main>
 
+{#snippet configControl()}
+	<div class="config-control">
+		<span class:good={passed} class:bad={!!attempt.check && !checkStale && !passed}>
+			{checkStale ? 'Endret · kontroller på nytt' : attempt.check ? `${passed ? '✓' : '×'} ${checkCount}/${attempt.check.result.rows.length}` : 'Kontroll'}
+		</span>
+		<button type="button" class="primary" disabled={saving} onclick={check}>{saving ? 'Kontrollerer …' : 'Kontroller oppdraget'}</button>
+	</div>
+{/snippet}
+
+<NetworkCheckDialog bind:open={showCheck} title={`Oppdrag ${index + 1} · ${task.title}`}
+	rows={checkError ? [] : (attempt.check?.result.rows ?? []).map((row) => ({ ...row, targets: [{ deviceId: row.deviceId, label: task.devices.find((d) => d.id === row.deviceId)?.name ?? row.deviceId }] }))}
+	stale={checkStale} status={saveMessage} nextDisabled={saving}
+	nextLabel={index < vlan2Tasks.length - 1 ? 'Neste oppdrag →' : ''}
+	onnext={() => { if (index < vlan2Tasks.length - 1) void selectTask(vlan2Tasks[index + 1].id); }}
+	oninspect={(destination) => { void selectDevice(destination.deviceId); }} />
+
 <style>
+	.ip-with-mask { display: flex; align-items: stretch; }
+	.ip-with-mask input { flex: 1; border-radius: 8px 0 0 8px; }
+	.mask { display: inline-flex; align-items: center; padding: 0 0.55rem; border: 1px solid var(--color-border-strong); border-left: 0; border-radius: 0 8px 8px 0; background: var(--color-surface-soft); font: 0.9rem ui-monospace, monospace; }
+	.sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; border: 0; }
+	.config-control { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 0.7rem; margin-top: 1rem; padding-top: 1rem; border-top: 1px solid var(--color-border); font-size: var(--font-small); }
+	#control > a { display: inline-flex; align-items: center; min-height: 44px; }
+	[tabindex='-1'] { scroll-margin-block: 6rem; }
+
 	main {
 		max-width: 1440px;
 		margin: 0 auto;
@@ -1061,20 +1095,6 @@
 		min-height: 44px;
 		box-sizing: border-box;
 	}
-	.results {
-		padding: 0;
-		list-style: none;
-	}
-	.results li {
-		display: flex;
-		gap: 0.7rem;
-		align-items: center;
-		border-bottom: 1px solid var(--color-border);
-		padding: 0.6rem 0;
-	}
-	.results li > span:nth-child(2) {
-		flex: 1;
-	}
 	.hint {
 		border-left: 3px solid var(--color-accent);
 		padding: 0.6rem 1rem;
@@ -1123,9 +1143,6 @@
 		}
 		.interface button {
 			justify-self: start;
-		}
-		.results li {
-			flex-wrap: wrap;
 		}
 		.tasks button {
 			padding: 0.6rem;

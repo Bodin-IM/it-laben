@@ -55,6 +55,20 @@ Ugyldig lokal status stopper KI-spørringen med en synlig melding. Sidehjelp vir
 
 ## Nye moduler, øvinger og leksjoner
 
+### «Vis meg hvor» – lokal hjelp til å finne fram
+
+Første utkast på dev dekker VLAN-lab 1 og 2 og øving 5–10 i `ExerciseLab`. Eleven åpner labpartneren, velger **Vis meg hvor** og deretter en handling, for eksempel **Send ping**. Panelet lukkes, siden ruller til kontrollen og flytter tastaturfokus dit. En tydelig ramme og én kort forklaring viser hvor eleven kan fortsette. Forklaringen kan lukkes med kryss eller Escape, og forsvinner når eleven bruker siden videre. Redusert bevegelse gir umiddelbar rulling. Tilbakemeldingsinvitasjoner og feedback-knappen viker mens veiviseren vises.
+
+Dette er navigasjonshjelp uten modellkall, automatisk registrering av «står fast» eller innsamling av elevhandlinger. Oppgavenes valg, svar, vurdering, progresjon og XP endres ikke. Det lokale designvalget følger grunnlagets prinsipper om hjelp ved behov, korte forklaringer ved handlingen og at eleven beholder kontrollen. Nytte og forståelighet må prøves med elever; funksjonen dokumenterer ikke læring.
+
+`interfaceHelp.js` oppretter et separat register per layout. Siden registrerer konkrete, monterte elementer med Svelte-handlingen `helpTarget` og et fast navn, en forklaring og en sorteringsrekkefølge. Registeret og elementreferansene deles aldri med `PartnerContext`, serveren eller KI-modellen. Betinget innhold, som Wi-Fi og kjøringssteg, registreres bare når det er tilgjengelig. Ferdig oppsatte switcher omtales som noe eleven kan undersøke. Markeringer ryddes ved oppdrags-, side- og kontobytte.
+
+Nye veivisere legges på det aktuelle elementet via `getInterfaceHelp().target`; unngå globale selektorer, fritekst som bestemmer mål, og handlinger som kjører tester eller endrer oppsett på elevens vegne. Ved nye interne oppdrag skal aktiv markering fjernes når oppdraget byttes.
+
+**Status for dette utkastet:** Kildekode og diff er gjennomgått. Samlet testing gjenstår før main, inkludert tastatur, fokus etter lukking av labpartnerens dialog, smal skjerm/zoom, begge temaer, redusert bevegelse, låst VLAN-lab 2, betinget Wi-Fi, rydding ved oppdragsbytte og samspill med tilbakemeldinger. Tidligere testresultater nedenfor gjelder ikke dette nye utkastet.
+
+### Utvidelser av KI-konteksten
+
 **Ny modul:** Registrer den i `moduler.js` med gyldige innholds-ID-er. Mål, forkunnskaper og rekkefølge følger automatisk med. Bruk `moduleLink`/`ModuleContext` slik at tilhørigheten bevares mellom sider.
 
 **Nytt øvingsark i `ExerciseLab`:** Registrer leksjonen i `ovingene.js` og dens modell i `ovingModel.js`, samt den vanlige innholdsruten. Felleskomponenten publiserer status automatisk. Menyfelter får tillatte verdier fra leksjonsmetadataene. Et nytt fritekstfelt må få en eksplisitt klassifiseringsregel i `partnerContext.js` og en tilsvarende eksempelverdi i serverens kontekstbygger. Ikke fall tilbake til å sende teksten. `validatePartnerLessons()` stopper manglende delingsregler tidlig; kontrakttesten går gjennom alle leksjonenes valg og synlige steg.
@@ -92,3 +106,16 @@ Den gjennomførte kontrollen omfatter 169 beståtte tester (tre nye samlede grup
 Panelet ble kontrollert ved 1920, 1440, 390 og 320 CSS-piksler, med begge temaer fordelt på visningene, tastatur/Escape og 200 % tekst med økt tekstavstand. Axe fant ingen relevante WCAG A/AA-avvik i det kontrollerte panelet. Små rettinger lar øvingsarkets lange ord og labpartnerens knapper flyte ved tekstforstørring. Dette er en teknisk kontroll, ikke dokumentasjon på læringseffekt eller en full tilgjengelighetsrevisjon av nettstedet.
 
 Backend-modulen samler de tidligere tre utviklingsmodulene. Gamle modulparametre kan fortsatt leses og peker til Backend. Tutorialens `kind: tutorial` bruker en egen streng kontrakt med kjent omvisningssteg (`all`, `finn`, `les`, `prov`, `hjelp`, `videre`), eksempelvalg og valgene i siste kjøring. Manglende steg fra eldre klienter tolkes som `all`. Serveren henter stegets innhold fra `studentGuide.js` og rekonstruerer det viste resultatet med `tutorialResult`; et utestet valg gir ikke et påstått testresultat.
+
+## Backend-respons og prosjektstøtte – dev, 31. oktober 2026
+
+Øving 5–10 bruker `exerciseFeedback` til oppsummering av det viste, fullførte forsøket. `pageWork` gjenbruker denne når valgt steg er det siste i den rekonstruerte kjøringen. Responsen følger derfor med ved siste steg, men ikke før kjøring eller ved et tidligere steg. `feedbackSource` forklarer at dette gjelder godkjente eksempeldata: tall og tekst er ikke elevens faktiske input, og responsen gjelder ikke elevens eksterne kode eller forståelse. Ingen nye klientfelt eller kontraktversjoner er innført.
+
+`lesson.transfer.guide` gjenbrukes av ProjectTask og det eksisterende sidegrunnlaget. Det inneholder arbeidssted, første endring, valgfri hjelp og tester for eget prosjekt. De tidligere kontrollresultatene ovenfor er historikk. Denne leveransen har avgrensede kontroller av siste steg, fravær av rå fritekst, størrelsesgrense og metadata i `tests/exerciseFeedback.test.js` og `tests/backendCourse.test.js`. Samlet Svelte-, API- og nettleserkontroll gjenstår før main. Svarene fra skolens faktiske modell er ikke evaluert i denne leveransen.
+
+
+## Faglig kvalitetsprøve – punkt 4, dev 31. oktober 2026
+
+`server/lab-partner/evaluation-cases.js` definerer 14 syntetiske situasjoner. `npm run partner:eval` bygger dem med `buildPartnerMessages` og bruker samme modellklient som elev-API-et. Vurderingskriterier blir i rapporten og sendes ikke til modellen. `--dry-run` bygger bare konteksten. Se [kjøring, kriterier og status](labpartner-kvalitetsprove.md).
+
+Sideinstruksjonen er flyttet til `instructions.js` og presisert for Backend med kort, tilpasset støtte, begrensning til vist steg, håndtering av utestet/gammel kjøring og hjelp i egen chat fra `transfer.guide`. Ingen nye klientfelt eller rå inndata er lagt til. Fagsjekkenes nye oppfølgingskoblinger er servereid vurderingsrespons og inngår ikke i modellkonteksten. Den nye kontrollen er åtte fokuserte tester og 14 bygde eksempelkontekster; tidligere test- og nettleserresultater i dokumentet er historikk. Reelle svar fra skolens modell og samlet kontroll før main gjenstår.

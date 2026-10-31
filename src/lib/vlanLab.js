@@ -1,5 +1,8 @@
+import { portFeedback, untaggedVlan } from './networkCheckFeedback.js';
+
 // A deliberately bounded Layer 2 teaching model, not a switch operating system.
 /** @typedef {'excluded'|'untagged'|'tagged'} Membership */
+// pvid is retained only for stored-version compatibility; forwarding derives ingress from U.
 /** @typedef {{pvid:number,members:Record<string,Membership>}} PortConfig */
 /** @typedef {{vlans:number[],ports:Record<string,PortConfig>}} SwitchConfig */
 /** @typedef {{ips:Record<string,string>,switches:Record<string,SwitchConfig>}} VlanConfig */
@@ -16,7 +19,7 @@ export const vlanActivity = {
 	beskrivelse: 'Gi PC-er IP-adresser, skill nettverk med VLAN og bygg trunk mellom tre switcher.',
 	href: '/nettverk/vlan/', fag: 'drift', audience: 'student', format: 'aktivitet',
 	type: 'Interaktiv nettverkslab',
-	emner: ['IP-adresser', 'VLAN', 'PVID', 'Trunk'],
+	emner: ['IP-adresser', 'VLAN', 'Untagged', 'Trunk'],
 	sokeord: ['switch', 'svitsj', 'tagged', 'untagged', 'native', 'default', 'nettverk', 'ping'],
 	symbol: '↔'
 };
@@ -44,14 +47,14 @@ const definitions = [
 		editableSwitches: false, preconfigured: true,
 		goal: 'Finn hvilket VLAN hver PC er koblet til, og gi den en adresse fra riktig IP-nett. VLAN 1 bruker 10.24.8.0/24, og VLAN 2 bruker 172.18.6.0/24. PC-er i samme VLAN skal nå hverandre; nettverkene skal være adskilt.',
 		ready: 'Switchen er ferdig konfigurert og låst. Fire PC-er mangler IP-adresser. PC-navn og plassering forteller ikke hvilket VLAN de tilhører.',
-		steps: ['Følg kabelen fra hver PC til eth-porten på S1. Undersøk U og PVID på denne porten i switchtabellen. Bruk VLAN-planen til å velge IP-nett og sett en unik vertsadresse.', 'Forutsi hvilke PC-er som kan nå hverandre. Prøv ping innenfor begge VLAN og mellom dem, og kontroller deretter hele oppdraget.'],
+		steps: ['Følg kabelen fra hver PC til eth-porten på S1. Finn VLAN-raden med U på denne porten i switchtabellen. Bruk VLAN-planen til å velge IP-nett og sett en unik vertsadresse.', 'Forutsi hvilke PC-er som kan nå hverandre. Prøv ping innenfor begge VLAN og mellom dem, og kontroller deretter hele oppdraget.'],
 		theory: [
 			'Et VLAN er et eget logisk lokalnett i switchen. Portens oppsett bestemmer hvilket VLAN en PC uten tagging tilhører.',
-			'Finn portkolonnen i tabellen. U betyr at VLAN-et sendes uten tag til PC-en. PVID bestemmer VLAN for umerket trafikk fra PC-en. Disse er ferdig satt til samme VLAN her.',
+			'Finn portkolonnen i tabellen. U betyr at VLAN-et sendes uten tag til PC-en. I denne laben bestemmer U også VLAN for umerket trafikk fra PC-en.',
 			'VLAN-ID og IP-nett er ulike ting. VLAN 2 betyr ikke at IP-adressen må inneholde tallet 2. Bruk den avtalte VLAN-planen.',
 			'Ingen ruter er med i laben. Hvert par skal kunne kommunisere innenfor sitt nett; trafikk mellom de to IP-nettene trenger ruting.'
 		],
-		hints: ['Velg en PC og bruk portsnarveien. Følg den markerte kolonnen og finn VLAN-raden med U. Sammenlign med PVID under tabellen.', 'Har porten U og PVID i VLAN 1, velger du en unik adresse i 10.24.8.0/24. Har den VLAN 2, bruker du 172.18.6.0/24.'],
+		hints: ['Velg en PC og bruk portsnarveien. Følg den markerte kolonnen og finn VLAN-raden med U. Bruk nettverksplanen for denne VLAN-raden.', 'Har porten U i VLAN 1, velger du en unik adresse i 10.24.8.0/24. Har den VLAN 2, bruker du 172.18.6.0/24.'],
 		reflect: 'Vis hvilken port og hvilke innstillinger du undersøkte for én PC. Hvorfor ville en IP-adresse fra det andre nettet ikke flytte PC-en til et annet VLAN?'
 	},
 	{
@@ -60,14 +63,14 @@ const definitions = [
 		editableSwitches: true, preconfigured: false,
 		goal: 'Del S1 i to lokalnett: Ansatt i VLAN 10 og Gjest i VLAN 20. PC-ene i samme nett skal nå hverandre, mens Ansatt og Gjest skal være adskilt på VLAN-nivå.',
 		ready: 'Alle IP-adressene er riktige, men switchportene ligger fortsatt i standard VLAN 1. Ulike IP-nett alene lager ikke VLAN-skillet.',
-		steps: ['Opprett VLAN 10 og 20 på S1. Velg hver PC-port og sett Untagged og PVID til PC-ens planlagte VLAN. Andre VLAN på PC-porten skal være Exclude.', 'Prøv ping mellom de to Ansatt-PC-ene og mellom de to Gjest-PC-ene. Begge par skal få svar. Oppdragskontrollen skal også bekrefte VLAN-skillet.'],
+		steps: ['Opprett VLAN 10 og 20 på S1. Velg hver PC-port og sett U på PC-ens planlagte VLAN. Andre VLAN på PC-porten skal være Exclude.', 'Prøv ping mellom de to Ansatt-PC-ene og mellom de to Gjest-PC-ene. Begge par skal få svar. Oppdragskontrollen skal også bekrefte VLAN-skillet.'],
 		theory: [
 			'PC-ene i denne laben sender og mottar rammer uten VLAN-tag.',
-			'PVID er portens VLAN for innkommende rammer uten tag. Untagged betyr at switchen sender dette VLAN-et uten tag på porten. Begge valgene må passe PC-ens nett.',
-			'Default VLAN er VLAN 1 i startoppsettet. Det er ikke det samme som en default gateway. Exclude betyr at porten ikke er medlem av VLAN-et. Å velge et annet untagged VLAN her setter det tidligere untagged-medlemskapet til Exclude, men endrer ikke PVID automatisk.'
+			'Untagged betyr at switchen sender dette VLAN-et uten tag på porten. I denne forenklede laben plasserer samme U-valg også umerket trafikk fra PC-en i dette VLAN-et.',
+			'Default VLAN er VLAN 1 i startoppsettet. Det er ikke det samme som en default gateway. Exclude betyr at porten ikke er medlem av VLAN-et. Å velge et annet untagged VLAN her setter det tidligere untagged-medlemskapet til Exclude. U styrer begge retninger i denne laben.'
 		],
-		hints: ['Velg S1 og opprett VLAN-ene. Finn PC-ens portnummer under tabellen, og følg samme portkolonne i VLAN-radene. Trykk på en rute for å bytte mellom U, E og T.', 'På porten til Ansatt-PC 1: sett U (Untagged) i raden for VLAN 10 og PVID til 10. Andre VLAN skal være E (Exclude) på denne PC-porten.'],
-		reflect: 'Hva forteller PVID om trafikk inn, og hva forteller untagged om trafikk ut?'
+		hints: ['Velg S1 og opprett VLAN-ene. Finn PC-ens portnummer øverst i tabellen, og følg samme portkolonne i VLAN-radene. Trykk på en rute for å bytte mellom U, E og T.', 'På porten til Ansatt-PC 1: sett U (Untagged) i raden for VLAN 10. Andre VLAN skal være E (Exclude) på denne PC-porten.'],
+		reflect: 'Hvorfor bruker vi U mot PC-er og T når flere VLAN skal dele en kabel?'
 	},
 	{
 		id: 'trunk', title: 'Frakt to VLAN mellom switcher', switchCount: 2, groups: [10, 20], networkNames: ['Ansatt', 'Gjest'],
@@ -75,13 +78,13 @@ const definitions = [
 		editableSwitches: true, preconfigured: false,
 		goal: 'Utvid Ansatt (VLAN 10) og Gjest (VLAN 20) til to switcher. Ansatt-PC-ene skal nå hverandre på tvers av S1 og S2, og det samme skal Gjest-PC-ene. Nettverkene skal fortsatt være adskilt.',
 		ready: 'IP-adressene er klare: Ansatt bruker 10.42.7.0/24 og Gjest bruker 172.20.55.0/24. Begge switchene har bare VLAN 1. Du må opprette arbeids-VLAN-ene og konfigurere både PC-porter og trunk.',
-		steps: ['Opprett VLAN 10 og 20 på både S1 og S2. Sett PC-portenes Untagged og PVID etter nettverksplanen, med andre VLAN Exclude på PC-portene.', 'Finn eth-portene på kabelen mellom switchene. Frakt VLAN 10 og 20 Tagged i begge ender, og behold samsvar for native VLAN. Test begge nett på tvers av switchene og kontroller oppdraget.'],
+		steps: ['Opprett VLAN 10 og 20 på både S1 og S2. Sett PC-portenes U etter nettverksplanen, med andre VLAN Exclude på PC-portene.', 'Finn eth-portene på kabelen mellom switchene. Frakt VLAN 10 og 20 Tagged i begge ender, og behold samsvar for native VLAN. Test begge nett på tvers av switchene og kontroller oppdraget.'],
 		theory: [
 			'En trunk er en forbindelse som kan frakte flere VLAN. En 802.1Q-tag forteller mottakerswitchen hvilket VLAN rammen tilhører.',
 			'På uplinken skal både VLAN 10 og 20 være Tagged. Et VLAN må finnes og være tillatt på begge switchene. PC-portene skal fortsatt være Untagged.',
-			'En trunk kan også ha et untagged/native VLAN. Her starter begge uplinkene med VLAN 1 untagged og PVID 1. Hvis du endrer native VLAN, må begge ender være enige, ellers kan umerket trafikk havne i feil VLAN.'
+			'En trunk kan også ha et untagged/native VLAN. Her starter begge uplinkene med VLAN 1 untagged. Hvis du endrer native VLAN, må begge ender være enige, ellers kan umerket trafikk havne i feil VLAN.'
 		],
-		hints: ['Et VLAN må opprettes på begge switchene før det kan brukes. Finn PC-portene og eth2-forbindelsen mellom switchene i kartet.', 'Sett VLAN 10 og 20 til Tagged på S1 eth2 og S2 eth2. PC-portene trenger U og riktig PVID. Behold det matchende native VLAN 1 på trunken.'],
+		hints: ['Et VLAN må opprettes på begge switchene før det kan brukes. Finn PC-portene og eth2-forbindelsen mellom switchene i kartet.', 'Sett VLAN 10 og 20 til Tagged på S1 eth2 og S2 eth2. PC-portene trenger U på riktig VLAN-rad. Behold det matchende native VLAN 1 på trunken.'],
 		reflect: 'Hvorfor er det ikke nok å konfigurere trunk bare på S1?'
 	},
 	{
@@ -90,7 +93,7 @@ const definitions = [
 		editableSwitches: true, preconfigured: false,
 		goal: 'Bygg Admin (VLAN 30) og Gjest (VLAN 40) gjennom S1–S2–S3. Alle tre Admin-PC-er skal nå hverandre, og alle tre Gjest-PC-er skal nå hverandre. Admin og Gjest skal være adskilt.',
 		ready: 'IP-adressene er klare: Admin bruker 172.16.24.0/24 og Gjest bruker 10.90.8.0/24. Alle switchporter starter i VLAN 1.',
-		steps: ['Planlegg og opprett VLAN-ene på alle tre switchene. Sett PC-portenes PVID og Untagged, og frakt begge nett Tagged over begge switchforbindelsene. Andre VLAN på PC-portene skal være Exclude.', 'Test innenfor begge nett, også fra S1 helt til S3. Bruk oppdragskontrollen for å undersøke alle forbindelsene og skillet mellom Admin og Gjest.'],
+		steps: ['Planlegg og opprett VLAN-ene på alle tre switchene. Sett PC-portenes Untagged, og frakt begge nett Tagged over begge switchforbindelsene. Andre VLAN på PC-portene skal være Exclude.', 'Test innenfor begge nett, også fra S1 helt til S3. Bruk oppdragskontrollen for å undersøke alle forbindelsene og skillet mellom Admin og Gjest.'],
 		theory: [
 			'Samme VLAN må være tilgjengelig hele veien, også på switchen i midten.',
 			'Bruk portoversikten til å skille PC-porter fra forbindelser mellom switcher. Kontroller både et par som skal nå hverandre og skillet mellom gruppene.'
@@ -256,11 +259,11 @@ export function traceVlan(task, config, sourceId, targetId) {
 	if (!source || !target || source === target) return stop('pair', 'Velg to forskjellige PC-er.', { node: sourceId }, { node: sourceId });
 	let current = config.switches[source.switchId];
 	const ingress = current.ports[source.port];
-	let vlan = ingress.pvid;
+	let vlan = untaggedVlan(ingress);
 	const firstPort = { node: source.switchId, port: source.port };
 	travel(`${source.name} sender uten VLAN-tag til ${source.switchId.toUpperCase()} ${source.port}.`, { node: source.id }, firstPort, source.id);
-	if (!allows(current, ingress, vlan)) return stop('pvid', `${source.switchId.toUpperCase()} ${source.port}: PVID ${vlan} er ikke et tillatt VLAN på porten.`, firstPort, firstPort);
-	travel(`${source.switchId.toUpperCase()} ${source.port} plasserer umerket trafikk i VLAN ${vlan} (PVID).`, firstPort, { node: source.switchId });
+	if (vlan === null || !allows(current, ingress, vlan)) return stop('ingress', `${source.switchId.toUpperCase()} ${source.port} har ikke et gyldig Untagged-VLAN for PC-en. Sett U på riktig VLAN-rad.`, firstPort, firstPort);
+	travel(`${source.switchId.toUpperCase()} ${source.port} plasserer umerket trafikk i VLAN ${vlan}, valgt med U.`, firstPort, { node: source.switchId });
 	let index = task.switches.findIndex((sw) => sw.id === source.switchId);
 	const targetIndex = task.switches.findIndex((sw) => sw.id === target.switchId);
 	const direction = Math.sign(targetIndex - index);
@@ -273,14 +276,16 @@ export function traceVlan(task, config, sourceId, targetId) {
 		const outPoint = { node: here.id, port: outId }, inPoint = { node: next.id, port: inId };
 		const outgoing = current.ports[outId];
 		if (!allows(current, outgoing, vlan)) return stop('egress', `${here.name} ${outId} slipper ikke ut VLAN ${vlan}. Undersøk VLAN-medlemskapet.`, { node: here.id }, outPoint);
+		/** @type {number|null} */
 		const tag = membership(outgoing, vlan) === 'tagged' ? vlan : null;
 		travel(`${here.name} ${outId} sender ${tag === null ? `untagged fra VLAN ${vlan}` : `tagged med VLAN ${tag}`}.`, { node: here.id }, outPoint);
 		travel(`Rammen går på kabelen fra ${here.name} ${outId} til ${next.name} ${inId}.`, outPoint, inPoint, link.id);
 		current = config.switches[next.id];
 		const incoming = current.ports[inId];
-		vlan = tag ?? incoming.pvid;
+		vlan = tag ?? untaggedVlan(incoming);
+		if (vlan === null) return stop('ingress', `${next.name} ${inId} avviser umerket trafikk: porten har ikke et Untagged-VLAN.`, inPoint, inPoint, link.id);
 		if (!allows(current, incoming, vlan)) return stop('ingress', `${next.name} ${inId} avviser VLAN ${vlan}. VLAN-et må finnes og være tillatt her.`, inPoint, inPoint, link.id);
-		travel(`${next.name} tar imot i VLAN ${vlan}${tag === null ? `, bestemt av PVID ${incoming.pvid}` : ', bestemt av taggen'}.`, inPoint, { node: next.id });
+		travel(`${next.name} tar imot i VLAN ${vlan}${tag === null ? ', bestemt av U på porten' : ', bestemt av taggen'}.`, inPoint, { node: next.id });
 		index += direction;
 	}
 	const destination = current.ports[target.port];
@@ -306,7 +311,7 @@ export function pingVlan(task, config, sourceId, targetId) {
 		const vlan = traceVlan(task, config, sourceId, targetId);
 		// Show the actual VLAN barrier as a labelled diagnostic, without pretending an
 		// off-subnet ICMP packet was sent or that a switch made an IP routing decision.
-		if (['pvid', 'egress', 'ingress', 'isolated'].includes(vlan.code)) {
+		if (['egress', 'ingress', 'isolated'].includes(vlan.code)) {
 			return { ok: false, code: 'routing', vlanDiagnostic: true, message: `${vlan.message} ${routing}`,
 				steps: vlan.steps.map((step, i) => i === 0 ? { ...step, text: `VLAN-visning: følger forbindelsen fra ${name(sourceId)} inn til switchen.` } : step) };
 		}
@@ -331,7 +336,7 @@ export function pingVlan(task, config, sourceId, targetId) {
 }
 
 /** @typedef {{deviceId:string,portId?:string}} VlanCheckTarget */
-/** @typedef {{label:string,ok:boolean,targets:VlanCheckTarget[]}} VlanCheckRow */
+/** @typedef {{label:string,ok:boolean,error:string,targets:VlanCheckTarget[]}} VlanCheckRow */
 /** @param {VlanTask} task @param {VlanConfig} config */
 export function checkVlanTask(task, config) {
 	/** @type {VlanCheckRow[]} */
@@ -339,25 +344,40 @@ export function checkVlanTask(task, config) {
 	for (const pc of task.pcs) {
 		const address = hostAddress(config.ips[pc.id]);
 		const port = config.switches[pc.switchId].ports[pc.port];
-		rows.push({ label: task.discoverPorts ? `${pc.name}: adressen passer VLAN-et på ${pc.switchId.toUpperCase()} ${pc.port}` : `${pc.name}: vertsadresse i ${pc.network}.0/24`, ok: address?.network === pc.network, targets: [{ deviceId: pc.id }] });
-		rows.push({ label: task.discoverPorts ? `${pc.name}: switchporten følger det ferdige oppsettet` : `${pc.name}: VLAN ${pc.vlan} Untagged, PVID ${pc.vlan} og andre VLAN Exclude`, ok:
-			port.pvid === pc.vlan && membership(port, pc.vlan) === 'untagged' &&
+		const location = `${pc.switchId.toUpperCase()} ${pc.port}`;
+		rows.push({
+			label: task.discoverPorts ? `${pc.name}: adressen passer VLAN-et på ${location}` : `${pc.name}: vertsadresse i ${pc.network}.0/24`,
+			ok: address?.network === pc.network,
+			error: !address
+				? `${pc.name}: ${config.ips[pc.id] ? 'IP-adressen er ikke en gyldig vertsadresse.' : 'IP-adressen er tom.'} Skriv fire tall fra 0–255; siste tall må være 1–254.`
+				: task.discoverPorts
+					? `${pc.name}: ${address.address}/24 passer ikke VLAN-et på ${location}. Finn portens U-rad, og bruk nettverksplanen til å velge IP-nett.`
+					: `${pc.name} har ${address.address}/24 og ligger i feil IP-nett. Velg en vertsadresse i ${pc.network}.0/24.`,
+			targets: [{ deviceId: pc.id }]
+		});
+		rows.push({ label: task.discoverPorts ? `${pc.name}: switchporten følger det ferdige oppsettet` : `${pc.name}: VLAN ${pc.vlan} Untagged og andre VLAN Exclude`, ok:
+			membership(port, pc.vlan) === 'untagged' &&
 			config.switches[pc.switchId].vlans.includes(pc.vlan) &&
 			Object.entries(port.members).every(([id, mode]) => mode === 'excluded' || Number(id) === pc.vlan),
+			error: task.discoverPorts ? `${location} avviker fra det låste startoppsettet. Start oppdraget på nytt for å gjenopprette portene.` : portFeedback(config.switches[pc.switchId], pc.switchId.toUpperCase(), pc.port, pc.vlan, 'untagged'),
 			targets: [{ deviceId: pc.switchId, portId: pc.port }] });
 	}
 	if (task.discoverPorts) {
 		const pairs = task.pcs.flatMap((a, i) => task.pcs.slice(i + 1).map((b) => ({ a, b })));
 		rows.push({ label: 'PC-er i samme VLAN kan kommunisere, og de to VLAN-ene er adskilt',
 			ok: pairs.every(({ a, b }) => a.vlan === b.vlan ? pingVlan(task, config, a.id, b.id).ok : !traceVlan(task, config, a.id, b.id).ok && !traceVlan(task, config, b.id, a.id).ok),
+			error: 'Minst én forbindelse følger ikke VLAN-inndelingen. Undersøk hvilke porter som har U på samme VLAN-rad, sjekk IP-nettene mot nettverksplanen og prøv ping mellom PC-ene. PC-er i samme nett må ha ulike vertsadresser.',
 			targets: [{ deviceId: 's1' }] });
 	} else {
 		for (let i = 0; i < task.pcs.length; i++) {
 			for (const b of task.pcs.slice(i + 1)) {
 				const a = task.pcs[i];
-				rows.push(a.vlan === b.vlan
-					? { label: `${a.name} ↔ ${b.name}: ping får svar`, ok: pingVlan(task, config, a.id, b.id).ok, targets: [{ deviceId: a.id }, { deviceId: b.id }] }
+				const ping = a.vlan === b.vlan ? pingVlan(task, config, a.id, b.id) : null;
+				rows.push(ping
+					? { label: `${a.name} ↔ ${b.name}: ping får svar`, ok: ping.ok,
+						error: `${a.name} ↔ ${b.name}: ${ping.message}`, targets: [{ deviceId: a.id }, { deviceId: b.id }] }
 					: { label: `${a.name} / ${b.name}: adskilt på VLAN-nivå`, ok: !traceVlan(task, config, a.id, b.id).ok && !traceVlan(task, config, b.id, a.id).ok,
+						error: `${a.name} og ${b.name} er fortsatt koblet sammen på VLAN-nivå. Kontroller U på PC-portene; de skal tilhøre hvert sitt VLAN.`,
 						targets: [{ deviceId: a.switchId, portId: a.port }, { deviceId: b.switchId, portId: b.port }] });
 			}
 		}
@@ -368,16 +388,18 @@ export function checkVlanTask(task, config) {
 		for (const vlan of task.groups) rows.push({
 			label: `${link.a.toUpperCase()} ↔ ${link.b.toUpperCase()}: ${vlanLabel(task, vlan)} Tagged i begge ender`,
 			ok: a.vlans.includes(vlan) && b.vlans.includes(vlan) && membership(left, vlan) === 'tagged' && membership(right, vlan) === 'tagged',
+			error: [portFeedback(a, link.a.toUpperCase(), link.aPort, vlan, 'tagged'), portFeedback(b, link.b.toUpperCase(), link.bPort, vlan, 'tagged')].filter(Boolean).join(' '),
 			targets: [{ deviceId: link.a, portId: link.aPort }, { deviceId: link.b, portId: link.bPort }]
 		});
 		const native = (/** @type {PortConfig} */ port) => Object.entries(port.members).find(([, mode]) => mode === 'untagged')?.[0];
 		const ln = native(left), rn = native(right);
 		rows.push({ label: `${link.a.toUpperCase()} ↔ ${link.b.toUpperCase()}: samsvar for untagged/native VLAN`,
-			ok: ln === rn && (ln === undefined || (Number(ln) === left.pvid && Number(rn) === right.pvid)),
+			ok: ln === rn,
+			error: `${link.a.toUpperCase()} ${link.aPort}: U = ${ln ?? 'ingen'}. ${link.b.toUpperCase()} ${link.bPort}: U = ${rn ?? 'ingen'}. Bruk samme Untagged-VLAN i begge ender, eller fjern U i begge ender.`,
 			targets: [{ deviceId: link.a, portId: link.aPort }, { deviceId: link.b, portId: link.bPort }] });
 	}
 	return { passed: rows.every((row) => row.ok), rows };
 }
 
 /** Only explicit view state is shared with the labpartner; never IP inputs or entire configuration. */
-export const vlanContextLimit = 'Du ser valgt oppdrag, enhet, port og om en test er kjørt eller utdatert. Du ser IKKE IP-adressene, VLAN-oppsettet eller testresultatet. Ikke anta at oppsettet virker; be eleven beskrive ett relevant funn. Oppdragene må bestås i rekkefølge med «Kontroller oppdraget» i testområdet nederst. En enkelt ping åpner ikke neste oppdrag. Ingen XP eller godkjenning av forståelse.';
+export const vlanContextLimit = 'Du ser valgt oppdrag, enhet, port og om en test er kjørt eller utdatert. Du ser IKKE IP-adressene, VLAN-oppsettet eller testresultatet. Ikke anta at oppsettet virker; be eleven beskrive ett relevant funn. Oppdragene må bestås i rekkefølge med «Kontroller oppdraget» ved kartet eller konfigurasjonen. Resultatvinduet viser feilene og lenker til innstillingene. En enkelt ping åpner ikke neste oppdrag. Ingen XP eller godkjenning av forståelse.';

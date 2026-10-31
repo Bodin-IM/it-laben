@@ -14,6 +14,7 @@ import {
 import { guideSteps, tutorialResult } from '../../src/lib/studentGuide.js';
 import { lessons } from '../../src/lib/ovingene.js';
 import { buildTrace } from '../../src/lib/ovingModel.js';
+import { exerciseFeedback } from '../../src/lib/exerciseFeedback.js';
 import { moduleContext } from '../../src/lib/moduleNavigation.js';
 import { partnerPageById } from '../../src/lib/partnerPages.js';
 import { readPartnerState, invalidContext } from '../../src/lib/partnerContext.js';
@@ -144,7 +145,9 @@ export function pageTask(page, moduleId) {
 			? {
 					learningQuestion: lesson.question,
 					framework: lesson.context,
-					tasks: lesson.tasks.map(({ title, hint }) => ({ title, hint })),
+					tasks: lesson.tasks.map(({ title, instruction, observe, hint }) => ({ title, instruction, observe, hint })),
+					example: lesson.example,
+					transfer: lesson.transfer,
 					related: lesson.related
 				}
 			: {})
@@ -227,10 +230,11 @@ export function pageWork(page, raw) {
 			'Resultatet er rekonstruert fra kjente filtervalg. En bestått søkeøving er ikke en vurdering av forståelse. Gi hjelp som kan brukes i neste forsøk; ikke finn opp støtte for andre operatorer i simulatoren.';
 	} else if (page.kind === 'lesson') {
 		const lesson = lessons.find((item) => `oving-${item.number}` === page.id);
+		const trace = v.step < 0 ? [] : buildTrace(lesson.number, exampleValues(lesson, v.choices));
 		const frame =
 			v.step < 0
 				? null
-				: selected(buildTrace(lesson.number, exampleValues(lesson, v.choices)), v.step);
+				: selected(trace, v.step);
 		work.viewedStep = frame
 			? {
 					...frameInfo(frame),
@@ -238,8 +242,14 @@ export function pageWork(page, raw) {
 					selectedLine: v.line < 0 ? null : selected(frame.code, v.line)
 				}
 			: null;
-		work.task =
-			v.task < 0 ? null : { title: lesson.tasks[v.task].title, hint: lesson.tasks[v.task].hint };
+		if (frame && v.step === trace.length - 1) {
+			work.feedback = exerciseFeedback(lesson.number, trace);
+			work.feedbackSource = 'Oppsummeringen er beregnet fra rekonstruerte eksempeldata. Tall og tekst er ikke elevens faktiske input. Den gjelder simulatoren, ikke elevens eksterne prosjekt eller en vurdering av forståelse.';
+		}
+		const task = lesson.tasks[v.task];
+		work.task = task
+			? { title: task.title, instruction: task.instruction, observe: task.observe, hint: task.hint }
+			: null;
 	} else if (page.kind === 'backend') {
 		const lines = backendCode(v.kind, v.side, v.wrongKey);
 		work.code = codeText(lines);

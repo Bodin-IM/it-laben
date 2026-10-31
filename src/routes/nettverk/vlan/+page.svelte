@@ -1,12 +1,19 @@
 <script>
 	import { onMount, tick, untrack } from 'svelte';
+	import { teacherPreview } from '#lib/teacherPreview.js';
+	import { untaggedVlan } from '#lib/networkCheckFeedback.js';
 	import VlanMap from '#lib/components/VlanMap.svelte';
+	import NetworkCheckDialog from '#lib/components/NetworkCheckDialog.svelte';
+	import { createNetworkEditorNavigation } from '#lib/networkEditorNavigation.js';
 	import PartnerContext from '#lib/components/PartnerContext.svelte';
+	import { getInterfaceHelp } from '#lib/interfaceHelp.js';
 	import { lab, learningContext } from '#lib/lab.js';
 	import { loadNetworkLab, saveNetworkCheck } from '#lib/networkLabApi.js';
 	import { createVlanAudio } from '#lib/vlanAudio.js';
-	import { labPreferences, registerSoundPlayer } from '#lib/labPreferences.js';
+	import { labPreferences, reducedMotion, registerSoundPlayer } from '#lib/labPreferences.js';
 	import { vlanTasks, vlanTask, vlanLabel, vlanCheckPassed, vlanAvailableThrough, initialVlanConfig, membership, pingVlan, checkVlanTask } from '#lib/vlanLab.js';
+	const interfaceHelp = getInterfaceHelp();
+	const helpTarget = interfaceHelp.target;
 	/** @typedef {{config:import('#lib/vlanLab.js').VlanConfig,revision:number,run:{revision:number,source:string,target:string,result:import('#lib/vlanLab.js').PingResult}|null,check:{revision:number,result:ReturnType<typeof checkVlanTask>}|null}} Workspace */
 	/** @returns {Record<string,Workspace>} */
 	function freshWork() {
@@ -14,6 +21,7 @@
 	}
 	let work = $state(freshWork());
 	let taskId = $state('ip');
+	$effect(() => { taskId; interfaceHelp.clear(); });
 	let selected = $state('pc1');
 	let pcId = $state('pc1');
 	let switchId = $state('s1');
@@ -23,18 +31,15 @@
 	let frame = $state(0);
 	let playing = $state(false);
 	let travelProgress = $state(1);
-	let reducedMotion = $state(true);
+	let showCheck = $state(false);
+	const navigation = createNetworkEditorNavigation(() => $reducedMotion);
 	let showMapHelp = $state(false);
 	let showPingDetails = $state(false);
 	const controlAudio = createVlanAudio();
 	onMount(() => {
 		const unregisterSound = registerSoundPlayer(controlAudio);
-		const preference = window.matchMedia('(prefers-reduced-motion: reduce)');
-		const update = () => { reducedMotion = preference.matches; };
-		update();
-		preference.addEventListener('change', update);
 		return () => {
-			preference.removeEventListener('change', update);
+			navigation.cancel();
 			unregisterSound();
 			controlAudio.destroy();
 		};
@@ -50,7 +55,7 @@
 	let loadError = $state(false);
 	let lab2Unlocked = $state(false);
 	let loadSequence = 0;
-	const scope = $derived(`${$lab.user?.id ?? 'guest'}:${$learningContext.mode}:${$learningContext.openingId ?? ''}`);
+	const scope = $derived(`${$lab.user?.id ?? 'guest'}:${$teacherPreview}:${$learningContext.mode}:${$learningContext.openingId ?? ''}`);
 	$effect(() => {
 		scope;
 		work = freshWork();
@@ -61,10 +66,10 @@
 	async function restoreSaved() {
 		const sequence = ++loadSequence, currentScope = scope;
 		lab2Unlocked = false; saveMessage = ''; loadError = false; saving = false;
-		if (!$lab.user || $learningContext.mode !== 'normal') { loadingSaved = false; return; }
+		if (!$lab.user || ($learningContext.mode !== 'normal' && !$teacherPreview)) { loadingSaved = false; return; }
 		loadingSaved = true;
 		try {
-			const saved = await loadNetworkLab('vlan-lab');
+			const saved = await loadNetworkLab('vlan-lab', $teacherPreview);
 			if (scope !== currentScope || sequence !== loadSequence) return;
 			for (const item of saved.tasks) {
 				const current = work[item.taskId];
@@ -94,7 +99,7 @@
 	const stale = $derived(!!run && (run.revision !== attempt.revision || run.source !== source || run.target !== target));
 	const checkStale = $derived(!!attempt.check && attempt.check.revision !== attempt.revision);
 	const passed = $derived(vlanCheckPassed(attempt));
-	const availableThrough = $derived(vlanAvailableThrough(work));
+	const availableThrough = $derived($teacherPreview ? vlanTasks.length - 1 : vlanAvailableThrough(work));
 	const missingRows = $derived(attempt.check?.result.rows.filter((row) => !row.ok) ?? []);
 	const checkTotal = $derived(attempt.check?.result.rows.length ?? 0);
 	const checkPassedCount = $derived(checkTotal - missingRows.length);
@@ -105,7 +110,7 @@
 	$effect(() => {
 		const currentRun = run, currentFrame = frame;
 		if (!currentRun || stale) { playing = false; return; }
-		if (reducedMotion) { playing = false; travelProgress = 1; return; }
+		if ($reducedMotion) { playing = false; travelProgress = 1; return; }
 		if (!playing) return;
 		const lastFrame = currentRun.result.steps.length - 1;
 		const initialProgress = untrack(() => travelProgress);
@@ -124,7 +129,9 @@
 		request = requestAnimationFrame(advance);
 		return () => cancelAnimationFrame(request);
 	});
+	$effect(() => { if ($reducedMotion) navigation.cancel(); });
 	function resetSelection() {
+		showCheck = false; navigation.cancel();
 		controlAudio.stop();
 		selected = 'pc1'; pcId = 'pc1'; switchId = 's1'; portId = 'eth0'; source = 'pc1'; target = 'pc2'; frame = 0; playing = false; travelProgress = 1;
 		hints = 0; vlanInput = ''; settingMessage = ''; portMessage = ''; resetPending = false;
@@ -158,26 +165,18 @@
 		portId = device.ports[0]?.id ?? 'eth0';
 		settingMessage = ''; portMessage = ''; vlanInput = '';
 	}
-	/** Reveal only as far as needed; keep the map in view when the PC panel is already visible. @param {string} id @param {string} [regionId] */
-	async function reveal(id, regionId = id) {
-		await tick();
-		const element = document.getElementById(id);
-		document.getElementById(regionId)?.scrollIntoView({ block: regionId === 'pc-editor' ? 'nearest' : 'start', inline: 'nearest' });
-		element?.focus({ preventScroll: true });
-		// At high zoom the panel can exceed the viewport; keep its focused heading visible too.
-		element?.scrollIntoView({ block: 'nearest', inline: 'nearest' });
-	}
 	/** @param {import('#lib/vlanLab.js').VlanCheckTarget} destination */
 	async function inspect(destination) {
+		showCheck = false;
 		if (task.pcs.some((item) => item.id === destination.deviceId)) {
 			selectPc(destination.deviceId);
-			await reveal('pc-editor-title', 'pc-editor');
+			await navigation.reveal('pc-editor-title', 'pc-editor');
 		} else if (task.switches.some((item) => item.id === destination.deviceId)) {
 			selectSwitch(destination.deviceId);
 			if (destination.portId && sw?.ports.some((item) => item.id === destination.portId)) {
 				portId = destination.portId;
-				await reveal(`port-heading-${portId}`);
-			} else await reveal('editor-title');
+				await navigation.reveal(`port-heading-${portId}`, 'device-editor');
+			} else await navigation.reveal('editor-title', 'device-editor');
 		}
 	}
 	/** @param {string} id */
@@ -196,7 +195,7 @@
 	function nextMembership(mode) {
 		return membershipOrder[(membershipOrder.indexOf(mode) + 1) % membershipOrder.length];
 	}
-	function changed() { controlAudio.stop(); playing = false; attempt.revision += 1; portMessage = ''; showPingDetails = false; }
+	function changed() { showCheck = false; saveMessage = ''; controlAudio.stop(); playing = false; attempt.revision += 1; portMessage = ''; showPingDetails = false; }
 	function changePingPair() { playing = false; showPingDetails = false; }
 	/** @param {string} id @param {number} vlan */
 	function cycleMembership(id, vlan) {
@@ -209,11 +208,11 @@
 			for (const key of Object.keys(item.members)) if (item.members[key] === 'untagged') item.members[key] = 'excluded';
 		}
 		item.members[String(vlan)] = mode;
+		item.pvid = untaggedVlan(item) ?? 1;
 		changed();
 		portMessage = `${sw?.name} port ${id}, VLAN ${vlan}: ${membershipLabels[mode]}.`;
 		if (mode === 'untagged') {
 			if (previousUntagged !== undefined) portMessage += ` VLAN ${previousUntagged} ble satt til Exclude på samme port.`;
-			portMessage += ` PVID er fortsatt ${item.pvid}.`;
 		}
 	}
 	function addVlan() {
@@ -230,11 +229,11 @@
 	async function removeVlan(id) {
 		if (!task.editableSwitches || !switchConfig || id === 1) return;
 		selected = switchId;
-		if (Object.values(switchConfig.ports).some((item) => item.pvid === id || membership(item, id) !== 'excluded')) {
-			settingMessage = `VLAN ${id} er i bruk. Flytt PVID og sett portene til Exclude først.`; return;
+		if (Object.values(switchConfig.ports).some((item) => membership(item, id) !== 'excluded')) {
+			settingMessage = `VLAN ${id} er i bruk. Sett portene til Exclude først.`; return;
 		}
 		switchConfig.vlans = switchConfig.vlans.filter((vlan) => vlan !== id);
-		for (const item of Object.values(switchConfig.ports)) delete item.members[String(id)];
+		for (const item of Object.values(switchConfig.ports)) { delete item.members[String(id)]; item.pvid = untaggedVlan(item) ?? 1; }
 		changed(); settingMessage = `VLAN ${id} er fjernet.`;
 		await tick();
 		document.getElementById('new-vlan')?.focus();
@@ -243,9 +242,9 @@
 		if (source === target) return;
 		playing = false;
 		attempt.run = { revision: attempt.revision, source, target, result: pingVlan(task, config, source, target) };
-		frame = reducedMotion ? attempt.run.result.steps.length - 1 : 0;
-		travelProgress = reducedMotion ? 1 : 0;
-		playing = !reducedMotion;
+		frame = $reducedMotion ? attempt.run.result.steps.length - 1 : 0;
+		travelProgress = $reducedMotion ? 1 : 0;
+		playing = !$reducedMotion;
 	}
 	/** @param {number} delta */
 	function stepFrame(delta) {
@@ -255,28 +254,30 @@
 		travelProgress = 1;
 	}
 	function togglePlayback() {
-		if (!run || stale || reducedMotion) return;
+		if (!run || stale || $reducedMotion) return;
 		if (playing) { playing = false; return; }
 		if (playbackComplete) { frame = 0; travelProgress = 0; }
 		playing = true;
 	}
 	async function check() {
 		if (saving || loadingSaved) return;
+		playing = false;
 		const currentScope = scope, id = taskId, revision = attempt.revision, submittedAttempt = attempt;
 		const submitted = JSON.parse(JSON.stringify(config));
 		const result = checkVlanTask(task, config);
 		attempt.check = { revision: attempt.revision, result };
+		showCheck = true;
 		if ($labPreferences.sound) void controlAudio.play(result.passed, $labPreferences.volume);
-		if (!$lab.user || $learningContext.mode !== 'normal') {
+		if (!$lab.user || ($learningContext.mode !== 'normal' && !$teacherPreview)) {
 			saveMessage = 'Kontrollert lokalt. Logg inn og bruk vanlig modus for å lagre bestått og åpne lab 2.'; return;
 		}
-		saving = true; saveMessage = 'Kontrollerer og lagrer på serveren …';
+		saving = true; saveMessage = $teacherPreview ? 'Kontrollerer forhåndsvisningen …' : 'Kontrollerer og lagrer på serveren …';
 		try {
-			const saved = await saveNetworkCheck('vlan-lab', id, submitted);
+			const saved = await saveNetworkCheck('vlan-lab', id, submitted, $teacherPreview);
 			if (scope !== currentScope) return;
 			if (work[id] === submittedAttempt && work[id].revision === revision) work[id].check = { revision, result: saved.result };
 			lab2Unlocked = saved.prerequisitePassed;
-			saveMessage = saved.saved ? 'Bestått oppsett lagret på kontoen.' : 'Kontrollen fant feil. Tidligere beståtte oppsett beholdes.';
+			saveMessage = $teacherPreview ? 'Lærerforhåndsvisning · kontrollert uten å lagre bestått.' : saved.saved ? 'Bestått oppsett lagret på kontoen.' : 'Kontrollen fant feil. Tidligere beståtte oppsett beholdes.';
 		} catch (error) {
 			if (scope === currentScope) saveMessage = `Ikke lagret. ${error instanceof Error ? error.message : 'Prøv kontrollen igjen.'}`;
 		} finally { if (scope === currentScope) saving = false; }
@@ -313,11 +314,10 @@
 			</button>
 		{/each}
 	</nav>
-	<p class="progress-rule" id="progress-rule">{completed} av {vlanTasks.length} oppsett består nå. Bestå «Kontroller oppdraget» før du går videre. Endrer du et tidligere oppsett, må det kontrolleres på nytt før senere oppdrag åpnes igjen.</p>
-	<p class="muted progress-note">Beståtte oppsett lagres på kontoen i vanlig modus. Omlasting henter sist beståtte versjon; ukontrollerte endringer beholdes bare mens siden er åpen. Ingen XP.</p>
-	<p role="status">{loadingSaved ? 'Henter beståtte oppsett …' : saveMessage}</p>
-	{#if loadError}<button type="button" onclick={restoreSaved}>Hent lagrede oppsett på nytt</button>{/if}
-	{#if lab2Unlocked}<p><a href="/nettverk/vlan-2/">✓ VLAN-lab 1 bestått · Start lab 2: Ruter og Wi-Fi →</a></p>{:else}<p class="muted"><a href="/nettverk/vlan-2/">VLAN-lab 2</a> åpnes når alle seks oppdrag er bestått og lagret.</p>{/if}
+	<p class="progress-rule" id="progress-rule">{#if $teacherPreview}Lærerforhåndsvisning · alle oppdrag åpne. <a href='/min-lab/?visning=innstillinger#laererinnstillinger'>Innstillinger</a>{:else}{completed}/{vlanTasks.length} bestått · Bestå kontrollen for å åpne neste oppdrag.{/if}</p>
+	{#if loadingSaved}<p role="status">{$teacherPreview ? 'Henter forhåndsvisningen …' : 'Henter beståtte oppsett …'}</p>{/if}
+	{#if loadError}<p role="alert">{saveMessage}</p><button type="button" onclick={restoreSaved}>Hent lagrede oppsett på nytt</button>{/if}
+	{#if $teacherPreview}<p><a href="/nettverk/vlan-2/">Åpne VLAN-lab 2 →</a></p>{:else if lab2Unlocked}<p><a href="/nettverk/vlan-2/">✓ VLAN-lab 1 bestått · Start lab 2: Ruter og Wi-Fi →</a></p>{:else}<p class="muted"><a href="/nettverk/vlan-2/">VLAN-lab 2</a> åpnes når alle seks oppdrag er bestått og lagret.</p>{/if}
 	<section class="mission" aria-labelledby="task-heading">
 		<p class="eyebrow">OPPDRAG {index + 1} AV {vlanTasks.length}</p>
 		<h2 id="task-heading" tabindex="-1">{task.title}</h2>
@@ -349,7 +349,7 @@
 			<div class="network-workspace">
 				<div class="map-area">
 					<VlanMap {task} {config} {selected} onselect={selectDevice} step={activeStep} progress={travelProgress} vlanDiagnostic={!stale && !!run?.result.vlanDiagnostic} />
-					<section class="map-ping" id="map-ping" aria-label="Ping" tabindex="-1">
+					<section class="map-ping" id="map-ping" aria-label="Ping" tabindex="-1" use:helpTarget={{ label: 'Send ping', hint: 'Velg Fra og Til, og trykk Ping for å prøve forbindelsen.', order: 3 }}>
 						<div class="ping-bar">
 							<form class="ping-controls" onsubmit={(event) => { event.preventDefault(); ping(); }}>
 								<label>Fra<select bind:value={source} onchange={changePingPair}>{#each task.pcs as item}<option value={item.id}>{item.name}</option>{/each}</select></label>
@@ -360,7 +360,7 @@
 								<span class="ping-status" class:success={playbackComplete && run?.result.ok} class:failure={playbackComplete && !run?.result.ok} role="status" aria-atomic="true" title={pingStatus}>
 									<span aria-hidden="true">{!run || stale ? '—' : playbackComplete ? run.result.ok ? '✓' : '×' : playing ? '…' : 'Ⅱ'}</span><span class="sr-only">{pingStatus}</span>
 								</span>
-								<button type="button" class="playback-toggle" disabled={!run || stale || reducedMotion} onclick={togglePlayback}
+								<button type="button" class="playback-toggle" disabled={!run || stale || $reducedMotion} onclick={togglePlayback}
 									aria-label={playing ? 'Pause ping' : playbackComplete ? 'Spill ping av igjen' : 'Fortsett ping'} title={playing ? 'Pause' : playbackComplete ? 'Spill av igjen' : 'Fortsett'}><span aria-hidden="true">{playing ? 'Ⅱ' : playbackComplete ? '↻' : '▶'}</span></button>
 								<button type="button" class="disclosure" disabled={!run || stale} aria-expanded={showPingDetails && !!run && !stale} aria-controls="ping-details" onclick={() => showPingDetails = !showPingDetails}>Detaljer</button>
 								<button type="button" class="disclosure" aria-expanded={showMapHelp} aria-controls="map-help" onclick={() => showMapHelp = !showMapHelp}>Hjelp</button>
@@ -376,7 +376,7 @@
 								</div>
 								<p class="trace" aria-live={showPingDetails ? 'polite' : 'off'}>{!activeStep?.ok && travelProgress === 1 ? 'Stopp:' : '→'} {activeStep?.text}</p>
 								{#if playbackComplete}<p>{run.result.message}</p>{/if}
-								{#if reducedMotion}<p class="muted">Animasjon er av. Bruk Forrige og Neste for å undersøke pakken.</p>{/if}
+								{#if $reducedMotion}<p class="muted">Animasjon er av. Bruk Forrige og Neste for å undersøke pakken.</p>{/if}
 							{/if}
 						</div>
 						<div class="map-help" id="map-help" hidden={!showMapHelp}>
@@ -392,42 +392,43 @@
 					</section>
 				</div>
 				<div class="device-sidebar">
-					<section class="pc-editor" id="pc-editor" aria-labelledby="pc-editor-title" tabindex="-1">
+					<section class="pc-editor" id="pc-editor" aria-labelledby="pc-editor-title" tabindex="-1" use:helpTarget={pc ? { label: 'Endre IP-adresse', hint: `Her endrer du ${pc.name}. Velg en annen PC i kartet for å konfigurere den.`, order: 1 } : null}>
 						<h3 id="pc-editor-title" tabindex="-1">{pc?.name ?? 'PC-innstillinger'}</h3>
 
 						{#if pc}
 							<p class="pc-connection">Koblet til <strong>{pc.switchId.toUpperCase()} {pc.port}</strong>.</p>
 							<label for="pc-ip">IP-adresse</label>
-							<input id="pc-ip" type="text" inputmode="decimal" autocomplete="off" spellcheck="false" maxlength="15"
-								value={config.ips[pc.id]} aria-describedby="ip-help" onfocus={() => selectPc(pc.id)}
-								oninput={(event) => { config.ips[pc.id] = event.currentTarget.value; changed(); }} />
-							<p class="muted" id="ip-help">{#if task.discoverPorts}Finn IP-nettet via portens U/PVID.{:else}Mål: {pc.network}.0/24.{/if}</p>
+							<div class="ip-with-mask"><input id="pc-ip" type="text" inputmode="decimal" autocomplete="off" spellcheck="false" maxlength="15"
+								value={config.ips[pc.id]} aria-describedby="ip-help pc-mask" onfocus={() => selectPc(pc.id)}
+								oninput={(event) => { config.ips[pc.id] = event.currentTarget.value; changed(); }} /><span id="pc-mask" class="mask" title="Fast nettmaske: 255.255.255.0"><span aria-hidden="true">/24</span><span class="sr-only">Fast nettmaske 255.255.255.0, prefiks 24</span></span></div>
+							<p class="muted" id="ip-help">{#if task.discoverPorts}Finn IP-nettet via portens U-rad.{:else}Mål: {pc.network}.0/24.{/if}</p>
 							{#if !task.discoverPorts}<p class="target-vlan">Mål: {vlanLabel(task, pc.vlan)}</p>{/if}
 							<button type="button" class="secondary" onclick={() => inspect({ deviceId: pc.switchId, portId: pc.port })}>Vis {pc.switchId.toUpperCase()} {pc.port} ↓</button>
 							<details class="ip-help"><summary>IP-hjelp</summary><p>Fast maske: 255.255.255.0 (/24). Bruk en unik vertsadresse med siste tall 1–254.</p></details>
 						{/if}
 						<a class="pc-back" href="#network-panel">Tilbake til kartet ↑</a>
 					</section>
-					<section class="quick-check" id="quick-check" aria-labelledby="quick-check-title" tabindex="-1">
+					<section class="quick-check" id="quick-check" aria-labelledby="quick-check-title" tabindex="-1" use:helpTarget={{ label: 'Kontroller oppdraget', hint: 'Trykk «Kontroller oppdraget» for å teste hele oppsettet og se hva som eventuelt må rettes.', order: 4 }}>
 						<div class="quick-check-heading">
 							<h3 id="quick-check-title">Kontroll</h3>
 							<span class="check-count" class:success={passed} class:failure={!!attempt.check && !checkStale && !passed} role="status" aria-atomic="true">
 								<span aria-hidden="true">{checkStale ? 'Endret' : attempt.check ? `${passed ? '✓' : '×'} ${checkPassedCount}/${checkTotal}` : '—'}</span>
-								<span class="sr-only">{checkStale ? 'Oppsettet er endret. Kontroller på nytt.' : attempt.check ? `${checkPassedCount} av ${checkTotal} krav oppfylt. ${passed ? 'Oppdraget består.' : 'Se hva som mangler.'}` : 'Kontrollen er ikke kjørt.'}</span>
+								<span class="sr-only">{checkStale ? 'Oppsettet er endret. Kontroller på nytt.' : attempt.check ? `${checkPassedCount} av ${checkTotal} krav oppfylt. ${passed ? 'Oppdraget består.' : 'Åpne kontrollresultatet for å se feilene.'}` : 'Kontrollen er ikke kjørt.'}</span>
 							</span>
 						</div>
-						<button type="button" class="primary" disabled={saving || loadingSaved} onclick={check}>{saving ? 'Lagrer …' : 'Kontroller oppdraget'}</button>
+						<button type="button" class="primary" disabled={loadingSaved} aria-disabled={saving || loadingSaved} onclick={check}>{saving ? 'Kontrollerer …' : 'Kontroller oppdraget'}</button>
 						{#if saveMessage}<small role="status">{saveMessage}</small>{/if}
-						<a href="#testing">{passed ? 'Se resultat og gå videre ↓' : attempt.check && !checkStale ? 'Se hva som mangler ↓' : 'Detaljer og hint ↓'}</a>
+						{#if attempt.check}<button type="button" class="disclosure" onclick={() => showCheck = true}>Se kontrollresultat</button>{/if}
+						<a href="#testing">Hint og refleksjon ↓</a>
 					</section>
 				</div>
 			</div>
 		</section>
-		<section class="editor" id="device-editor" aria-labelledby="editor-title" tabindex="-1">
-			<div class="panel-heading"><h2 id="editor-title" tabindex="-1">Switcher og VLAN</h2><a href="#network-panel">Tilbake til kart og PC-er ↑</a></div>
+		<section class="editor" id="device-editor" aria-labelledby="editor-title" tabindex="-1" use:helpTarget={{ label: task.editableSwitches ? 'Endre switch og VLAN' : 'Undersøk switch og VLAN', hint: task.editableSwitches ? 'Velg switch. Trykk på en portrute for å bytte mellom U, E og T.' : 'Velg switch og les portrutene. Oppsettet er låst i dette oppdraget.', order: 2 }}>
+			<div class="panel-heading"><h2 id="editor-title" tabindex="-1">{sw?.name} · Switcher og VLAN</h2><a href="#network-panel">Tilbake til kart og PC-er ↑</a></div>
 			<div class="switch-picker" role="group" aria-label="Velg switch">
 				{#each task.switches as item}
-					<button type="button" aria-pressed={switchId === item.id} aria-controls="switch-settings" onclick={() => selectSwitch(item.id)}>{item.name}</button>
+					<button type="button" aria-pressed={switchId === item.id} aria-controls="switch-settings" onclick={() => { selectSwitch(item.id); void navigation.reveal('editor-title', 'device-editor'); }}>{item.name}</button>
 				{/each}
 			</div>
 			<div id="switch-settings">
@@ -461,7 +462,7 @@
 						<thead><tr>
 							<th scope="col">ID</th><th scope="col">Navn</th>
 							{#each sw.ports as item (item.id)}
-								<th scope="col" class:selected-port={selected === switchId && portId === item.id} id={`port-heading-${item.id}`} tabindex="-1"><span>Port</span><strong>{item.id}</strong><span class="port-selection">{selected === switchId && portId === item.id ? 'Valgt' : ''}</span></th>
+								<th scope="col" class:selected-port={selected === switchId && portId === item.id} id={`port-heading-${item.id}`} tabindex="-1"><span>Port</span><strong>{item.id}</strong><small class="port-peer">{item.peer}</small><span class="port-selection">{selected === switchId && portId === item.id ? 'Valgt' : ''}</span></th>
 							{/each}
 						</tr></thead>
 						<tbody>
@@ -485,63 +486,34 @@
 					</table>
 					</div>
 				</div>
-				<fieldset class="pvid-settings" disabled={!task.editableSwitches} aria-describedby="pvid-help">
-					<legend>PVID · VLAN for umerket trafikk inn</legend>
-					<div class="pvid-grid">
-						{#each sw.ports as item (item.id)}
-							<label class:selected-port={selected === switchId && portId === item.id}><span class="pvid-port">Port {item.id}<small>{item.peer}</small></span>
-								<select value={switchConfig.ports[item.id].pvid} onfocus={() => selectPort(item.id)}
-									onchange={(event) => {
-										if (!task.editableSwitches || !switchConfig) return;
-										selectPort(item.id);
-										switchConfig.ports[item.id].pvid = Number(event.currentTarget.value);
-										changed();
-									}}>
-									{#each switchConfig.vlans as id}<option value={id}>{vlanLabel(task, id)}</option>{/each}
-								</select>
-							</label>
-						{/each}
-					</div>
-				</fieldset>
+
 				<p class="setting-status" role="status">{portMessage}</p>
 				<details class="membership-help">
-					<summary>Hjelp til U, E, T og PVID</summary>
+					<summary>Hjelp til U, E og T</summary>
 					<p id="membership-cycle">{task.editableSwitches ? 'Trykk på en portrute for å bytte: U → E → T → U. Hver rad gjelder ett VLAN.' : 'Hver rad viser ett VLAN. Bokstaven i portruten viser portens medlemskap.'}</p>
 					<p><strong>U · Untagged:</strong> send uten tag. <strong>E · Exclude:</strong> ikke medlem. <strong>T · Tagged:</strong> send med VLAN-ID.</p>
-					<p id="pvid-help"><strong>PVID</strong> velger VLAN for umerket trafikk inn. Når du setter U på et nytt VLAN, blir tidligere U til E på samme port. PVID endres ikke automatisk. Kontroller PVID når du flytter en PC-port til et annet VLAN.</p>
+					<p>I denne laben velger <strong>U</strong> også VLAN for umerket trafikk inn. Ny U erstatter tidligere U på samme port. En port uten U avviser umerket trafikk.</p>
 				</details>
 			{/if}
 			</div>
 			<div class="editor-footer">
-				<p class="muted">{passed ? '✓ Oppsettet består' : checkStale ? 'Endret · kontroller på nytt' : 'Klar til å teste?'}</p>
-				<a class="action-link primary" href={passed ? '#testing' : '#quick-check'}>{passed ? 'Se resultat ↓' : 'Til kontroll ↑'}</a>
+				<p class="check-count" class:success={passed} class:failure={!!attempt.check && !checkStale && !passed}>{checkStale ? 'Endret · kontroller på nytt' : attempt.check ? `${passed ? '✓' : '×'} ${checkPassedCount}/${checkTotal}` : 'Kontroll'}</p>
+				<button type="button" class="primary" disabled={loadingSaved} aria-disabled={saving || loadingSaved} onclick={check}>{saving ? 'Kontrollerer …' : 'Kontroller oppdraget'}</button>
 			</div>
 		</section>
 	</div>
 	<section class="testing" id="testing" aria-labelledby="test-title" tabindex="-1">
-		<div class="panel-heading"><h2 id="test-title">Resultat og neste oppdrag</h2><div class="map-links"><a href="#quick-check">Til kontroll ↑</a><a href="#device-editor">Switcher og VLAN ↑</a></div></div>
-		<p>«Kontroller oppdraget» tester hele oppsettet: adresser, porter, kommunikasjon og skillet mellom nettverkene. Alle krav må bestås før neste oppdrag åpnes.</p>
+		<div class="panel-heading"><h2 id="test-title">Hint og neste oppdrag</h2><div class="map-links"><a href="#quick-check">Til kontroll ↑</a><a href="#device-editor">Switcher og VLAN ↑</a></div></div>
+
 		<div class="actions">
 			{#if index < vlanTasks.length - 1}
-				<button class="secondary" type="button" disabled={!passed} aria-describedby="check-status" onclick={() => selectTask(vlanTasks[index + 1].id)}>Neste oppdrag →</button>
+				<button class="secondary" type="button" disabled={!passed && !$teacherPreview} aria-describedby="check-status" onclick={() => selectTask(vlanTasks[index + 1].id)}>Neste oppdrag →</button>
 			{/if}
 			<button type="button" class="secondary" disabled={hints >= task.hints.length} onclick={() => hints += 1}>Vis {hints ? 'neste ' : ''}hint</button>
 		</div>
 		<div class="check-result" class:passed>
-			<p id="check-status">{checkStale ? 'Oppsettet er endret etter kontrollen. Kontroller på nytt.' : attempt.check ? passed ? index < vlanTasks.length - 1 ? '✓ Oppsettet består. Neste oppdrag er åpent.' : `✓ Oppsettet består. Du har bestått alle ${vlanTasks.length} oppdrag.` : `${missingRows.length} krav gjenstår. Rett oppsettet og kontroller igjen.` : 'Kontrollen er ikke kjørt ennå.'}</p>
-			{#if attempt.check}
-				{#if !passed && !checkStale}
-					<p class="muted">Start med {missingRows.length > 3 ? 'disse kravene. Hele listen kan åpnes under.' : 'det som gjenstår:'}</p>
-					<ul>{#each missingRows.slice(0, 3) as row}<li><strong>Mangler</strong> · {row.label}
-						<div class="check-links">{#each row.targets as destination}<button type="button" class="secondary" onclick={() => inspect(destination)}>Se {targetLabel(destination)} ↑</button>{/each}</div>
-					</li>{/each}</ul>
-				{/if}
-				<details><summary>Hele kontrollisten · {checkPassedCount} av {checkTotal} krav {checkStale ? 'i forrige kontroll' : 'oppfylt'}</summary>
-					<ul>{#each attempt.check.result.rows as row}<li class:met={row.ok}><strong>{row.ok ? '✓ OK' : 'Mangler'}</strong> · {row.label}
-						{#if !row.ok && !checkStale}<div class="check-links">{#each row.targets as destination}<button type="button" class="secondary" onclick={() => inspect(destination)}>Se {targetLabel(destination)} ↑</button>{/each}</div>{/if}
-					</li>{/each}</ul>
-				</details>
-			{/if}
+			<p id="check-status">{checkStale ? 'Oppsettet er endret etter kontrollen. Kontroller på nytt.' : attempt.check ? passed ? index < vlanTasks.length - 1 ? '✓ Oppsettet består. Neste oppdrag er åpent.' : $teacherPreview ? '✓ Oppsettet består forhåndsvisningen.' : `✓ Oppsettet består. Du har bestått alle ${vlanTasks.length} oppdrag.` : `${missingRows.length} krav gjenstår. Rett oppsettet og kontroller igjen.` : 'Kontrollen er ikke kjørt ennå.'}</p>
+			{#if attempt.check}<button type="button" onclick={() => showCheck = true}>Se kontrollresultat</button>{/if}
 		</div>
 		{#if hints}<aside class="hints" aria-label="Hint" aria-live="polite">{#each task.hints.slice(0, hints) as hint}<p>{hint}</p>{/each}</aside>{/if}
 		{#if passed}
@@ -550,8 +522,9 @@
 		{/if}
 		<p><a href="#map-ping">Til ping ved kartet ↑</a></p>
 	</section>
-	<details class="model-notes"><summary>Om modellen og videre arbeid</summary>
-		<p>Dette er en lokal simulering. Ingen ping eller konfigurasjon sendes til skolens nett. Modellen bruker faste kabler uten løkker, IPv4 med /24, PVID og VLAN-medlemskap. PC-ene bruker ikke VLAN-tagging.</p>
+	<details class="model-notes"><summary>Om modellen, lagring og videre arbeid</summary>
+		<p>Beståtte oppsett lagres på kontoen i vanlig modus. Omlasting henter sist beståtte versjon; ukontrollerte endringer beholdes bare mens siden er åpen. Endrede oppsett må kontrolleres på nytt før neste oppdrag åpnes. Ingen XP.</p>
+		<p>Dette er en lokal simulering. Ingen ping eller konfigurasjon sendes til skolens nett. Modellen bruker faste kabler uten løkker, IPv4 med /24 og VLAN-medlemskap. PC-ene bruker ikke VLAN-tagging.</p>
 		<p>Ruting, DHCP, ARP-tabeller, MAC-læring, STP og leverandørspesifikke kommandoer er ikke simulert. Tagged/untagged beskriver trafikken på en port; begrepene og standardvalgene kan variere mellom switchmerker.</p>
 		<p>Labpartneren får valgt oppdrag, enhet og port samt om et forsøk er kjørt eller utdatert. IP-adressene, portoppsettet og testresultatet deles ikke i utkastet.</p>
 		<p><strong>Ny anvendelse:</strong> Tegn først port- og adresseplanen for to nye VLAN med andre ID-er. Bygg den på reelt utstyr eller i Packet Tracer, og dokumenter en forbindelse som virker og en som skal være adskilt.</p>
@@ -562,7 +535,18 @@
 	</div>
 </main>
 
+<NetworkCheckDialog bind:open={showCheck} title={`Oppdrag ${index + 1} · ${task.title}`}
+	rows={(attempt.check?.result.rows ?? []).map((row) => ({ ...row, targets: row.targets.map((destination) => ({ ...destination, label: targetLabel(destination) })) }))}
+	stale={checkStale} status={saveMessage} nextDisabled={saving}
+	nextLabel={index < vlanTasks.length - 1 ? 'Neste oppdrag →' : (lab2Unlocked || $teacherPreview) ? 'Start VLAN-lab 2 →' : ''}
+	onnext={() => { if (index < vlanTasks.length - 1) void selectTask(vlanTasks[index + 1].id); else window.location.assign('/nettverk/vlan-2/'); }}
+	oninspect={inspect} />
+
 <style>
+	.ip-with-mask { display: flex; align-items: stretch; margin-top: 6px; }
+	.ip-with-mask input { flex: 1; margin: 0; border-radius: 8px 0 0 8px; }
+	.mask { display: inline-flex; align-items: center; padding: 0 0.55rem; border: 1px solid var(--color-border-strong); border-left: 0; border-radius: 0 8px 8px 0; background: var(--color-surface); font: 0.9rem ui-monospace, monospace; }
+
 	.vlan-page { width: min(var(--layout-width), calc(100% - 2 * var(--layout-gutter))); margin: 28px auto 56px; color: var(--color-text); font: var(--font-body)/var(--leading-body) var(--font-ui); overflow-wrap: anywhere; }
 	.vlan-page :global(*) { box-sizing: border-box; }
 	h1, h2, h3, p { overflow-wrap: anywhere; }
@@ -580,14 +564,13 @@
 	button, select, input { min-height: 44px; border: 1px solid var(--color-border-strong); border-radius: 8px; background: var(--color-surface); color: var(--color-text); padding: 9px 12px; }
 	button { cursor: pointer; touch-action: manipulation; }
 	button:hover { background: var(--color-surface-hover); }
-	button:disabled { opacity: 0.6; cursor: default; }
+	button:disabled, button[aria-disabled='true'] { opacity: 0.6; cursor: default; }
 	.tasks button { display: flex; gap: 10px; align-items: center; min-width: 0; text-align: left; font-size: var(--font-small); }
 	.tasks button > span:last-child { min-width: 0; overflow-wrap: anywhere; }
 	.tasks button[aria-current] { border-color: var(--color-accent); background: var(--color-accent-soft); }
 	.tasks small { display: block; margin-top: 4px; color: var(--color-text-muted); font-size: var(--font-meta); }
 	.step-number { font-weight: 750; font-size: 1.25rem; color: var(--color-accent); }
-	.progress-rule { font-size: var(--font-small); margin-bottom: 0; }
-	.progress-note { margin: 10px 0 24px; }
+	.progress-rule { font-size: var(--font-small); margin-bottom: 16px; }
 	.mission { border-left: 4px solid var(--color-accent); padding: 18px 24px; background: var(--color-surface); border-radius: 0 12px 12px 0; margin-bottom: 20px; }
 	.goal { max-width: 75ch; }
 	.ready { max-width: 75ch; font-size: var(--font-small); }
@@ -600,10 +583,10 @@
 	summary { cursor: pointer; min-height: 44px; padding: 10px 0; font-weight: 650; }
 	.theory p { max-width: 75ch; }
 	.workspace-links { display: flex; flex-wrap: wrap; gap: 8px; margin: 0 0 16px; }
-	.workspace-links a, .action-link { display: inline-flex; align-items: center; justify-content: center; min-height: 44px; padding: 9px 14px; border: 1px solid var(--color-border-strong); border-radius: 8px; text-decoration: none; font-size: var(--font-small); }
+	.workspace-links a { display: inline-flex; align-items: center; justify-content: center; min-height: 44px; padding: 9px 14px; border: 1px solid var(--color-border-strong); border-radius: 8px; text-decoration: none; font-size: var(--font-small); }
 	.workspace-links a:hover { background: var(--color-surface-hover); }
 	.workspace-links .test-shortcut { font-weight: 650; border-color: var(--color-accent); background: var(--color-accent-soft); }
-	#network-panel, #map-title, #map-ping, #pc-editor, #pc-editor-title, #quick-check, #device-editor, #editor-title, #testing, .vlan-matrix th { scroll-margin-top: 24px; }
+	#network-panel, #map-title, #map-ping, #pc-editor, #pc-editor-title, #quick-check, #device-editor, #editor-title, #testing, .vlan-matrix th { scroll-margin-top: 6rem; scroll-margin-bottom: 5rem; }
 	.network-workspace { display: grid; grid-template-columns: minmax(0, 1fr); grid-template-areas: "map" "pc"; gap: 16px; align-items: start; }
 	.map-area { grid-area: map; min-width: 0; border: 1px solid var(--color-border); border-radius: 12px; }
 	.map-ping { padding: 8px 12px; min-width: 0; border-top: 1px solid var(--color-border); }
@@ -638,13 +621,11 @@
 	.pc-editor > button { width: 100%; font-size: var(--font-small); }
 	.ip-help { margin-top: 8px; font-size: var(--font-small); }
 	.pc-back { display: inline-flex; align-items: center; min-height: 44px; margin-top: 8px; font-size: var(--font-small); }
-	.map-links, .switch-picker, .check-links { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 16px; }
+	.map-links, .switch-picker { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 16px; }
 	.map-links a { display: inline-flex; align-items: center; min-height: 44px; font-size: var(--font-small); }
 	.switch-picker { margin: 4px 0 12px; gap: 8px; }
 	.switch-picker button { min-width: 72px; font-weight: 650; }
 	.switch-picker button[aria-pressed='true'] { border-color: var(--color-accent); background: var(--color-accent-soft); box-shadow: inset 0 -3px 0 var(--color-accent); }
-	.check-links { margin-top: 8px; gap: 8px; }
-	.check-links button { font-size: var(--font-small); text-align: left; }
 	.vlan-management { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 20px; margin: 4px 0 12px; }
 	.vlans form { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px; min-width: 0; max-width: 100%; }
 	.vlans label { margin: 0; }
@@ -667,8 +648,6 @@
 	.vlan-list button { font-size: var(--font-meta); }
 	.setting-status { font-size: var(--font-small); color: var(--color-accent); margin: 0; }
 	.setting-status:not(:empty) { margin: 8px 0; }
-	fieldset { border: 0; border-top: 1px solid var(--color-border); margin: 20px 0 0; padding: 14px 0 0; min-width: 0; }
-	legend { padding-right: 10px; font-size: var(--font-small); font-weight: 650; }
 	.matrix-panel { border: 1px solid var(--color-border); border-radius: 8px; }
 	.matrix-heading { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px 20px; padding: 10px 12px; background: var(--color-surface-soft); border-radius: 7px 7px 0 0; }
 	.matrix-heading h3 { margin: 0; font-size: var(--font-small); font-weight: 650; }
@@ -685,6 +664,7 @@
 	.vlan-matrix thead strong { display: block; color: var(--color-text); font-size: var(--font-small); }
 	.vlan-matrix .selected-port { background: var(--color-accent-soft); }
 	.vlan-matrix th.selected-port { box-shadow: inset 0 3px 0 var(--color-accent); }
+	.port-peer { display: block; max-width: 9rem; margin-inline: auto; font-weight: 400; }
 	.port-selection { display: block; min-height: 1.5em; color: var(--color-accent); }
 	.vlan-matrix th:nth-child(2), .vlan-matrix .vlan-name { text-align: left; }
 	.vlan-name { min-width: 5rem; overflow-wrap: anywhere; }
@@ -695,12 +675,6 @@
 	.membership-cell[data-mode='tagged'] { color: var(--color-info); background: var(--color-info-soft); border-color: var(--color-info); }
 	.membership-cell:not(:disabled):hover { box-shadow: inset 0 0 0 2px currentColor; }
 	.membership-cell:disabled { opacity: 1; }
-	.pvid-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 130px), 1fr)); gap: 8px 12px; }
-	.pvid-grid label { margin: 0; padding: 8px; border: 1px solid transparent; border-radius: 8px; }
-	.pvid-port { display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: 2px 10px; }
-	.pvid-grid label.selected-port { border-color: var(--color-accent); background: var(--color-accent-soft); }
-	.pvid-grid small { font-size: var(--font-meta); font-weight: 400; color: var(--color-text-muted); overflow-wrap: anywhere; }
-	.pvid-grid select { margin-top: 4px; font-size: var(--font-small); }
 	.membership-help { font-size: var(--font-small); margin-top: 16px; border-top: 1px solid var(--color-border); }
 	.primary { background: var(--color-action); color: var(--color-on-action); border-color: var(--color-action); font-weight: 650; }
 	.primary:hover { background: var(--color-action); filter: brightness(1.08); }
@@ -712,9 +686,6 @@
 	.actions { display: flex; gap: 12px; flex-wrap: wrap; align-items: center; }
 	.trace { min-height: 3em; }
 	.check-result { margin-block: 20px; }
-	.check-result ul { list-style: none; padding: 0; display: grid; gap: 8px; font-size: var(--font-small); }
-	.check-result li { padding: 8px 12px; border-left: 3px solid var(--color-border-strong); }
-	.check-result li.met { border-color: var(--color-success); }
 	.reflection { border-top: 1px solid var(--color-border); padding-top: 20px; }
 	.model-notes { margin: 22px 0; }
 	.model-notes p { max-width: 75ch; }

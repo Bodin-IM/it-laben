@@ -1,5 +1,10 @@
 <script>
 	import PartnerContext from '#lib/components/PartnerContext.svelte';
+	import { getInterfaceHelp } from '#lib/interfaceHelp.js';
+	import CodeTokens from '#lib/components/CodeTokens.svelte';
+	import ValidationJourney from '#lib/components/ValidationJourney.svelte';
+	import ValidationProject from '#lib/components/ValidationProject.svelte';
+	import { validationJourney } from '#lib/backendValidation.js';
 	import { lessonChoices } from '#lib/partnerContext.js';
 
 	import { onMount } from 'svelte';
@@ -7,8 +12,13 @@
 	import { moduleLink } from '#lib/moduleNavigation.js';
 	import ModuleContext from '#lib/components/ModuleContext.svelte';
 	import { avatarFeedback } from '#lib/avatarFeedback.js';
-	import { lessons } from '#lib/ovingene.js';
+	import { lessons, taskStartValues } from '#lib/ovingene.js';
+	import ProjectTask from '#lib/components/ProjectTask.svelte';
 	import { buildTrace } from '#lib/ovingModel.js';
+	import { exerciseFeedback } from '#lib/exerciseFeedback.js';
+	import { noteFeedbackAttempt, finishFeedbackAttempt } from '#lib/activityFeedbackClient.js';
+	const interfaceHelp = getInterfaceHelp();
+	const helpTarget = interfaceHelp.target;
 	let ready = $state(false);
 	onMount(() => {
 		ready = true;
@@ -23,17 +33,29 @@
 	let trace = $state([]);
 	let index = $state(0);
 	let selectedLine = $state(0);
-	let partnerTask = $state(-1);
+	let taskIndex = $state(0);
+	let task = $derived(lesson.tasks[taskIndex]);
+	$effect(() => {
+		lesson.number;
+		taskIndex;
+		interfaceHelp.clear();
+	});
+	// Preserve existing task indices in the partner contract while choosing the clearest entry point.
+	const taskOrder = $derived([
+		lesson.firstTask ?? 0,
+		...lesson.tasks.map((_, i) => i).filter((i) => i !== (lesson.firstTask ?? 0))
+	]);
+	const taskPosition = $derived(taskOrder.indexOf(taskIndex));
 	let current = $derived(trace[index]);
 	let finished = $derived(trace.length > 0 && index === trace.length - 1);
-	let previous = $derived(lessons.find((item) => item.number === lesson.number - 1));
-	let next = $derived(lessons.find((item) => item.number === lesson.number + 1));
+	const feedback = $derived(finished ? exerciseFeedback(lesson.number, trace) : null);
 
 	$effect(() => {
-		values = Object.fromEntries(lesson.fields.map((field) => [field.key, field.value]));
+		values = taskStartValues(lesson);
 		trace = [];
 		index = 0;
 		selectedLine = 0;
+		taskIndex = lesson.firstTask ?? 0;
 	});
 
 	function clearTrace() {
@@ -41,7 +63,12 @@
 		index = 0;
 		selectedLine = 0;
 	}
+	function prepareTask() {
+		values = taskStartValues(lesson, taskIndex);
+		clearTrace();
+	}
 	function run() {
+		noteFeedbackAttempt(`oving-${lesson.number}`, page.url.pathname + page.url.search);
 		avatarFeedback(
 			`oving-${lesson.number}`,
 			'working',
@@ -60,6 +87,7 @@
 		);
 		index = Math.max(0, Math.min(trace.length - 1, index + delta));
 		selectedLine = 0;
+		if (delta > 0 && index === trace.length - 1) finishFeedbackAttempt(`oving-${lesson.number}`);
 	}
 	/** @param {unknown} value */
 	function display(value) {
@@ -85,7 +113,7 @@
 		choices: lessonChoices(lesson, values),
 		step: current ? index : -1,
 		line: current ? selectedLine : -1,
-		task: partnerTask
+		task: taskIndex
 	}}
 />
 
@@ -131,29 +159,51 @@
 			</p>
 			<h1 id="title">{lesson.title}</h1>
 			<p class="lead">{lesson.intro}</p>
-			<p class="simulation">
-				<span aria-hidden="true">◉</span> Prøv med eksempeldata.
-			</p>
 		</section>
 
+		{#if lesson.number === 7}
+			<ValidationJourney current={ready && page.url.hash === '#eget-prosjekt' ? 'bruk-selv' : 'undersok'} {moduleId} />
+		{/if}
+
 		<section id="forsok" class="lab" aria-labelledby="lab-title">
-			<div class="lab-heading">
-				<div>
-					<p class="eyebrow">SE. PRØV. FØLG KODEN.</p>
-					<h2 id="lab-title">{lesson.question}</h2>
-				</div>
-				<span class="lab-number">{String(lesson.number).padStart(2, '0')}</span>
+			<div class="task-picker" role="group" aria-label="Velg oppgave i simulatoren">
+				{#each taskOrder as taskId, i}
+					{@const item = lesson.tasks[taskId]}
+					<button
+						type="button"
+						class:chosen={taskIndex === taskId}
+						aria-pressed={taskIndex === taskId}
+						aria-controls="task-brief"
+						onclick={() => (taskIndex = taskId)}
+						>{i + 1} · {item.label}</button
+					>
+				{/each}
+			</div>
+			<div class="task-brief" id="task-brief" use:helpTarget={{ label: 'Hva skal jeg gjøre?', hint: 'Start med «Gjør dette». «Se etter» forteller hva du skal undersøke.', order: 1 }}>
+				<p class="eyebrow">OPPGAVE {taskPosition + 1} / {lesson.tasks.length} · I SIMULATOREN</p>
+				<h2 id="lab-title">{task.title}</h2>
+				<p><strong>Gjør dette:</strong> {task.instruction}</p>
+				<p class="observe"><strong>Se etter:</strong> {task.observe}</p>
+				<p class="small">Dette er en simulator. Valg og kjøringssteg starter på nytt når du åpner siden igjen. Når du er innlogget, kan du lagre din egen gjennomgangsmarkering nedenfor.</p>
+				{#key `${lesson.number}-${taskIndex}`}
+					<div class="task-help">
+						<details><summary use:helpTarget={{ label: 'Finn hint', hint: 'Åpne Hint for et lite tips til oppgaven.', order: 5 }}>Hint</summary><p>{task.hint}</p></details>
+						<details><summary>Forklaring</summary><p>{task.answer}</p></details>
+					</div>
+				{/key}
 			</div>
 			<div class="workbench">
 				<form
 					class="controls"
+					use:helpTarget={{ label: 'Endre forsøket', hint: 'Gjør valgene dine under «Prøv her», og kjør forsøket.', order: 2 }}
 					onsubmit={(event) => {
 						event.preventDefault();
 						run();
 					}}
 				>
-					<h3>1. Velg et forsøk</h3>
-					<p>Endre én ting og se hva det gjør med resultatet.</p>
+					<h3>Prøv her</h3>
+					<button type="button" class="prepare-task" onclick={prepareTask}>Still inn første forsøk</button>
+					<p class="small">Fyller inn startvalgene til denne oppgaven og tømmer forrige kjøring. Endre deretter valgene for å sammenligne.</p>
 					{#each lesson.fields as field}
 						{#if isRelevant(field.key)}
 							<label for={`field-${field.key}`}>{field.label}</label>
@@ -188,15 +238,16 @@
 						{/if}
 					{/each}
 					<button class="primary run" type="submit" disabled={Object.keys(values).length === 0}
-						>{trace.length ? 'Start forsøket på nytt' : 'Start forsøket'}
+						use:helpTarget={Object.keys(values).length ? { label: 'Kjør forsøket', hint: 'Trykk her for å kjøre med valgene dine. Deretter kan du følge stegene.', order: 3 } : null}
+						>{trace.length ? 'Kjør på nytt' : 'Kjør forsøket'}
 						<span aria-hidden="true">→</span></button
 					>
-					<p class="small">Forrige og Neste viser øyeblikksbilder. De sender ikke nye requests.</p>
+					<p class="small">Eksempeldata. Hver kjøring starter med samme utgangspunkt.</p>
 				</form>
 
 				<div class="execution">
 					{#if current}
-						<div class="step-toolbar">
+						<div class="step-toolbar" use:helpTarget={{ label: 'Følg kjøringen', hint: 'Bruk Neste og Forrige for å følge hva koden gjør, ett steg om gangen.', order: 4 }}>
 							<span class="step-count">STEG {index + 1} / {trace.length}</span>
 							<div class="step-actions">
 								<button type="button" onclick={() => move(-1)} disabled={index === 0}
@@ -227,7 +278,7 @@
 										aria-pressed={selectedLine === i}
 										aria-label={`Forklar linje ${i + 1}: ${line[0]}`}
 										><span class="line-number" aria-hidden="true">{i + 1}</span><code
-											>{line[0]}</code
+											><CodeTokens source={line[0]} /></code
 										></button
 									>
 								{/each}
@@ -240,17 +291,13 @@
 						</div>
 						<p class="response"><span>Svar / tilstand</span><strong>{current.status}</strong></p>
 					{:else}
-						<div class="waiting">
-							<span class="waiting-symbol" aria-hidden="true">{'{ }'}</span>
-							<p class="eyebrow">2. FØLG DET SOM SKJER</p>
-							<h3>Én handling. Ett steg om gangen.</h3>
-							<p>
-								Start forsøket til venstre. Her ser du koden, verdiene og svaret mens handlingen
-								utføres.
-							</p>
-							<div class="waiting-flow" aria-hidden="true">
-								<span>Inndata</span><b>→</b><span>Kode</span><b>→</b><span>Resultat</span>
-							</div>
+						<div class="example">
+							<p class="eyebrow">KODEEKSEMPEL</p>
+							<h3>{lesson.example.title}</h3>
+							<!-- svelte-ignore a11y_no_noninteractive_tabindex (The code region scrolls horizontally on narrow screens and must support keyboard scrolling.) -->
+							<pre role="region" aria-label="Kodeeksempel" tabindex="0"><code><CodeTokens source={lesson.example.code} /></code></pre>
+							<p>{lesson.example.explanation}</p>
+							<p class="small">Velg innstillinger og kjør forsøket for å følge kode, data og svar steg for steg.</p>
 						</div>
 					{/if}
 				</div>
@@ -266,58 +313,45 @@
 						{#each Object.entries(current.data) as [label, value], i (label)}
 							<details class="data-card" open={i < 3}>
 								<summary>{label}</summary>
-								<pre>{display(value)}</pre>
+								<!-- svelte-ignore a11y_no_noninteractive_tabindex (Long data values can scroll inside this bounded region.) -->
+								<pre role="region" aria-label={`Data: ${label}`} tabindex="0">{display(value)}</pre>
 							</details>
 						{/each}
 					</div>
 					{#if finished}<div class="completed">
-							<span aria-hidden="true">✓</span>
 							<div>
-								<h3>Forsøket er ferdig</h3>
-								<p>{lesson.takeaway}</p>
-								<p class="small">
-									Velg en annen situasjon for å sammenligne. Startdataene nullstilles for hvert
-									forsøk.
-								</p>
+								<h3>Kjøringen er ferdig · sammenlign med oppgaven</h3>
+								{#if feedback}
+									<p><strong>Dette skjedde:</strong> {feedback.result}</p>
+									<p><strong>Derfor:</strong> {feedback.cause}</p>
+									<p><strong>Prøv videre:</strong> {feedback.next}</p>
+								{:else}
+									<p>{lesson.takeaway}</p>
+								{/if}
 							</div>
 						</div>{/if}
 				</div>
 			{/if}
 		</section>
 
-		<section class="tasks" aria-labelledby="tasks-title">
-			<div>
-				<p class="eyebrow">PRØV SELV</p>
-				<h2 id="tasks-title">Tre ting å undersøke</h2>
-				<p>Gjør et forsøk først. Åpne forklaringen når du vil sjekke resonnementet ditt.</p>
+		{#if lesson.number === 7}
+			<div class="validation-next">
+				<h2>Bruk det du undersøkte til å reparere en feil</h2>
+				<p>Åpne tekstreparasjonen i Redd chatten. Få både vanlig tekst og ugyldig tekst til å gi riktig svar uten feil lagring.</p>
+				<a href={moduleLink(validationJourney[1].href, moduleId)}>Reparer tekstkontrollen →</a>
 			</div>
-			<div class="task-grid">
-				{#each lesson.tasks as task, i}<article class="task">
-						<span class="task-number">0{i + 1}</span>
-						<h3>{task.title}</h3>
-						<p>{task.hint}</p>
-						<details
-							ontoggle={(event) => {
-								if (event.currentTarget.open) partnerTask = i;
-								else if (partnerTask === i) partnerTask = -1;
-							}}
-						>
-							<summary>Vis forklaring</summary>
-							<p>{task.answer}</p>
-						</details>
-					</article>{/each}
-			</div>
-		</section>
-
+			<ValidationProject />
+		{:else}
+		<ProjectTask id="eget-prosjekt" instruction={lesson.transfer.instruction} check={lesson.transfer.check} guide={lesson.transfer.guide} />
 		<details class="context">
-			<summary>Fra simuleringen til ditt eget prosjekt</summary>
+			<summary>Oppsett og kodehjelp til prosjektet</summary>
 			<p>{lesson.context}</p>
 			<p>
 				Kodepanelene viser avgrensede utdrag, ikke komplette serverfiler. Bruk øvingsarket for hele
 				oppsettet og test endringene i din egen app.
 			</p>
 			{#if lesson.number === 8}<p>
-					Oppsettet trenger en hemmelig SESSION_SECRET, express.json før rutene og
+					Øving 8 lagrer brukerId i sessionen og slår opp brukeren. Sessions-innføringen viser et brukerobjekt i sessionen; bruk én konsekvent variant i ditt prosjekt. Oppsettet trenger en hemmelig SESSION_SECRET, express.json før rutene og
 					session-middleware før /meg. Ved separate origins bruker du CORS med den konkrete
 					frontendadressen og credentials: true. Bruk konsekvent localhost eller samme vertsnavn.
 					Øvingsarkets Origin-kontroll for POST, PATCH og DELETE skal også være med.
@@ -330,19 +364,18 @@
 					Øvingsarket bruker intern HTTP og testkontoer. En offentlig tjeneste trenger blant annet
 					HTTPS, riktig secure-cookie, varig sessionlager og begrensning av innloggingsforsøk.
 				</p>{/if}
-			{#each lesson.related as related}<a href={related.href}>{related.label} →</a>{/each}
+			{#each lesson.related as related}<a href={moduleLink(related.href, moduleId)}>{related.label} →</a>{/each}
 		</details>
-		<nav class="lesson-footer" aria-label="Forrige og neste øving">
-			<a href={previous ? moduleLink(`/oving-${previous.number}/`, moduleId) : '/#ovingene'}
-				>← {previous ? `Øving ${previous.number}: ${previous.title}` : 'Til oversikten'}</a
-			>{#if next}<a href={moduleLink(`/oving-${next.number}/`, moduleId)}
-					>Øving {next.number}: {next.title} →</a
-				>{:else}<a href="/#ovingene">Til oversikten →</a>{/if}
-		</nav>
+		{/if}
 	</main>
 </div>
 
 <style>
+	.prepare-task { width: 100%; min-height: 44px; margin-bottom: 6px; padding: 10px; border: 1px solid var(--color-border); border-radius: 7px; background: var(--color-surface); color: var(--color-accent); font: inherit; cursor: pointer; }
+	.validation-next { margin-block: 28px; padding: 20px; border: 1px solid var(--color-info-border); border-radius: var(--radius-card); background: var(--color-info-soft); }
+	.validation-next h2 { font-size: 1.25rem; }
+	.validation-next p { max-width: 65ch; font-size: var(--font-body); line-height: var(--leading-body); }
+	.validation-next a { display: inline-flex; align-items: center; min-height: 44px; }
 	.lesson-page {
 		overflow-wrap: anywhere;
 		font-family: var(--font-ui);
@@ -374,6 +407,7 @@
 		border-radius: 8px;
 	}
 	button {
+		min-height: 44px;
 		background: var(--color-surface);
 		color: var(--color-text);
 		padding: 0.65rem 0.9rem;
@@ -386,7 +420,7 @@
 		opacity: 0.45;
 		cursor: default;
 	}
-	:is(a, button, input, select, textarea, summary):focus-visible {
+	:is(a, button, input, select, textarea, summary, pre):focus-visible {
 		outline: 3px solid var(--color-focus);
 		outline-offset: 3px;
 	}
@@ -418,6 +452,7 @@
 		margin-right: 0.5rem;
 	}
 	.course a {
+		min-height: 44px;
 		display: flex;
 		align-items: center;
 		gap: 0.5rem;
@@ -438,7 +473,7 @@
 		background: var(--color-surface-hover);
 	}
 	.intro {
-		padding: 2.6rem 0 1.8rem;
+		padding: 1.25rem 0 1rem;
 		max-width: 900px;
 	}
 	.eyebrow {
@@ -452,7 +487,7 @@
 		padding: 0 0.5rem;
 	}
 	h1 {
-		font-size: clamp(2rem, 4vw, 3.4rem);
+		font-size: clamp(1.6rem, 3vw, 2.3rem);
 		letter-spacing: -0.04em;
 		line-height: 1.1;
 		margin: 0 0 1rem;
@@ -472,18 +507,10 @@
 		margin: 0.5rem 0 1rem;
 	}
 	.lead {
-		font-size: 1.15rem;
-		line-height: 1.65;
+		font-size: var(--font-body);
+		line-height: var(--leading-body);
 		max-width: 78ch;
 		color: var(--color-text-muted);
-	}
-	.simulation {
-		font-size: var(--font-small);
-		color: var(--color-text-muted);
-	}
-	.simulation span {
-		color: var(--color-accent);
-		margin-right: 0.3rem;
 	}
 	.lab {
 		background: var(--color-surface);
@@ -493,25 +520,75 @@
 		box-shadow: 0 8px 30px var(--color-shadow);
 		scroll-margin-top: 1rem;
 	}
-	.lab-heading {
-		padding: 1.5rem 1.75rem;
+	.task-picker {
 		display: flex;
-		align-items: center;
-		justify-content: space-between;
-		gap: 1rem;
+		flex-wrap: wrap;
+		gap: 0.4rem;
+		padding: 0.75rem;
+		background: var(--color-surface-soft);
 		border-bottom: 1px solid var(--color-border);
 	}
-	.lab-heading > div {
-		min-width: 0;
-		overflow-wrap: anywhere;
+	.task-picker button {
+		font-size: var(--font-small);
+		text-align: left;
 	}
-	.lab-number {
-		font: 3rem/1 monospace;
-		color: var(--color-border-strong);
+	.task-picker button.chosen {
+		background: var(--color-action);
+		color: var(--color-on-action);
+		border-color: var(--color-action);
+		text-decoration: underline;
+		text-underline-offset: 4px;
+	}
+	.task-brief {
+		padding: 1.2rem 1.5rem 0.7rem;
+		border-bottom: 1px solid var(--color-border);
+	}
+	.task-brief .eyebrow {
+		margin-bottom: 0.4rem;
+	}
+	.task-brief > p:not(.eyebrow) {
+		max-width: 95ch;
+		margin: 0.6rem 0;
+	}
+	.observe {
+		color: var(--color-text-muted);
+	}
+	.task-help {
+		display: flex;
+		flex-wrap: wrap;
+		gap: 0 1.5rem;
+	}
+	.task-help details[open] {
+		flex-basis: 100%;
+	}
+	.task-help summary,
+	.context summary {
+		min-height: 44px;
+		padding: 0.65rem 0;
+		color: var(--color-action);
+		font-size: var(--font-small);
+		font-weight: 700;
+	}
+	.task-help p {
+		max-width: 85ch;
+		border-left: 3px solid var(--color-border-strong);
+		padding-left: 1rem;
+	}
+	.example pre {
+		padding: 1rem;
+		border-radius: 8px;
+		background: var(--color-code-bg);
+		color: var(--color-code-text);
+		font: var(--font-code)/var(--leading-code) monospace;
+		overflow-x: auto;
+	}
+	.example p:not(.eyebrow) {
+		color: var(--color-text-muted);
+		max-width: 75ch;
 	}
 	.workbench {
 		display: grid;
-		grid-template-columns: 260px minmax(0, 1fr);
+		grid-template-columns: 280px minmax(0, 1fr);
 	}
 	.controls {
 		background: var(--color-surface-soft);
@@ -558,42 +635,6 @@
 	.execution {
 		padding: 1.5rem;
 		min-width: 0;
-	}
-	.waiting {
-		min-height: 390px;
-		height: 100%;
-		display: flex;
-		flex-direction: column;
-		align-items: center;
-		justify-content: center;
-		text-align: center;
-		padding: 1.5rem;
-	}
-	.waiting > p {
-		max-width: 48ch;
-		color: var(--color-text-muted);
-	}
-	.waiting-symbol {
-		font: 3rem/1 monospace;
-		color: var(--color-accent);
-		background: var(--color-accent-soft);
-		padding: 1rem;
-		border-radius: 14px;
-		margin-bottom: 1.5rem;
-	}
-	.waiting-flow {
-		display: flex;
-		align-items: center;
-		flex-wrap: wrap;
-		justify-content: center;
-		gap: 1rem;
-		margin-top: 1rem;
-		font-size: var(--font-small);
-	}
-	.waiting-flow span {
-		padding: 0.4rem 0.8rem;
-		border: 1px solid var(--color-border);
-		border-radius: 6px;
 	}
 	.step-toolbar {
 		display: flex;
@@ -669,6 +710,7 @@
 		padding: 0.75rem 0;
 	}
 	.code-lines button {
+		min-height: 32px;
 		display: flex;
 		align-items: baseline;
 		gap: 0.8rem;
@@ -780,49 +822,14 @@
 		margin-top: 1.5rem;
 		padding: 1.3rem;
 		border-radius: 8px;
-		border: 1px solid var(--color-success-border);
-		background: var(--color-success-soft);
-	}
-	.completed > span {
-		color: var(--color-success);
-		font-size: 1.6rem;
+		border: 1px solid var(--color-border);
+		background: var(--color-surface-soft);
 	}
 	.completed p:last-child {
 		margin-bottom: 0;
 	}
-	.tasks {
-		padding: 3rem 0 2rem;
-	}
-	.tasks > div > p:not(.eyebrow) {
-		color: var(--color-text-muted);
-	}
-	.task-grid {
-		display: grid;
-		grid-template-columns: repeat(3, minmax(0, 1fr));
-		gap: 1.2rem;
-		margin-top: 1.5rem;
-	}
-	.task {
-		border-top: 2px solid var(--color-border-strong);
-		padding: 1rem 0;
-	}
-	.task-number {
-		font: var(--font-meta)/2 monospace;
-		color: var(--color-accent);
-	}
-	.task p {
-		color: var(--color-text-muted);
-	}
-	.task summary {
-		color: var(--color-action);
-		font-size: var(--font-small);
-		font-weight: 700;
-	}
-	.task details p {
-		border-left: 3px solid var(--color-border-strong);
-		padding-left: 1rem;
-	}
 	.context {
+		margin-top: 1rem;
 		padding: 1.25rem;
 		border: 1px solid var(--color-border);
 		border-radius: 8px;
@@ -838,16 +845,6 @@
 	.context > a {
 		display: block;
 		margin-top: 0.5rem;
-	}
-	.lesson-footer {
-		display: flex;
-		justify-content: space-between;
-		gap: 2rem;
-		padding-top: 2rem;
-		font-size: var(--font-small);
-	}
-	.lesson-footer a:last-child {
-		text-align: right;
 	}
 	.skip {
 		position: absolute;
@@ -889,9 +886,6 @@
 		.course-name {
 			display: none;
 		}
-		.intro {
-			padding: 2rem 0 1rem;
-		}
 		.workbench {
 			grid-template-columns: minmax(0, 1fr);
 		}
@@ -903,14 +897,10 @@
 		.execution {
 			padding: 1.2rem;
 		}
-		.lab-heading,
+		.task-brief,
 		.data-area {
 			padding: 1.2rem;
 		}
-		.lab-number {
-			display: none;
-		}
-		.task-grid,
 		.data-grid {
 			grid-template-columns: minmax(0, 1fr);
 		}
@@ -925,17 +915,6 @@
 		}
 		.line-note {
 			min-height: 145px;
-		}
-		.waiting {
-			min-height: 300px;
-			padding: 0.5rem;
-		}
-		.lesson-footer {
-			flex-direction: column;
-			gap: 1rem;
-		}
-		.lesson-footer a:last-child {
-			text-align: left;
 		}
 	}
 </style>

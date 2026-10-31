@@ -1,13 +1,14 @@
 import { avatars, defaultAvatarId } from '#lib/avatars.js';
 import { writable, get } from 'svelte/store';
 
-/** @typedef {{sound:boolean,volume:number,reduceMotion:boolean,companion:boolean,partnerAvatar:string,partnerScene:string}} Preferences */
+/** @typedef {{sound:boolean,volume:number,reduceMotion:boolean,companion:boolean,partnerAvatar:string,partnerScene:string,teacherUnlockTasks:boolean}} Preferences */
 /** @type {Preferences} */
 const defaults = {
 	sound: true,
 	volume: 0.25,
 	reduceMotion: false,
 	companion: true,
+	teacherUnlockTasks: true,
 	partnerAvatar: defaultAvatarId,
 	partnerScene: 'lab'
 };
@@ -32,6 +33,7 @@ let lastSound = -Infinity;
 function sanitize(value) {
 	const item = /** @type {Partial<Preferences>|null} */ (value);
 	return {
+		teacherUnlockTasks: item?.teacherUnlockTasks !== false,
 		companion: item?.companion !== false,
 		partnerAvatar: avatars.some((avatar) => avatar.id === item?.partnerAvatar)
 			? (item?.partnerAvatar ?? defaultAvatarId)

@@ -40,7 +40,7 @@ Når eleven bekrefter, aktiveres filen som allerede er lastet ned. Den gamle nø
 
 API-et bruker `POST /api/auth/prepare-key` med `accountId`, deretter `POST /api/auth/rotate-key` med `accountId`, den nye filens `key` og `confirmed: true`. Begge krever innlogging, Origin og CSRF. Bare nøkkelhash lagres på serveren, og hemmeligheten havner aldri i localStorage. En gammel nettleserfane som prøver det tidligere ett-trinnsbyttet avvises uten å endre nøkkelen. Last siden på nytt før bytte etter oppdatering.
 
-Dette endrer nøkkelbyttet. Hvis eleven har mistet både nøkkelfilen og alle pålogginger, finnes det fremdeles ingen automatisk kontogjenoppretting gjennom lærerpanelet.
+Hvis eleven har mistet både nøkkelfilen og alle pålogginger, kan en administrator på dev bruke **Elever → velg elevprofil → Gi ny nøkkelfil**. Dette gir tilgang til den samme elevprofilen og bevarer serverlagret progresjon. Se [elevadministrasjon](elevadministrasjon.md#mistet-nøkkelfil-gi-eleven-tilgang-igjen) for klargjøring, nedlasting og aktivering. Elevens selvbetjente nøkkelbytte ovenfor krever fortsatt en eksisterende pålogging.
 
 ## Fremgang fra flere faner
 

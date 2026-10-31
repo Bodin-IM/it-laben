@@ -10,6 +10,8 @@ import { createApp } from '../server/app.js';
 import { readConfig } from '../server/config.js';
 import { feedbackPage } from '../src/lib/feedback.js';
 import { saveFeedback, listFeedback, setFeedbackStatus } from '../server/feedback.js';
+import { feedbackPilot } from '../src/lib/activityFeedback.js';
+import { offerFeedbackPrompt, respondToFeedbackPrompt, feedbackPreferences, setFeedbackPreferences, feedbackTotals } from '../server/activity-feedback.js';
 
 function submission(overrides = {}) {
 	return {
@@ -20,6 +22,10 @@ function submission(overrides = {}) {
 		pageHref: '/oving-5/?modul=backend',
 		...overrides
 	};
+}
+function invitation(activityId = 'oving-5', overrides = {}) {
+	const activity = feedbackPilot.find((item) => item.id === activityId);
+	return { id: randomUUID(), activityId, version: activity.version, pageHref: activity.href, trigger: 'run-finished', ...overrides };
 }
 async function fixture(t, secure = false) {
 	const db = openDatabase(':memory:');
@@ -283,4 +289,99 @@ test('feedback: kontogrense hindrer spam, men tillater gjentakelse etter tapt sv
 	} finally {
 		db.close();
 	}
+});
+
+test('oppgavespørsmål: kontogrense, eierskap, idempotente svar og adminoversikt via API', async (t) => {
+	const { db, client } = await fixture(t);
+	const student = await client().create(), other = await client().create();
+	const teacher = await client().create('teacher'), admin = await client().create('admin'), guest = client();
+	const beforeProgress = db.prepare('SELECT * FROM progress').all();
+	const beforeRewards = db.prepare('SELECT * FROM rewards').all();
+	assert.equal((await student.request('/api/feedback/preferences')).result.enabled, true);
+	const body = invitation('oving-5', { accountId: student.user.id, pageHref: '/oving-5/?modul=backend&token=secret' });
+	assert.equal((await guest.request('/api/feedback/prompts', body)).status, 401);
+	assert.equal((await teacher.request('/api/feedback/prompts', { ...body, accountId: teacher.user.id })).status, 403);
+	assert.equal((await student.request('/api/feedback/prompts', { ...body, accountId: other.user.id })).status, 409);
+	assert.equal((await student.request('/api/feedback/prompts', body, { 'X-CSRF-Token': 'wrong' })).status, 403);
+	assert.equal((await student.request('/api/feedback/prompts', body, { Origin: 'https://wrong.invalid' })).status, 403);
+	for (const invalid of [{ version: 'old' }, { pageHref: '/oving-8/' }, { activityId: 'oving-6' }, { trigger: 'passed' }, { code: 'private' }])
+		assert.equal((await student.request('/api/feedback/prompts', { ...body, ...invalid })).status, 400);
+	const first = await student.request('/api/feedback/prompts', body);
+	assert.equal(first.status, 200);
+	assert.equal(first.result.prompt.pageHref, '/oving-5/?modul=backend');
+	assert.deepEqual(await student.request('/api/feedback/prompts', body), first);
+	assert.equal((await student.request('/api/feedback/prompts', invitation('oving-8', { accountId: student.user.id }))).result.prompt, null);
+	const endpoint = `/api/feedback/prompts/${body.id}`;
+	assert.equal((await other.request(endpoint, { accountId: other.user.id, answer: 'yes' })).status, 404);
+	assert.equal((await student.request(endpoint, { accountId: student.user.id, answer: 'maybe' })).status, 400);
+	const answered = await student.request(endpoint, { accountId: student.user.id, answer: 'partly' });
+	assert.equal(answered.status, 200);
+	assert.deepEqual(await student.request(endpoint, { accountId: student.user.id, answer: 'partly' }), answered);
+	assert.equal((await student.request(endpoint, { accountId: student.user.id, answer: 'no' })).status, 409);
+	const comment = submission({ accountId: student.user.id, promptId: body.id, pageHref: '/oving-5/?modul=backend', message: 'Jeg trengte et eksempel.' });
+	assert.equal((await other.request('/api/feedback', { ...comment, accountId: other.user.id })).status, 400);
+	assert.equal((await student.request('/api/feedback', { ...comment, pageHref: '/oving-8/' })).status, 400);
+	assert.equal((await student.request('/api/feedback', comment)).status, 201);
+	assert.equal((await student.request('/api/feedback', comment)).status, 201);
+	for (const actor of [student, teacher]) assert.equal((await actor.request('/api/admin/feedback/activities')).status, 403);
+	const summary = (await admin.request('/api/admin/feedback/activities')).result.items[0];
+	assert.equal(summary.answered, 1);
+	assert.equal(summary.partly, 1);
+	assert.equal(summary.yes + summary.no, 0);
+	const inbox = (await admin.request('/api/admin/feedback?status=all&activity=oving-5')).result;
+	assert.equal(inbox.total, 1);
+	assert.equal(inbox.items[0].answer, 'partly');
+	assert.equal(inbox.items[0].activityVersion, body.version);
+	assert.equal(inbox.items[0].nickname, student.user.nickname);
+	assert.equal((await admin.request('/api/admin/feedback?activity=unknown')).status, 400);
+	assert.deepEqual(db.prepare('SELECT * FROM progress').all(), beforeProgress);
+	assert.deepEqual(db.prepare('SELECT * FROM rewards').all(), beforeRewards);
+});
+
+test('oppgavespørsmål: Oslo-døgn, hopp over, engang per versjon og varig avmelding', () => {
+	const db = openDatabase(':memory:');
+	try {
+		db.prepare('INSERT INTO users(id,nickname,created_at) VALUES (?,?,0)').run('student', 'Elev');
+		const beforeMidnight = Date.parse('2026-10-31T22:59:59Z');
+		const afterMidnight = Date.parse('2026-10-31T23:00:01Z');
+		const first = invitation();
+		assert.ok(offerFeedbackPrompt(db, 'student', first, beforeMidnight).prompt);
+		respondToFeedbackPrompt(db, 'student', first.id, { dismiss: true }, beforeMidnight);
+		assert.equal(offerFeedbackPrompt(db, 'student', invitation('oving-8'), beforeMidnight).prompt, null);
+		assert.equal(offerFeedbackPrompt(db, 'student', first, afterMidnight).prompt, null);
+		assert.equal(offerFeedbackPrompt(db, 'student', invitation(), afterMidnight).prompt, null);
+		setFeedbackPreferences(db, 'student', { enabled: false });
+		assert.equal(offerFeedbackPrompt(db, 'student', invitation('oving-8'), afterMidnight).prompt, null);
+		assert.equal(feedbackPreferences(db, 'student').enabled, false);
+		setFeedbackPreferences(db, 'student', { enabled: true });
+		assert.ok(offerFeedbackPrompt(db, 'student', invitation('oving-8', { trigger: 'left-activity' }), afterMidnight).prompt);
+		assert.equal(db.prepare('SELECT COUNT(*) AS n FROM activity_feedback_prompts').get().n, 2);
+		assert.equal(db.prepare('SELECT COUNT(answer) AS n FROM activity_feedback_prompts').get().n, 0);
+	} finally { db.close(); }
+});
+
+test('oppgavespørsmål: svar og avmelding overlever omstart, gammel feedback bevares, profilsletting rydder', () => {
+	const dir = mkdtempSync(join(tmpdir(), 'itlab-survey-'));
+	const filename = join(dir, 'lab.sqlite');
+	let db = openDatabase(filename);
+	try {
+		for (const id of ['student', 'admin']) db.prepare('INSERT INTO users(id,nickname,created_at) VALUES (?,?,0)').run(id, id);
+		db.prepare('INSERT INTO user_roles VALUES (?,?,0)').run('admin', 'admin');
+		const old = submission();
+		saveFeedback(db, null, old, 1);
+		const before = db.prepare('SELECT * FROM student_feedback WHERE id=?').get(old.id);
+		const body = invitation();
+		offerFeedbackPrompt(db, 'student', body, 1000);
+		respondToFeedbackPrompt(db, 'student', body.id, { answer: 'no' }, 1001);
+		saveFeedback(db, 'student', submission({ promptId: body.id, pageHref: '/oving-5/' }), 1002);
+		setFeedbackPreferences(db, 'student', { enabled: false });
+		db.close(); db = openDatabase(filename);
+		assert.equal(feedbackPreferences(db, 'student').enabled, false);
+		assert.equal(feedbackTotals(db, 'admin').items[0].no, 1);
+		assert.deepEqual(db.prepare('SELECT * FROM student_feedback WHERE id=?').get(old.id), before);
+		db.prepare('DELETE FROM users WHERE id=?').run('student');
+		assert.equal(feedbackTotals(db, 'admin').items.length, 0);
+		assert.equal(db.prepare('SELECT COUNT(*) AS n FROM feedback_preferences').get().n, 0);
+		assert.equal(listFeedback(db, 'admin', { status: 'all' }).total, 1);
+	} finally { db.close(); rmSync(dir, { recursive: true, force: true }); }
 });

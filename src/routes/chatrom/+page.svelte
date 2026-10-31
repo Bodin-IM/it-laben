@@ -3,6 +3,7 @@
 	import { textShape } from '#lib/partnerContext.js';
 
 	import PageLinks from '#lib/components/PageLinks.svelte';
+	import ProjectTask from '#lib/components/ProjectTask.svelte';
 	import ModuleContext from '#lib/components/ModuleContext.svelte';
 	import { avatarFeedback } from '#lib/avatarFeedback.js';
 	import InteractiveCode from '#lib/components/InteractiveCode.svelte';
@@ -247,7 +248,7 @@
 		<ModuleContext />
 		<section class="intro" aria-labelledby="sidetittel">
 			<p class="overlinje"><span></span> BYGG VIDERE PÅ CHATTEN</p>
-			<h1 id="sidetittel">Samme chat.<br class="mobilbrudd" /> <em>Flere muligheter.</em></h1>
+			<h1 id="sidetittel">Chatrom, avsender og sletting</h1>
 			<p class="ingress">
 				Velg rom, finn avsenderen og slett en melding. Utforsk koden i tre små forsøk, med
 				forklaringer der du klikker.
@@ -278,7 +279,7 @@
 				<div>
 					<p class="overlinje">FORSØK {module.number} AV 03</p>
 					<h2 id="forsoktittel">{module.title}</h2>
-					<p>{module.goal}</p>
+					<p><strong>Gjør dette:</strong> {module.instruction}</p>
 				</div>
 				<button type="button" class="nullstill" onclick={reset}
 					>Nullstill data <span aria-hidden="true">↺</span></button
@@ -544,6 +545,7 @@
 						Koden over viser funksjonene vi undersøker. I ditt prosjekt må de kobles til skjemaet,
 						meldingslisten og Express-serveren.
 					</p>
+					<p>Her heter eierfeltet <code>avsenderId</code>; i øving 9 heter det <code>eierId</code>. Begge er brukerens ID fra serveren. Tilpass feltnavnene til din egen datamodell når du bruker utdragene sammen. Denne innføringen lagrer et brukerobjekt i sessionen, mens øving 8 bruker <code>brukerId</code> og slår opp brukeren.</p>
 					<ol>
 						<li>
 							<strong>Lag et fungerende utgangspunkt.</strong>
@@ -668,6 +670,9 @@
 			</details>
 		</section>
 
+		<ProjectTask id="eget-prosjekt"
+			instruction="La egen chat hente meldinger fra valgt rom. Behold avsender og eiersjekk på backend når du legger til sending og sletting."
+			check="Bytt rom, send som to ulike brukere og prøv å slette en annens melding. Undersøk både svaret og listen. Romfiltrering alene beskytter ikke et privat rom." />
 		<footer>
 			<a href="/">← Tilbake til IT-laben</a>
 			<p>Ta ett steg om gangen. Klikk når du lurer.</p>
@@ -745,14 +750,6 @@
 		letter-spacing: -1.7px;
 		line-height: 1.18;
 		font-weight: 690;
-	}
-	h1 em {
-		font-family: Georgia, serif;
-		font-weight: 400;
-		color: var(--gronn);
-	}
-	.mobilbrudd {
-		display: none;
 	}
 	.ingress {
 		max-width: 660px;
@@ -1377,9 +1374,6 @@
 		h1 {
 			font-size: 37px;
 			letter-spacing: -1.3px;
-		}
-		.mobilbrudd {
-			display: block;
 		}
 		.ingress {
 			font-size: var(--font-body);

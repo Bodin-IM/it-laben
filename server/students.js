@@ -276,6 +276,8 @@ export function manageStudent(db, actorId, studentId, action, body, now = Date.n
 		}
 		if (action === 'delete' && target.disabled_at === null)
 			throw learningError('STUDENT_DISABLE_FIRST', 'Deaktiver elevprofilen før den slettes.', 409);
+		// A renamed or disabled/reactivated pupil must get a fresh recovery confirmation.
+		db.prepare('DELETE FROM pending_admin_recovery_keys WHERE user_id=?').run(studentId);
 		db.prepare('INSERT INTO management_actions VALUES (?,?,?,?,?,?)').run(
 			body.id,
 			actorId,

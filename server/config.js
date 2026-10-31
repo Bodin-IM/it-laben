@@ -42,7 +42,7 @@ export function readConfig(env = process.env) {
 	};
 }
 
-function readPartnerConfig(env) {
+export function readPartnerConfig(env = process.env) {
 	const model = env.LAB_PARTNER_MODEL?.trim() || '';
 	const endpoint = new URL(env.LAB_PARTNER_OLLAMA_URL || 'http://127.0.0.1:11434/api/chat');
 	if (

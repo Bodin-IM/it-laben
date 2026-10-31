@@ -1,6 +1,7 @@
 <script>
 	import PartnerContext from '#lib/components/PartnerContext.svelte';
 
+	import ProjectTask from '#lib/components/ProjectTask.svelte';
 	import ModuleContext from '#lib/components/ModuleContext.svelte';
 	import { avatarFeedback } from '#lib/avatarFeedback.js';
 	import { createState, planRun, advance } from '#lib/fillagring.js';
@@ -213,10 +214,10 @@
 			<div>
 				<p class="overlinje">FILLAGRING · KODEN I FOKUS</p>
 				<h1 id="tittel">Hva overlever en omstart?</h1>
-				<p class="ingress">Endre en melding, følg koden og se hva som blir lagret.</p>
+				<p class="ingress">Kjør oppstart, send en melding og start serveren på nytt. Se om meldingen kommer tilbake fra filen.</p>
 				<p class="ovingslenke">
-					Dette er den enkle innføringen. <a href="/oving-5/"
-						>Øving 5: trygg lagring med ny liste, midlertidig fil og feilhåndtering →</a
+					Først undersøker vi minne og fil. <a href="/oving-5/"
+						>Deretter: trygg lagring og feiltilfeller i øving 5 →</a
 					>
 				</p>
 			</div>
@@ -490,6 +491,9 @@
 				</div>
 			</details>
 
+			<ProjectTask id="eget-prosjekt"
+				instruction="Lagre meldingslisten i en JSON-fil utenfor public og static i egen backend, og les den inn ved oppstart."
+				check="Send en melding, stopp backend, start den på nytt og hent med GET. Sammenlign deretter med et forsøk uten lagringskallet. Gå videre til øving 5 før du håndterer lagringsfeil." />
 			<details class="egetprosjekt">
 				<summary
 					><span><b>Bruk i eget prosjekt</b><small>Samme oppsett som i hjelpearket</small></span
@@ -503,7 +507,7 @@
 					</p>
 					<h2>1. Les filen ved oppstart</h2>
 					<p>
-						Legg importen øverst. Erstatt den gamle <code>let meldinger = []</code> med innlastingen under,
+						Legg importen øverst. Erstatt den gamle opprettelsen av <code>meldinger</code> med innlastingen under,
 						før rutene bruker listen.
 					</p>
 					<pre><code>{oppstartKode}</code></pre>
@@ -524,7 +528,7 @@
 						<p>
 							Bruk én backendprosess og små datamengder. Sync-funksjonene blokkerer serverprosessen
 							mens de arbeider. Filen må inneholde gyldig JSON med et array: bruk <code>[]</code> for
-							en tom liste, ikke en helt tom fil. Eksemplet har ikke feilhåndtering for lese- eller skrivefeil.
+							en tom liste, ikke en helt tom fil. Eksemplet har ikke feilhåndtering for lese- eller skrivefeil. I øving 5 forbedrer du rekkefølgen: lagre en ny liste før minnet endres. Bruk den varianten når du bygger videre.
 						</p>
 						<p>
 							Filen ligger i backendmappen, utenfor <code>static</code> og <code>public</code>.

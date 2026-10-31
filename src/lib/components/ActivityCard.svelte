@@ -1,16 +1,17 @@
 <script>
 	import { moduleLink } from '#lib/moduleNavigation.js';
-	import { innholdsformat } from '#lib/innhold.js';
+	import { fag, innholdsformat } from '#lib/innhold.js';
 	import { lab } from '#lib/lab.js';
-	/** @type {{activity:(typeof import('#lib/innhold.js').altElevinnhold)[number]}} */
-	let { activity } = $props();
+	/** @type {{activity:(typeof import('#lib/innhold.js').altElevinnhold)[number],compact?:boolean}} */
+	let { activity, compact = false } = $props();
 	const status = $derived($lab.summary?.progress.find((item) => item.id === activity.id)?.status);
 </script>
 
-<a class="sidekort" href={moduleLink(activity.href, null)}>
+<a class="sidekort" class:compact href={moduleLink(activity.href, null)}>
 	<span class="activity-icon" aria-hidden="true">{activity.symbol}</span>
 	<div class="copy">
 		<div class="meta">
+			{#if compact}<span>{fag.find((item) => item.id === activity.fag)?.navn}</span>{/if}
 			<span
 				>{activity.format === 'aktivitet'
 					? activity.type
@@ -24,7 +25,7 @@
 		</div>
 		<h3>{activity.tittel}</h3>
 		<p>{activity.beskrivelse}</p>
-		<span class="topics">{activity.emner.join(' · ')}</span>
+		{#if !compact}<span class="topics">{activity.emner.join(' · ')}</span>{/if}
 	</div>
 	<span class="arrow" aria-hidden="true">→</span>
 </a>
@@ -99,6 +100,16 @@
 		font-size: 1.2rem;
 		color: var(--color-accent);
 	}
+	.sidekort.compact {
+		grid-template-columns: minmax(0, 1fr) 18px;
+		gap: 12px;
+		padding: 14px 16px;
+		height: auto;
+	}
+	.compact .activity-icon { display: none; }
+	.compact .meta { margin-bottom: 3px; }
+	.compact h3 { margin-bottom: 4px; }
+	.compact p { margin: 0; font-size: var(--font-small); }
 	@media (max-width: 550px) {
 		.sidekort {
 			grid-template-columns: minmax(0, 1fr) 18px;

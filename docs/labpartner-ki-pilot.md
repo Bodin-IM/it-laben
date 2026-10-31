@@ -12,6 +12,10 @@ Labpartneren er tilgjengelig på elevsidene. Lærer- og administratorsider er un
 
 På elevsidene brukes `page-help` versjon 2 med kjent side-ID, eventuell validert modul og en avgrenset arbeidsstatus. Backend henter faglig grunnlag og kode fra IT-labens egne kilder. Nye øvingsark i felleskomponenten får koblingen automatisk. Se [delingsoversikten](labpartner-kontekst.md#hva-sidene-deler) for felter og begrensninger. Lærer-ID-er avvises også direkte i API-et.
 
+Panelet har én figur i toppen, som vokser ved åpning. Sidehjelpen viser sidetittel og ett tips. «Mer hjelp» samler sideforklaring, hjelp om verktøyene og lenken «Vis meg rundt».
+
+På fagoversikten er den samme labpartnerkomponenten plassert over fagmenyen i venstrespalten, slik at søk og aktiv modul starter øverst i hovedinnholdet. Fra 1200 CSS-piksler åpnes panelet i kolonnen. På mindre skjermer åpner en kompakt knapp dialogen; inntil 800 piksler står knappen ved siden av den sammenleggbare fagmenyen. Den felles hovedmenyens labpartnerknapp åpner fortsatt samme panel. Denne dev-justeringen fra 30. oktober 2026 er gjennomgått i kode og diff; breddebytte, skjuling/gjenåpning, bevart samtale og tilgjengelighet prøves samlet før main.
+
 Panelet viser hva som følger med spørsmålet. Ingen fagsjekkspørsmål, Nattevakt-scenario eller vurderingsfasit hentes inn. Modellen kan forklare begreper og foreslå en undersøkelse, men skal ikke godkjenne arbeid eller gi XP. KI-generert veiledning må fortsatt prøves faglig med den lokale modellen; en systeminstruksjon garanterer ikke gode svar.
 
 Samtalen beholdes ved lukking og skjermbreddebytte, men tømmes ved bytte av sidegrunnlag, profil eller øvingskontekst. Pågående spørsmål avbrytes ved slikt bytte. Ukjente ruter får en generell navigasjonshjelp; bare kjente fagfiltre påvirker sidegrunnlaget. Ingen samtale lagres permanent. Presentasjonsvisningen beholder fraværet av elevverktøy.
@@ -46,7 +50,7 @@ Målgruppen er Vg2 IT med kjennskap til `if`, lister, `req.body` og HTTP-svar. E
 
 Veilederen følger [det pedagogiske grunnlaget](pedagogisk-grunnlag.md): korte, anvendelige svar, konkretisering ved behov og elevens styring over hjelpen. Ingen obligatorisk spørsmålsrekke eller poengtrekk ved hjelp. Responsen skiller hva forsøket viste fra en mulig forklaring og neste handling. Et åpnet hint eller bestått test dokumenterer ikke forståelse.
 
-Læreren bør først prøve kjente feil, utestede kodeendringer og riktige løsninger med den valgte modellen. Prøv deretter med 3–5 elever: Får eleven brukt rådet? Stemmer forklaringen med det synlige steget? Kan eleven forklare årsaken? Som ny anvendelse kan eleven overføre valideringsprinsippet til en romrute i eget prosjekt med mindre støtte. Dette følger [aktivitetsmalen](aktivitetsmal.md); brukertesting og dokumentasjon av læringseffekt er ikke gjennomført.
+Læreren bør først prøve kjente feil, utestede kodeendringer og riktige løsninger med den valgte modellen. Etter brukerens avklaring skjer elevutprøvingen i ordinær undervisning: Får eleven brukt rådet? Stemmer forklaringen med det synlige steget? Kan eleven forklare årsaken? Som ny anvendelse kan eleven overføre valideringsprinsippet til en romrute i eget prosjekt med mindre støtte. Dette følger [aktivitetsmalen](aktivitetsmal.md); brukertesting og dokumentasjon av læringseffekt er ikke gjennomført.
 
 ## Slik settes konteksten sammen
 
@@ -118,3 +122,21 @@ Utvidelsen er prøvd på fagoversikt, fagfilter, modul, øvinger, spill, oppsumm
 ## Videreutvikling
 
 Nye moduler og leksjoner gjenbruker felles metadata og øvingskomponenter. Nye aktivitetstyper trenger en eksplisitt kontrakt for deling av arbeidsstatus. Følg [utvidelsesoppskriften](labpartner-kontekst.md#nye-moduler-øvinger-og-leksjoner), øk versjonen ved inkompatible endringer, og bevar fast hjelp når KI ikke kan brukes. Ikke send hele siden, repoet, lærerinnhold eller vurderingsfasit til modellen.
+
+
+## Ett portrett og mindre fast tekst – dev, 30. oktober 2026
+
+Den tidligere store figurblokken under paneltoppen er fjernet. `PartnerStage` brukes nå som ett portrett i toppen av det åpne panelet, både i venstrespalten og i dialogen. Figuren vokser fra 44 til 68 px (76 px med bakgrunn) ved åpning. Bakgrunnsvalget vises rundt portrettet. Overgangen varer 240 ms og slås av ved redusert bevegelse i IT-laben eller operativsystemet. Avatarreaksjoner og valg av figur beholdes. Sidehjelp og innstillinger bruker høyden innholdet trenger innenfor panelets grense; KI-samtalen beholder en stabil svarflate. Mobilens dialog fyller fortsatt skjermen.
+
+Sidehjelpen prioriterer ett konkret tips og «Et annet tips». Sidebeskrivelse, omvisning og forklaring av Sidehjelp/KI åpnes under «Mer hjelp». Den gjentatte oppfordringen «Velg KI» og temaoppramsingen er fjernet fra standardvisningen. KI beholder spørrefelt, hurtigvalg, avbryt, feil, tidligere svar og den lukkede delingsoversikten. Den korte påminnelsen om å prøve KI-forslaget vises når et svar finnes. En tilkobling som undersøkes vises som lasting, ikke samtidig som en utilgjengelig tjeneste.
+
+Valgene følger designgrunnlagets U1/U3/U6 om relevant innhold, tydelig hierarki og hjelp ved behov, samt pedagogikkens del 3–5 om elevstyrt støtte. Kontekstkontrakter, spørsmål/svar, kontobytter, vurdering og XP endres ikke. Portrettets bevegelse er dekorasjon, ikke et tegn på at eleven har lært noe.
+
+Kode og diff er gjennomgått. Svelte MCP er ikke tilgjengelig; offisiell Svelte-dokumentasjon er brukt. Tester, Svelte-sjekk, bygg og nettleserprøving er utsatt til før main i tråd med dev-avtalen. Før publisering: prøv åpning/lukking og breddebytte, én figur per åpent panel, bevart samtale/utkast, KI av/på/feil, omvisningslenke, utseende/bakgrunn, tastatur/Escape, smal og lav skjerm, tekstzoom, begge temaer og begge innstillingene for redusert bevegelse. Dette er ikke elevutprøving eller dokumentasjon av forbedret læring.
+
+
+## Gjentakbar kvalitetsprøve – dev, 31. oktober 2026
+
+[Kvalitetsprøven](labpartner-kvalitetsprove.md) gjør den faglige modellkontrollen konkret: 14 oppdiktede elevsituasjoner, faktiske kontekster og modellinnstillinger, fortløpende rapport og kriterier for manuell gjennomgang. Kjør `npm run partner:eval -- --repeat=2` på serveren med samme modellkonfigurasjon som API-et. `--dry-run` kontrollerer eksemplene uten modellkall. Dette erstatter ikke prøving av elevpanelet, kapasitet eller elevenes nytte i ordinære timer.
+
+Sideinstruksjonen for Backend er presisert, og modellklienten deles av API og kvalitetsprøve. API-ets innlogging, samtidighet, avbrudd og grenser beholdes. I denne leveransen er bare eksempelkontekstene og åtte avgrensede regresjonstester kontrollert. Skolens modell er ikke tilgjengelig her; dens faktiske svar er ikke evaluert. Historiske kontrolltall ovenfor gjelder tidligere leveranser.

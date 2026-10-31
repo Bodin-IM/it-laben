@@ -7,7 +7,10 @@
 	import Avatar from '#lib/components/Avatar.svelte';
 	import { MISSIONS, casesFor, programCode } from '#lib/reddChatten.js';
 	import { partnerRequest, partnerSnapshotKey } from '#lib/labPartner.js';
-	/** @type {{snapshot:import('#lib/labPartner.js').PartnerSnapshot, accountId:string|null, csrf:string, avatarId?:string, onreset:()=>void, contextError?:string, dialogBreakpoint?:number,reactionMood?:import('#lib/avatarFeedback.js').AvatarMood,reactionMessage?:string}} */
+	import { getInterfaceHelp } from '#lib/interfaceHelp.js';
+	const interfaceHelp = getInterfaceHelp();
+	let whereError = $state('');
+	/** @type {{snapshot:import('#lib/labPartner.js').PartnerSnapshot, accountId:string|null, csrf:string, avatarId?:string, onreset:()=>void, contextError?:string, dialogBreakpoint?:number,compact?:boolean,reactionMood?:import('#lib/avatarFeedback.js').AvatarMood,reactionMessage?:string}} */
 	let {
 		snapshot,
 		contextError = '',
@@ -16,6 +19,7 @@
 		avatarId = 'robot',
 		onreset,
 		dialogBreakpoint = 600,
+		compact = false,
 		reactionMood = 'idle',
 		reactionMessage = ''
 	} = $props();
@@ -126,6 +130,19 @@
 		if (opener?.isConnected) opener.focus({ preventScroll: true });
 		window.scrollTo({ top: savedScroll, behavior: 'instant' });
 	}
+	/** @param {symbol} key */
+	async function showWhere(key) {
+		// Release the modal/focus trap before revealing the destination. Keep chat and draft.
+		whereError = '';
+		expanded = false;
+		dialog?.close();
+		await tick();
+		if (disposed) return;
+		if (!interfaceHelp.show(key)) {
+			expanded = true;
+			whereError = 'Dette området er ikke tilgjengelig nå. Velg et annet sted.';
+		}
+	}
 	$effect(() => {
 		if (mobile.current && expanded && dialog && !dialog.open) dialog.showModal();
 	});
@@ -155,6 +172,7 @@
 	}
 	onDestroy(() => {
 		disposed = true;
+		interfaceHelp.clear();
 		requestSerial += 1;
 		requestController?.abort();
 		statusController?.abort();
@@ -278,8 +296,11 @@
 {/snippet}
 
 {#snippet body()}
-	<div class="partner-body ready">
-		<div class="mode-switch" aria-label="Labpartnerens verktøy">
+	<div class="partner-body ready" class:ai-ready={mode === 'ai' && enabled === true && !!accountId}>
+		<div class="mode-switch" class:with-where={$interfaceHelp.targets.length > 0} aria-label="Labpartnerens verktøy">
+			{#if $interfaceHelp.targets.length}
+				<button type="button" aria-pressed={mode === 'where'} onclick={() => chooseMode('where')}>Vis meg hvor</button>
+			{/if}
 			<button type="button" aria-pressed={mode === 'guide'} onclick={() => chooseMode('guide')}
 				>Sidehjelp</button
 			>
@@ -310,7 +331,6 @@
 			</button>
 		</div>
 		{#if mode === 'ai'}
-			{#if checking}<p role="status">Sjekker KI-tilkoblingen …</p>{/if}
 			{#if !accountId}
 				<p class="availability">
 					<a href="/min-lab/">Logg inn i Min lab</a> for å bruke KI. Sidehjelp og utseende virker uten
@@ -408,9 +428,7 @@
 									<summary>Tidligere svar ({earlier.length})</summary>
 									{#each earlier as turn}{@render turnCard(turn)}{/each}
 								</details>{/if}
-						{:else}<p class="empty">
-								Be om et hint eller skriv et spørsmål. Svaret kommer her.
-							</p>{/if}
+						{/if}
 					</div>
 					{#if repair}
 						<details class="shared-context">
@@ -450,10 +468,6 @@
 							</div>
 						</details>
 
-						<p class="fine">
-							Oppgaven og kodevalgene dine følger med når du spør. KI-svar kan være feil. Bruk
-							oppgavens tester til å undersøke forslaget. Hjelpen gir ingen poengtrekk.
-						</p>
 					{:else}
 						<details class="shared-context">
 							<summary>Dette følger med spørsmålet</summary>
@@ -479,12 +493,11 @@
 										)}</pre>
 								</details>{/if}
 						</details>
-						<p class="fine">
-							KI-svar kan være feil. Undersøk forslaget med sidens forklaringer og tester. Hjelpen
-							vurderer ikke forståelsen din og gir ingen poengtrekk.
-						</p>
 					{/if}
+					{#if latest}<p class="fine">KI-svar kan være feil. Prøv forslaget i oppgaven.</p>{/if}
 				</div>
+			{:else if checking}
+				<p role="status">Sjekker KI-tilkoblingen …</p>
 			{:else}
 				<p class="availability">KI er ikke tilgjengelig nå. Bruk Sidehjelp for tips om siden.</p>
 				{#if error || contextError}<p class="error" role="alert">{error || contextError}</p>{/if}
@@ -500,18 +513,22 @@
 			<div
 				class="answer-scroll local-help"
 				role="region"
-				aria-label={mode === 'style' ? 'Utseende' : 'Sidehjelp'}
+				aria-label={mode === 'style' ? 'Utseende' : mode === 'where' ? 'Vis meg hvor' : 'Sidehjelp'}
 				tabindex="0"
 			>
-				<PartnerStage {avatarId} {mood} />
 				{#if mode === 'style'}<PartnerAppearance />
+				{:else if mode === 'where'}
+					<h3>Hva leter du etter?</h3>
+					<div class="where-choices">
+						{#each $interfaceHelp.targets as target (target.key)}
+							<button type="button" onclick={() => showWhere(target.key)}>{target.label}<span aria-hidden="true">→</span></button>
+						{:else}<p>Ingen veivisere på denne siden ennå.</p>{/each}
+					</div>
+					{#if whereError}<p role="status">{whereError}</p>{/if}
 				{:else}
-					<p class="eyebrow">FAST SIDEHJELP · UTEN KI</p>
 					<h3>{pageHelp.title}</h3>
-					<p>{pageHelp.summary}</p>
-					{#if pageHelp.topics.length}<p class="fine">Tema: {pageHelp.topics.join(' · ')}</p>{/if}
 					<div class="guide-tip">
-						<strong>Forslag {tipIndex + 1} av {pageHelp.tips.length}</strong>
+						<strong>Tips {tipIndex + 1} av {pageHelp.tips.length}</strong>
 						<p>{pageHelp.tips[tipIndex]}</p>
 					</div>
 					<button
@@ -519,19 +536,20 @@
 						class="secondary"
 						onclick={() => (tipIndex = (tipIndex + 1) % pageHelp.tips.length)}>Et annet tips</button
 					>
-					<p>
-						<a
-							href="/tutorial/?tur=finn"
-							onclick={() => {
-								expanded = false;
-								dialog?.close();
-							}}>Vis meg rundt i IT-laben →</a
-						>
-					</p>
-					<p class="fine guide-note">
-						Disse rådene er skrevet på forhånd. Velg KI for å stille egne spørsmål når tjenesten er
-						tilgjengelig.
-					</p>
+					<details class="guide-more">
+						<summary>Mer hjelp</summary>
+						<p>{pageHelp.summary}</p>
+						<p class="fine">Sidehjelp gir faste tips. KI lar deg stille egne spørsmål når tjenesten er tilgjengelig. Hjelpen gir ingen poengtrekk og vurderer ikke forståelsen din.</p>
+						<p>
+							<a
+								href="/tutorial/?tur=finn"
+								onclick={() => {
+									expanded = false;
+									dialog?.close();
+								}}>Vis meg rundt i IT-laben →</a
+							>
+						</p>
+					</details>
 				{/if}
 			</div>
 		{/if}
@@ -543,15 +561,18 @@
 		type="button"
 		id="labpartner-hjelp"
 		class="mobile-launch"
+		class:compact
 		aria-haspopup="dialog"
+		aria-label={newAnswerReady ? 'Spør labpartneren, nytt svar klart' : 'Spør labpartneren'}
 		onclick={openPanel}
 	>
-		<Avatar id={avatarId} {mood} size={44} /><span
-			>Spør labpartneren{#if newAnswerReady}<small>Nytt svar klart</small>{/if}</span
-		><span aria-hidden="true">→</span>
+		<Avatar id={avatarId} {mood} size={compact ? 32 : 44} decorative /><span class="launch-label"
+			>{compact ? 'Labpartner' : 'Spør labpartneren'}{#if newAnswerReady}<small>Nytt svar klart</small>{/if}</span
+		>{#if !compact}<span aria-hidden="true">→</span>{/if}
 	</button>
 	<dialog
 		class="partner-dialog"
+		class:ai-ready={mode === 'ai' && enabled === true && !!accountId}
 		bind:this={dialog}
 		aria-labelledby="partner-dialog-title"
 		oncancel={(event) => {
@@ -561,7 +582,7 @@
 	>
 		<div class="dialog-header">
 			<div class="dialog-title">
-				<Avatar id={avatarId} {mood} size={40} /><strong id="partner-dialog-title"
+				<PartnerStage {avatarId} {mood} {expanded} reveal /><strong id="partner-dialog-title"
 					>Labpartneren</strong
 				>
 			</div>
@@ -580,10 +601,8 @@
 		}}
 	>
 		<summary class="panel-heading"
-			><Avatar id={avatarId} {mood} size={44} /><span
-				><strong>Spør labpartneren</strong><small
-					>{reactionMessage || 'Sidehjelp · KI · Utseende'}</small
-				></span
+			><PartnerStage {avatarId} {mood} {expanded} /><span
+				><strong>{expanded ? 'Labpartneren' : compact ? 'Labpartner' : 'Spør labpartneren'}</strong>{#if !expanded && reactionMessage}<small>{reactionMessage}</small>{/if}</span
 			></summary
 		>
 		{@render body()}
@@ -611,6 +630,20 @@
 		background: var(--color-surface-soft);
 		color: var(--color-text);
 	}
+	.mode-switch.with-where {
+		grid-template-columns: minmax(0, 1.5fr) minmax(0, 1.1fr) minmax(40px, .6fr) 44px;
+	}
+	.mode-switch.with-where button { padding-inline: 6px; }
+	.where-choices { display: grid; gap: 8px; }
+	.where-choices button {
+		display: flex;
+		align-items: center;
+		justify-content: space-between;
+		gap: 12px;
+		text-align: left;
+		background: var(--color-surface-soft);
+		color: var(--color-text);
+	}
 	.mode-switch button[aria-pressed='true'] {
 		background: var(--color-accent-soft);
 		border-color: var(--color-accent);
@@ -632,14 +665,10 @@
 	.guide-tip p {
 		margin: 6px 0 0;
 	}
-	.guide-note {
-		margin-top: 14px;
-	}
-	.eyebrow {
-		font-size: 0.65rem;
-		font-weight: 700;
-		letter-spacing: 0.08em;
-		color: var(--color-text-muted);
+	.guide-more {
+		margin-top: 16px;
+		border-top: 1px solid var(--color-border);
+		font-size: var(--font-small);
 	}
 	.local-help {
 		border-top: 0;
@@ -694,6 +723,10 @@
 	.partner-body.ready {
 		display: flex;
 		flex-direction: column;
+		max-height: min(680px, 75dvh);
+		min-height: 0;
+	}
+	.partner-body.ready.ai-ready {
 		height: min(680px, 75dvh);
 		min-height: 460px;
 	}
@@ -819,8 +852,7 @@
 		margin: 8px 0 0;
 	}
 	.earlier,
-	.fine,
-	.empty {
+	.fine {
 		color: var(--color-text-muted);
 		font-size: var(--font-small);
 	}
@@ -882,6 +914,12 @@
 	.mobile-launch > span:last-child {
 		margin-left: auto;
 	}
+	.mobile-launch.compact { padding: 6px 8px; gap: 8px; min-height: 48px; }
+	.mobile-launch.compact > .launch-label { margin-left: 0; }
+	@media (max-width: 440px) {
+		.mobile-launch.compact { width: 48px; justify-content: center; }
+		.mobile-launch.compact .launch-label { display: none; }
+	}
 	.partner-dialog {
 		width: 100%;
 		max-width: none;
@@ -911,11 +949,12 @@
 	.partner-dialog .partner-body.ready {
 		flex: 1;
 		min-height: 0;
+		max-height: none;
 		height: auto;
 		padding-bottom: max(14px, env(safe-area-inset-bottom));
 	}
 	@media (max-height: 650px) {
-		.partner-body.ready {
+		.partner-body.ready.ai-ready {
 			height: auto;
 			min-height: 0;
 		}
@@ -932,12 +971,13 @@
 	@media (min-width: 601px) {
 		.partner-dialog {
 			width: min(560px, calc(100% - 48px));
-			height: min(850px, calc(100dvh - 48px));
+			height: auto;
 			max-height: calc(100dvh - 48px);
 			margin: auto;
 			border: 1px solid var(--color-border-strong);
 			border-radius: 20px;
 			box-shadow: 0 20px 80px var(--color-shadow);
 		}
+		.partner-dialog.ai-ready { height: min(850px, calc(100dvh - 48px)); }
 	}
 </style>

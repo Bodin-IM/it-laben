@@ -40,7 +40,9 @@ import { avatars } from '../src/lib/avatars.js';
 import { schoolClasses, classCapacities } from '../src/lib/classes.js';
 import { labPartnerRouter } from './lab-partner/router.js';
 import { saveFeedback, listFeedback, setFeedbackStatus } from './feedback.js';
+import { feedbackPreferences, setFeedbackPreferences, offerFeedbackPrompt, respondToFeedbackPrompt, feedbackTotals } from './activity-feedback.js';
 import { networkLabSnapshot, checkNetworkLab } from './network-labs.js';
+import { prepareStudentKey, activateStudentKey } from './student-recovery.js';
 
 const DAY = 86400000;
 const hash = (value) => createHash('sha256').update(value).digest('hex');
@@ -162,7 +164,7 @@ export function createApp({ db, config, clock = Date.now, limits = true }) {
 		next();
 	};
 	app.use('/api/lab-partner', labPartnerRouter({ db, config, authenticated, limits }));
-	app.get('/api/network-labs/:labId', authenticated, (req, res) => res.json(networkLabSnapshot(db, req.labUser.id, req.params.labId)));
+	app.get('/api/network-labs/:labId', authenticated, (req, res) => res.json(networkLabSnapshot(db, req.labUser.id, req.params.labId, req.query.preview === '1')));
 	app.post('/api/network-labs/:labId/:taskId/check', authenticated, (req, res) => res.json(checkNetworkLab(db, req.labUser.id, req.params.labId, req.params.taskId, req.body, clock())));
 	const cookieOptions = { httpOnly: true, secure: config.secure, sameSite: 'lax', path: '/' };
 	function newSession(userId, remember) {
@@ -363,6 +365,7 @@ export function createApp({ db, config, clock = Date.now, limits = true }) {
 			db.prepare('DELETE FROM recovery_keys WHERE user_id=?').run(req.labUser.id);
 			db.prepare('INSERT INTO recovery_keys VALUES (?,?,?)').run(keyHash, req.labUser.id, clock());
 			db.prepare('DELETE FROM pending_recovery_keys WHERE user_id=?').run(req.labUser.id);
+			db.prepare('DELETE FROM pending_admin_recovery_keys WHERE user_id=?').run(req.labUser.id);
 			// Keep this session: even losing both response body and headers cannot lock the
 			// user out. They also already possess the newly active, downloaded key.
 			db.prepare('DELETE FROM sessions WHERE user_id=? AND hash<>?').run(
@@ -522,6 +525,21 @@ export function createApp({ db, config, clock = Date.now, limits = true }) {
 	app.get('/api/admin/feedback', authenticated, (req, res) =>
 		res.json(listFeedback(db, req.labUser.id, req.query))
 	);
+	app.get('/api/feedback/preferences', authenticated, (req, res) =>
+		res.json(feedbackPreferences(db, req.labUser.id))
+	);
+	app.post('/api/feedback/preferences', authenticated, accountMatches, (req, res) =>
+		res.json(setFeedbackPreferences(db, req.labUser.id, req.body))
+	);
+	app.post('/api/feedback/prompts', authenticated, accountMatches, (req, res) =>
+		res.json(offerFeedbackPrompt(db, req.labUser.id, req.body, clock()))
+	);
+	app.post('/api/feedback/prompts/:id', authenticated, accountMatches, (req, res) =>
+		res.json(respondToFeedbackPrompt(db, req.labUser.id, req.params.id, req.body, clock()))
+	);
+	app.get('/api/admin/feedback/activities', authenticated, (req, res) =>
+		res.json(feedbackTotals(db, req.labUser.id))
+	);
 	app.post('/api/admin/feedback/:id/status', authenticated, accountMatches, (req, res) =>
 		res.json(setFeedbackStatus(db, req.labUser.id, req.params.id, req.body, clock()))
 	);
@@ -540,6 +558,12 @@ export function createApp({ db, config, clock = Date.now, limits = true }) {
 	);
 	app.get('/api/teacher/students/:id', authenticated, (req, res) =>
 		res.json(studentDetail(db, req.labUser.id, req.params.id, clock()))
+	);
+	app.post('/api/teacher/students/:id/recovery/prepare', authenticated, accountMatches, (req, res) =>
+		res.json(prepareStudentKey(db, req.labUser.id, req.params.id, req.body, config.origin, clock()))
+	);
+	app.post('/api/teacher/students/:id/recovery/activate', authenticated, accountMatches, (req, res) =>
+		res.json(activateStudentKey(db, req.labUser.id, req.params.id, req.body, clock()))
 	);
 	app.post('/api/teacher/students/:id/:action', authenticated, accountMatches, (req, res) =>
 		res.json(manageStudent(db, req.labUser.id, req.params.id, req.params.action, req.body, clock()))

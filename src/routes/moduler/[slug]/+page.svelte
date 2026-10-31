@@ -11,6 +11,11 @@
 	import { modulePublication, refreshModulePublication } from '#lib/modulePublicationStore.js';
 	import ModuleAdministration from '#lib/components/ModuleAdministration.svelte';
 	import ModuleTeachingSuggestions from '#lib/components/ModuleTeachingSuggestions.svelte';
+	import PersonalOverview from '#lib/components/PersonalOverview.svelte';
+	import ValidationJourney from '#lib/components/ValidationJourney.svelte';
+	import BackendStart from '#lib/components/BackendStart.svelte';
+	import ProjectTask from '#lib/components/ProjectTask.svelte';
+	import { backendSections } from '#lib/backendCourse.js';
 	/** @type {{data:{module:import('#lib/moduler.js').Module}}} */
 	let { data } = $props();
 	const module = $derived(data.module);
@@ -53,7 +58,7 @@
 	function status(/** @type {string} */ id) {
 		const value = $lab.summary?.progress.find((item) => item.id === id)?.status;
 		return value === 'passed'
-			? 'Bestått'
+			? 'Oppdragstester bestått'
 			: value === 'reviewed'
 				? 'Gjennomgått'
 				: value === 'started'
@@ -180,6 +185,7 @@
 					>
 				</div>
 			{/if}
+			{#if module.id === 'backend'}<BackendStart />{/if}
 			<details class="module-guide">
 				<summary>Mål og forkunnskaper</summary>
 				<div class="guide-content">
@@ -196,6 +202,7 @@
 				</div>
 			</details>
 			{#if teacher}<ModuleTeachingSuggestions {module} />{/if}
+			{#if !teacher}<PersonalOverview moduleId={module.id} />{/if}
 			<div class="layout">
 				<section id="forlop" aria-labelledby="forlop-title" tabindex="-1">
 					<div class="section-heading">
@@ -209,14 +216,16 @@
 								tabindex="-1"
 								class:teaching={step.kind === 'undervisning'}
 							>
-								{#if step.section}<h3 class="part-title">{step.section}</h3>{/if}
+								{#if step.section}<div class="part-title"><h3>{step.section}</h3>
+									{#if module.id === 'backend'}<p>{backendSections[step.section]}</p>{/if}
+								</div>{/if}
 								<span class="step-number" aria-hidden="true"
 									>{String(index + 1).padStart(2, '0')}</span
 								>
 								<div class="step-content">
 									<div class="step-top">
 										<span class="step-type"
-											>{moduleTypes[step.kind].label}{step.format === 'spill'
+											>{step.optional ? 'Valgfri ekstrautfordring' : moduleTypes[step.kind].label}{step.format === 'spill'
 												? ' · Spill'
 												: ''}</span
 										>{#if step.kind !== 'undervisning' && status(step.id)}<span class="status"
@@ -252,6 +261,12 @@
 															: 'Åpne oppdraget'}
 											<span aria-hidden="true">→</span></a
 										>{/if}
+									{#if module.id === 'backend' && step.id === 'oving-7'}
+										<ValidationJourney moduleId={module.id} />
+									{/if}
+									{#if step.practice}
+										<ProjectTask instruction={step.practice.instruction} check={step.practice.check} />
+									{/if}
 								</div>
 							</li>
 						{/each}
@@ -286,6 +301,8 @@
 							></progress>
 							<p class="muted">
 								Status hentes fra øvingene og oppdragene. Felles gjennomgang telles ikke med.
+								Arbeidet i egen kode følges opp sammen med læreren.
+								{#if module.id === 'backend'}Nattevakten er valgfri og telles ikke i denne oversikten.{/if}
 							</p>
 						</section>{/if}
 					{#if module.resources.length}<section class="panel">
@@ -321,6 +338,8 @@
 		color: var(--color-info);
 		font-size: 1.1rem;
 	}
+	.part-title h3 { margin: 0 0 8px; font-size: 1.15rem; }
+	.part-title p { margin: 0; max-width: 75ch; color: var(--color-text-muted); font: 400 var(--font-body)/1.6 var(--font-ui); }
 	.continuation {
 		margin-top: 24px;
 	}

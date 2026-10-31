@@ -1,4 +1,5 @@
 import { hostAddress, membership } from './vlanLab.js';
+import { portFeedback, untaggedVlan } from './networkCheckFeedback.js';
 
 /** @typedef {{id:string,name:string,vlan:number,network:string,gateway:string}} Network */
 /** @typedef {{id:string,name:string,kind:'pc'|'switch'|'router'|'ap',x:number,y:number}} Device */
@@ -380,7 +381,8 @@ function layer2(task, config, source, target) {
 		source.switchId,
 		`${source.switchId.toUpperCase()} ${source.port} mottar ${source.tag === null ? 'untagged' : `tagged VLAN ${source.tag}`}.`
 	);
-	let vlan = source.tag ?? config.switches[source.switchId].ports[source.port].pvid;
+	let vlan = source.tag ?? untaggedVlan(config.switches[source.switchId].ports[source.port]);
+	if (vlan === null) return stop(source.switchId, `${source.switchId.toUpperCase()} ${source.port} avviser umerket trafikk. Sett U på riktig VLAN-rad.`);
 	if (!allowed(source.switchId, source.port, vlan))
 		return stop(
 			source.switchId,
@@ -400,13 +402,15 @@ function layer2(task, config, source, target) {
 			incoming = link.a === next ? link.aPort : link.bPort;
 		if (!allowed(here, out, vlan))
 			return stop(here, `${here.toUpperCase()} ${out}: VLAN ${vlan} er Exclude eller mangler.`);
+		/** @type {number|null} */
 		const tag = membership(config.switches[here].ports[out], vlan) === 'tagged' ? vlan : null;
 		move(
 			here,
 			next,
 			`${here.toUpperCase()} ${out} → ${next.toUpperCase()} ${incoming}: ${tag === null ? 'untagged' : `tagged VLAN ${tag}`}.`
 		);
-		vlan = tag ?? config.switches[next].ports[incoming].pvid;
+		vlan = tag ?? untaggedVlan(config.switches[next].ports[incoming]);
+		if (vlan === null) return stop(next, `${next.toUpperCase()} ${incoming} har ikke et Untagged-VLAN for umerket trafikk.`);
 		if (!allowed(next, incoming, vlan))
 			return stop(next, `${next.toUpperCase()} ${incoming} avviser VLAN ${vlan}.`);
 		i += direction;
@@ -595,65 +599,73 @@ export function pingVlan2(task, config, sourceId, targetId) {
 
 /** @param {Task} task @param {Config} config */
 export function checkVlan2Task(task, config) {
-	/** @type {{label:string,ok:boolean,deviceId:string}[]} */ const rows = [];
-	/** @param {string} label @param {boolean} ok @param {string} deviceId */
-	const row = (label, ok, deviceId) => rows.push({ label, ok, deviceId });
-	for (const n of task.networks)
+	/** @type {{label:string,ok:boolean,deviceId:string,error:string}[]} */ const rows = [];
+	/** @param {string} label @param {boolean} ok @param {string} deviceId @param {string} error */
+	const row = (label, ok, deviceId, error) => rows.push({ label, ok, deviceId, error: ok ? '' : error });
+	for (const n of task.networks) {
+		const interfaces = config.router.interfaces.filter((r) => r.vlan === n.vlan);
 		row(
 			`R1: VLAN ${n.vlan}, gateway ${n.gateway}/24`,
-			config.router.interfaces.some(
-				(r) => r.vlan === n.vlan && hostAddress(r.ip)?.address === n.gateway
-			),
-			'r1'
+			config.router.interfaces.some((r) => r.vlan === n.vlan && hostAddress(r.ip)?.address === n.gateway),
+			'r1',
+			interfaces.length
+				? `R1: VLAN ${n.vlan} har IP ${interfaces.map((r) => r.ip || '(tom)').join(', ')}. Nettverksplanen krever gateway ${n.gateway}/24.`
+				: `R1 har ingen interface for VLAN ${n.vlan}. Legg til VLAN-et med gateway ${n.gateway}/24.`
 		);
+	}
+	const invalidInterface = config.router.interfaces.find((r) => !hostAddress(r.ip));
+	const duplicateVlan = new Set(config.router.interfaces.map((r) => r.vlan)).size !== config.router.interfaces.length;
 	row(
 		'R1: unike VLAN-interfacer og ulike IP-nett',
-		new Set(config.router.interfaces.map((r) => r.vlan)).size === config.router.interfaces.length &&
-			new Set(config.router.interfaces.map((r) => hostAddress(r.ip)?.network)).size ===
-				config.router.interfaces.length &&
+		!duplicateVlan &&
+			new Set(config.router.interfaces.map((r) => hostAddress(r.ip)?.network)).size === config.router.interfaces.length &&
 			config.router.interfaces.every((r) => !!hostAddress(r.ip)),
-		'r1'
+		'r1',
+		invalidInterface ? `R1: IP-adressen for VLAN ${invalidInterface.vlan} er tom eller ugyldig. Bruk en vertsadresse fra nettverksplanen.`
+			: duplicateVlan ? 'R1 har flere interfacer med samme VLAN-ID. Behold én interface per VLAN.'
+				: 'Flere R1-interfacer ligger i samme /24-nett. Bruk et eget IP-nett for hvert VLAN.'
 	);
 	for (const pc of task.pcs) {
 		const n = task.networks.find((n) => n.id === pc.networkId);
 		if (!n) continue;
+		const address = hostAddress(config.ips[pc.id]);
 		row(
-			`${pc.name}: unik IP i ${n.network}.0/24 og gateway ${n.gateway}`,
-			hostAddress(config.ips[pc.id])?.network === n.network &&
+			`${pc.name}: IP i ${n.network}.0/24 og gateway ${n.gateway}`,
+			address?.network === n.network &&
 				hostAddress(config.gateways[pc.id])?.address === n.gateway &&
 				config.ips[pc.id] !== n.gateway,
-			pc.id
+			pc.id,
+			!address ? `${pc.name}: IP-adressen er tom eller ugyldig. Bruk en vertsadresse i ${n.network}.0/24.`
+				: address.network !== n.network ? `${pc.name} har ${address.address}/24 og ligger i feil nett. Bruk ${n.network}.0/24.`
+					: config.ips[pc.id] === n.gateway ? `${pc.name} bruker gatewayens IP-adresse ${n.gateway}. Velg en annen vertsadresse i samme nett.`
+						: `${pc.name} har gateway ${config.gateways[pc.id] || '(tom)'}. Sett default gateway til ${n.gateway}.`
 		);
-		if (pc.wireless)
+		if (pc.wireless) {
+			const wrongSsid = config.ssids[pc.id] !== n.id;
 			row(
 				`${pc.name}: Lab-${n.name} på VLAN ${n.vlan}`,
-				config.ssids[pc.id] === n.id &&
-					config.wifi[n.id]?.enabled &&
-					config.wifi[n.id]?.vlan === n.vlan,
-				'ap1'
+				!wrongSsid && config.wifi[n.id]?.enabled && config.wifi[n.id]?.vlan === n.vlan,
+				wrongSsid ? pc.id : 'ap1',
+				wrongSsid ? `${pc.name} er ${config.ssids[pc.id] ? 'koblet til feil SSID' : 'ikke koblet til Wi-Fi'}. Velg Lab-${n.name} på klienten.`
+					: !config.wifi[n.id]?.enabled ? `AP1: Lab-${n.name} er avslått. Aktiver dette SSID-et.`
+						: `AP1: Lab-${n.name} bruker VLAN ${config.wifi[n.id]?.vlan}. Endre til VLAN ${n.vlan}.`
 			);
-		else {
-			const sw = config.switches[pc.switchId],
-				p = sw.ports[pc.port];
+		} else {
+			const sw = config.switches[pc.switchId], p = sw.ports[pc.port];
 			row(
-				`${pc.switchId.toUpperCase()} ${pc.port}: bare VLAN ${n.vlan} Untagged, PVID ${n.vlan}`,
-				sw.vlans.includes(n.vlan) &&
-					p.pvid === n.vlan &&
-					membership(p, n.vlan) === 'untagged' &&
-					Object.entries(p.members).every(
-						([v, mode]) => mode === 'excluded' || Number(v) === n.vlan
-					),
-				pc.switchId
+				`${pc.switchId.toUpperCase()} ${pc.port}: bare VLAN ${n.vlan} Untagged`,
+				sw.vlans.includes(n.vlan) && membership(p, n.vlan) === 'untagged' &&
+					Object.entries(p.members).every(([v, mode]) => mode === 'excluded' || Number(v) === n.vlan),
+				pc.switchId,
+				portFeedback(sw, pc.switchId.toUpperCase(), pc.port, n.vlan, 'untagged')
 			);
 		}
-		row(`${pc.name} ↔ egen gateway: ping får svar`, pingVlan2(task, config, pc.id, 'r1').ok, pc.id);
+		const ping = pingVlan2(task, config, pc.id, 'r1');
+		row(`${pc.name} ↔ egen gateway: ping får svar`, ping.ok, pc.id, `${pc.name} ↔ egen gateway: ${ping.message}`);
 	}
 	const uplinks = [
 		task.router,
-		...task.links.flatMap((l) => [
-			{ switchId: l.a, port: l.aPort },
-			{ switchId: l.b, port: l.bPort }
-		]),
+		...task.links.flatMap((l) => [{ switchId: l.a, port: l.aPort }, { switchId: l.b, port: l.bPort }]),
 		...(task.ap ? [task.ap] : [])
 	];
 	for (const p of uplinks) {
@@ -661,24 +673,25 @@ export function checkVlan2Task(task, config) {
 		const nets = p === task.ap ? task.networks.filter((n) => n.id !== 'admin') : task.networks;
 		row(
 			`${p.switchId.toUpperCase()} ${p.port}: ${nets.map((n) => n.vlan).join(', ')} Tagged`,
-			nets.every(
-				(n) => sw.vlans.includes(n.vlan) && membership(sw.ports[p.port], n.vlan) === 'tagged'
-			),
-			p.switchId
+			nets.every((n) => sw.vlans.includes(n.vlan) && membership(sw.ports[p.port], n.vlan) === 'tagged'),
+			p.switchId,
+			nets.map((n) => portFeedback(sw, p.switchId.toUpperCase(), p.port, n.vlan, 'tagged')).filter(Boolean).join(' ')
 		);
 	}
 	for (const pc of task.pcs)
 		for (const other of task.pcs.filter((p) => p.id > pc.id)) {
-			const blocked =
-				task.isolateGuest &&
-				pc.networkId !== other.networkId &&
-				[pc.networkId, other.networkId].includes('gjest');
-			const result = pingVlan2(task, config, pc.id, other.id),
-				reverse = pingVlan2(task, config, other.id, pc.id);
+			const blocked = task.isolateGuest && pc.networkId !== other.networkId && [pc.networkId, other.networkId].includes('gjest');
+			const result = pingVlan2(task, config, pc.id, other.id), reverse = pingVlan2(task, config, other.id, pc.id);
+			const failure = !result.ok ? result : reverse;
+			const unblocked = result.code !== 'policy' ? result : reverse;
 			row(
 				`${pc.name} ↔ ${other.name}: ${blocked ? 'sperret av R1-regel' : 'ping får svar'}`,
 				blocked ? result.code === 'policy' && reverse.code === 'policy' : result.ok && reverse.ok,
-				blocked ? 'r1' : pc.id
+				blocked ? 'r1' : pc.id,
+				`${pc.name} ↔ ${other.name}: ` + (blocked
+					? unblocked.ok ? 'Trafikken slipper gjennom. Slå av tillatelsen mellom gjestenettet og dette nettet på R1.'
+						: `${unblocked.message} Her skal R1s tilgangsregel sperre trafikken; en ødelagt forbindelse teller ikke som riktig sperre.`
+					: failure.message)
 			);
 		}
 	return { passed: rows.every((r) => r.ok), rows };

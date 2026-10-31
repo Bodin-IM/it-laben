@@ -2,6 +2,7 @@
 	import PartnerContext from '#lib/components/PartnerContext.svelte';
 
 	import PageLinks from '#lib/components/PageLinks.svelte';
+	import ProjectTask from '#lib/components/ProjectTask.svelte';
 	import ModuleContext from '#lib/components/ModuleContext.svelte';
 	import { avatarFeedback } from '#lib/avatarFeedback.js';
 	import SessionStepCode from '#lib/components/SessionStepCode.svelte';
@@ -263,11 +264,10 @@
 				<p class="overlinje">UTVIKLING · Vg2 IT</p>
 				<h1 id="sidetittel">Sessions og pålogging</h1>
 				<p class="ingress">
-					Hvordan husker serveren deg? Nettleseren har en ID. Serveren bruker den til å finne
-					brukeren. Prøv sammenhengen, ett spørsmål om gangen.
+					Følg en innlogging og finn samme session-ID i nettleseren og på serveren. Prøv deretter hva som skjer når cookien ikke sendes med.
 				</p>
 				<p class="ovingslenke">
-					<a href="/oving-8/">Øving 8: registrering, passordhash og innlogging fra øvingsarket →</a>
+					<a href="/oving-8/">Bygg videre i øving 8: registrering, passordhash og utlogging →</a>
 				</p>
 			</div>
 			<span class="intromerke" aria-hidden="true">ID <span>↔</span> bruker</span>
@@ -601,6 +601,9 @@
 				</div>
 			</section>
 		{/if}
+		<ProjectTask id="eget-prosjekt"
+			instruction="Koble /meg til en synlig innloggingsstatus i egen frontend. Bruk kodehjelpen på denne siden og øving 8 for faktisk registrering og passordkontroll."
+			check="Sammenlign /meg uten cookie, med en gyldig session og etter utlogging. Forklar hvorfor en lagret cookie alene ikke er bevis på en innlogget bruker." />
 		<footer>
 			<a href="/">← Flere forsøk i IT-laben</a><span>Ett spørsmål om gangen</span>
 		</footer>

@@ -1,4 +1,5 @@
 <script>
+	import { untaggedVlan } from '#lib/networkCheckFeedback.js';
 	import { membership } from '#lib/vlanLab.js';
 	/** @type {{device:import('#lib/vlanLab2.js').Switch,config:import('#lib/vlanLab.js').SwitchConfig,networks:import('#lib/vlanLab2.js').Network[],disabled?:boolean,onchange:(config:import('#lib/vlanLab.js').SwitchConfig)=>void}} */
 	let { device, config, networks, disabled = false, onchange } = $props();
@@ -20,8 +21,9 @@
 			for (const id of Object.keys(p.members))
 				if (p.members[id] === 'untagged') p.members[id] = 'excluded';
 		p.members[String(vlan)] = mode;
+		p.pvid = untaggedVlan(p) ?? 1;
 		onchange(next);
-		message = `${device.name} ${port}, VLAN ${vlan}: ${labels[mode]}. PVID er fortsatt ${p.pvid}.`;
+		message = `${device.name} ${port}, VLAN ${vlan}: ${labels[mode]}.`;
 	}
 	function add() {
 		const id = Number(newVlan);
@@ -42,14 +44,14 @@
 	/** @param {number} id */
 	function remove(id) {
 		if (
-			Object.values(config.ports).some((p) => p.pvid === id || membership(p, id) !== 'excluded')
+			Object.values(config.ports).some((p) => membership(p, id) !== 'excluded')
 		) {
-			message = 'Flytt PVID og sett alle portene til Exclude før VLAN-et fjernes.';
+			message = 'Sett alle portene til Exclude før VLAN-et fjernes.';
 			return;
 		}
 		const next = copy();
 		next.vlans = next.vlans.filter((v) => v !== id);
-		for (const p of Object.values(next.ports)) delete p.members[String(id)];
+		for (const p of Object.values(next.ports)) { delete p.members[String(id)]; p.pvid = untaggedVlan(p) ?? 1; }
 		onchange(next);
 		message = `VLAN ${id} fjernet.`;
 	}
@@ -115,33 +117,17 @@
 							></td
 						>{/each}</tr
 				>{/each}
-			<tr
-				><th scope="row">PVID</th>{#each device.ports as p}<td
-						><select
-							{disabled}
-							aria-label={`${device.name} ${p.id} PVID`}
-							value={config.ports[p.id].pvid}
-							onchange={(event) => {
-								const next = copy();
-								next.ports[p.id].pvid = Number(event.currentTarget.value);
-								onchange(next);
-							}}
-							>{#each config.vlans as id}<option value={id}>{id}</option>{/each}</select
-						></td
-					>{/each}</tr
-			>
 		</tbody>
 	</table>
 </div>
 <p role="status" class="status">{message}</p>
 <details>
-	<summary>Hjelp: U, E, T og PVID</summary>
+	<summary>Hjelp: U, E og T</summary>
 	<p>
-		Trykk på en portrute: U → E → T → U. Ny U erstatter tidligere U på samme port. PVID endres ikke
-		automatisk.
+		Trykk på en portrute: U → E → T → U. Ny U erstatter tidligere U på samme port og velger også VLAN for umerket trafikk inn. En port uten U avviser umerket trafikk.
 	</p>
 	<p>
-		PVID velger VLAN for umerket trafikk inn. U sender uten tag; T sender med VLAN-ID; E utelukker
+		U sender uten tag; T sender med VLAN-ID; E utelukker
 		VLAN-et. R1 og AP1 bruker tagged trafikk på kabelen i lab 2.
 	</p>
 </details>
@@ -202,8 +188,7 @@
 		margin: 0.25rem auto;
 	}
 	button,
-	input,
-	select {
+	input {
 		min-height: 44px;
 		border: 1px solid var(--color-border-strong);
 		border-radius: 7px;
@@ -243,7 +228,6 @@
 	}
 	button:focus-visible,
 	input:focus-visible,
-	select:focus-visible,
 	summary:focus-visible,
 	.scroll:focus-visible {
 		outline: 3px solid var(--color-focus);

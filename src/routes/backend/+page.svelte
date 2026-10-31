@@ -2,7 +2,7 @@
 	import PartnerContext from '#lib/components/PartnerContext.svelte';
 	import { textShape } from '#lib/partnerContext.js';
 
-	import PageLinks from '#lib/components/PageLinks.svelte';
+	import ProjectTask from '#lib/components/ProjectTask.svelte';
 	import ModuleContext from '#lib/components/ModuleContext.svelte';
 	import { avatarFeedback } from '#lib/avatarFeedback.js';
 	import { onMount } from 'svelte';
@@ -216,7 +216,7 @@
 			<p class="overlinje">UTVIKLING · Vg2 IT</p>
 			<h1 id="tittel">Frontend møter backend</h1>
 			<p class="ingress">
-				Fra klikk til melding. Send den til serveren. Hent den tilbake. Følg koden underveis.
+				Send en melding med POST, og hent den med GET. Følg hvor dataene er i nettleseren og på serveren.
 			</p>
 		</section>
 
@@ -245,6 +245,12 @@
 				>
 			</div>
 
+			<p class="oppgave">
+				<strong>Gjør dette:</strong>
+				{handling === 'post'
+					? 'Skriv avsender og tekst, trykk «Send melding» og følg stegene. Se når meldingen legges i serverens liste.'
+					: 'Trykk «Hent meldinger» og følg stegene. Sammenlign listen i backend med det nettsiden viser. Send en melding med POST først hvis listen er tom.'}
+			</p>
 			{#if handling === 'post'}
 				<div class="proveverdier">
 					<p>Verdier i frontend <span>endre og prøv</span></p>
@@ -521,6 +527,9 @@
 					<p class="tenk">Blir meldingen lagt til før backend svarer med 400?</p>
 				</div>
 			</details>
+			<ProjectTask id="eget-prosjekt"
+				instruction="Koble meldingsfeltet i Svelte til POST /meldinger, og lag en henteknapp som bruker GET /meldinger i egen Express-backend."
+				check="Send fra én nettleser og hent fra en annen. Forklar hvorfor mottakerens liste ikke endres før GET. Prøv også tom tekst og kontroller at serverlisten er uendret." />
 			<details>
 				<summary
 					><span>Koble til eget prosjekt</span><small>Hvor hører utdragene hjemme?</small></summary
@@ -571,11 +580,17 @@
 		<footer>
 			<a href="/">← Flere forsøk i IT-laben</a><span>Prøv. Les koden. Prøv igjen.</span>
 		</footer>
-		<PageLinks links={[{ href: '/chatrom/', label: 'Videre til chatrom →' }]} />
 	</main>
 </div>
 
 <style>
+	.oppgave {
+		margin: 0;
+		padding: 12px 20px;
+		border-bottom: 1px solid var(--color-border);
+		font-size: var(--font-body);
+		color: var(--color-text);
+	}
 	:global(body) {
 		margin: 0;
 		background: var(--color-page);

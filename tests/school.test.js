@@ -454,6 +454,136 @@ test('nytt tildelt navn: lærertilgang og CSRF kreves, omforsøk gir ikke flere 
 	assert.equal(login.result.user.nickname, changed);
 });
 
+test('elevnøkkel: adminrolle, Origin, CSRF, aktør og riktig aktiv elev kreves i begge trinn', async (t) => {
+	const f = await fixture(t), admin = await f.staff('admin'), teacher = await f.staff(), student = f.client();
+	await student.create();
+	const base = `/api/teacher/students/${student.user.id}/recovery`;
+	const prepare = { accountId: admin.user.id, confirmName: student.user.nickname };
+	for (const method of ['prepare', 'activate']) {
+		const body = { ...prepare, id: randomUUID(), confirmed: true, key: student.key.key };
+		assert.equal((await f.client().request(`${base}/${method}`, body)).status, 401);
+		assert.equal((await student.request(`${base}/${method}`, { ...body, accountId: student.user.id })).status, 403);
+		assert.equal((await teacher.request(`${base}/${method}`, { ...body, accountId: teacher.user.id })).status, 403);
+		assert.equal((await admin.request(`${base}/${method}`, body, { csrf: false })).status, 403);
+		assert.equal((await admin.request(`${base}/${method}`, body, { origin: 'https://other.invalid' })).status, 403);
+		assert.equal((await admin.request(`${base}/${method}`, { ...body, accountId: student.user.id })).status, 409);
+		for (const target of [teacher.user, admin.user])
+			assert.equal((await admin.request(`/api/teacher/students/${target.id}/recovery/${method}`, { ...body, confirmName: target.nickname })).status, 404);
+	}
+	assert.equal((await admin.request(`${base}/prepare`, { ...prepare, confirmName: 'Feil profil' })).status, 409);
+	assert.equal((await admin.request(`${base}/prepare`, prepare)).status, 200);
+	assert.equal((await admin.action(student.user, 'status', { disabled: true })).status, 200);
+	assert.equal((await admin.request(`${base}/prepare`, prepare)).status, 409);
+	assert.equal((await admin.request(`${base}/activate`, { ...prepare, id: randomUUID(), key: admin.key.key, confirmed: true })).status, 409);
+	assert.equal(f.db.prepare('SELECT COUNT(*) AS n FROM pending_admin_recovery_keys').get().n, 0);
+	await admin.action(student.user, 'status', { disabled: false });
+	assert.equal((await f.client().request('/api/auth/key', { key: student.key.key })).status, 200);
+});
+
+test('elevnøkkel: last ned før aktivering, behold hele profilen og tilbakekall gamle nøkler og økter', async (t) => {
+	const f = await fixture(t), admin = await f.staff('admin'), student = f.client(), other = f.client();
+	await student.create();
+	await other.create();
+	f.points(student, 75);
+	await student.request('/api/progress', { accountId: student.user.id, eventId: randomUUID(), version: 2, kind: 'review', activityId: 'frontend-backend', objectiveId: 'review', confirmed: true });
+	assert.equal((await student.request('/api/me/class', { accountId: student.user.id, classCode: '2ITA', confirmed: true })).status, 200);
+	assert.equal((await student.request('/api/me/lab', { colorId: 'forest', avatarId: avatars.at(-1).id, featuredAchievementId: 'first-review' })).status, 200);
+	const existing = (await student.request('/api/me')).result;
+	assert.ok(existing.summary.achievements.some((badge) => badge.id === 'first-review' && badge.earnedAt !== null));
+	const oldKey = student.key.key;
+	const secondDevice = f.client();
+	assert.equal((await secondDevice.request('/api/auth/key', { key: oldKey })).status, 200);
+	const ownPrepared = await student.request('/api/auth/prepare-key', { accountId: student.user.id });
+	const base = `/api/teacher/students/${student.user.id}/recovery`;
+	const prepare = { accountId: admin.user.id, confirmName: student.user.nickname };
+	const response = await admin.request(`${base}/prepare`, prepare);
+	assert.equal(response.status, 200);
+	const file = response.result.recoveryKey;
+	assert.equal(response.result.expiresAt, f.now() + 30 * 60000);
+	assert.equal(file.format, 'it-laben-key');
+	assert.equal((await f.client().request('/api/auth/key', { key: file.key })).status, 401);
+	assert.equal((await f.client().request('/api/auth/key', { key: oldKey })).status, 200);
+	assert.equal((await student.request('/api/auth/rotate-key', { accountId: student.user.id, key: file.key, confirmed: true })).status, 400);
+	const pending = f.db.prepare('SELECT * FROM pending_admin_recovery_keys').get();
+	assert.equal(pending.hash, createHash('sha256').update(file.key).digest('hex'));
+	assert.ok(!JSON.stringify(pending).includes(file.key));
+	const command = { ...prepare, id: randomUUID(), key: file.key, confirmed: true };
+	assert.equal((await admin.request(`${base}/activate`, { ...command, confirmed: false })).status, 400);
+	assert.equal((await admin.request(`${base}/activate`, command)).status, 200);
+	assert.equal(f.db.prepare('SELECT COUNT(*) AS n FROM sessions WHERE user_id=?').get(student.user.id).n, 0);
+	assert.equal((await student.request('/api/me')).result.user, null);
+	assert.equal((await secondDevice.request('/api/me')).result.user, null);
+	for (const key of [oldKey, ownPrepared.result.recoveryKey.key])
+		assert.equal((await f.client().request('/api/auth/key', { key })).status, 401);
+	const restored = f.client(), login = await restored.request('/api/auth/key', { key: file.key });
+	assert.equal(login.status, 200);
+	assert.deepEqual(login.result.user, existing.user);
+	assert.deepEqual(login.result.summary, existing.summary);
+	assert.equal((await other.request('/api/me')).result.user.id, other.user.id);
+	assert.equal((await admin.request('/api/me')).result.user.id, admin.user.id);
+	// Simulate retry after the activation response was lost, after the pupil has logged in.
+	assert.equal((await admin.request(`${base}/activate`, command)).status, 200);
+	assert.equal((await restored.request('/api/me')).result.user.id, student.user.id);
+	const audit = f.db.prepare("SELECT * FROM management_actions WHERE action='recover-key'").all();
+	assert.equal(audit.length, 1);
+	assert.equal(audit[0].actor_id, admin.user.id);
+	assert.equal(audit[0].target_id, student.user.id);
+	assert.ok(!JSON.stringify(audit).includes(file.key));
+	assert.equal(f.db.prepare('SELECT COUNT(*) AS n FROM pending_recovery_keys WHERE user_id=?').get(student.user.id).n, 0);
+	assert.equal(f.db.prepare('SELECT COUNT(*) AS n FROM pending_admin_recovery_keys WHERE user_id=?').get(student.user.id).n, 0);
+	// A later replacement must not be undone by replaying the first activation.
+	const newer = await admin.request(`${base}/prepare`, prepare);
+	assert.equal((await admin.request(`${base}/activate`, { ...command, key: newer.result.recoveryKey.key })).status, 409);
+	assert.equal((await admin.request(`${base}/activate`, { ...command, id: randomUUID(), key: newer.result.recoveryKey.key })).status, 200);
+	assert.equal((await admin.request(`${base}/activate`, command)).result.error.code, 'STUDENT_KEY_CHANGED');
+	assert.equal((await f.client().request('/api/auth/key', { key: file.key })).status, 401);
+});
+
+test('elevnøkkel: utløp, profilbinding, samtidige administratorer og tilbakekalt adminrolle', async (t) => {
+	const f = await fixture(t), admin = await f.staff('admin'), anotherAdmin = await f.staff('admin'), a = f.client(), b = f.client();
+	await a.create();
+	await b.create();
+	const prepare = (person, student) => person.request(`/api/teacher/students/${student.user.id}/recovery/prepare`, { accountId: person.user.id, confirmName: student.user.nickname });
+	const activate = (person, student, key) => person.request(`/api/teacher/students/${student.user.id}/recovery/activate`, { accountId: person.user.id, confirmName: student.user.nickname, id: randomUUID(), key, confirmed: true });
+	const first = (await prepare(admin, a)).result.recoveryKey.key;
+	assert.equal((await activate(admin, b, first)).status, 409);
+	assert.equal((await activate(anotherAdmin, a, first)).status, 409);
+	f.advance(30 * 60000);
+	assert.equal((await activate(admin, a, first)).result.error.code, 'STUDENT_RECOVERY_EXPIRED');
+	const replaced = (await prepare(admin, a)).result.recoveryKey.key;
+	const latest = (await prepare(anotherAdmin, a)).result.recoveryKey.key;
+	assert.equal((await activate(admin, a, replaced)).status, 409);
+	setAdminRole(f.db, anotherAdmin.user.id, false, f.now());
+	assert.equal((await activate(anotherAdmin, a, latest)).status, 403);
+	assert.equal((await f.client().request('/api/auth/key', { key: a.key.key })).status, 200);
+	assert.equal((await f.client().request('/api/auth/key', { key: b.key.key })).status, 200);
+	assert.equal(f.db.prepare("SELECT COUNT(*) AS n FROM management_actions WHERE action='recover-key'").get().n, 0);
+});
+
+test('elevnøkkel: egen nøkkelrotasjon, navnebytte, opprykk og sletting gjør klargjøringer ugyldige', async (t) => {
+	const f = await fixture(t), admin = await f.staff('admin'), student = f.client();
+	await student.create();
+	const base = `/api/teacher/students/${student.user.id}/recovery`;
+	const prepare = () => admin.request(`${base}/prepare`, { accountId: admin.user.id, confirmName: student.user.nickname });
+	const activate = (key) => admin.request(`${base}/activate`, { accountId: admin.user.id, confirmName: student.user.nickname, key, id: randomUUID(), confirmed: true });
+	const first = (await prepare()).result.recoveryKey.key;
+	const own = await student.request('/api/auth/prepare-key', { accountId: student.user.id });
+	assert.equal((await student.request('/api/auth/rotate-key', { accountId: student.user.id, key: own.result.recoveryKey.key, confirmed: true })).status, 200);
+	assert.equal((await activate(first)).status, 409);
+	const renamed = (await prepare()).result.recoveryKey.key;
+	await admin.action(student.user, 'rename');
+	await student.request('/api/me');
+	assert.equal((await activate(renamed)).status, 409);
+	const promoted = (await prepare()).result.recoveryKey.key;
+	setTeacherRole(f.db, student.user.id, true, f.now());
+	assert.equal((await activate(promoted)).status, 404);
+	setTeacherRole(f.db, student.user.id, false, f.now());
+	await admin.action(student.user, 'status', { disabled: true });
+	await admin.action(student.user, 'delete');
+	assert.equal(f.db.prepare('SELECT COUNT(*) AS n FROM pending_admin_recovery_keys').get().n, 0);
+	assert.equal((await activate(promoted)).status, 404);
+});
+
 test('deaktivering: bare administrator, alle økter stenges, nøkkel sperres og poeng beholdes ved reaktivering', async (t) => {
 	const f = await fixture(t),
 		teacher = await f.staff(),
@@ -652,7 +782,7 @@ test('backup inkluderer tildelte navn, administrator, kontostatus, deltakelse og
 });
 
 test('undervisning: læreropplegg og egne lærersider er adskilt fra elevkatalogen og kan utvides med drift', () => {
-	assert.equal(teachingPlans.length, 3);
+	assert.equal(teachingPlans.length, 5);
 	assert.ok(!teachingPlans.some((plan) => plan.id === 'fra-kode-til-tjeneste'));
 	assert.ok(!teachingGuides.some((guide) => guide.planId === 'fra-kode-til-tjeneste'));
 	assert.ok(aktiviteter.every((item) => item.audience === 'student'));
@@ -708,9 +838,9 @@ test('undervisning: lærernotater krever serverrolle ved hvert kall og endrer ik
 	assert.equal((await admin.request('/api/teacher/teaching')).status, 200);
 	const response = await teacher.request('/api/teacher/teaching');
 	assert.equal(response.status, 200);
-	assert.equal(response.result.plans.length, 3);
+	assert.equal(response.result.plans.length, 5);
 	assert.ok(!response.result.plans.some((plan) => plan.id === 'fra-kode-til-tjeneste'));
-	assert.equal(response.result.guides.length, 3);
+	assert.equal(response.result.guides.length, 5);
 	assert.ok(!response.result.guides.some((guide) => guide.planId === 'fra-kode-til-tjeneste'));
 	assert.deepEqual(response.result.guides[0].preparation, teachingGuides[0].preparation);
 	assert.ok(

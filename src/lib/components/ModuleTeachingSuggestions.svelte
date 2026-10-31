@@ -4,9 +4,9 @@
 	/** @type {{module:import('#lib/moduler.js').Module}} */
 	let { module } = $props();
 	const plans = $derived(
-		module.steps
-			.filter((step) => step.kind === 'undervisning')
-			.flatMap((step) => teachingPlans.filter((plan) => plan.id === step.id))
+		(module.teachingPlanIds ?? module.steps
+			.filter((step) => step.kind === 'undervisning').map((step) => step.id))
+			.flatMap((id) => teachingPlans.filter((plan) => plan.id === id))
 	);
 	function firstLesson(/** @type {import('#lib/teaching.js').TeachingPlan} */ plan) {
 		return (

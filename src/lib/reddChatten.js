@@ -1,3 +1,5 @@
+import { validationTransfer } from './backendValidation.js';
+
 /**
  * Ren, deterministisk modell for «Redd chatten».
  * En kodeblokk har samme virkning som Express-koden eleven ser.
@@ -15,7 +17,7 @@
 /** @typedef {{id:string,text:string,title:string,explanation:string}} CodeLine */
 /** @typedef {{id:string,group:string,title:string,category:Category,lines:CodeLine[],explanation:string}} Block */
 /** @typedef {{does:string,why:string,transfer:string}} Takeaway */
-/** @typedef {{id:MissionId,number:number,title:string,brief:string,goal:string,requirements:string[],contract:string[],hint:string,method:'POST'|'DELETE',path:string,maxBlocks:number,startProgram:string[],available:string[],lesson:string,takeaway:Takeaway}} Mission */
+/** @typedef {{id:MissionId,number:number,title:string,brief:string,goal:string,instruction:string,example:{code:string,explanation:string},hints:string[],transfer:string,requirements:string[],contract:string[],hint:string,method:'POST'|'DELETE',path:string,maxBlocks:number,startProgram:string[],available:string[],lesson:string,takeaway:Takeaway}} Mission */
 /** @typedef {{status:number,response:unknown,messages:Message[]}} Expected */
 /** @typedef {{id:string,name:string,actor:string,kind:'normal'|'edge'|'misuse',brief:string,request:Request,expected:Expected,initialMessages:Message[]}} Case */
 /** @typedef {{blockId:string,index:number,executed:boolean,stopped:boolean,explanation:string,status:number|null,response:unknown,messages:Message[],variables:Record<string,unknown>}} ExecutionStep */
@@ -228,6 +230,17 @@ export const MISSIONS = Object.freeze([
 		title: 'Stopp tomme meldinger',
 		brief: 'Chatten fylles med tomme bobler. Ruten lagrer før den undersøker hva som ble sendt.',
 		goal: 'Slipp inn ordentlige meldinger, og stopp tom tekst uten å lagre noe.',
+		instruction: 'Reparer POST-ruten nedenfor. Undersøk én request, flytt eller bytt kodeblokkene, og test alle situasjonene.',
+		example: {
+			code: 'let navn = "  Ada  ";\nnavn = navn.trim();\n// navn er nå "Ada"',
+			explanation: 'trim lager en streng uten mellomrom foran og bak. Sammenlign med en streng som bare inneholder mellomrom: hvilken verdi får du da, og hva vil if-testen undersøke?'
+		},
+		hints: [
+			'Se på serverlisten etter en avvist request. Ble meldingen lagret før feilsvaret? Prøv også teksten som bare har mellomrom.',
+			'Kontrollene må kjøre før lagringen. Bruk «Rydd teksten» før du vurderer om teksten er tom; en streng med bare mellomrom er ikke tom før trim.',
+			'Et løsningsprinsipp: rydd teksten → stopp ugyldig tekst med return → lagre én gang → svar 201. Test også manglende tekst og tall.'
+		],
+		transfer: `${validationTransfer.instruction} ${validationTransfer.check}`,
 		requirements: [
 			'Gyldig tekst lagres én gang, ryddes for mellomrom foran og bak, og får 201.',
 			'Tom tekst, bare mellomrom, manglende tekst og tall får 400.',
@@ -267,6 +280,17 @@ export const MISSIONS = Object.freeze([
 		title: 'Hvem skrev egentlig dette?',
 		brief: 'Teksten er under kontroll. Nå påstår enkelte nettlesere at de er en annen bruker.',
 		goal: 'La innloggede brukere sende som seg selv, og avvis gjester før data endres.',
+		instruction: 'Reparer POST-ruten slik at backend bestemmer avsenderen. Undersøk en falsk avsender, endre koden og test også gjester.',
+		example: {
+			code: '// Nettleseren kan selv velge dette:\nreq.body.avsender\n// Serveren opprettet denne ved innlogging:\nreq.session.bruker',
+			explanation: 'Body beskriver det klienten sender. En etablert session knytter requesten til en innlogget bruker. De to kildene kan hevde forskjellige identiteter.'
+		},
+		hints: [
+			'Sammenlign avsenderen i body og brukeren i sessionen når en request utgir seg for å være en annen.',
+			'Avvis gjester før tekstbehandling og lagring. Finn deretter hvilken lagringsblokk som henter avsenderen fra sessionen.',
+			'Et løsningsprinsipp: krev innlogging → rydd og kontroller tekst → lagre med identiteten fra sessionen → svar 201. Et falskt navn i body skal ikke påvirke eieren.'
+		],
+		transfer: 'La innloggede brukere opprette chatrom i egen app. Backend skal registrere hvem som opprettet rommet fra sessionen. Prøv å sende en annen eier i body og undersøk hvem rommet faktisk tilhører.',
 		requirements: [
 			'Gyldige meldinger fra innloggede brukere får 201 med avsenderen fra sessionen.',
 			'Avsenderen i body skal ikke bestemme hvem meldingen lagres som.',
@@ -309,6 +333,17 @@ export const MISSIONS = Object.freeze([
 		brief:
 			'En bruker får beskjed om at sletting er nektet. Likevel er meldingen borte fra chatten.',
 		goal: 'Tillat sletting av egen melding, og beskytt alle andre meldinger.',
+		instruction: 'Reparer DELETE-ruten. Finn meldingen med ID og kontroller tilgang før sletting. Test eier, gjest, ukjent ID og en annen bruker.',
+		example: {
+			code: 'const id = Number(req.params.id);\nconst melding = meldinger.find(\n  (item) => item.id === id\n);',
+			explanation: 'ID-en identifiserer meldingen uavhengig av plasseringen i listen. Hvis ingen ID stemmer, blir melding undefined. En egenskap som melding.avsenderId kan da ikke leses direkte.'
+		},
+		hints: [
+			'En 403-feil gjør ikke en sletting ugjort. Finn steget der meldingen forsvinner fra serverlisten.',
+			'Finn riktig melding med ID. Kontroller at den finnes før du leser eieren, og sammenlign eieren med sessionen før sletting.',
+			'Et løsningsprinsipp: innlogging → finn ID → finnes meldingen? → eies den av sessionbrukeren? → slett med ID → svar. Ikke bruk body som bevis på eierskap.'
+		],
+		transfer: 'Lag sletting av chatrom i egen app, der bare den som opprettet rommet får slette det. Velg egne testtilfeller og kontroller både HTTP-svaret og romlisten etter hvert forsøk.',
 		requirements: [
 			'En innlogget eier kan slette sin melding med ID og få 200 som bekreftelse.',
 			'Gjester får 401, ukjent ID gir 404, og andres meldinger gir 403.',
@@ -960,11 +995,14 @@ function feedbackFor(testCase, runtime, passed) {
 				? 'en tom melding'
 				: 'en melding';
 		const change = removed.length ? 'slettet' : 'lagret';
+		const next = testCase.id === 'mellomrom'
+			? ' Mellomrom teller som tegn før trim. Undersøk tekstverdien ved kontrollen og om kontrollen kjører før lagringen.'
+			: ' Følg kjøringen og finn den første blokken som endrer listen. Hvilken kontroll må stoppe requesten før den blokken?';
 		if (runtime.status !== null && runtime.status >= 400) {
 			const cause = runtime.error ? 'En kodefeil' : 'En avvisning';
-			return `${testCase.actor} fikk ${runtime.status}, men ${subject} ble likevel ${change}. ${cause} gjør ikke tidligere endringer ugjort.`;
+			return `${testCase.actor} fikk ${runtime.status}, men ${subject} ble likevel ${change}. ${cause} gjør ikke tidligere endringer ugjort.${next}`;
 		}
-		return `${testCase.actor} fikk ${runtime.status ?? 'ikke noe svar'}, og ${subject} ble ${change}. Denne requesten skal få ${expected.status} uten å endre serverlisten.`;
+		return `${testCase.actor} fikk ${runtime.status ?? 'ikke noe svar'}, og ${subject} ble ${change}. Denne requesten skal få ${expected.status} uten å endre serverlisten.${next}`;
 	}
 	if (runtime.error) return `Koden stoppet med 500. ${runtime.error}`;
 	if (runtime.status === null)

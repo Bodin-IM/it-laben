@@ -1,6 +1,8 @@
 <script>
 	import { setContext } from 'svelte';
 	import { createPartnerChannel, partnerChannelKey } from '#lib/partnerChannel.js';
+	import { createInterfaceHelp, interfaceHelpKey } from '#lib/interfaceHelp.js';
+	import InterfaceHelpNotice from '#lib/components/InterfaceHelpNotice.svelte';
 	import { partnerAllowed } from '#lib/partnerPages.js';
 	import { onMount } from 'svelte';
 	import { page } from '$app/state';
@@ -14,6 +16,8 @@
 	import { labPreferences } from '#lib/labPreferences.js';
 	import { initializeExperience } from '#lib/labPreferences.js';
 	import ActivityProgress from '#lib/components/ActivityProgress.svelte';
+	import BackendContinuation from '#lib/components/BackendContinuation.svelte';
+	import { altElevinnhold } from '#lib/innhold.js';
 	import RewardToast from '#lib/components/RewardToast.svelte';
 	import LearningAccess from '#lib/components/LearningAccess.svelte';
 	import GlobalLabPartner from '#lib/components/GlobalLabPartner.svelte';
@@ -27,8 +31,10 @@
 	/** @type {{children: import('svelte').Snippet}} */
 	let { children } = $props();
 	setContext(partnerChannelKey, createPartnerChannel());
+	setContext(interfaceHelpKey, createInterfaceHelp());
 	const browser = typeof window !== 'undefined';
 	const activity = $derived(presentationLessons.find((item) => item.href === page.url.pathname));
+	const courseActivity = $derived(altElevinnhold.find((item) => item.href === page.url.pathname));
 	const presentationRequested = $derived(
 		browser &&
 			page.url.searchParams.get('visning') === 'presentasjon' &&
@@ -40,7 +46,8 @@
 			setLearningContext({ activityId: '', mode: 'normal', openingId: null, untimed: false });
 	});
 	const showStudentTools = $derived(!presentationRequested || ($lab.ready && !presenting));
-	const localPartner = $derived(page.url.pathname.replace(/\/$/, '') === '/spill/redd-chatten');
+	// The catalogue places the shared partner above its own subject menu.
+	const localPartner = $derived(page.url.pathname === '/' || page.url.pathname.replace(/\/$/, '') === '/spill/redd-chatten');
 	const showCompanion = $derived(
 		!localPartner &&
 			showStudentTools &&
@@ -76,7 +83,9 @@
 		{#if showCompanion}<GlobalLabPartner />{/if}
 		<div class="activity-content">
 			{@render children()}
-			{#if showStudentTools}<ActivityProgress /><RewardToast />{/if}
+			{#if showStudentTools}<ActivityProgress /><RewardToast />
+				{#if courseActivity}<BackendContinuation activityId={courseActivity.id} />{/if}
+			{/if}
 		</div>
 	</div>
 	<StudentFeedback
@@ -84,6 +93,7 @@
 			!hasTeacherRole($lab.user?.role) &&
 			!page.url.pathname.startsWith('/laerer/')}
 	/>
+	<InterfaceHelpNotice />
 </div>
 
 <style>

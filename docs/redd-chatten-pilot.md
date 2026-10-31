@@ -1,6 +1,8 @@
 # Redd chatten – læringspilot
 
-Adresse: `/spill/redd-chatten/pilot/`, lenket fra Redd chatten. Piloten er tilgjengelig uten innlogging og endrer ikke de tre ordinære oppdragene eller deres XP/fagsjekker.
+Adresse: `/spill/redd-chatten/pilot/`. Piloten er tilgjengelig uten innlogging og endrer ikke de tre ordinære oppdragene eller deres XP/fagsjekker.
+
+30. oktober 2026, dev: Hovedinngangen er det ordinære **Redd chatten**. Korte kodeeksempler, gradvise hint, frivillig forutsigelse før en request og oppgaver for overføring til egen kode er nå tatt inn der. Den stegvise kjøringen og forklaringen av en vellykket reparasjon beholdes. Pilotens seks faser er ikke en obligatorisk oppskrift på alle oppdrag. Den tidligere piloten er fortsatt tilgjengelig under «Fra spillet til din egen chat» → «Tidligere læringspilot», med samme adresse, sessionStorage-nøkkel, kode, svar og milepæler. Lagringens tidligere begrensning til den aktuelle fanen gjelder fortsatt. Se [backendbeskrivelsen](backend-og-tutorial.md#tydeligere-oppgaver-og-samlet-støtte-30-oktober-2026-dev) for omfang og kontrollstatus.
 
 ## Mål og bruk i timen
 
