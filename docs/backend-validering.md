@@ -17,11 +17,11 @@ Forkunnskaper: JavaScript-strenger, objekter, betingelser, funksjoner, GET/POST 
 
 | Del | Elevhandling | Respons og vei videre |
 | --- | --- | --- |
-| Undersøk i øving 7 | Forutsi hva som skjer med bare mellomrom, kjør stegvis og sammenlign med vanlig tekst. Undersøk også datatype og lengdegrense. | Simulatoren viser lengde før/etter trim, request, svar, minne og fil. Etter full kjøring forklares resultat, årsak og et nytt forsøk ut fra den kjørte modellen. |
+| Undersøk i øving 7 | Send bare mellomrom og sammenlign med vanlig tekst. Se resultatet på meldingskort; åpne kode og kjøringssteg ved behov. Undersøk også datatype og lengdegrense. | Simulatoren viser lengde før/etter trim, request, svar, minne og fil. Etter full kjøring forklares resultat, årsak og et nytt forsøk ut fra den kjørte modellen. |
 | Reparer teksten i Redd chatten | Endre den eksisterende POST-ruten og prøv både normaltilfeller og ugyldig input. | Eksisterende tester kontrollerer status, svar og data. Feil lagring gir en konkret undersøkelse. Hint kan åpnes gradvis, uten nye poengregler. |
 | Bruk selv i eget prosjekt | Valider et visningsnavn på 1–30 tegn etter trim i egen Express-rute og vis feilen i frontend. | Eleven velger tester, sammenligner data før/etter og forklarer kontrollen for medelev/lærer. Nettsiden vurderer ikke elevens eksterne kode automatisk. |
 
-Forløpet ligger i de eksisterende sidene. Modulens øving 7 viser tre tydelige lenker, og oppgaven til eget prosjekt er synlig på `/oving-7/#eget-prosjekt`. `forlop=validering` følger overgangen til reparasjonen. Etter beståtte tester får eleven en direkte vei til visningsnavnoppgaven. I dette forløpet fremheves ikke neste reparasjon om avsender; de vanlige oppdragsfanene og opplåsingsreglene består.
+Forløpet ligger i de eksisterende sidene. Øving 7 viser en tydelig neste lenke til reparasjonen. Prosjektveiledningen åpnes ved behov og åpnes direkte på `/oving-7/#eget-prosjekt`; den fulle forløpsoversikten ligger der. `forlop=validering` følger overgangen til reparasjonen. Etter beståtte tester får eleven en direkte vei til visningsnavnoppgaven. I dette forløpet fremheves ikke neste reparasjon om avsender; de vanlige oppdragsfanene og opplåsingsreglene består.
 
 Oppgaven om mellomrom er lagt til som ny oppgaveindeks 3 i leksjonsmetadataene. `firstTask` lar den vises først uten å gi de tre eksisterende oppgavene nye indekser i labpartnerkontrakten. Den gamle scenarioverdien `empty` er bevart som mellomrom. `blank` skiller en faktisk tom streng fra mellomrom. Begge er ugyldige, men forskjellen før trim blir synlig. Endring av input fjerner forrige kjøring og respons.
 
@@ -41,7 +41,7 @@ Forslaget finnes på forsiden og på modulsiden, med oppgavenavn, handling og be
 
 Lagring beskrives separat fra funksjonstestene:
 
-- Øving 7 beholder innstillinger og kjøringssteg i besøket. Ved ny åpning starter simulatoren på nytt. Kontoen lagrer elevens egen gjennomgangsmarkering og fagsjekk etter eksisterende regler.
+- Øving 7 beholder innstillinger og kjøringssteg til eleven bytter oppdrag eller endrer input. Oppgavebytte stiller inn startverdiene til det nye oppdraget. Ved ny åpning starter simulatoren på nytt. Kontoen lagrer elevens egen gjennomgangsmarkering og fagsjekk etter eksisterende regler.
 - Redd chatten sender kodeforsøket gjennom den eksisterende køen når hele prøverunden fullføres. Enkeltprøver, hint og forutsigelser lagres ikke som kodeforsøk.
 - «Denne koden er lagret på kontoen» krever at den serverbekreftede løsningen samsvarer med kodeblokkene som vises, at ingen innsending for oppdraget venter, og at lagringen ikke har en registrert feil. Endret kode og ventende innsendinger har egne meldinger. Gjestearbeid beskrives som midlertidig i fanen. Øvingsmodus og lærerøkt merkes særskilt.
 - Historisk gjennomføring og opptjent XP består selv om eleven endrer kode senere. Gjeldende testresultater blir fortsatt merket som utdaterte ved kodeendring.

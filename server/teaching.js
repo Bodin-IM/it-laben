@@ -110,8 +110,8 @@ export const teachingGuides = [
 					'Hvorfor brukes en midlertidig fil?'
 				],
 				notes: [
-					'Velg skrivefeil som situasjon og stopp før svaret vises.',
-					'La elevene følge neste liste, filskriving og oppdatering av minne som tre forskjellige steg.'
+					'La elevene forutsi, send med skrivefeil og sammenlign kortene for minne og fil med vellykket lagring.',
+					'Åpne «Se hvorfor» og velg «Fra starten». Følg ny liste, filskriving og oppdatering av minne som tre forskjellige steg.'
 				]
 			},
 			{
@@ -122,7 +122,7 @@ export const teachingGuides = [
 					'Hvorfor søker vi etter ID?',
 					'Hva må nettleseren gjøre for å vise det nye resultatet?'
 				],
-				notes: ['Knytt PATCH og DELETE til det tidligere POST-/GET-opplegget.']
+				notes: ['Endre Noahs melding. Sammenlign kortene før eleven trykker «Hent chatten på nytt». Knytt PATCH og DELETE til det tidligere POST-/GET-opplegget.']
 			}
 		],
 		wrapUp: [

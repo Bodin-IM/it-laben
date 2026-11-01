@@ -2,6 +2,7 @@
 	import PartnerContext from '#lib/components/PartnerContext.svelte';
 	import { getInterfaceHelp } from '#lib/interfaceHelp.js';
 	import CodeTokens from '#lib/components/CodeTokens.svelte';
+	import ExercisePlayground from '#lib/components/ExercisePlayground.svelte';
 	import ValidationJourney from '#lib/components/ValidationJourney.svelte';
 	import ValidationProject from '#lib/components/ValidationProject.svelte';
 	import { validationJourney } from '#lib/backendValidation.js';
@@ -107,7 +108,7 @@
 	}
 </script>
 
-<PartnerContext
+{#if lesson.number > 7}<PartnerContext
 	pageId={`oving-${lesson.number}`}
 	values={{
 		choices: lessonChoices(lesson, values),
@@ -115,7 +116,7 @@
 		line: current ? selectedLine : -1,
 		task: taskIndex
 	}}
-/>
+/>{/if}
 
 <svelte:head>
 	<title>Øving {lesson.number}: {lesson.title} – IT-laben</title>
@@ -139,7 +140,7 @@
 						>{item.number === 5
 							? 'Lagring'
 							: item.number === 6
-								? 'CRUD'
+								? 'Endre/slette'
 								: item.number === 7
 									? 'Validering'
 									: item.number === 8
@@ -161,10 +162,9 @@
 			<p class="lead">{lesson.intro}</p>
 		</section>
 
-		{#if lesson.number === 7}
-			<ValidationJourney current={ready && page.url.hash === '#eget-prosjekt' ? 'bruk-selv' : 'undersok'} {moduleId} />
-		{/if}
-
+		{#if lesson.number <= 7}
+			{#key lesson.number}<ExercisePlayground {lesson} {moduleId} />{/key}
+		{:else}
 		<section id="forsok" class="lab" aria-labelledby="lab-title">
 			<div class="task-picker" role="group" aria-label="Velg oppgave i simulatoren">
 				{#each taskOrder as taskId, i}
@@ -333,14 +333,26 @@
 				</div>
 			{/if}
 		</section>
+		{/if}
 
 		{#if lesson.number === 7}
 			<div class="validation-next">
-				<h2>Bruk det du undersøkte til å reparere en feil</h2>
-				<p>Åpne tekstreparasjonen i Redd chatten. Få både vanlig tekst og ugyldig tekst til å gi riktig svar uten feil lagring.</p>
+				<h2>Neste: få tekstkontrollen til å virke</h2>
+				<p>I Redd chatten reparerer du koden du nettopp undersøkte.</p>
 				<a href={moduleLink(validationJourney[1].href, moduleId)}>Reparer tekstkontrollen →</a>
 			</div>
-			<ValidationProject />
+			<details id="eget-prosjekt" class="project-fold" open={ready && page.url.hash === '#eget-prosjekt'}>
+				<summary>Bygg selv: gi brukeren et gyldig visningsnavn</summary>
+				<ValidationJourney current="bruk-selv" {moduleId} />
+				<ValidationProject id="validation-project" />
+			</details>
+		{:else if lesson.number <= 6}
+			<details id="eget-prosjekt" class="project-fold" open={ready && page.url.hash === '#eget-prosjekt'}>
+				<summary>Bygg selv: {lesson.number === 5 ? 'behold meldingene etter omstart' : 'endre og slette i din egen chat'}</summary>
+				<ProjectTask instruction={lesson.transfer.instruction} check={lesson.transfer.check} guide={lesson.transfer.guide} />
+				<p>{lesson.context}</p>
+				{#each lesson.related as related}<a href={moduleLink(related.href, moduleId)}>{related.label} →</a>{/each}
+			</details>
 		{:else}
 		<ProjectTask id="eget-prosjekt" instruction={lesson.transfer.instruction} check={lesson.transfer.check} guide={lesson.transfer.guide} />
 		<details class="context">
@@ -371,6 +383,10 @@
 </div>
 
 <style>
+	.project-fold { margin-block: 24px; border: 1px solid var(--color-border); border-radius: var(--radius-card); padding: 0 16px; scroll-margin-top: 24px; }
+	.project-fold > summary { min-height: 44px; padding-block: 16px; color: var(--color-action); font-weight: 650; }
+	.project-fold > p { max-width: 65ch; }
+	.project-fold > a { display: inline-flex; align-items: center; min-height: 44px; }
 	.prepare-task { width: 100%; min-height: 44px; margin-bottom: 6px; padding: 10px; border: 1px solid var(--color-border); border-radius: 7px; background: var(--color-surface); color: var(--color-accent); font: inherit; cursor: pointer; }
 	.validation-next { margin-block: 28px; padding: 20px; border: 1px solid var(--color-info-border); border-radius: var(--radius-card); background: var(--color-info-soft); }
 	.validation-next h2 { font-size: 1.25rem; }

@@ -27,7 +27,7 @@ Brukerbestilt forbedring etter kildegjennomgang: Elevene trenger å se hva de sk
 
 ### Elevhandling, støtte og respons
 
-Øving 5–10 bruker de samme tre undersøkelsesoppgavene som før, nå med korte valg øverst i simulatoren. Den valgte oppgaven viser en handlingsrettet overskrift, «Gjør dette» og «Se etter». Hint og forklaring er tilgjengelige i egne åpne/lukke-felt. En mindre intro og fjerningen av den separate oppgavelisten nederst begrenser gjentakelser. Det tidligere tomme venteområdet viser et kort kodeeksempel før første kjøring. Eksemplene er utdrag, ikke komplette serverfiler.
+Historisk inngang, senere erstattet for 5–7 av [meldingskort og direkte handlinger](backend-undervisning.md): Øving 5–10 brukte de samme undersøkelsesoppgavene som før, nå med korte valg øverst i simulatoren. Den valgte oppgaven viser en handlingsrettet overskrift, «Gjør dette» og «Se etter». Hint og forklaring er tilgjengelige i egne åpne/lukke-felt. En mindre intro og fjerningen av den separate oppgavelisten nederst begrenser gjentakelser. Det tidligere tomme venteområdet viser et kort kodeeksempel før første kjøring. Eksemplene er utdrag, ikke komplette serverfiler.
 
 Fargejustering på dev: Både kodeeksemplet før kjøring og de klikkbare kodelinjene i øving 5–10 bruker nå `CodeTokens`, med samme farger og tekstoppdeling som `InteractiveCode` i chatrom. Nøkkelord, strenger, funksjoner, tall og kommentarer følger dermed den eksisterende kodevisningen. Komponenten er hentet ut av `InteractiveCode` og gjenbrukes begge steder. Koden rendres fortsatt som tekst, og linjevalg, forklaringer og progresjon er uendret. Diff er gjennomgått; samlet testing og visuell kontroll gjenstår før main.
 
@@ -41,7 +41,7 @@ Fargejustering på dev: Både kodeeksemplet før kjøring og de klikkbare kodeli
 | Redd chatten | Undersøker, reparerer og prøver både normal- og feiltilfeller. Kan forutsi om serverlisten vil endres. | Faktisk endring sammenlignes med forutsigelsen. Eksisterende tester vurderer funksjonen. | Bruk validering, session-eier og sletting på chatrom i egen app. |
 | Øving 10 | Sammenligner kildekode, publiserte filer, prosess og VM-omstart. | Hva nettleseren faktisk får, og hvilke data som overlever. | Publiser og dokumenter egen app i avtalt testmiljø. |
 
-Oppgavevalg i øving 5–10 endrer veiledningen, men beholder innstillinger og pågående kjøring. Eleven kan sammenligne og utforske fritt. Endring av simulatorens innstillinger tømmer fortsatt den gamle kjøringen. «Kjøringen er ferdig» vises nøytralt; det er ikke en godkjenning av oppgaven. Oppgavevalg, hint eller gjennomgåtte simulatorsteg registrerer ingen ny fullføring og gir ingen XP.
+Oppgavevalg i øving 8–10 endrer veiledningen, men beholder innstillinger og pågående kjøring. Fra 1. november stiller oppgavevalg i 5–7 inn det nye forsøket og fjerner gammel kjøring. Eleven kan sammenligne og utforske fritt. Endring av simulatorens innstillinger tømmer fortsatt den gamle kjøringen. «Kjøringen er ferdig» vises nøytralt; det er ikke en godkjenning av oppgaven. Oppgavevalg, hint eller gjennomgåtte simulatorsteg registrerer ingen ny fullføring og gir ingen XP.
 
 Fillagring og sessions merkes som innføring med en konkret overgang til øving 5 og 8. Chatrom får en tydelig fagtittel og en oppgave ved kontrollene for hvert forsøk. Moduloversikten har en sammenleggbar oppgave for eget prosjekt ved slutten av hver hoveddel (repetisjonsdelen før den valgfrie Nattevakten). Disse oppgavene legger ikke til nye progresjonskrav.
 

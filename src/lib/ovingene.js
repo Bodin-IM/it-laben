@@ -21,11 +21,11 @@ const input = (key, label, value, kind = 'text') => ({ key, label, value, kind }
 export const lessons = [
 	{
 		number: 5,
-		title: 'Fra minne til varig lagring',
+		title: 'Ta vare på meldingene',
 		question: 'Når er meldingen egentlig lagret?',
 		category: 'Utvikling',
 		intro:
-			'Følg en melding via en ny liste og en midlertidig fil. Se hvorfor filen må være lagret før serveren bekrefter endringen.',
+			'Chatten skal beholde meldingene etter omstart. Prøv hva som skjer når lagringen virker – og når den feiler.',
 		context:
 			'Utdrag fra lagring.js og POST /meldinger. Filnavnet bestemmes av serveren. Synkron lagring er valgt for en liten øvelse med én serverprosess.',
 		example: {
@@ -51,20 +51,20 @@ export const lessons = [
 		],
 		tasks: [
 			{
-				title: 'Finn øyeblikket data blir varige',
-				label: 'Følg lagringen',
+				title: 'Få meldingen inn i filen',
+				label: 'Lagre',
 				start: { scenario: 'save' },
-				instruction: 'Skriv en melding og kjør «Lagre en melding». Gå stegvis gjennom koden og finn når meldingen kommer i den varige filen.',
+				instruction: 'Skriv en melding og trykk «Send meldingen». Finn den igjen i minnet og i filen.',
 				observe: 'Når endres filen, når endres minnet, og når får nettleseren svar?',
 				hint: 'Sammenlign nyListe, .tmp-filen og meldinger.json.',
 				answer:
 					'writeFileSync skriver først til .tmp. renameSync erstatter den egentlige filen. Deretter oppdateres minnet, og til slutt sendes 201.'
 			},
 			{
-				title: 'Undersøk en feil ved lagring',
-				label: 'Lagringsfeil',
+				title: 'Får du et ærlig svar når lagringen feiler?',
+				label: 'Prøv en feil',
 				start: { scenario: 'fail' },
-				instruction: 'Velg «Skrivingen feiler» og kjør. Følg hva som skjer med meldingen når serveren ikke får lagret filen.',
+				instruction: 'Send meldingen med «Skrivingen feiler». Bytt til «Lagre en melding» og prøv samme tekst igjen.',
 				observe: 'Sammenlign serverens svar, listen i minnet og datafilen med det vellykkede forsøket.',
 				hint: 'Velg «Skrivingen feiler». Følg minnet helt til siste steg.',
 				answer:
@@ -74,7 +74,7 @@ export const lessons = [
 				title: 'Sammenlign manglende og ødelagt fil',
 				label: 'Oppstart',
 				start: { scenario: 'missing' },
-				instruction: 'Kjør først «Filen finnes ikke», deretter «Filen har ugyldig JSON». Undersøk hvorfor oppstarten håndterer dem forskjellig.',
+				instruction: 'Start serveren uten fil. Prøv igjen med ødelagt JSON. Hvilket forsøk starter?',
 				observe: 'Hvilket forsøk får en tom liste, og hvilket stopper oppstarten for å beskytte dataene?',
 				hint: 'Bare én av feilene skal gi en tom liste.',
 				answer:
@@ -87,11 +87,11 @@ export const lessons = [
 	},
 	{
 		number: 6,
-		title: 'Endre og slette med CRUD',
+		title: 'Endre riktig melding',
 		question: 'Hvordan treffer du riktig melding?',
 		category: 'Utvikling',
 		intro:
-			'To meldinger har samme tekst, men ulik ID. Endre eller slett én av dem, og følg forskjellen mellom serverdata og listen i nettleseren.',
+			'Ada og Noah har skrevet «Hei!». Bruk ID-en til å endre bare én melding. Hent så den nye listen til chatten.',
 		context:
 			'Utdrag fra øving 6. GET og POST har du fra før; her utforsker du PATCH og DELETE. Tilgangskontroll legges til i øving 9.',
 		example: {
@@ -114,7 +114,7 @@ export const lessons = [
 				['m2', 'm2 · Noah'],
 				['ukjent', 'ukjent · finnes ikke']
 			]),
-			input('text', 'Ny tekst ved PATCH', 'Nå er denne endret.', 'textarea'),
+			input('text', 'Ny meldingstekst', 'Nå er denne endret.', 'textarea'),
 			select('disk', 'Lagring', [
 				['ok', 'Filen kan lagres'],
 				['fail', 'Filen kan ikke lagres']
@@ -125,7 +125,7 @@ export const lessons = [
 				title: 'Endre bare Noahs melding',
 				label: 'Endre',
 				start: { method: 'PATCH', id: 'm2', disk: 'ok' },
-				instruction: 'Velg PATCH, finn Noahs meldings-ID og skriv en ny tekst. Kjør og følg oppdateringen helt tilbake til nettleseren.',
+				instruction: 'Skriv en ny tekst til Noah (m2) og trykk «Endre meldingen». Hent deretter chatten på nytt.',
 				observe: 'Adas melding skal være uendret. Noahs melding skal ha ny tekst, men samme ID og avsender.',
 				hint: 'Velg m2. Sammenlign ID, avsender og opprettet før og etter.',
 				answer:
@@ -135,17 +135,17 @@ export const lessons = [
 				title: 'Slett en ID som ikke finnes',
 				label: 'Slette',
 				start: { method: 'DELETE', id: 'ukjent', disk: 'ok' },
-				instruction: 'Velg DELETE og en ukjent ID. Kjør og finn hvor requesten stopper.',
+				instruction: 'Trykk «Slett meldingen» med ukjent ID. Velg så m2 og prøv igjen. Hvilken melding forsvinner?',
 				observe: 'Hvilket svar får nettleseren? Ble noen av de eksisterende meldingene endret?',
 				hint: 'Velg DELETE og ukjent.',
 				answer:
 					'Du får 404 før lagring. Å slette samme ID én gang til i den ekte appen gir også 404.'
 			},
 			{
-				title: 'Stopp før siste GET',
+				title: 'Hvorfor viser chatten gammel tekst?',
 				label: 'Oppdater visningen',
 				start: { method: 'PATCH', id: 'm2', disk: 'ok' },
-				instruction: 'Kjør en vellykket endring av en melding. Stopp rett etter svaret fra backend, og gå så videre til siste GET.',
+				instruction: 'Endre meldingen og sammenlign de to listene. Trykk «Hent chatten på nytt» og se forskjellen.',
 				observe: 'Sammenlign serverens liste med nettleserens liste før og etter GET.',
 				hint: 'Se på «Nettleserens liste» etter at backend har svart.',
 				answer:
@@ -163,7 +163,7 @@ export const lessons = [
 		question: 'Hvor skal en ugyldig request stoppe?',
 		category: 'Utvikling',
 		intro:
-			'Send gyldig og ugyldig JSON gjennom Express. Følg forskjellen på en feil i JSON, en ugyldig verdi og en server som ikke svarer.',
+			'Chatten skal lagre vanlige meldinger og stoppe ugyldig innhold. Prøv begge deler og se om listen endres.',
 		context:
 			'POST /meldinger med express.json({ limit: "10kb" }), tekstFeil og felles feilmiddleware. Koden viser de relevante delene av requestkjeden.',
 		example: {
@@ -198,7 +198,7 @@ export const lessons = [
 				title: 'Test grensen på 500 tegn',
 				label: 'Grensetester',
 				start: { scenario: '500' },
-				instruction: 'Kjør ett forsøk med 500 tegn og ett med 501. Finn kontrollen som avgjør om meldingen kan lagres.',
+				instruction: 'Send 500 tegn. Bytt til 501 og send igjen. Hvilken melding kommer inn i listen?',
 				observe: 'Sammenlign HTTP-status og serverlisten. Hvilken side av grensen godtas?',
 				hint: 'Kjør både 500 og 501 tegn.',
 				answer:
@@ -207,9 +207,9 @@ export const lessons = [
 			{
 				title: 'Send et tall som tekst',
 				label: 'Datatype',
-				start: { scenario: 'number' },
-				instruction: 'Velg «tekst er tallet 123» og kjør. Følg valideringen og finn hvorfor koden sjekker typen før den bruker trim.',
-				observe: 'Requesten skal avvises kontrollert, og serverlisten skal være uendret.',
+				start: { scenario: 'number', body: '{ "avsender": "Ada", "tekst": "123" }' },
+				instruction: 'Send tallet 123. Bytt til «Tekst» og send «123». Godtas begge?',
+				observe: 'Tallet skal avvises uten å endre listen. Teksten «123» skal kunne lagres.',
 				hint: 'Hvorfor kommer typeof før trim?',
 				answer:
 					'Tallet 123 har ingen trim-metode. En typesjekk først gir en kontrollert 400-feil i stedet for et krasj.'
@@ -218,17 +218,17 @@ export const lessons = [
 				title: 'Sammenlign 400 og avslått backend',
 				label: 'Feilsvar',
 				start: { scenario: 'blank' },
-				instruction: 'Kjør «Tom tekst» og deretter «Backend er avslått». Undersøk hva frontend mottar i de to forsøkene.',
+				instruction: 'Send tom tekst. Prøv så med avslått backend. Se forskjellen på svarene.',
 				observe: 'Hvilket forsøk gir et HTTP-svar, og hvilket går direkte til catch uten et svar?',
 				hint: 'Se på svaret og frontend-koden.',
 				answer:
 					'fetch gir et Response-objekt ved HTTP 400; du må sjekke svar.ok. Ved nettverksfeil blir promise avvist, og catch håndterer feilen uten en HTTP-status.'
 			},
 			{
-				title: 'Hvorfor er mellomrom ikke en melding?',
+				title: 'Slipper en usynlig melding gjennom?',
 				label: 'Mellomrom',
 				start: { scenario: 'empty' },
-				instruction: 'Velg «Bare mellomrom». Forutsi om listen vil endres, og kjør steg for steg. Sammenlign deretter med vanlig tekst i JSON-feltet.',
+				instruction: 'Send bare mellomrom. Bytt til «Vanlig melding» og prøv igjen. Hva blir lagret?',
 				observe: 'Se lengden før og etter trim, HTTP-svaret og om minnet og filen endres.',
 				hint: 'En streng med tre mellomrom har lengde 3. Hva blir lengden etter trim?',
 				answer: 'Etter trim er strengen tom. Kontrollen gir HTTP 400 og return stopper ruten før lagring. En vanlig melding skal fortsatt kunne lagres med 201.'

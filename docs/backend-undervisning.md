@@ -1,8 +1,26 @@
 # Backend – samlet undervisningsforløp
 
-Dev, 31. oktober 2026. Modulen forberedes for ordinær undervisning fra neste uke. Utprøvingen skjer i timene: vi følger elevenes bruk og justerer etter erfaringene. Det legges ikke inn en separat elevpilot før resten av modulen kan brukes. Teknisk kontroll før publisering består.
+Dev, oppdatert 1. november 2026. Modulen forberedes for ordinær undervisning fra neste uke. Utprøvingen skjer i timene: vi følger elevenes bruk og justerer etter erfaringene. Det legges ikke inn en separat elevpilot før resten av modulen kan brukes. Teknisk kontroll før publisering består.
 
 Målgruppe: Vg2 informasjonsteknologi. Eleven bygger videre på én Svelte-frontend og én Express-backend med JSON-fillagring. Simulatorene gjør sammenhengene synlige; eget chatprosjekt er stedet eleven anvender dem. Øving 1–4 dekkes gjennom dataflyt, tidligere øvingsark og eget prosjekt; de nummererte simulatorene starter på 5. Modulen er et forløp over flere økter, ikke et krav om å fullføre alt på én uke.
+
+## Forenklet inngang til øving 5–7 · 1. november
+
+Tilbakemeldingen var at disse øvingene krevde mye lesing og gjorde handlingen og poenget uklart. De viser nå et kort oppdrag, en handlingsknapp og meldingskort. Kode, rådata, flere innstillinger og den fulle prosjektveiledningen åpnes ved behov. Øving 8–10 beholder sin eksisterende flyt.
+
+| Øving | Første handling | Synlig konsekvens og faglig poeng |
+| --- | --- | --- |
+| 5 · Ta vare på meldingene | Skriv og send en melding; sammenlign fungerende lagring med skrivefeil. | Se meldingen i minnet og filen. En mislykket lagring skal ikke bekreftes eller endre den gamle listen. |
+| 6 · Endre riktig melding | Endre Noahs melding med m2. Trykk deretter «Hent chatten på nytt». | Meldingskort viser at ID velger riktig melding, og at backend og nettleser ikke oppdateres samtidig. |
+| 7 · Stopp feil før de lagres | Send mellomrom; sammenlign med vanlig tekst. | Se HTTP-svar, tekstlengde før/etter trim og om en melding faktisk legges til. Test også tall/tekst og 500/501. |
+
+Den opprinnelige modellen beregner fortsatt hele kjøringen. Presentasjonen viser resultatet direkte i 5 og 7; vellykket PATCH/DELETE i 6 stopper før siste GET, som eleven utløser selv. «Se hvorfor» lar eleven gå tilbake og følge kode og data stegvis. «Ny», «Endret» og «Fjernet» beregnes mot starten på samme forsøk og er ikke vurdering av elevens arbeid. Et nytt forsøk bruker eksempeldata fra starten; omstartsforsøket i 5 viderefører ikke elevens forrige melding. Dette står på siden.
+
+Oppgavebytte i 5–7 stiller inn det nye forsøket og fjerner gammelt resultat. Endring av input fjerner også resultatet, slik at svaret alltid gjelder det som faktisk ble kjørt. Ingen oppgaveindekser, scenario-ID-er, progresjonskrav eller XP-regler er endret. Labpartneren får fortsatt avgrensede kategorier, oppgave og kjøringssteg, aldri rå elevtekst. Serverkonteksten beskriver den nye visningen og GET-knappen.
+
+**Læreroppfølging:** Be eleven peke ut forskjellen før en lang forklaring. La eleven deretter åpne «Se hvorfor» og finne kontrollen eller dataendringen som forklarer resultatet. Egen chat og visningsnavnoppgaven beholdes som anvendelse med mindre støtte. I øving 7 leder neste steg fortsatt til tekstreparasjonen i Redd chatten. Klikk og et vist resultat dokumenterer ikke forståelse. Mål, forkunnskaper og avgrensninger nedenfor er uendret; formatvalget følger pedagogikkens konkrete problemer og designgrunnlagets prioritering av aktuell handling og hjelp ved behov.
+
+**Dev-kontroll:** Kildekode og diff er gjennomgått. Regresjonsprøver for kortenes faktiske dataendringer, GET-stopp, feiltilfeller og hurtigvalg er lagt til, men ikke kjørt. Samlet testsuite, Svelte-sjekk, produksjonsbygg og nettleserprøving gjenstår før main. Svelte MCP er ikke tilgjengelig; eksisterende komponentmønstre og offisiell Svelte-dokumentasjon om bindinger og effekter er brukt. Kontroller spesielt oppgavebytte, tekst/JSON, GET, kodepanel og tilbakespoling, gamle resultater etter inputendring, direkte prosjektanker, Labpartner/«Vis meg hvor», tastaturfokus, 320 px og begge temaer. Utprøvingen med elever skjer i ordinær undervisning; det er ikke dokumentert læringseffekt eller enklere bruk ennå.
 
 ## Mål og avgrensning
 
@@ -79,7 +97,7 @@ I en senere time brukes et nytt felt, en annen grense eller en ny rute med mindr
 
 - Synlig start og forberedelser i Backend. Prosjektoppgaver er åpne i modulens hoveddeler og sentrale leksjoner; utfyllende kodehjelp kan fortsatt åpnes ved behov.
 - Felles neste-/forrige-lenker følger katalogens rekkefølge, inkludert Sessions før øving 8, Chatrom etter øving 9 og øving 10 før oppsummeringen. Valideringsforløpet går via tekstreparasjon og eget prosjekt.
-- Alle 19 deloppgaver i øving 5–10 har definerte startvalg. «Still inn første forsøk» fyller dem inn og fjerner forrige kjøring. Oppgavebytte alene overskriver ikke elevens innstillinger. Oppgaveindekser og scenario-ID-er er bevart.
+- Alle 19 deloppgaver i øving 5–10 har definerte startvalg. «Still inn første forsøk» fyller dem inn og fjerner forrige kjøring. Dette gjelder fortsatt 8–10. I den nye inngangen til 5–7 stiller oppgavebytte inn startvalgene automatisk og tømmer gammel kjøring. Oppgaveindekser og scenario-ID-er er bevart.
 - Fem læreropplegg dekker hele den veiledede rekken, med egne opplegg for validering og publisering. Private lærernotater ligger fortsatt bare på serveren. Eksisterende delankre og modulaliaser består.
 - Labpartnerens modulgrunnlag gjenbruker prosjektoppgavene og omtaler Nattevakten som valgfri. Ingen nye elevdata sendes, og labpartneren får ikke tilgang til elevens eksterne kode.
 - Den parallelle «Vis meg hvor»-endringen fra dev er flettet inn. Eksisterende frivillig elevtilbakemelding er bevart.
