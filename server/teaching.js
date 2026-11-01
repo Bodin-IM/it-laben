@@ -110,8 +110,8 @@ export const teachingGuides = [
 					'Hvorfor brukes en midlertidig fil?'
 				],
 				notes: [
-					'La elevene forutsi, send med skrivefeil og sammenlign kortene for minne og fil med vellykket lagring.',
-					'Åpne «Se hvorfor» og velg «Fra starten». Følg ny liste, filskriving og oppdatering av minne som tre forskjellige steg.'
+					'Start med det synlige lagre.mjs-eksemplet i en tom øvingsmappe. La eleven endre en tekst, kjøre skriptet og åpne JSON-filen. Hvilken linje lagrer faktisk til fil?',
+					'Start deretter chatforsøket og bruk Neste steg. Koden vises hele tiden. Sammenlign vanlig lagring med skrivefeil og undersøk hvorfor chatten bruker en midlertidig fil.'
 				]
 			},
 			{
@@ -122,7 +122,7 @@ export const teachingGuides = [
 					'Hvorfor søker vi etter ID?',
 					'Hva må nettleseren gjøre for å vise det nye resultatet?'
 				],
-				notes: ['Endre Noahs melding. Sammenlign kortene før eleven trykker «Hent chatten på nytt». Knytt PATCH og DELETE til det tidligere POST-/GET-opplegget.']
+				notes: ['Bruk map/filter-eksemplet på JSON-filen fra øving 5. Følg deretter chatkoden for Noahs melding. Sammenlign listene før Hent chatten på nytt. Knytt PATCH og DELETE til POST/GET.']
 			}
 		],
 		wrapUp: [

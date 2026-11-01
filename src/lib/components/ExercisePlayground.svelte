@@ -4,6 +4,7 @@
 	import { taskStartValues } from '#lib/ovingene.js';
 	import { buildTrace } from '#lib/ovingModel.js';
 	import { exerciseFeedback } from '#lib/exerciseFeedback.js';
+	import { backendCodeExample } from '#lib/backendCodeExamples.js';
 	import { moduleLink } from '#lib/moduleNavigation.js';
 	import { validationJourney } from '#lib/backendValidation.js';
 	import { playgroundChoices, playgroundResultIndex, playgroundAction, requestText } from '#lib/exercisePlayground.js';
@@ -13,6 +14,7 @@
 	import PartnerContext from '#lib/components/PartnerContext.svelte';
 	import CodeTokens from '#lib/components/CodeTokens.svelte';
 	import ExerciseMessages from '#lib/components/ExerciseMessages.svelte';
+	import ExerciseCodeExample from '#lib/components/ExerciseCodeExample.svelte';
 	/** @type {{lesson:import('#lib/ovingene.js').Lesson,moduleId?:string|null}} */
 	let { lesson, moduleId = null } = $props();
 	const interfaceHelp = getInterfaceHelp(), helpTarget = interfaceHelp.target;
@@ -23,9 +25,10 @@
 	const position = $derived(order.indexOf(taskIndex));
 	/** @type {Record<string,string>} */ let values = $state({});
 	/** @type {import('#lib/ovingModel.js').Step[]} */ let trace = $state([]);
-	let index = $state(0), selectedLine = $state(0), codeOpen = $state(false);
+	let index = $state(0), selectedLine = $state(0);
 	/** @type {HTMLElement|undefined} */ let resultElement = $state();
 	const current = $derived(trace[index]);
+	const example = $derived(backendCodeExample(lesson.number, values));
 	const before = $derived(trace[0] ?? buildTrace(lesson.number, Object.keys(values).length ? values : taskStartValues(lesson))[0]);
 	const frame = $derived(current ?? before);
 	const finished = $derived(!!current && index === trace.length - 1);
@@ -46,7 +49,7 @@
 		clear();
 		interfaceHelp.clear();
 	});
-	function clear() { trace = []; index = 0; selectedLine = 0; codeOpen = false; }
+	function clear() { trace = []; index = 0; selectedLine = 0; }
 	/** @param {number} next */
 	function chooseTask(next) {
 		selectedTask = next;
@@ -67,10 +70,8 @@
 	async function run() {
 		noteFeedbackAttempt(`oving-${lesson.number}`, page.url.pathname + page.url.search);
 		trace = buildTrace(lesson.number, values);
-		index = playgroundResultIndex(lesson.number, trace);
+		index = 0;
 		selectedLine = 0;
-		codeOpen = false;
-		if (finished) finishFeedbackAttempt(`oving-${lesson.number}`);
 		await tick();
 		resultElement?.focus();
 	}
@@ -89,14 +90,15 @@
 	function display(value) { return typeof value === 'string' ? value : JSON.stringify(value, null, 2); }
 </script>
 
-<PartnerContext pageId={`oving-${lesson.number}`} values={{ choices: lessonChoices(lesson, values), step: current ? index : -1, line: codeOpen && current ? selectedLine : -1, task: taskIndex }} />
+<PartnerContext pageId={`oving-${lesson.number}`} values={{ choices: lessonChoices(lesson, values), step: current ? index : -1, line: current ? selectedLine : -1, task: taskIndex }} />
 
 <section id="forsok" class="playground" aria-labelledby="lab-title">
+	{#if example}<ExerciseCodeExample {example} />{/if}
 	<nav class="tasks" aria-label="Velg oppdrag">
 		{#each order as id, i}<button type="button" aria-pressed={taskIndex === id} class:chosen={taskIndex === id} onclick={() => chooseTask(id)}>{i + 1} · {lesson.tasks[id].label}</button>{/each}
 	</nav>
 	<div class="brief" use:helpTarget={{ label: 'Hva skal jeg gjøre?', hint: 'Les oppdraget, velg et forsøk og trykk på handlingsknappen.', order: 1 }}>
-		<p class="eyebrow">OPPDRAG {position + 1} AV {order.length} · PRØV HER PÅ SIDEN</p>
+		<p class="eyebrow">PRØV CHATKODEN · OPPDRAG {position + 1} AV {order.length}</p>
 		<h2 id="lab-title" tabindex="-1">{task.title}</h2>
 		<p>{task.instruction}</p>
 	</div>
@@ -117,7 +119,8 @@
 			{/if}
 			{#if scenarioField}<p class="small">Valgt: {scenarioField.choices?.find((choice) => choice.value === values.scenario)?.label.replace('Bruk JSON-feltet nedenfor', 'Din egen melding')}</p>{/if}
 			{#if lesson.number === 5 && values.scenario === 'restart'}<p class="small">Dette forsøket leser to ferdiglagrede eksempelmeldinger, ikke meldingen fra forrige forsøk.</p>{/if}
-			<button class="primary run" type="submit" disabled={!Object.keys(values).length} use:helpTarget={{ label: 'Prøv handlingen', hint: 'Trykk her. Se etterpå hvilke meldinger som ble endret og hvilket svar serveren ga.', order: 3 }}>{playgroundAction(lesson.number, values)} →</button>
+			<button class="primary run" type="submit" disabled={!Object.keys(values).length} use:helpTarget={{ label: 'Kjør chatkoden', hint: 'Start forsøket her. Følg koden med Neste steg og se når dataene endres.', order: 3 }}>{playgroundAction(lesson.number, values)} →</button>
+			<p class="small">Starter en stegvis kjøring her på siden. Bruk «Neste steg» for å følge koden.</p>
 			<details class="extra"><summary>Flere forsøk og innstillinger</summary>
 				{#if scenarioField}<label for="play-scenario">Alle forsøk</label><select id="play-scenario" bind:value={values.scenario} onchange={clear}>{#each scenarioField.choices ?? [] as choice}<option value={choice.value}>{choice.label}</option>{/each}</select>{/if}
 				{#if lesson.number === 6}<label for="play-disk">Lagring</label><select id="play-disk" bind:value={values.disk} onchange={clear}><option value="ok">Filen kan lagres</option><option value="fail">Filen kan ikke lagres</option></select>{/if}
@@ -125,11 +128,22 @@
 			</details>
 			{#key taskIndex}<details><summary use:helpTarget={{ label: 'Finn hint', hint: 'Åpne hintet for ett råd til oppdraget.', order: 6 }}>Jeg trenger et hint</summary><p>{task.hint}</p></details>{/key}
 		</form>
-		<div class="result" bind:this={resultElement} role="region" tabindex="-1" aria-label="Resultatet av forsøket">
+		<div class="result" bind:this={resultElement} role="region" tabindex="-1" aria-label="Chatkode og data i forsøket">
 			<div class="status" role="status" aria-live="polite" aria-atomic="true">
 				{#if current}<p class="eyebrow">{finished ? 'RESULTAT' : 'UNDERVEIS'}</p><h3>{current.title}</h3><p><strong>{current.status}</strong></p>
-				{:else}<h3>Dette er utgangspunktet</h3><p>Prøv handlingen. Se hva som endres her.</p>{/if}
+				{:else}<h3>Følg koden med eksempeldata</h3><p>Start forsøket. Her vises koden i hvert steg og dataene den påvirker.</p>{/if}
 			</div>
+			{#if current}
+				<section class="code-details" aria-label="Koden i dette steget">
+					<h4 use:helpTarget={{ label: 'Følg koden', hint: 'Koden er synlig her. Bruk Neste steg og velg en kodelinje for forklaring.', order: 5 }}>Koden i dette steget</h4>
+					<div class="step-controls"><button type="button" onclick={() => showStep(0)} disabled={index === 0}>Fra starten</button><button type="button" onclick={() => showStep(index - 1)} disabled={index === 0}>← Forrige steg</button><span>Steg {index + 1} / {trace.length}</span><button type="button" class="primary" onclick={() => showStep(index + 1)} disabled={finished}>Neste steg →</button><button type="button" onclick={() => showStep(playgroundResultIndex(lesson.number, trace))}>{lesson.number === 6 ? 'Vis backend-svaret' : 'Vis resultat'}</button></div>
+					<p>{current.text}</p><p><strong>{current.file}</strong> · kodeutdrag</p><p class="small">Velg en kodelinje for en kort forklaring.</p>
+					<div class="code-lines" role="group" aria-label="Velg en kodelinje for forklaring">
+						{#each current.code as line, i}<button type="button" class:chosen={selectedLine === i} aria-pressed={selectedLine === i} onclick={() => (selectedLine = i)} aria-label={`Forklar linje ${i + 1}: ${line[0]}`}><span aria-hidden="true">{i + 1}</span><code><CodeTokens source={line[0]} /></code></button>{/each}
+					</div><p aria-live="polite"><strong>Linje {selectedLine + 1}:</strong> {current.code[selectedLine]?.[1]}</p>
+					<details><summary>Vis rådata for dette steget</summary>{#each Object.entries(current.data) as [label, value]}<h4>{label}</h4><!-- svelte-ignore a11y_no_noninteractive_tabindex (Keyboard users need to scroll raw data.) --><pre tabindex="0" role="region" aria-label={label}>{display(value)}</pre>{/each}</details>
+				</section>
+			{/if}
 			<div class="messages">{#each panels as panel}<ExerciseMessages title={panel.title} before={before.data[panel.key]} after={frame.data[panel.key]} ran={!!current} />{/each}</div>
 			{#if lesson.number === 7 && current && frame.data['Tekstlengde før trim'] !== undefined}<p class="trim">Tekstlengde: <strong>{frame.data['Tekstlengde før trim']}</strong> → etter trim: <strong>{frame.data['Tekstlengde etter trim']}</strong></p>{/if}
 			{#if awaitingGet}<div class="follow-up"><p>{browserDiffers ? 'Backend har lagret endringen. Chatten viser fortsatt den gamle listen.' : 'Backend har svart. Hent listen for å oppdatere chatten; den valgte teksten var allerede lik.'}</p><button type="button" class="primary" onclick={fetchMessages} use:helpTarget={{ label: 'Oppdater chatten', hint: 'Trykk her for å hente serverens nye liste til nettleseren med GET.', order: 4 }}>Hent chatten på nytt · GET →</button></div>
@@ -137,15 +151,6 @@
 		</div>
 	</div>
 	{#if current}
-		<details class="code-details" bind:open={codeOpen}>
-			<summary use:helpTarget={{ label: 'Se data og kode', hint: 'Åpne for å følge forsøket steg for steg og undersøke kodelinjene.', order: 5 }}>Se hvorfor · data og kode steg for steg</summary>
-			<div class="step-controls"><button type="button" onclick={() => showStep(0)} disabled={index === 0}>Fra starten</button><button type="button" onclick={() => showStep(index - 1)} disabled={index === 0}>← Forrige steg</button><span>Steg {index + 1} / {trace.length}</span><button type="button" onclick={() => showStep(index + 1)} disabled={finished}>Neste steg →</button></div>
-			<p>{current.text}</p><p><strong>{current.file}</strong> · kodeutdrag</p>
-			<div class="code-lines" role="group" aria-label="Velg en kodelinje for forklaring">
-				{#each current.code as line, i}<button type="button" class:chosen={selectedLine === i} aria-pressed={selectedLine === i} onclick={() => (selectedLine = i)} aria-label={`Forklar linje ${i + 1}: ${line[0]}`}><span aria-hidden="true">{i + 1}</span><code><CodeTokens source={line[0]} /></code></button>{/each}
-			</div><p aria-live="polite"><strong>Linje {selectedLine + 1}:</strong> {current.code[selectedLine]?.[1]}</p>
-			<details><summary>Vis rådata for dette steget</summary>{#each Object.entries(current.data) as [label, value]}<h4>{label}</h4><!-- svelte-ignore a11y_no_noninteractive_tabindex (Keyboard users need to scroll raw data.) --><pre tabindex="0" role="region" aria-label={label}>{display(value)}</pre>{/each}</details>
-		</details>
 		{#key taskIndex}<details class="explanation"><summary>Hva skal jeg oppdage?</summary><p>{task.observe}</p><p>{task.answer}</p>{#if feedback}<p><strong>Prøv videre:</strong> {feedback.next}</p>{/if}</details>{/key}
 		{#if finished}<div class="next"><p>Prøv gjerne en annen variant og sammenlign.</p>{#if position < order.length - 1}<button type="button" onclick={nextTask}>Neste oppdrag →</button>{:else if lesson.number === 7}<a href={moduleLink(validationJourney[1].href, moduleId)}>Reparer tekstkontrollen →</a>{:else}<a href="#eget-prosjekt" onclick={openProject}>Bruk dette i egen chat →</a>{/if}</div>{/if}
 	{/if}
@@ -185,7 +190,9 @@
 	.status { min-height: 94px; }
 	.messages { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
 	.follow-up, .cause, .trim { padding: 14px; border-left: 3px solid var(--color-info); background: var(--color-info-soft); }
-	.code-details, .explanation, .next { margin: 0 20px; border-top: 1px solid var(--color-border); padding-block: 8px; }
+	.explanation, .next { margin: 0 20px; border-top: 1px solid var(--color-border); padding-block: 8px; }
+	.code-details { padding-bottom: 16px; }
+	h4 { margin: 0; font-size: 1.1rem; }
 	.step-controls { margin-block: 12px; }
 	.code-lines { background: var(--color-code-bg); padding: 8px; border-radius: 8px; }
 	.code-lines button { display: flex; width: 100%; gap: 12px; text-align: left; background: transparent; color: var(--color-code-text); border: 1px solid transparent; min-height: 44px; }

@@ -25,7 +25,7 @@ export const lessons = [
 		question: 'Når er meldingen egentlig lagret?',
 		category: 'Utvikling',
 		intro:
-			'Chatten skal beholde meldingene etter omstart. Prøv hva som skjer når lagringen virker – og når den feiler.',
+			'Bruk Node til å skrive en liste til en JSON-fil og lese den tilbake. Følg så koden som lagrer en melding i chatten.',
 		context:
 			'Utdrag fra lagring.js og POST /meldinger. Filnavnet bestemmes av serveren. Synkron lagring er valgt for en liten øvelse med én serverprosess.',
 		example: {
@@ -54,7 +54,7 @@ export const lessons = [
 				title: 'Få meldingen inn i filen',
 				label: 'Lagre',
 				start: { scenario: 'save' },
-				instruction: 'Skriv en melding og trykk «Send meldingen». Finn den igjen i minnet og i filen.',
+				instruction: 'Skriv en melding og trykk «Send meldingen». Bruk «Neste steg» og finn koden som gjør listen til JSON og skriver filen.',
 				observe: 'Når endres filen, når endres minnet, og når får nettleseren svar?',
 				hint: 'Sammenlign nyListe, .tmp-filen og meldinger.json.',
 				answer:
@@ -64,7 +64,7 @@ export const lessons = [
 				title: 'Får du et ærlig svar når lagringen feiler?',
 				label: 'Prøv en feil',
 				start: { scenario: 'fail' },
-				instruction: 'Send meldingen med «Skrivingen feiler». Bytt til «Lagre en melding» og prøv samme tekst igjen.',
+				instruction: 'Send med «Skrivingen feiler». Følg koden til feilsvaret. Prøv så samme tekst med «Lagre en melding».',
 				observe: 'Sammenlign serverens svar, listen i minnet og datafilen med det vellykkede forsøket.',
 				hint: 'Velg «Skrivingen feiler». Følg minnet helt til siste steg.',
 				answer:
@@ -91,7 +91,7 @@ export const lessons = [
 		question: 'Hvordan treffer du riktig melding?',
 		category: 'Utvikling',
 		intro:
-			'Ada og Noah har skrevet «Hei!». Bruk ID-en til å endre bare én melding. Hent så den nye listen til chatten.',
+			'Bruk map eller filter til å endre listen, og lagre den som JSON. Meldings-ID-en avgjør hvem endringen gjelder.',
 		context:
 			'Utdrag fra øving 6. GET og POST har du fra før; her utforsker du PATCH og DELETE. Tilgangskontroll legges til i øving 9.',
 		example: {
@@ -125,7 +125,7 @@ export const lessons = [
 				title: 'Endre bare Noahs melding',
 				label: 'Endre',
 				start: { method: 'PATCH', id: 'm2', disk: 'ok' },
-				instruction: 'Skriv en ny tekst til Noah (m2) og trykk «Endre meldingen». Hent deretter chatten på nytt.',
+				instruction: 'Endre Noahs melding (m2). Følg map, lagringen og svaret med «Neste steg». Hent så chatten på nytt.',
 				observe: 'Adas melding skal være uendret. Noahs melding skal ha ny tekst, men samme ID og avsender.',
 				hint: 'Velg m2. Sammenlign ID, avsender og opprettet før og etter.',
 				answer:
@@ -163,7 +163,7 @@ export const lessons = [
 		question: 'Hvor skal en ugyldig request stoppe?',
 		category: 'Utvikling',
 		intro:
-			'Chatten skal lagre vanlige meldinger og stoppe ugyldig innhold. Prøv begge deler og se om listen endres.',
+			'Kontroller datatype, tom tekst og lengde før du lagrer. Følg koden og se hvilken kontroll som stopper en ugyldig melding.',
 		context:
 			'POST /meldinger med express.json({ limit: "10kb" }), tekstFeil og felles feilmiddleware. Koden viser de relevante delene av requestkjeden.',
 		example: {
@@ -228,7 +228,7 @@ export const lessons = [
 				title: 'Slipper en usynlig melding gjennom?',
 				label: 'Mellomrom',
 				start: { scenario: 'empty' },
-				instruction: 'Send bare mellomrom. Bytt til «Vanlig melding» og prøv igjen. Hva blir lagret?',
+				instruction: 'Send bare mellomrom. Følg koden med «Neste steg» og finn kontrollen som stopper lagring. Prøv så «Vanlig melding».',
 				observe: 'Se lengden før og etter trim, HTTP-svaret og om minnet og filen endres.',
 				hint: 'En streng med tre mellomrom har lengde 3. Hva blir lengden etter trim?',
 				answer: 'Etter trim er strengen tom. Kontrollen gir HTTP 400 og return stopper ruten før lagring. En vanlig melding skal fortsatt kunne lagres med 201.'

@@ -14,6 +14,7 @@ import {
 import { workshopTasks, workshopDocuments, runWorkshop, sameWorkshop, queryFeedback } from '../../src/lib/databaseWorkshop.js';
 import { guideSteps, tutorialResult } from '../../src/lib/studentGuide.js';
 import { lessons } from '../../src/lib/ovingene.js';
+import { backendCodeExample } from '../../src/lib/backendCodeExamples.js';
 import { buildTrace } from '../../src/lib/ovingModel.js';
 import { exerciseFeedback } from '../../src/lib/exerciseFeedback.js';
 import { moduleContext } from '../../src/lib/moduleNavigation.js';
@@ -264,7 +265,10 @@ export function pageWork(page, raw) {
 			work.feedbackSource = 'Oppsummeringen er beregnet fra rekonstruerte eksempeldata. Tall og tekst er ikke elevens faktiske input. Den gjelder simulatoren, ikke elevens eksterne prosjekt eller en vurdering av forståelse.';
 		}
 		const task = lesson.tasks[v.task];
-		if (lesson.number <= 7) work.presentation = 'Eleven ser meldingskort og resultatet av handlingen først. Data og kode kan åpnes med «Se hvorfor». I øving 6 stopper en vellykket endring før GET: «Hent chatten på nytt» oppdaterer nettleserens liste. Oppgavebytte stiller inn et nytt forsøk; ingen automatisk godkjenning.';
+		if (lesson.number <= 7) {
+			work.codeExample = backendCodeExample(lesson.number, v.choices);
+			work.presentation = 'Koden er hovedinnholdet: Et kjørbart Node-eksempel vises alltid øverst. Det kjøres i elevens editor, ikke på nettsiden; du ser ikke resultatet på elevens maskin. Chatforsøket starter på første steg med synlig kode og linjeforklaring. Neste steg følger kjøringen; Vis resultat kan hoppe frem. I øving 6 kan Hent chatten på nytt utføre siste GET. Kodeeksemplet isolerer grunnprinsippet; chatmodellen legger til kontroller og sikrere filbytte. Ingen automatisk godkjenning.';
+		}
 		work.task = task
 			? { title: task.title, instruction: task.instruction, observe: task.observe, hint: task.hint }
 			: null;

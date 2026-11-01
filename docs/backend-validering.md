@@ -17,7 +17,7 @@ Forkunnskaper: JavaScript-strenger, objekter, betingelser, funksjoner, GET/POST 
 
 | Del | Elevhandling | Respons og vei videre |
 | --- | --- | --- |
-| Undersøk i øving 7 | Send bare mellomrom og sammenlign med vanlig tekst. Se resultatet på meldingskort; åpne kode og kjøringssteg ved behov. Undersøk også datatype og lengdegrense. | Simulatoren viser lengde før/etter trim, request, svar, minne og fil. Etter full kjøring forklares resultat, årsak og et nytt forsøk ut fra den kjørte modellen. |
+| Undersøk i øving 7 | Start med det synlige valider.mjs-eksemplet. Send så mellomrom og vanlig tekst i chatforsøket, og følg den synlige koden stegvis. Undersøk også datatype og lengdegrense. | Simulatoren viser lengde før/etter trim, request, svar, minne og fil. Etter full kjøring forklares resultat, årsak og et nytt forsøk ut fra den kjørte modellen. |
 | Reparer teksten i Redd chatten | Endre den eksisterende POST-ruten og prøv både normaltilfeller og ugyldig input. | Eksisterende tester kontrollerer status, svar og data. Feil lagring gir en konkret undersøkelse. Hint kan åpnes gradvis, uten nye poengregler. |
 | Bruk selv i eget prosjekt | Valider et visningsnavn på 1–30 tegn etter trim i egen Express-rute og vis feilen i frontend. | Eleven velger tester, sammenligner data før/etter og forklarer kontrollen for medelev/lærer. Nettsiden vurderer ikke elevens eksterne kode automatisk. |
 
