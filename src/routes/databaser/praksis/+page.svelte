@@ -1,241 +1,86 @@
 <script>
+	import { tick } from 'svelte';
 	import DatabaseFrame from '#lib/components/DatabaseFrame.svelte';
 	import PartnerContext from '#lib/components/PartnerContext.svelte';
 	import { lab, learningContext } from '#lib/lab.js';
-	import { createDatabaseProgress } from '#lib/databaseProgress.svelte.js';
-	import {
-		completedQueries,
-		queryTasks,
-		practicalRequirements,
-		practiceChecks,
-		starterCode
-	} from '#lib/databaseCourse.js';
-	const progress = createDatabaseProgress(
-		() => `${$lab.user?.id ?? 'guest'}:${$learningContext.mode}:${$learningContext.openingId ?? ''}`
-	);
-	const complete = $derived(completedQueries(progress.state.attempts));
-	let preview = $state(false);
-	let phase = $state('oppsett');
+	import { createDatabasePlace } from '#lib/databasePlace.svelte.js';
+	import { practicalRequirements, practiceChecks, starterCode } from '#lib/databaseCourse.js';
+	import { getInterfaceHelp } from '#lib/interfaceHelp.js';
+	const help = getInterfaceHelp(), helpTarget = help.target;
+	const scope = $derived(`${$lab.user?.id ?? 'guest'}:${$learningContext.mode}:${$learningContext.openingId ?? ''}`);
+	const place = createDatabasePlace('database-praksis', () => scope);
+	const phase = $derived(place.state.position);
 	const phases = [
-		{ id: 'oppsett', label: '1. Klargjør' },
-		{ id: 'data', label: '2. Legg inn data' },
-		{ id: 'kode', label: '3. Skriv egne søk' },
-		{ id: 'forklar', label: '4. Test og forklar' }
+		{ id: 'oppsett', label: '1. Koble til' }, { id: 'data', label: '2. Hent startdata' },
+		{ id: 'kode', label: '3. Lag egne søk' }, { id: 'forklar', label: '4. Test og forklar' }
 	];
-	const scope = $derived(
-		`${$lab.user?.id ?? 'guest'}:${$learningContext.mode}:${$learningContext.openingId ?? ''}`
-	);
-	$effect(() => {
-		scope;
-		preview = false;
-		phase = 'oppsett';
-	});
+	let problem = $state('mappe');
+	const problems = [
+		{ id: 'mappe', label: 'Filen eller .env blir ikke funnet', text: 'Åpne terminalen i utstyrsboden-start, der package.json og .mjs-filene ligger. Kopier .env.example til .env. Kontroller at filen ikke heter .env.txt.' },
+		{ id: 'pakke', label: 'mongodb-pakken mangler / npm blokkeres', text: 'Kjør npm install mongodb i prosjektmappen. Hvis PowerShell blokkerer npm.ps1, bruk npm.cmd install mongodb eller terminalen Ledetekst.' },
+		{ id: 'kontakt', label: '[KONTAKT] eller [OPPSETT]', text: 'Kontroller adresseformatet med læreren og at MongoDB kjører. localhost betyr maskinen der Node.js kjører. Bruk skolens adresse hvis databasen står på skoleserveren.' },
+		{ id: 'tilgang', label: '[INNLOGGING] eller [TILGANG]', text: 'Be læreren kontrollere bruker, innloggingsdatabase og rettighetene til din øvingsdatabase. Del feilkategorien, aldri passord eller hele tilkoblingsstrengen.' },
+		{ id: 'tomt', label: 'Søket virker, men gir null dokumenter', text: 'Prøv filteret {}. Gir det også null, kontroller at startdata er lagt inn i riktig database og collection. Gir {} treff, undersøk betingelsene og datatypene i ditt filter.' },
+		{ id: 'startdata', label: '[STARTDATA] eller [DUPLIKAT]', text: 'Kontroller at utstyr.json er gyldig JSON, med unike tekst-ID-er, boolsk tilgjengelighet og pris som tall. Et eksisterende dokument endres ikke ved å endre filen og kjøre klargjor.mjs igjen. Bruk en ubrukt ID for nye testdata.' },
+		{ id: 'operasjon', label: '[LESING] eller [LAGRING]', text: 'Undersøk filteret eller dokumentet du sender. Be læreren kontrollere databasetilgangen. Etter en usikker innsetting: hent data på nytt før du prøver igjen, slik at du vet hva som faktisk finnes.' }
+	];
+	$effect(() => { phase; scope; help.clear(); problem = 'mappe'; });
+	async function select(/** @type {string} */ id) {
+		await place.select(id); await tick(); document.getElementById('practice-step')?.focus();
+	}
 </script>
 
 <PartnerContext pageId="database-praksis" values={{ phase }} />
-<DatabaseFrame index={2}>
-	<section class="db-panel">
-		<h2>Oppdrag: gi Utstyrsboden et søkbart register</h2>
-		<p>
-			Du skal koble Node.js til en ekte MongoDB, hente dokumenter og skrive egne filtre. Du starter
-			med dataene du kjenner fra IT-laben og legger til egne testdata.
-		</p>
-		<p>
-			<strong>Du trenger:</strong> VS Code eller en annen editor, Node.js 22 eller nyere, og tilgang til
-			en MongoDB-database. Be læreren om serveradresse, databasenavn og tilgang til din eller gruppens
-			database.
-		</p>
-		<p class="db-muted">
-			Arbeidet på egen maskin blir ikke automatisk lest eller vurdert av IT-laben. Behold kildekoden
-			og testresultatene til gjennomgangen med læreren.
-		</p>
-		<p>
-			Trenger du å se koden først? <a href="/databaser/grunnlag/?modul=databaser&del=eksempel"
-				>Åpne det komplette eksemplet med forklaring →</a
-			>
-		</p>
+<DatabaseFrame activityId="database-praksis">
+	<p>Jobb i <strong>utstyrsboden-start</strong> på din egen maskin. Du trenger Node.js 22+ og en egen MongoDB-øvingsdatabase fra læreren.</p>
+	<nav class="db-task-nav" aria-label="Steg i kodeoppgaven">
+		{#each phases as part}<button class:active={phase === part.id} aria-current={phase === part.id ? 'step' : undefined} onclick={() => select(part.id)} disabled={!place.state.ready}>{part.label}</button>{/each}
+	</nav>
+	<section class="db-panel" id="practice-step" tabindex="-1" aria-label="Aktuelt steg i kodeoppgaven">
+		{#if phase === 'oppsett'}
+			<h2>Få den første forbindelsen til å virke</h2>
+			<ol>
+				<li>Last ned og pakk ut prosjektet. Åpne mappen i editoren og terminalen.</li>
+				<li>Kjør <code>node --version</code> og <code>npm install mongodb</code>.</li>
+				<li>Kopier <code>.env.example</code> til <code>.env</code>. Fyll inn lærerens adresse og navnet på din øvingsdatabase.</li>
+			</ol>
+			<a class="db-button" href="/ressurser/utstyrsboden-start.zip" download use:helpTarget={{ label: 'Last ned startprosjektet', hint: 'Pakk ut ZIP-filen og åpne mappen utstyrsboden-start i editoren.', order: 1 }}>Last ned startprosjektet (.zip)</a>
+			<h3>Prøv forbindelsen</h3>
+			<pre><code>node --env-file=.env sjekk.mjs</code></pre>
+			<p class="db-callout"><strong>Se etter [KLAR].</strong> Forbindelsen og lesetilgangen virker. Kontrollen endrer ingen data; skrivetilgang prøves i neste steg.</p>
+			<details><summary>Adresse, passord og .env</summary><p><code>127.0.0.1</code> og <code>localhost</code> betyr maskinen der Node.js kjører. Bruk skolens adresse når databasen står på skoleserveren.</p><p>Hold .env utenfor Git, skjermbilder og labpartnerens samtale. Startprosjektets .gitignore utelater filen. Nettleseren skal aldri koble direkte til databasen.</p></details>
+			<button class="db-button" onclick={() => select('data')}>Videre til startdata →</button>
+		{:else if phase === 'data'}
+			<h2>Hent utstyret du kjenner</h2>
+			<p>Kjør disse kommandoene i prosjektmappen:</p>
+			<pre><code>{'node --env-file=.env klargjor.mjs\nnode --env-file=.env finn.mjs'}</code></pre>
+			<p class="db-callout"><strong>Se etter seks dokumenter i en ny øvingsdatabase.</strong> Klargjøringen legger inn manglende ID-er. <code>finn.mjs</code> henter dem og viser dem i terminalen.</p>
+			<details><summary>Jeg får et annet antall, eller dataene er endret</summary><p>Har du kjørt <code>eksempel.mjs</code>, er Mikrofon Bord (M203) også lagt inn. Da er det sju dokumenter. Egne testdata kan gi flere.</p><p>Klargjøringen bevarer eksisterende dokumenter. Den overskriver eller sletter ikke data når du kjører den igjen. Kontroller databasenavn og innhold sammen med læreren hvis resultatet er uventet.</p></details>
+			<button class="db-button" onclick={() => select('kode')}>Lag egne søk →</button>
+		{:else if phase === 'kode'}
+			<h2>Endre filteret i finn.mjs</h2>
+			<p>Finn linjen <code>const filter = {};</code>. Start med å finne alle mikrofonene. Kjør filen etter hver endring:</p>
+			<pre><code>node --env-file=.env finn.mjs</code></pre>
+			<ol>{#each practicalRequirements.slice(1) as requirement}<li>{requirement}</li>{/each}</ol>
+			<details><summary>Se startkoden</summary><pre><code>{starterCode}</code></pre><p>Behold søkene som navngitte variabler eller egne funksjoner, slik at du kan vise dem igjen.</p></details>
+			<details><summary>Fra dataverkstedet til eget prosjekt</summary><p>Sammenlign søket etter alle kameraer med søket etter kameraer til høyst 500 kr. Legg til et dokument som gir forskjell. Prøv deretter prisgrensen.</p><p>Du kan legge til et fiktivt dokument med en ubrukt ID i <code>utstyr.json</code> og kjøre <code>klargjor.mjs</code> igjen. Bruk samme felter og datatyper. Dette endrer ikke dokumenter som allerede finnes.</p><a href="/databaser/grunnlag/?modul=databaser&del=lagre">Se hvordan insertOne legger inn fra kode →</a></details>
+			<button class="db-button" onclick={() => select('forklar')}>Test og forklar →</button>
+		{:else}
+			<h2>Vis hva registeret gjør</h2>
+			<p>Vis læreren eller en medelev to forskjellige kjøringer. Forklar hvorfor ett dokument blir med og et annet faller utenfor.</p>
+			<details><summary>Kontroller søkene dine</summary><ul>{#each practiceChecks as check}<li>{check}</li>{/each}</ul></details>
+			<div class="db-callout"><strong>Prøv en ny situasjon:</strong> Lag tre fiktive supportsaker i en egen collection. Velg feltene selv, finn åpne saker med høy prioritet og identifiser én bestemt sak. Forklar hvilke datatyper du valgte.</div>
+			<p>Behold prosjektet. Neste runde skal utvide registeret med innsetting, oppdatering, sletting og validering.</p>
+			<a class="db-button" href="/moduler/databaser/">Til moduloversikten →</a>
+		{/if}
+		<details>
+			<summary use:helpTarget={{ label: 'Finn hjelp til en feil', hint: 'Velg det du ser i terminalen. Hjelpen foreslår ett sted å undersøke.', order: 2 }}>Noe virker ikke</summary>
+			<label>Hva ser du?<select bind:value={problem}>{#each problems as item}<option value={item.id}>{item.label}</option>{/each}</select></label>
+			<p role="status">{problems.find((item) => item.id === problem)?.text}</p>
+		</details>
 	</section>
-	<div class="db-callout" class:success={complete.length === 3}>
-		<strong
-			>{!progress.state.ready
-				? 'Henter lokal øvingsstatus …'
-				: complete.length === 3
-					? 'De tre grunnøvingene består. Du er klar til å bruke dem i egen kode.'
-					: 'Gjør grunnøvingene før du starter kodeoppgaven.'}</strong
-		>
-		<ul>
-			{#each queryTasks as task}<li>
-					{complete.includes(task.id) ? '✓ Søket består' : 'Gjenstår'}: {task.title}
-				</li>{/each}
-		</ul>
-		<p class="db-muted">
-			Status gjelder forsøk i denne nettleseren og denne profilen. Den er en hjelp til rekkefølgen,
-			ikke en vurdering av forståelsen din.
-		</p>
-		{#if complete.length < 3}<div class="db-actions">
-				<a class="db-button" href="/databaser/finn-utstyr/?modul=databaser">Til grunnøvingene</a
-				><button class="db-button secondary" onclick={() => (preview = !preview)}
-					>{preview ? 'Lukk gjennomgangen' : 'Åpne for gjennomgang med lærer'}</button
-				>
-			</div>{/if}
-	</div>
-	{#if progress.state.warning}<p class="db-callout warning" role="status">
-			{progress.state.warning}
-		</p>{/if}
-	{#if complete.length === 3 || preview}
-		{#if preview && complete.length < 3}<p class="db-muted">
-				Oppgaven er åpnet for gjennomgang. Grunnøvingene er ikke registrert som ferdige.
-			</p>{/if}
-		<nav class="db-actions" aria-label="Steg i kodeoppgaven">
-			{#each phases as part}<button
-					class="db-button"
-					class:secondary={phase !== part.id}
-					aria-current={phase === part.id ? 'step' : undefined}
-					onclick={() => (phase = part.id)}>{part.label}</button
-				>{/each}
-		</nav>
-		<section class="db-panel">
-			{#if phase === 'oppsett'}
-				<h2>1. Klargjør prosjektet</h2>
-				<p>
-					Last ned startprosjektet og pakk ut ZIP-filen. Åpne mappen <code>utstyrsboden-start</code> i
-					editoren og åpne terminalen i denne mappen.
-				</p>
-				<a class="db-button" href="/ressurser/utstyrsboden-start.zip" download
-					>Last ned startprosjektet (.zip)</a
-				>
-				<pre><code>{'node --version\nnpm install mongodb'}</code></pre>
-				<p>
-					Versjonsnummeret skal begynne med 22 eller høyere. <code>npm install mongodb</code> installerer
-					den offisielle Node.js-driveren i prosjektet ditt.
-				</p>
-				<p>
-					Kopier <code>.env.example</code> til en ny fil som heter <code>.env</code>. Fyll inn
-					adressen og databasenavnet du har fått av læreren. Eksemplet med <code>127.0.0.1</code> gjelder
-					bare når MongoDB kjører på din egen maskin.
-				</p>
-				<pre><code
-						>{'MONGODB_URI=mongodb://127.0.0.1:27017\nMONGODB_DATABASE=utstyrsboden_oving'}</code
-					></pre>
-				<div class="db-callout">
-					Bruk din egen øvingsdatabase. En tilkoblingsstreng kan inneholde passord. <code>.env</code
-					>
-					skal ikke legges i Git, sendes til labpartneren eller vises i skjermbilder. Startprosjektet
-					har en <code>.gitignore</code> for dette.
-				</div>
-				<details>
-					<summary>Hvis tilkoblingen ikke virker</summary>
-					<ul>
-						<li>
-							Kontroller at MongoDB kjører på adressen du bruker. <code>localhost</code> betyr maskinen
-							der Node.js kjører.
-						</li>
-						<li>
-							Kontroller databasenavn og at brukeren har tilgang. Be læreren kontrollere
-							serveroppsettet ved behov.
-						</li>
-						<li>
-							Hvis du har tilgang til en eksisterende Atlas-database, kan URI-en derfra brukes.
-							Denne oppgaven krever ikke at du oppretter en skykonto.
-						</li>
-						<li>Del feilsituasjonen med læreren uten passord eller full tilkoblingsstreng.</li>
-					</ul>
-				</details>
-				<button class="db-button" onclick={() => (phase = 'data')}>Videre til dataene →</button>
-			{:else if phase === 'data'}
-				<h2>2. Legg inn eksempeldata</h2>
-				<p>
-					Kjør klargjøringsskriptet én gang. Det legger til de seks fiktive utstyrsdokumentene i
-					collectionen <code>utstyr</code>.
-				</p>
-				<pre><code>{'node --env-file=.env klargjor.mjs\nnode --env-file=.env finn.mjs'}</code></pre>
-				<p>
-					Første kommando legger til dokumenter som mangler. Den overskriver eller sletter ikke
-					dokumenter som allerede har samme <code>_id</code>. Andre kommando kjører startfilen og
-					viser alle dokumentene.
-				</p>
-				<p>
-					I en tom øvingsdatabase skal du nå se seks rader. Åpne <code>utstyr.json</code> og
-					sammenlign datatypene med terminalresultatet. Hvis du har brukt databasen før, kan den
-					inneholde flere eller endrede dokumenter. Har du kjørt <code>eksempel.mjs</code> fra teorien,
-					er Mikrofon Bord (M203) også lagt inn. Da er det sju dokumenter og tre mikrofoner.
-				</p>
-				<button class="db-button" onclick={() => (phase = 'kode')}>Videre til egne søk →</button>
-			{:else if phase === 'kode'}
-				<h2>3. Skriv søkene selv</h2>
-				<p>
-					Arbeid i <code>finn.mjs</code>. Startkoden kobler til, velger collection, henter data og
-					lukker forbindelsen. Du skal skrive og teste filtrene.
-				</p>
-				<ol>
-					{#each practicalRequirements as requirement}<li>{requirement}</li>{/each}
-				</ol>
-				<p>
-					Kjør filen med <code>node --env-file=.env finn.mjs</code> etter hver endring. Behold søkene
-					som navngitte variabler eller egne funksjoner, slik at du kan vise dem igjen.
-				</p>
-				<details>
-					<summary>Se startkoden og forklaringen</summary>
-					<pre><code>{starterCode}</code></pre>
-					<ul>
-						<li><code>MongoClient</code> håndterer forbindelsen.</li>
-						<li>
-							<code>client.db(...).collection('utstyr')</code> velger databasen og collectionen.
-						</li>
-						<li>
-							<code>find(filter)</code> lager et søk. <code>await ...toArray()</code> henter dokumentene
-							i dette lille datasettet.
-						</li>
-						<li><code>finally</code> lukker forbindelsen også hvis en kjøring feiler.</li>
-					</ul>
-				</details>
-				<details>
-					<summary>Hjelp til å legge til ditt eget testdokument</summary>
-					<p>
-						Vil du bruke <code>insertOne()</code> i egen kode, kan du gå tilbake til
-						<a href="/databaser/grunnlag/?modul=databaser&del=lagre"
-							>det forklarte innsettingseksemplet</a
-						>. Velg en ny, ubrukt ID. For denne søkeoppgaven kan du også bruke klargjøringsskriptet:
-					</p>
-					<p>
-						Legg et nytt objekt med en ubrukt tekst-ID til i listen i <code>utstyr.json</code>, og
-						kjør <code>klargjor.mjs</code> igjen. Bruk samme feltnavn og datatyper. Eksisterende ID-er
-						endres ikke av dette skriptet.
-					</p>
-				</details>
-				<button class="db-button" onclick={() => (phase = 'forklar')}
-					>Videre til test og forklaring →</button
-				>
-			{:else}
-				<h2>4. Test, forklar og vis arbeidet</h2>
-				<p>Bruk dette som sjekkliste. Punktene er ikke automatisk godkjent av IT-laben.</p>
-				<ul>
-					{#each practiceChecks as check}<li>{check}</li>{/each}
-				</ul>
-				<h3>Vis læreren eller en medelev</h3>
-				<ol>
-					<li>Koden til søkene og resultatet av minst to kjøringer.</li>
-					<li>Hvorfor ett dokument blir med og et annet faller utenfor.</li>
-					<li>Hva som skjer hvis du bruker <code>"true"</code> i stedet for <code>true</code>.</li>
-					<li>Hvordan det nye dokumentet påvirket søkene, sammenlignet med det du forventet.</li>
-				</ol>
-				<div class="db-callout">
-					<strong>Prøv med mindre støtte:</strong> Lag tre fiktive supportsaker i en egen collection.
-					Velg relevante felt selv, og skriv et søk som finner åpne saker med høy prioritet. Forklar hvilke
-					datatyper du valgte.
-				</div>
-				<h3>Behold prosjektet</h3>
-				<p>
-					I neste runde skal du utvide registeret med innsetting, oppdatering og sletting fra kode.
-					Den runden er under utvikling.
-				</p>
-				<a class="db-button" href="/moduler/databaser/">Tilbake til moduloversikten</a>
-			{/if}
-		</section>
-		<aside class="db-callout">
-			<strong>Labpartneren kjenner oppgaven og steget du har valgt.</strong> Den ser ikke filene, terminalen
-			eller databasen på din maskin. Beskriv problemet og del eventuelt et lite kodeutdrag uten hemmeligheter
-			når du ber om hjelp.
-		</aside>
-	{/if}
+	{#if place.state.warning}<p class="db-callout warning" role="status">{place.state.warning}</p>{/if}
+	<p class="db-muted">Sist åpnet steg lagres i denne nettleseren. IT-laben og labpartneren ser ikke prosjektfilene, terminalen eller databasen din. Ta vare på egen kode og testresultater. Å åpne et steg betyr ikke at arbeidet er godkjent.</p>
 </DatabaseFrame>
+
+<style>#practice-step { scroll-margin-top: 30px; }</style>

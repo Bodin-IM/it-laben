@@ -11,6 +11,7 @@ import {
 	flowExample,
 	completeDatabaseExample
 } from '../../src/lib/databaseIntro.js';
+import { workshopTasks, workshopDocuments, runWorkshop, sameWorkshop, queryFeedback } from '../../src/lib/databaseWorkshop.js';
 import { guideSteps, tutorialResult } from '../../src/lib/studentGuide.js';
 import { lessons } from '../../src/lib/ovingene.js';
 import { buildTrace } from '../../src/lib/ovingModel.js';
@@ -211,6 +212,19 @@ export function pageWork(page, raw) {
 		if (v.phase === 'forklar') work.visibleChecks = practiceChecks;
 		work.limit =
 			'Status angir bare hvilket oppgavesteg som er åpnet. Ingen lokal kode, terminalutskrift eller bekreftelse på gjennomføring er delt.';
+	} else if (page.kind === 'database-workshop') {
+		const task = workshopTasks.find((item) => item.id === v.taskId);
+		work.task = { title: task.title, brief: task.brief, goal: task.goal, transfer: task.transfer };
+		work.currentDocuments = workshopDocuments(task.id, v.choices);
+		work.code = runWorkshop(task.id, v.choices).code;
+		work.openHints = task.hints.slice(0, v.hintCount);
+		work.oldRun = !!v.run && !sameWorkshop(v.choices, v.run);
+		// Old output is hidden in the UI after an edit; do not send it as a visible result.
+		if (v.run && !work.oldRun) {
+			const result = runWorkshop(task.id, v.run);
+			work.visibleResult = { groups: result.groups, result: result.result, cause: result.cause, next: result.next };
+		}
+		work.limit = 'Dette er en avgrenset øvingsmodell med faste felter og fiktive data. Ingen ekte MongoDB kontaktes. Nytt resultat finnes bare etter kjøring med gjeldende valg. Forklar konkrete konsekvenser, uten å godkjenne forståelse eller gi XP. Du ser ikke elevens eksterne filer. Flere feltvalg kan oppfylle modelloppdraget; kategori er ikke nødvendig for de to oppgitte behovene.';
 	} else if (page.kind === 'database-query') {
 		const task = queryTasks.find((item) => item.id === v.taskId);
 		work.task = { title: task.title, brief: task.brief, goal: task.goal };
@@ -224,7 +238,10 @@ export function pageWork(page, raw) {
 				prediction: v.run.prediction,
 				result: rows.filter((row) => row.matches).map((row) => row.document._id)
 			};
-			work.inspectedDocument = rows.find((row) => row.document._id === v.inspectedId);
+			if (!work.oldRun) {
+				work.feedback = queryFeedback(task.id, v.run.choices);
+				if (v.inspectedId) work.inspectedDocument = rows.find((row) => row.document._id === v.inspectedId);
+			}
 		}
 		work.limit =
 			'Resultatet er rekonstruert fra kjente filtervalg. En bestått søkeøving er ikke en vurdering av forståelse. Gi hjelp som kan brukes i neste forsøk; ikke finn opp støtte for andre operatorer i simulatoren.';

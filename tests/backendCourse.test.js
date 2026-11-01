@@ -105,7 +105,7 @@ test('læreropplegg dekker de veiledede øvingene i modulrekkefølge og har priv
 	validateTeachingGuides();
 	const plans = backend.teachingPlanIds.map((id) => teachingPlans.find((plan) => plan.id === id));
 	assert.deepEqual(plans.flatMap((plan) => plan.lessonIds), contents.filter((step) => step.kind === 'oving').map((step) => step.id));
-	assert.equal(teachingGuides.length, plans.length);
+	assert.equal(teachingGuides.filter((guide) => backend.teachingPlanIds.includes(guide.planId)).length, plans.length);
 	for (const plan of plans) {
 		assert.ok(!('notes' in plan) && !('preparation' in plan));
 		assert.ok(teachingGuides.find((guide) => guide.planId === plan.id).wrapUp.length);

@@ -5,6 +5,7 @@ import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { execFileSync } from 'node:child_process';
 import { equipment, starterCode } from '../src/lib/databaseCourse.js';
+import { databaseFailure, connectionCheckCode } from '../src/lib/databaseErrors.js';
 import { completeDatabaseExample } from '../src/lib/databaseIntro.js';
 
 const root = fileURLToPath(new URL('../', import.meta.url));
@@ -16,13 +17,16 @@ mkdirSync(join(root, 'static/ressurser'), { recursive: true });
 const setupCode = `import { MongoClient } from 'mongodb';
 import { readFile } from 'node:fs/promises';
 
+const databaseFailure = ${databaseFailure.toString()};
+
 const uri = process.env.MONGODB_URI;
 const database = process.env.MONGODB_DATABASE;
 if (!uri || !database) {
-  console.error('Fyll inn MONGODB_URI og MONGODB_DATABASE i .env.');
+  console.error('[OPPSETT] Fyll inn MONGODB_URI og MONGODB_DATABASE i .env.');
   process.exit(1);
 }
-const client = new MongoClient(uri, { serverSelectionTimeoutMS: 5000 });
+let client;
+let stage = 'data';
 try {
   const data = JSON.parse(await readFile(new URL('./utstyr.json', import.meta.url), 'utf8'));
   if (!Array.isArray(data) || data.length > 100 || data.some((item) =>
@@ -33,7 +37,10 @@ try {
     new Set(data.map((item) => item._id)).size !== data.length) {
     throw new Error('Kontroller feltene og unike tekst-ID-er i utstyr.json.');
   }
+  stage = 'kobling';
+  client = new MongoClient(uri, { serverSelectionTimeoutMS: 5000 });
   await client.connect();
+  stage = 'lagring';
   const utstyr = client.db(database).collection('utstyr');
   let inserted = 0;
   for (const item of data) {
@@ -43,11 +50,12 @@ try {
   }
   console.log('Nye dokumenter lagt til:', inserted);
   console.log('Eksisterende dokumenter er beholdt. Kjør finn.mjs for å undersøke dataene.');
-} catch {
-  console.error('Klargjøringen feilet. Kontroller utstyr.json, .env og databasetilgangen. Eksisterende dokumenter er ikke slettet. Skriptet kan kjøres på nytt etter retting.');
+} catch (error) {
+  console.error(databaseFailure(error, stage));
+  console.error('Klargjøringen kan ha lagt til noen av dokumentene. Kjør den på nytt etter retting; eksisterende ID-er blir ikke overskrevet.');
   process.exitCode = 1;
 } finally {
-  await client.close();
+  await client?.close();
 }
 `;
 const files = {
@@ -71,6 +79,7 @@ const files = {
 		'# Eksemplet gjelder MongoDB på din egen maskin. Bruk adressen og din database fra læreren.\nMONGODB_URI=mongodb://127.0.0.1:27017\nMONGODB_DATABASE=utstyrsboden_oving\n',
 	'.gitignore': '.env\n.env.*\n!.env.example\nnode_modules/\n',
 	'utstyr.json': JSON.stringify(equipment, null, 2) + '\n',
+	'sjekk.mjs': connectionCheckCode,
 	'finn.mjs': starterCode,
 	'eksempel.mjs': completeDatabaseExample,
 	'klargjor.mjs': setupCode,
@@ -82,9 +91,10 @@ Du trenger Node.js 22 eller nyere og tilgang til en MongoDB-database for deg ell
 1. Åpne denne mappen i editoren og terminalen.
 2. Kjør \\CMDINSTALL.
 3. Kopier .env.example til .env. Fyll inn URI og databasenavn fra læreren.
-4. Kjør \\CMDSETUP.
-5. Kjør \\CMDFIND.
-6. Skriv egne filtre i finn.mjs. Start med alle mikrofoner, og deretter ledige kameraer til høyst 300 kr.
+4. Kjør node --env-file=.env sjekk.mjs. [KLAR] betyr at forbindelse og lesing virker, også hvis collectionen er tom.
+5. Kjør \\CMDSETUP.
+6. Kjør \\CMDFIND.
+7. Skriv egne filtre i finn.mjs. Start med alle mikrofoner, og deretter ledige kameraer til høyst 300 kr.
 
 Vil du først kjøre det forklarte eksemplet fra teorien? Kjør node --env-file=.env eksempel.mjs etter klargjøringen.
 Det henter kameraer, legger inn Mikrofon Bord (M203) og henter mikrofonene på nytt. I en ny database
@@ -94,6 +104,10 @@ De tre mikrofonene er M201, M202 og M203. Egne søk i finn.mjs bruker dataene so
 Klargjøringen legger bare til dokumenter med nye ID-er. Den overskriver og sletter ikke eksisterende data.
 I en tom collection skal startdatasettet gi seks dokumenter. Vil du legge til et eget fiktivt dokument,
 utvid utstyr.json med en ubrukt tekst-ID og kjør klargjøringen igjen. Bruk samme felter og datatyper.
+
+Feilsøk med koden foran meldingen: [OPPSETT], [KONTAKT], [INNLOGGING], [TILGANG], [STARTDATA], [LAGRING] eller [LESING].
+Hvis Node sier at .env eller en .mjs-fil ikke finnes, åpne terminalen i mappen med filene.
+Hvis PowerShell blokkerer npm.ps1, bruk npm.cmd install mongodb eller Ledetekst.
 
 En gyldig spørring uten treff gir en tom liste. En teknisk feil gir en feilmelding og avslutter med feilkode.
 Behold koden og resultater fra kjøringer, og forklar hvorfor ett dokument blir med og et annet faller utenfor.

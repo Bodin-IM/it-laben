@@ -9,6 +9,7 @@ import { casesFor } from '#lib/reddChatten.js';
 import { backendQuestions } from '#lib/backendQuiz.js';
 import { queryTasks, queryOptions, equipment, databasePhases } from '#lib/databaseCourse.js';
 import { databaseSections, readExamples, insertStages } from '#lib/databaseIntro.js';
+import { workshopTasks } from '#lib/databaseWorkshop.js';
 import { vlanTasks } from '#lib/vlanLab.js';
 import { vlan2Tasks } from '#lib/vlanLab2.js';
 export const PAGE_CONTEXT_VERSION = 2;
@@ -167,6 +168,13 @@ export function readPartnerState(pageId, raw) {
 			insertStep: (value) => (value === undefined ? 0 : integer(0, insertStages.length - 1)(value))
 		};
 	else if (page.kind === 'database-practice') shape = { phase: choice(databasePhases) };
+	else if (page.kind === 'database-workshop') {
+		if (!object(v)) return invalidContext();
+		const task = workshopTasks.find((item) => item.id === v.taskId);
+		if (!task) return invalidContext();
+		const choices = record(Object.fromEntries(task.controls.map((control) => [control.key, choice(control.options.map((item) => item.value))])));
+		shape = { taskId: choice(workshopTasks.map((item) => item.id)), choices, run: nullable(choices), hintCount: integer(0, task.hints.length) };
+	}
 	else if (page.kind === 'database-query') {
 		const choices = record(
 			Object.fromEntries(
@@ -182,7 +190,7 @@ export function readPartnerState(pageId, raw) {
 			choices,
 			prediction: ids,
 			run: nullable(record({ choices, prediction: ids })),
-			inspectedId: choice(equipment.map((item) => item._id)),
+			inspectedId: nullable(choice(equipment.map((item) => item._id))),
 			action: choice([
 				'opened',
 				'task-selected',

@@ -17,6 +17,7 @@ import { partnerPageById } from '../src/lib/partnerPages.js';
 import { pageWork, pageTask } from '../server/lab-partner/page-context.js';
 import { buildPartnerMessages } from '../server/lab-partner/context.js';
 import { moduler, moduleProgress } from '../src/lib/moduler.js';
+import { connectionCheckCode } from '../src/lib/databaseErrors.js';
 import { completeDatabaseExample } from '../src/lib/databaseIntro.js';
 
 const all = { kategori: 'all', tilgjengelig: 'all', dagspris: 'all' };
@@ -110,7 +111,7 @@ test('databasepartner: serveren skiller nytt filter fra gammelt resultat og begr
 	const result = pageWork(page, state(work()));
 	assert.equal(result.oldRun, true);
 	assert.deepEqual(result.lastRun.result, []);
-	assert.equal(result.inspectedDocument.matches, false);
+	assert.equal(result.inspectedDocument, undefined); // The old inspection is hidden after an edit.
 	assert.ok(!JSON.stringify(result).includes('expected'));
 	assert.ok(!JSON.stringify(result).includes('correct'));
 	assert.match(result.code, /true/);
@@ -175,12 +176,13 @@ test('databasestart: nedlastingen følger samme datasett og kode, uten faktiske 
 	);
 	assert.deepEqual(JSON.parse(files['utstyr.json']), equipment);
 	assert.equal(files['finn.mjs'], starterCode);
+	assert.equal(files['sjekk.mjs'], connectionCheckCode);
 	assert.equal(files['eksempel.mjs'], completeDatabaseExample);
 	assert.equal(files['.env'], undefined);
 	assert.match(files['.gitignore'], /^\.env\n/);
 	assert.match(files['klargjor.mjs'], /\$setOnInsert/);
 	assert.doesNotMatch(files['klargjor.mjs'], /deleteMany|dropDatabase|replaceOne/);
-	for (const name of ['finn.mjs', 'klargjor.mjs', 'eksempel.mjs'])
+	for (const name of ['finn.mjs', 'klargjor.mjs', 'eksempel.mjs', 'sjekk.mjs'])
 		execFileSync(process.execPath, ['--check', '--input-type=module'], { input: files[name] });
 });
 

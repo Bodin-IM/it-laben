@@ -285,6 +285,13 @@
 	border-color: var(--color-warning-border);
 	background: var(--color-warning-soft);
 }
+.db-task-nav { display: flex; flex-wrap: wrap; gap: 8px; margin-block: 20px; }
+.db-task-nav button { flex: 1 1 180px; display: grid; gap: 5px; padding: 14px; min-height: 44px; text-align: left; font: 600 var(--font-small)/1.5 var(--font-ui); color: var(--color-text); background: var(--color-surface); border: 1px solid var(--color-border-strong); border-radius: 9px; cursor: pointer; }
+.db-task-nav button.active { border-color: var(--color-accent); background: var(--color-accent-soft); }
+.db-task-nav small { font-weight: 400; }
+.db-controls { display: grid; gap: 14px; }
+.db-equipment-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 240px), 1fr)); gap: 14px; margin-block: 16px; }
+.db-result-list { padding-left: 22px; }
 @media (max-width: 800px) {
 	.db-grid {
 		grid-template-columns: minmax(0, 1fr);

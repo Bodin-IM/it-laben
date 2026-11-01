@@ -7,9 +7,9 @@ import { parseArgs } from 'node:util';
 import { readPartnerConfig } from '../config.js';
 import { buildPartnerMessages } from './context.js';
 import { requestPartnerAnswer, partnerModelOptions } from './model-client.js';
-import { backendEvaluationCases, evaluationCriteria } from './evaluation-cases.js';
+import { partnerEvaluationCases, evaluationCriteria } from './evaluation-cases.js';
 
-export async function evaluatePartner({ settings, cases = backendEvaluationCases(), repeat = 1,
+export async function evaluatePartner({ settings, cases = partnerEvaluationCases(), repeat = 1,
 	dryRun = false, signal, onProgress = async () => {} }) {
 	if (!Number.isInteger(repeat) || repeat < 1 || repeat > 5) throw new Error('repeat må være 1–5.');
 	if (!dryRun && !settings?.enabled) throw new Error('LAB_PARTNER_MODEL er ikke konfigurert. Bruk --dry-run for å kontrollere konteksten uten modellkall.');
@@ -73,7 +73,7 @@ async function main() {
 		console.log('Bruker bare faste eksempeldata. Vanlig kjøring kontakter konfigurert modell; --dry-run sender ingenting.');
 		return;
 	}
-	const all = backendEvaluationCases();
+	const all = partnerEvaluationCases();
 	if (values.case?.some((id) => !all.some((item) => item.id === id)))
 		throw new Error('Ukjent eksempel. Gyldige ID-er: ' + all.map((item) => item.id).join(', '));
 	const cases = values.case ? all.filter((item) => values.case.includes(item.id)) : all;

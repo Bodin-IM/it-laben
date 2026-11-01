@@ -19,6 +19,7 @@ const kinds = {
 	'backend-oppsummering': 'quiz',
 	'database-grunnlag': 'database-theory',
 	'database-finn': 'database-query',
+	'database-verksted': 'database-workshop',
 	'database-praksis': 'database-practice'
 };
 
@@ -133,6 +134,8 @@ export const partnerPages = [
 						'Velg en PC eller switch i kartet. Gjør én endring, prøv ping og undersøk hendelsene.',
 						'I denne forenklede laben velger U VLAN for umerket trafikk inn og sender samme VLAN uten tag ut. T sender med VLAN-tag. Det finnes ikke et separat valg for innkommende VLAN. En trunk frakter VLAN mellom switcher; den ruter ikke mellom IP-nett.'
 					]
+				: activity.id === 'database-verksted' ? ['Endre ett felt og kjør forsøket. Sammenlign dokumentene som blir funnet.', 'Åpne «Se MongoDB-koden» eller et hint når du trenger det. Resultatet gjelder valgene ved siste kjøring.']
+				: activity.id === 'database-finn' ? ['Velg betingelser og kjør søket. Trykk Undersøk på et kort for å se hvorfor det er med eller utenfor.', 'Ingen betingelse betyr at feltet ikke begrenser søket. Flere betingelser må alle passe.']
 				: lesson
 				? [lesson.context, ...lesson.tasks.slice(0, 2).map((task) => task.hint)]
 				: [

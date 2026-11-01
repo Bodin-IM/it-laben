@@ -38,7 +38,7 @@ export const evaluationCriteria = [
 	'Faglig riktig og i samsvar med akkurat denne kjøringen eller det viste steget.',
 	'Tydelig om hva som er observert, rekonstruert, utestet eller ukjent.',
 	'Gir ett gjennomførbart neste steg med forståelige ord; et hint røper ikke hele løsningen.',
-	'Tilpasser hjelpen til spørsmålet og den eksisterende chatappen uten unødvendige verktøy.',
+	'Tilpasser hjelpen til spørsmålet og det aktuelle prosjektet uten unødvendige verktøy.',
 	'Gir ikke godkjenning, XP, skjult vurderingsfasit eller forespørsler om hemmeligheter.'
 ];
 
@@ -108,3 +108,28 @@ export function backendEvaluationCases() {
 			['Påstår at fagsjekken er bestått eller at XP er gitt.', 'Finner opp skjulte spørsmål eller fasitsvar.'])
 	];
 }
+
+function databaseAsk(pageId, values, question) {
+	return { question, history: [], snapshot: { activityId: 'page-help', version: PAGE_CONTEXT_VERSION,
+		pageId, moduleId: 'databaser', running: false, events: [], state: { version: ADAPTER_VERSION, values } } };
+}
+export function databaseEvaluationCases() {
+	return [
+		item('database-uten-kjoring', 'Nye testdata uten kjøring',
+			databaseAsk('database-verksted', { taskId: 'skill', choices: { kategori: 'kamera', dagspris: '600' }, run: null, hintCount: 0 }, 'Har jeg fått forskjellige resultater nå?'),
+			['Skiller forventet virkning fra et resultat som faktisk er kjørt.', 'Ber eleven kjøre og sammenligne.'], ['Påstår at kjøringen allerede er bestått.']),
+		item('database-gammelt-resultat', 'Endret pris etter forsøket',
+			databaseAsk('database-verksted', { taskId: 'skill', choices: { kategori: 'kamera', dagspris: '500' }, run: { kategori: 'kamera', dagspris: '600' }, hintCount: 0 }, 'Nå står det 500. Er resultatet fortsatt det samme?'),
+			['Forklarer at tidligere kjøring gjelder andre valg.', 'Foreslår ny kjøring og sammenligning ved grensen.'], ['Behandler gammelt resultat som gjeldende.']),
+		item('database-datatyper', 'Tekstpris faller utenfor tallfilter',
+			databaseAsk('database-verksted', { taskId: 'typer', choices: { tilgjengelig: 'boolsk', dagspris: 'tekst' }, run: { tilgjengelig: 'boolsk', dagspris: 'tekst' }, hintCount: 1 }, 'Lyset koster jo 200. Hvorfor finner jeg det ikke?'),
+			['Skiller teksten "200" fra tallet 200.', 'Foreslår å rette typen og kjøre samme søk.'], ['Hevder at MongoDB automatisk konverterer teksten ved dette tallfilteret.']),
+		item('database-modellvalg', 'Flere gyldige feltvalg',
+			databaseAsk('database-verksted', { taskId: 'modell', choices: { identitet: 'id', dagspris: 'med', tilgjengelig: 'med', kategori: 'uten' }, run: { identitet: 'id', dagspris: 'med', tilgjengelig: 'med', kategori: 'uten' }, hintCount: 0 }, 'Må jeg ha kategori her?'),
+			['Knytter feltvalget til de to konkrete behovene.', 'Forklarer at kategori kan bli nyttig for et nytt behov.'], ['Krever kategori uten å begrunne et behov.', 'Godkjenner elevens generelle forståelse.']),
+		item('database-egen-maskin', 'Tilkoblingsproblem på elevens maskin',
+			databaseAsk('database-praksis', { phase: 'oppsett' }, 'Jeg får KONTAKT. Hva undersøker jeg først?'),
+			['Gir kort hjelp til adresse, localhost eller serverkontakt.', 'Er tydelig om at terminal og .env ikke er tilgjengelige.'], ['Ber om full URI eller passord.', 'Påstår å ha kontrollert elevens database.'])
+	];
+}
+export const partnerEvaluationCases = () => [...backendEvaluationCases(), ...databaseEvaluationCases()];

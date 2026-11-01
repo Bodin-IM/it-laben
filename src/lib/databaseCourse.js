@@ -1,3 +1,4 @@
+import { databaseFailure } from './databaseErrors.js';
 // Public learning content shared by the activity, starter project and server-owned guidance.
 export const DATABASE_VERSION = 1;
 export const databaseActivities = [
@@ -17,6 +18,14 @@ export const databaseActivities = [
 			'Forutsi, kjør og reparer tre søk i Utstyrsboden. Se hvorfor dokumenter blir med eller faller utenfor.',
 		href: '/databaser/finn-utstyr/',
 		type: 'Tre grunnøvinger',
+		format: 'leksjon'
+	},
+	{
+		id: 'database-verksted',
+		tittel: 'Utstyrsboden · dataverksted',
+		beskrivelse: 'Lag testdata, reparer datatyper og bygg et register som svarer på konkrete behov.',
+		href: '/databaser/utstyrsboden/',
+		type: 'Tre interaktive oppdrag',
 		format: 'leksjon'
 	},
 	{
@@ -304,26 +313,32 @@ export const practiceChecks = [
 ];
 export const starterCode = `import { MongoClient } from 'mongodb';
 
+const databaseFailure = ${databaseFailure.toString()};
+
 const uri = process.env.MONGODB_URI;
 const database = process.env.MONGODB_DATABASE;
 if (!uri || !database) {
-  console.error('Fyll inn MONGODB_URI og MONGODB_DATABASE i .env.');
+  console.error('[OPPSETT] Fyll inn MONGODB_URI og MONGODB_DATABASE i .env.');
   process.exit(1);
 }
-
-const client = new MongoClient(uri, { serverSelectionTimeoutMS: 5000 });
+let client;
+let stage = 'kobling';
 try {
+  client = new MongoClient(uri, { serverSelectionTimeoutMS: 5000 });
   await client.connect();
+  stage = 'lesing';
   const utstyr = client.db(database).collection('utstyr');
 
-  // Start med alle dokumentene. Skriv deretter dine egne søk.
+  // Endre filteret, kjør på nytt og undersøk resultatet.
   const filter = {};
   const resultat = await utstyr.find(filter).toArray();
+  console.log('Dokumenter funnet:', resultat.length);
   console.table(resultat);
-} catch {
-  console.error('Kjøringen feilet. Kontroller serveradresse, tilgang og kode. Be læreren om hjelp uten å dele passord eller tilkoblingsstreng.');
+  if (resultat.length === 0) console.log('Søket ble kjørt, men fant ingen dokumenter. Undersøk filteret og om startdata er lagt inn i riktig database.');
+} catch (error) {
+  console.error(databaseFailure(error, stage));
   process.exitCode = 1;
 } finally {
-  await client.close();
+  await client?.close();
 }
 `;

@@ -1,4 +1,4 @@
-import { aktiviteter, fag } from '#lib/innhold.js';
+import { altElevinnhold, fag } from '#lib/innhold.js';
 
 /** @typedef {{id:string,audience:'teacher',title:string,description:string,subject:string,minutes:number,goals:string[],lessonIds:string[],selfWorkIds:string[]}} TeachingPlan */
 /** @typedef {{activityId:string,minutes:number,focus:string,questions:string[],notes:string[]}} TeachingStep */
@@ -9,7 +9,7 @@ import { aktiviteter, fag } from '#lib/innhold.js';
 /** Teacher-only lesson pages can be registered here without student tracking or XP. @type {PresentationLesson[]} */
 export const teacherLessons = [];
 
-export function buildPresentationLessons(activities = aktiviteter, resources = teacherLessons) {
+export function buildPresentationLessons(activities = altElevinnhold, resources = teacherLessons) {
 	const students = activities
 		.filter((item) => item.format === 'leksjon')
 		.map(
@@ -110,13 +110,20 @@ export const teachingPlans = [
 		goals: ['Forklare hvilken versjon nettleseren får.', 'Teste tjenesten fra en annen PC og etter omstart.'],
 		lessonIds: ['oving-10'],
 		selfWorkIds: ['oving-10']
+	},
+	{
+		id: 'utstyrsboden', audience: 'teacher', title: 'Utstyrsboden: finn, undersøk og bygg', subject: 'utvikling', minutes: 40,
+		description: 'La elevene undersøke søk, lage testdata og velge felt før de bruker MongoDB i eget prosjekt.',
+		goals: ['Forklare hvorfor dokumenter blir med i et søk.', 'Lage testdata som skiller to filtre.', 'Velge felt ut fra hva registeret skal kunne svare på.'],
+		lessonIds: ['database-finn', 'database-verksted'], selfWorkIds: ['database-finn', 'database-verksted', 'database-praksis']
 	}
+
 ];
 
 /** Validate metadata independently of learning/XP definitions. */
 export function validateTeachingPlans(
 	plans = teachingPlans,
-	activities = aktiviteter,
+	activities = altElevinnhold,
 	resources = buildPresentationLessons(activities)
 ) {
 	const ids = new Set();

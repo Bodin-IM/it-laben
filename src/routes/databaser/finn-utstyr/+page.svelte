@@ -1,348 +1,119 @@
 <script>
 	import { tick } from 'svelte';
 	import DatabaseFrame from '#lib/components/DatabaseFrame.svelte';
+	import EquipmentCard from '#lib/components/EquipmentCard.svelte';
 	import PartnerContext from '#lib/components/PartnerContext.svelte';
 	import { lab, learningContext } from '#lib/lab.js';
 	import { createDatabaseProgress } from '#lib/databaseProgress.svelte.js';
-	import {
-		equipment,
-		queryTasks,
-		queryOptions,
-		queryCode,
-		inspectQuery,
-		queryIds,
-		sameIds,
-		sameQuery,
-		queryPasses,
-		completedQueries
-	} from '#lib/databaseCourse.js';
-	const progress = createDatabaseProgress(
-		() => `${$lab.user?.id ?? 'guest'}:${$learningContext.mode}:${$learningContext.openingId ?? ''}`
-	);
-	let taskId = $state('kamera');
+	import { createDatabasePlace } from '#lib/databasePlace.svelte.js';
+	import { queryFeedback } from '#lib/databaseWorkshop.js';
+	import { getInterfaceHelp } from '#lib/interfaceHelp.js';
+	import { equipment, queryTasks, queryOptions, queryCode, inspectQuery, sameIds, sameQuery, queryPasses, completedQueries } from '#lib/databaseCourse.js';
+	const help = getInterfaceHelp(), helpTarget = help.target;
+	const scope = $derived(`${$lab.user?.id ?? 'guest'}:${$learningContext.mode}:${$learningContext.openingId ?? ''}`);
+	const progress = createDatabaseProgress(() => scope);
+	const place = createDatabasePlace('database-finn', () => scope);
+	const taskId = $derived(place.state.position);
+	const task = $derived(queryTasks.find((item) => item.id === taskId) ?? queryTasks[0]);
+	const attempt = $derived(progress.state.attempts[task.id]);
 	let prediction = $state(/** @type {string[]} */ ([]));
-	let inspectedId = $state('K101');
+	let inspectedId = $state('');
 	let action = $state('opened');
 	let hintCount = $state(0);
-	const scope = $derived(
-		`${$lab.user?.id ?? 'guest'}:${$learningContext.mode}:${$learningContext.openingId ?? ''}`
-	);
-	$effect(() => {
-		scope;
-		taskId = 'kamera';
-		prediction = [];
-		hintCount = 0;
-		inspectedId = 'K101';
-		action = 'opened';
-	});
-	const task = $derived(queryTasks.find((item) => item.id === taskId) ?? queryTasks[0]);
-	const attempt = $derived(progress.state.attempts[taskId]);
+	$effect(() => { taskId; scope; prediction = []; hintCount = 0; inspectedId = ''; action = 'opened'; help.clear(); });
 	const stale = $derived(!!attempt.run && !sameQuery(attempt.choices, attempt.run.choices));
 	const rows = $derived(attempt.run ? inspectQuery(attempt.run.choices) : []);
 	const found = $derived(rows.filter((row) => row.matches));
 	const inspected = $derived(rows.find((row) => row.document._id === inspectedId));
-	const passed = $derived(!!attempt.run && !stale && queryPasses(taskId, attempt.run.choices));
+	const feedback = $derived(attempt.run ? queryFeedback(task.id, attempt.run.choices) : null);
+	const passed = $derived(!!attempt.run && !stale && queryPasses(task.id, attempt.run.choices));
 	const complete = $derived(completedQueries(progress.state.attempts));
-	const currentIndex = $derived(queryTasks.findIndex((item) => item.id === taskId));
-	/** @param {string} id */
-	async function selectTask(id, focusHeading = false) {
-		taskId = id;
-		prediction = [];
-		hintCount = 0;
-		inspectedId = 'K101';
-		action = 'task-selected';
-		if (focusHeading) {
-			await tick();
-			document.getElementById('task-heading')?.focus();
-		}
+	const currentIndex = $derived(queryTasks.findIndex((item) => item.id === task.id));
+	async function selectTask(/** @type {string} */ id) {
+		await place.select(id);
+		await tick();
+		document.getElementById('task-heading')?.focus();
 	}
-	/** @param {keyof import('#lib/databaseCourse.js').QueryChoices} field @param {string} value */
-	function change(field, value) {
-		progress.save(taskId, { ...attempt, choices: { ...attempt.choices, [field]: value } });
+	function change(/** @type {keyof import('#lib/databaseCourse.js').QueryChoices} */ field, /** @type {string} */ value) {
+		progress.save(task.id, { ...attempt, choices: { ...attempt.choices, [field]: value } });
 		action = 'filter-changed';
 	}
 	function run() {
-		progress.save(taskId, {
-			choices: { ...attempt.choices },
-			run: { choices: { ...attempt.choices }, prediction: [...prediction] }
-		});
+		progress.save(task.id, { choices: { ...attempt.choices }, run: { choices: { ...attempt.choices }, prediction: [...prediction] } });
 		action = 'query-run';
+		inspectedId = '';
 	}
-	/** @param {string} id */
-	function toggle(id) {
-		prediction = prediction.includes(id)
-			? prediction.filter((item) => item !== id)
-			: [...prediction, id];
+	async function inspect(/** @type {string} */ id) {
+		inspectedId = id;
+		action = 'document-inspected';
+		await tick();
+		document.getElementById('document-inspection')?.focus();
 	}
+	function toggle(/** @type {string} */ id) { prediction = prediction.includes(id) ? prediction.filter((item) => item !== id) : [...prediction, id]; }
 </script>
 
-<PartnerContext
-	pageId="database-finn"
-	values={{
-		taskId,
-		choices: attempt.choices,
-		prediction,
-		run: attempt.run,
-		inspectedId,
-		action,
-		hintCount
-	}}
-/>
-<DatabaseFrame index={1}>
-	<p class="db-callout">
-		<strong>Fra kodeeksemplet til din egen undersøkelse.</strong>
-		Valgene nedenfor lager et <code>filter</code> til <code>utstyr.find(filter).toArray()</code>.
-		Les koden under valgene før du kjører.
-		<a href="/databaser/grunnlag/?modul=databaser&del=filter"
-			>Se det forklarte søkeeksemplet igjen →</a
-		>
-	</p>
-	<div class="db-callout">
-		<strong>Øvingsmodell i nettleseren.</strong> Her øver du på likhet, flere betingelser og
-		<code>$lte</code> i et fast datasett. Dette er et avgrenset utsnitt av MongoDB, uten en databaseforbindelse.
-		I neste del bruker du ekte MongoDB.
-	</div>
-	<nav class="tasks" aria-label="Grunnøvinger">
-		{#each queryTasks as item, i}<button
-				aria-current={taskId === item.id ? 'step' : undefined}
-				onclick={() => selectTask(item.id)}
-				><span>{i + 1}. {item.title}</span><span class="db-muted"
-					>{complete.includes(item.id) ? '✓ Søket består' : 'Ikke ferdig'}</span
-				></button
-			>{/each}
+<PartnerContext pageId="database-finn" values={{ taskId: task.id, choices: attempt.choices, prediction, run: attempt.run, inspectedId: inspectedId || null, action, hintCount }} />
+<DatabaseFrame activityId="database-finn">
+	<nav class="db-task-nav" aria-label="Søkeoppdrag">
+		{#each queryTasks as item, i}<button class:active={task.id === item.id} aria-current={task.id === item.id ? 'step' : undefined} onclick={() => selectTask(item.id)} disabled={!place.state.ready}>
+			<span>{i + 1}. {item.title}</span><small>{complete.includes(item.id) ? '✓ Søket består' : 'Prøv søket'}</small>
+		</button>{/each}
 	</nav>
-	<p class="db-muted">
-		{complete.length} av 3 søkeoppdrag består med de nåværende filtrene. Lagres bare i denne nettleseren
-		for aktiv profil, uten XP. Som gjest deler du lokal øvingsstatus med andre gjester her.
-	</p>
-	{#if progress.state.warning}<p class="db-callout warning" role="status">
-			{progress.state.warning}
-		</p>{/if}
 	<section class="db-panel" aria-labelledby="task-heading">
-		<p class="db-eyebrow">Grunnøving {currentIndex + 1} av 3</p>
+		<p class="db-eyebrow">Bestilling {currentIndex + 1} av 3</p>
 		<h2 id="task-heading" tabindex="-1">{task.title}</h2>
-		<p>{task.brief}</p>
-		<div class="db-grid">
-			<div>
-				<h3>1. Bygg filteret</h3>
-				<div class="filters">
-					<label
-						>Kategori<select
-							disabled={!progress.state.ready}
-							value={attempt.choices.kategori}
-							onchange={(event) => change('kategori', event.currentTarget.value)}
-							>{#each queryOptions.kategori as option}<option value={option.value}
-									>{option.label}</option
-								>{/each}</select
-						></label
-					>
-					<label
-						>Tilgjengelig<select
-							disabled={!progress.state.ready}
-							value={attempt.choices.tilgjengelig}
-							onchange={(event) => change('tilgjengelig', event.currentTarget.value)}
-							>{#each queryOptions.tilgjengelig as option}<option value={option.value}
-									>{option.label}</option
-								>{/each}</select
-						></label
-					>
-					<label
-						>Dagspris<select
-							disabled={!progress.state.ready}
-							value={attempt.choices.dagspris}
-							onchange={(event) => change('dagspris', event.currentTarget.value)}
-							>{#each queryOptions.dagspris as option}<option value={option.value}
-									>{option.label}</option
-								>{/each}</select
-						></label
-					>
-				</div>
-				<pre aria-label="Koden til nåværende filter"><code>{queryCode(attempt.choices)}</code></pre>
-			</div>
-			<div>
-				<h3>Dokumentene i collectionen utstyr</h3>
-				<p class="db-muted">
-					Undersøk dataene før du forutsier resultatet. Alle prisene gjelder én dag.
-				</p>
-				<div class="documents">
-					{#each equipment as item}<article>
-							<strong>{item._id} · {item.navn}</strong>
-							<p>
-								<code>kategori: "{item.kategori}"</code><br /><code
-									>tilgjengelig: {String(item.tilgjengelig)}</code
-								><br /><code>dagspris: {item.dagspris}</code>
-							</p>
-						</article>{/each}
-				</div>
-			</div>
+		<p class="brief">{task.brief}</p>
+		<div class="db-controls filters" role="group" aria-label="Bygg filteret" tabindex="-1" use:helpTarget={{ label: 'Bygg filteret', hint: 'Velg kravene til utstyret. Ingen betingelse betyr at feltet ikke begrenser søket.', order: 1 }}>
+			{#each Object.entries(queryOptions) as [field, options]}<label>{field === 'kategori' ? 'Kategori' : field === 'tilgjengelig' ? 'Tilgjengelig' : 'Dagspris'}
+				<select disabled={!progress.state.ready} value={attempt.choices[/** @type {keyof import('#lib/databaseCourse.js').QueryChoices} */ (field)]} onchange={(event) => change(/** @type {keyof import('#lib/databaseCourse.js').QueryChoices} */ (field), event.currentTarget.value)}>
+					{#each options as option}<option value={option.value}>{option.label}</option>{/each}
+				</select>
+			</label>{/each}
 		</div>
-		<fieldset>
-			<legend>2. Forutsi resultatet før du kjører</legend>
-			<p class="db-muted">
-				Velg dokumentene du tror blir funnet av filteret du har laget. Ingen valg betyr at du
-				forventer null treff. En feil prediksjon hindrer deg ikke i å gå videre.
-			</p>
-			<div class="db-options">
-				{#each equipment as item}<label
-						><input
-							type="checkbox"
-							checked={prediction.includes(item._id)}
-							onchange={() => toggle(item._id)}
-						/>{item._id}</label
-					>{/each}
-			</div>
-		</fieldset>
+		<pre aria-label="MongoDB-koden for valgene dine"><code>{queryCode(attempt.choices)}</code></pre>
 		<div class="db-actions">
-			<button class="db-button" disabled={!progress.state.ready} onclick={run}>Kjør søket</button
-			><button
-				class="db-button secondary"
-				onclick={() => {
-					hintCount = Math.min(hintCount + 1, task.hints.length);
-					action = 'hint-opened';
-				}}>Vis hint{hintCount ? ' / mer hjelp' : ''}</button
-			>
+			<button class="db-button" disabled={!progress.state.ready} onclick={run} use:helpTarget={{ label: 'Kjør søket', hint: 'Kjør filteret. Kortene viser hvilke dokumenter søket finner.', order: 2 }}>Kjør søket →</button>
+			<button class="db-button secondary" disabled={hintCount === task.hints.length} onclick={() => { hintCount = Math.min(hintCount + 1, task.hints.length); action = 'hint-opened'; }}>Gi meg et hint</button>
 		</div>
-		<div
-			class="db-status"
-			class:success={passed}
-			class:warning={stale}
-			role="status"
-			aria-live="polite"
-		>
-			{#if !attempt.run}<p>Kjør søket for å sammenligne prediksjonen med resultatet.</p>
-			{:else if stale}<p>
-					<strong>Filteret er endret.</strong> Resultatet nedenfor gjelder forrige kjøring. Kjør på nytt
-					før du bruker resultatet eller går videre.
-				</p>
-			{:else}<p>
-					<strong
-						>{found.length} dokumenter funnet. {passed
-							? 'Søket oppfyller oppdraget.'
-							: 'Søket oppfyller ikke oppdraget ennå.'}</strong
-					>
-					{sameIds(attempt.run.prediction, queryIds(attempt.run.choices))
-						? 'Prediksjonen din stemte med kjøringen.'
-						: 'Prediksjonen og kjøringen var ulike. Undersøk ett dokument nedenfor.'}
-				</p>{/if}
+		{#each task.hints.slice(0, hintCount) as hint}<p class="db-callout">{hint}</p>{/each}
+		<details><summary>Gjett treffene før du kjører</summary><fieldset><legend>Hvilke dokumenter tror du blir med?</legend><div class="db-options">
+			{#each equipment as item}<label><input type="checkbox" checked={prediction.includes(item._id)} onchange={() => toggle(item._id)} />{item._id} · {item.navn}</label>{/each}
+		</div></fieldset><p class="db-muted">Du kan la alle være umarkert hvis du tror søket gir null treff. Valget gir ingen poeng eller trekk.</p></details>
+		<div class="db-status" class:success={passed} role="status" aria-atomic="true">
+			{#if stale}<strong>Filteret er endret. Kjør søket på nytt.</strong><p>Kortene får ny resultatmerking etter kjøringen.</p>
+			{:else if attempt.run}<strong>{found.length} dokumenter funnet. {passed ? 'Søket passer bestillingen.' : 'Undersøk resultatet.'}</strong><p>{feedback?.cause}</p><p>{feedback?.next}</p>
+			{:else}<p>Velg betingelser og kjør. Trykk på et dokument etterpå for å undersøke det.</p>{/if}
 		</div>
-		{#if hintCount}<div class="db-callout">
-				{#each task.hints.slice(0, hintCount) as hint}<p>{hint}</p>{/each}
-				<p class="db-muted">Hint og nye forsøk gir ikke poengtrekk.</p>
-			</div>{/if}
-	</section>
-	{#if attempt.run}
-		<section class="db-panel" aria-labelledby="result-heading">
-			<h2 id="result-heading">3. Undersøk {stale ? 'forrige' : 'siste'} resultat</h2>
-			<p>
-				{found.length
-					? `Funnet: ${found.map((row) => row.document._id).join(', ')}.`
-					: 'Resultatet er []. Søket ble kjørt, men ingen dokumenter passet til alle betingelsene.'}
-			</p>
-			{#if stale}<details>
-					<summary>Filteret som ga dette resultatet</summary>
-					<pre><code>{queryCode(attempt.run.choices)}</code></pre>
-				</details>{/if}
-			<label
-				>Velg et dokument og se hvorfor det ble med eller falt utenfor<select
-					bind:value={inspectedId}
-					onchange={() => (action = 'document-inspected')}
-					>{#each equipment as item}<option value={item._id}>{item._id} · {item.navn}</option
-						>{/each}</select
-				></label
-			>
-			{#if inspected}<div class="db-callout" class:success={inspected.matches}>
-					<strong
-						>{inspected.document._id}: {inspected.matches ? 'Blir med' : 'Faller utenfor'}</strong
-					>
-					{#if !inspected.checks.length}<p>
-							Filteret er tomt. Ingen betingelser begrenser søket, så alle dokumenter blir med.
-						</p>{:else}<ul>
-							{#each inspected.checks as check}<li>
-									<strong>{check.matches ? 'Passer:' : 'Passer ikke:'}</strong>
-									{check.explanation}
-								</li>{/each}
-						</ul>
-						<p>Alle betingelsene må passe for at dokumentet skal bli med.</p>{/if}
-				</div>{/if}
-			<p>
-				<strong>Forklar til en medelev:</strong> Velg ett dokument som ble med og ett som falt utenfor,
-				hvis søket har begge deler. Hvilke felt avgjorde det?
-			</p>
-			{#if passed && currentIndex < queryTasks.length - 1}<button
-					class="db-button"
-					onclick={() => selectTask(queryTasks[currentIndex + 1].id, true)}
-					>Neste grunnøving →</button
-				>{/if}
+		{#if feedback?.focusId && attempt.run && !stale}<button class="db-button secondary" onclick={() => inspect(feedback.focusId ?? 'K101')}>Undersøk {feedback.focusId} →</button>{/if}
+		<section tabindex="-1" aria-label="Utstyret og søkeresultatet" use:helpTarget={{ label: 'Se hvilke dokumenter som blir funnet', hint: 'Etter kjøring står det Treff eller Utenfor på kortene. Undersøk et kort for å se betingelsene.', order: 3 }}>
+			<h3>Utstyrsboden · seks dokumenter</h3>
+			<div class="db-equipment-grid">
+				{#each equipment as item (item._id)}{@const row = rows.find((r) => r.document._id === item._id)}
+					<EquipmentCard document={item} matches={attempt.run && !stale ? row?.matches ?? null : null} selected={inspectedId === item._id && !stale}
+						status={attempt.run && !stale ? row?.matches ? '✓ Treff' : '– Utenfor søket' : 'Ikke kjørt med dette filteret'} inspect={attempt.run && !stale ? () => inspect(item._id) : undefined} />
+				{/each}
+			</div>
 		</section>
-	{/if}
-	<div class="db-bottom">
-		{#if complete.length === queryTasks.length}<h2>
-				Grunnøvingene er klare. Nå skal du skrive selv.
-			</h2>
-			<p>
-				Testene har kontrollert søkene i dette datasettet. Forklaringen din og arbeidet på egen
-				maskin viser mer om hvordan du kan bruke det du har øvd på.
-			</p>
-			<a class="db-button" href="/databaser/praksis/?modul=databaser">Gå til kodeoppgaven →</a>
-		{:else}<h2>Før kodeoppgaven</h2>
-			<p>Få de tre søkene til å oppfylle oppdragene. Bruk hint og prøv igjen så ofte du trenger.</p>
-			<a href="/databaser/praksis/?modul=databaser">Se hva den praktiske oppgaven går ut på</a>{/if}
-	</div>
+		{#if inspected && !stale}<section class="db-callout" id="document-inspection" tabindex="-1" aria-label={`Forklaring for ${inspectedId}`}>
+			<h3>{inspected.document.navn}: {inspected.matches ? 'med i resultatet' : 'utenfor resultatet'}</h3>
+			{#if inspected.checks.length}<ul>{#each inspected.checks as check}<li><strong>{check.matches ? '✓ Passer' : '– Passer ikke'}:</strong> {check.explanation}</li>{/each}</ul>{:else}<p>Filteret har ingen betingelser. Alle dokumentene blir med.</p>{/if}
+			<details><summary>Se dokumentet som kode</summary><pre><code>{JSON.stringify(inspected.document, null, 2)}</code></pre></details>
+		</section>{/if}
+		{#if attempt.run && !stale}<details><summary>Sammenlign med gjetningen din</summary><p>{sameIds(attempt.run.prediction, found.map((r) => r.document._id)) ? 'Gjetningen og resultatet har de samme dokumentene.' : 'Resultatet er forskjellig fra gjetningen. Undersøk et dokument som overrasket deg.'}</p><p>Gjetning: {attempt.run.prediction.join(', ') || 'Ingen'}. Treff: {found.map((r) => r.document._id).join(', ') || 'Ingen'}.</p></details>{/if}
+		<div class="db-actions">
+			{#if passed && currentIndex < queryTasks.length - 1}<button class="db-button" onclick={() => selectTask(queryTasks[currentIndex + 1].id)}>Neste bestilling →</button>{/if}
+			<a href="/databaser/grunnlag/?modul=databaser&del=filter">Åpne en forklaring av søk</a>
+		</div>
+	</section>
+	{#if complete.length === 3}<div class="db-callout success"><strong>De tre søkene passer bestillingene.</strong><p>Kan nye data avsløre noe filtrene ikke viser ennå?</p><a class="db-button" href="/databaser/utstyrsboden/?modul=databaser">Åpne dataverkstedet →</a><p><a href="/databaser/praksis/?modul=databaser">Eller gå til kodeoppgaven</a></p></div>{/if}
+	{#if progress.state.warning || place.state.warning}<p class="db-callout warning" role="status">{progress.state.warning || place.state.warning}</p>{/if}
+	<p class="db-muted">{complete.length} av 3 søk består med de nåværende filtrene. Forsøkene lagres i denne nettleseren for aktiv profil, uten XP. Gjestestatus deles her.</p>
+	<details><summary>Om øvingsmodellen</summary><p>Her undersøker du likhet, flere samtidige betingelser og $lte i seks fiktive dokumenter. Ingen database kontaktes. Et søk kan passe disse dataene uten å passe alle framtidige data. Dataverkstedet lar deg undersøke nettopp det.</p></details>
 </DatabaseFrame>
 
 <style>
-	.tasks {
-		display: grid;
-		grid-template-columns: repeat(3, minmax(0, 1fr));
-		gap: 10px;
-	}
-	.tasks button {
-		text-align: left;
-		padding: 16px;
-		border: 1px solid var(--color-border-strong);
-		border-radius: 9px;
-		background: var(--color-surface);
-		color: var(--color-text);
-		cursor: pointer;
-		font: 600 var(--font-small)/1.5 var(--font-ui);
-		display: grid;
-		gap: 8px;
-	}
-	.tasks button[aria-current] {
-		background: var(--color-accent-soft);
-		border-color: var(--color-accent);
-	}
-	.filters {
-		display: grid;
-		gap: 12px;
-	}
-	.documents {
-		display: grid;
-		grid-template-columns: repeat(2, minmax(0, 1fr));
-		gap: 10px;
-	}
-	.documents article {
-		border: 1px solid var(--color-border);
-		background: var(--color-surface-soft);
-		border-radius: 8px;
-		padding: 12px;
-		font-size: var(--font-small);
-	}
-	.documents p {
-		margin-bottom: 0;
-		font-size: 0.875rem;
-	}
-	@media (max-width: 650px) {
-		.tasks {
-			grid-template-columns: minmax(0, 1fr);
-		}
-		.tasks button {
-			gap: 4px;
-		}
-	}
-	@media (max-width: 400px) {
-		.documents {
-			grid-template-columns: minmax(0, 1fr);
-		}
-	}
+	.filters { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+	.brief { font-size: 1.125rem; }
+	#task-heading, #document-inspection { scroll-margin-top: 30px; }
+	@media (max-width: 700px) { .filters { grid-template-columns: 1fr; } }
 </style>

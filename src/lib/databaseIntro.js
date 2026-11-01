@@ -1,3 +1,4 @@
+import { databaseFailure } from './databaseErrors.js';
 // Public worked examples. Shared by the page, download and server-owned partner context.
 import { equipment, inspectQuery, queryCode } from '#lib/databaseCourse.js';
 
@@ -283,18 +284,23 @@ export function flowExample(operation, step) {
 
 export const completeDatabaseExample = `import { MongoClient } from 'mongodb';
 
+const databaseFailure = ${databaseFailure.toString()};
+
 // Kjør med: node --env-file=.env eksempel.mjs
 const uri = process.env.MONGODB_URI;
 const database = process.env.MONGODB_DATABASE;
 if (!uri || !database) {
-  console.error('Fyll inn MONGODB_URI og MONGODB_DATABASE i .env.');
+  console.error('[OPPSETT] Fyll inn MONGODB_URI og MONGODB_DATABASE i .env.');
   process.exit(1);
 }
 
-const client = new MongoClient(uri, { serverSelectionTimeoutMS: 5000 });
+let client;
+let stage = 'kobling';
 try {
+  client = new MongoClient(uri, { serverSelectionTimeoutMS: 5000 });
   // 1. Koble til og velg hvor vi skal arbeide.
   await client.connect();
+  stage = 'lesing';
   const utstyr = client.db(database).collection('utstyr');
 
   // 2. Hent kameraer fra de klargjorte eksempeldataene.
@@ -304,6 +310,7 @@ try {
 
   // 3. Legg inn ett nytt dokument i din egen øvingsdatabase.
   const nyttUtstyr = ${JSON.stringify(newEquipment, null, 2).replaceAll('\n', '\n  ')};
+  stage = 'lagring';
   try {
     const bekreftelse = await utstyr.insertOne(nyttUtstyr);
     console.log('Lagret med ID:', bekreftelse.insertedId);
@@ -313,14 +320,15 @@ try {
   }
 
   // 4. Hent på nytt for å undersøke hva som faktisk ligger i databasen.
+  stage = 'lesing';
   const mikrofoner = await utstyr.find({ kategori: 'mikrofon' }).toArray();
   console.log('Mikrofoner:');
   console.table(mikrofoner);
-} catch {
-  console.error('Kjøringen feilet. Kontroller oppsett og datatilgang med læreren. Ikke del URI eller passord.');
+} catch (error) {
+  console.error(databaseFailure(error, stage));
   process.exitCode = 1;
 } finally {
   // Dette terminalprogrammet er ferdig. Dokumentene blir liggende.
-  await client.close();
+  await client?.close();
 }
 `;

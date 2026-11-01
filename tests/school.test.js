@@ -782,7 +782,8 @@ test('backup inkluderer tildelte navn, administrator, kontostatus, deltakelse og
 });
 
 test('undervisning: læreropplegg og egne lærersider er adskilt fra elevkatalogen og kan utvides med drift', () => {
-	assert.equal(teachingPlans.length, 5);
+	assert.ok(teachingPlans.some((plan) => plan.id === 'utstyrsboden'));
+	assert.equal(teachingPlans.length, 6);
 	assert.ok(!teachingPlans.some((plan) => plan.id === 'fra-kode-til-tjeneste'));
 	assert.ok(!teachingGuides.some((guide) => guide.planId === 'fra-kode-til-tjeneste'));
 	assert.ok(aktiviteter.every((item) => item.audience === 'student'));
@@ -838,9 +839,9 @@ test('undervisning: lærernotater krever serverrolle ved hvert kall og endrer ik
 	assert.equal((await admin.request('/api/teacher/teaching')).status, 200);
 	const response = await teacher.request('/api/teacher/teaching');
 	assert.equal(response.status, 200);
-	assert.equal(response.result.plans.length, 5);
+	assert.equal(response.result.plans.length, teachingPlans.length);
 	assert.ok(!response.result.plans.some((plan) => plan.id === 'fra-kode-til-tjeneste'));
-	assert.equal(response.result.guides.length, 5);
+	assert.equal(response.result.guides.length, teachingGuides.length);
 	assert.ok(!response.result.guides.some((guide) => guide.planId === 'fra-kode-til-tjeneste'));
 	assert.deepEqual(response.result.guides[0].preparation, teachingGuides[0].preparation);
 	assert.ok(

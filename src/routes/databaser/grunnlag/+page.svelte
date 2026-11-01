@@ -1,7 +1,7 @@
 <script>
-	import { tick, onMount } from 'svelte';
-	import { page } from '$app/state';
-	import { goto } from '$app/navigation';
+	import { tick } from 'svelte';
+	import { lab, learningContext } from '#lib/lab.js';
+	import { createDatabasePlace } from '#lib/databasePlace.svelte.js';
 	import DatabaseFrame from '#lib/components/DatabaseFrame.svelte';
 	import DatabaseFlow from '#lib/components/DatabaseFlow.svelte';
 	import PartnerContext from '#lib/components/PartnerContext.svelte';
@@ -18,16 +18,8 @@
 		flowExample,
 		completeDatabaseExample
 	} from '#lib/databaseIntro.js';
-	let mounted = $state(false);
-	onMount(() => {
-		mounted = true;
-	});
-	const section = $derived(
-		mounted
-			? (databaseSections.find((item) => item.id === page.url.searchParams.get('del'))?.id ??
-					'start')
-			: 'start'
-	);
+	const place = createDatabasePlace('database-grunnlag', () => `${$lab.user?.id ?? 'guest'}:${$learningContext.mode}:${$learningContext.openingId ?? ''}`);
+	const section = $derived(place.state.position);
 	const index = $derived(databaseSections.findIndex((item) => item.id === section));
 	const current = $derived(databaseSections[index]);
 	let operation = $state('hente');
@@ -48,9 +40,7 @@
 		insertStep = 0;
 	});
 	async function select(/** @type {string} */ id) {
-		const url = new URL(page.url.href);
-		url.searchParams.set('del', id);
-		await goto(url.pathname + url.search, { reset: false });
+		await place.select(id);
 		await tick();
 		heading?.focus({ preventScroll: true });
 		heading?.scrollIntoView({ block: 'start' });
@@ -61,7 +51,8 @@
 	pageId="database-grunnlag"
 	values={{ section, operation, flowStep, readId, readShown, insertStep }}
 />
-<DatabaseFrame index={0}>
+<DatabaseFrame activityId="database-grunnlag">
+	{#if place.state.warning}<p role="status" class="db-callout warning">{place.state.warning}</p>{/if}
 	<div class="theory-layout">
 		<nav class="chapters" aria-label="Deler i databaseinnføringen">
 			<p class="db-eyebrow">TEORI MED KODEEKSEMPLER</p>
