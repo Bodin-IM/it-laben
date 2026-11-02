@@ -15,7 +15,7 @@ import { workshopTasks, workshopDocuments, runWorkshop, sameWorkshop, queryFeedb
 import { guideSteps, tutorialResult } from '../../src/lib/studentGuide.js';
 import { lessons } from '../../src/lib/ovingene.js';
 import { backendCodeExample } from '../../src/lib/backendCodeExamples.js';
-import { storageTasks, storageEvents, storageLines } from '../../src/lib/storageExercise.js';
+import { storageSteps } from '../../src/lib/storageExercise.js';
 import { buildTrace } from '../../src/lib/ovingModel.js';
 import { exerciseFeedback } from '../../src/lib/exerciseFeedback.js';
 import { moduleContext } from '../../src/lib/moduleNavigation.js';
@@ -148,7 +148,9 @@ export function pageTask(page, moduleId) {
 			? {
 					learningQuestion: lesson.question,
 					framework: lesson.context,
-					tasks: lesson.tasks.map(({ title, instruction, observe, hint }) => ({ title, instruction, observe, hint })),
+					tasks: lesson.number === 5
+						? storageSteps.map(({ title }) => ({ title }))
+						: lesson.tasks.map(({ title, instruction, observe, hint }) => ({ title, instruction, observe, hint })),
 					example: lesson.example,
 					transfer: lesson.transfer,
 					related: lesson.related
@@ -247,14 +249,10 @@ export function pageWork(page, raw) {
 		}
 		work.limit =
 			'Resultatet er rekonstruert fra kjente filtervalg. En bestått søkeøving er ikke en vurdering av forståelse. Gi hjelp som kan brukes i neste forsøk; ikke finn opp støtte for andre operatorer i simulatoren.';
-	} else if (page.kind === 'storage-course') {
-		const task = storageTasks[v.task];
-		const lines = storageLines(v.mode, v.source);
-		work.task = { title: task.title, instruction: task.instruction, observe: task.observe, hint: task.hint, project: task.project };
-		work.code = lines.map((item) => item.code).join('\n');
-		work.selectedLine = lines.find((item) => item.id === v.line) ?? null;
-		work.viewedEvent = v.event ? storageEvents[v.event] : null;
-		work.limit = 'Øving 5 bruker ett sammenhengende simulert chatforsøk: send, omstart, skrivefeil, kodeendring og oppstartsfeil i testkopier. Eleven kan bytte mellom Endre minnet først og Lagre ny liste først; både POST og lagringsfunksjon følger kodevalget. Kodeendring tømmer tidligere kjøringsvisning, men endrer ikke lagrede data. Råd ved ulagrede meldinger: les filen på nytt før sammenligning. Du ser bare valgt del, kode og rapportert synlig hendelse. Du ser IKKE meldingsinnhold, antall meldinger, filinnhold, tidligere handlinger eller elevens lokale prosjekt. Ikke rekonstruer sluttdata eller påstå at eleven har forstått. Testkopier av manglende/ødelagt fil endrer ikke chatfilen. Hjelp og Vis meg hvor fungerer uten KI.';
+	} else if (page.kind === 'storage-guide') {
+		work.source = 'Sidens offentlige eksempler og prøveoppgaver. Ingen arbeidsstatus eller lokale kjøreresultater er delt.';
+		work.examples = storageSteps.map(({ title, placement, code, explanation, trials }) => ({ title, placement, code, explanation, trials }));
+		work.limit = 'Øving 5 er én side med fem deler: eksempel, kort forklaring og Prøv selv i egen chat. Det finnes ingen simulator, kodefaner eller kjøringsknapper. Du ser undervisningseksemplene, men IKKE hvilken del eleven leser, elevens kode, meldinger, filinnhold eller kjøreresultater. Bruk det eleven beskriver og skill forventet resultat fra observert resultat. Ikke påstå at noe er kjørt eller godkjent. Feiltesten bruker en midlertidig throw før filskriving; direkte writeFileSync beskytter ikke mot alle diskfeil. Hjelp eleven med én konkret endring eller test i server.js.';
 	} else if (page.kind === 'lesson') {
 		const lesson = lessons.find((item) => `oving-${item.number}` === page.id);
 		const trace = v.step < 0 ? [] : buildTrace(lesson.number, exampleValues(lesson, v.choices));

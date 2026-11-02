@@ -26,13 +26,13 @@ export const lessons = [
 		question: 'Når er meldingen egentlig lagret?',
 		category: 'Utvikling',
 		intro:
-			'Bygg videre på chatten fra Fillagring. Lagre din melding, les den tilbake etter omstart og forbedre koden når lagringen feiler.',
+			'Følg fem små eksempler: se koden, forstå hva den gjør, og prøv den i din egen chat.',
 		context:
-			'Samme server.js og meldinger.json som i Fillagring. Fem deler bruker ett sammenhengende chatforsøk. POST og lagreMeldinger kan byttes fra å endre minnet først til å lagre en ny liste først. Synkron lagring brukes med én prosess og små datamengder.',
+			'Én side med fem deler i samme server.js og meldinger.json som i Fillagring. Hver del viser eksempel, forklaring og Prøv selv i en testkopi av elevens chat. Ingen kode kjøres på nettsiden. Synkron filskriving brukes med én prosess og små datamengder.',
 		example: {
 			title: 'Bekreft først etter lagring',
 			code: 'const nyListe = [...meldinger, nyMelding];\nlagreMeldinger(nyListe);\nmeldinger = nyListe;\nres.status(201).json(nyMelding);',
-			explanation: 'Utdrag fra ruten: Den nye listen lagres før den erstatter minnet og serveren svarer. I forsøket åpner vi lagreMeldinger og følger filskrivingen.'
+			explanation: 'Utdrag fra den forbedrede POST-ruten i del 4: Den nye listen lagres før den erstatter minnet og serveren svarer.'
 		},
 		transfer: {
 			guide: backendProjectGuides[5],

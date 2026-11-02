@@ -10,7 +10,6 @@ import { backendQuestions } from '#lib/backendQuiz.js';
 import { queryTasks, queryOptions, equipment, databasePhases } from '#lib/databaseCourse.js';
 import { databaseSections, readExamples, insertStages } from '#lib/databaseIntro.js';
 import { workshopTasks } from '#lib/databaseWorkshop.js';
-import { storageTasks, storageEvents, storageLines } from '#lib/storageExercise.js';
 import { vlanTasks } from '#lib/vlanLab.js';
 import { vlan2Tasks } from '#lib/vlanLab2.js';
 export const PAGE_CONTEXT_VERSION = 2;
@@ -202,12 +201,8 @@ export function readPartnerState(pageId, raw) {
 			]),
 			hintCount: integer(0, 2)
 		};
-	} else if (page.kind === 'storage-course') {
-		if (!object(v)) return invalidContext();
-		const mode = choice(['original', 'repaired'])(v.mode);
-		const source = choice(['post', 'save', 'read'])(v.source);
-		if ((['push', 'errorOriginal'].includes(v.event) && mode !== 'original') || (['next', 'commit', 'errorRepaired'].includes(v.event) && mode !== 'repaired')) return invalidContext();
-		shape = { task: integer(0, storageTasks.length - 1), mode: choice([mode]), source: choice([source]), event: nullable(choice(Object.keys(storageEvents))), line: nullable(choice(storageLines(mode, source).map((item) => item.id))), revision: integer(0, 1000000000) };
+	} else if (page.kind === 'storage-guide') {
+		shape = {};
 	} else if (page.kind === 'lesson') {
 		const lesson = lessons.find((item) => `oving-${item.number}` === pageId);
 		if (!lesson) return invalidContext();

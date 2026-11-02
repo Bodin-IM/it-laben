@@ -17,9 +17,9 @@ const practice = {
 		instruction: 'Hent meldinger fra Generelt og Gaming. Sammenlign rommet i forespørselen med meldingene i svaret.',
 		lookFor: 'Hva må endres i forespørselen for å hente det andre rommet?'
 	},
-	restart: exercise(5, 'Send en egen melding i del 1. Gå til Omstart og følg den samme filen tilbake til minnet.', 'Hvor kommer meldingene i den nye prosessens minne fra?'),
-	write: exercise(5, 'Gå til Skrivefeil og prøv «Send med skrivefeil». Gå deretter til Endre koden, les filen på nytt og sammenlign de to kodevariantene.', 'Hvilke steg blir ikke utført når filskrivingen feiler?'),
-	broken: exercise(5, 'Gå til Oppstart og sammenlign «Prøv manglende fil» og «Prøv ødelagt JSON».', 'Hvorfor gir bare det ene tilfellet en tom liste?'),
+	restart: exercise(5, 'Bruk eksemplet i del 2. Send en melding i egen chat, start backend på nytt og hent den samme meldingen med GET.', 'Hvor kommer meldingene i den nye prosessens minne fra?'),
+	write: exercise(5, 'Prøv testlinjen i del 3 i egen chat. Gjør så endringen i del 4 og sammenlign GET, JSON-filen og feilsvaret.', 'Hvilke steg blir ikke utført når lagringsfunksjonen kaster testfeilen?'),
+	broken: exercise(5, 'Bruk eksemplet og de to testene i del 5: oppstart uten fil og oppstart med ødelagt JSON i testkopien av chatten.', 'Hvorfor gir bare det ene tilfellet en tom liste?'),
 	missingId: exercise(6, 'Velg DELETE og ID-en «ukjent». Kjør helt til svaret.', 'Hvilke meldinger finnes før og etter forsøket?'),
 	patch: exercise(6, 'Velg PATCH, en kjent ID og en ny tekst. Følg endringen og den påfølgende GET-forespørselen.', 'Hvilken melding endres, og når viser frontend den nye teksten?'),
 	json: exercise(7, 'Velg «Ugyldig JSON» og følg kjøringen fra parseren.', 'Kommer forespørselen frem til den vanlige rutekoden eller lagringen?'),

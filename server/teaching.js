@@ -107,11 +107,11 @@ export const teachingGuides = [
 				focus: 'Lagre før minnet oppdateres.',
 				questions: [
 					'Hva bør skje hvis skrivingen til fil feiler?',
-					'Hvorfor brukes en midlertidig fil?'
+					'Hvorfor endres minnet først etter lagringen i den forbedrede koden?'
 				],
 				notes: [
-					'Fortsett med chatten fra Fillagring. Send en egen melding i del 1 og følg samme fil gjennom omstart i del 2. Knytt forsøket til POST/GET i elevens prosjekt.',
-					'I del 3 viser en kontrollert skrivefeil problemet med push før lagring. I del 4 leses filen på nytt før eleven bytter til nyListe og prøver feil og normal lagring. Gjør samme kodeendring i egen chat. Del 5 skiller manglende og ødelagt fil i testkopier; knytt det til fagsjekken. Forklar midlertidig fil etter hovedprinsippet.'
+					'Siden viser fem deler under hverandre: eksempel, kort forklaring og Prøv selv. Les én del sammen og la eleven utføre testen i en kopi av egen chat. Nettsiden kjører ikke koden.',
+					'Del 1–2 lagrer og leser samme fil. Del 3–4 bruker en midlertidig throw før skriving for å sammenligne push med nyListe; fjern testlinjen og prøv normal sending igjen. Del 5 skiller manglende og ødelagt fil. La eleven vise resultatet og forklare én relevant kodelinje. Direkte filskriving er en forenkling; den beskytter ikke mot alle diskfeil.'
 				]
 			},
 			{

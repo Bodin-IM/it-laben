@@ -33,9 +33,9 @@ test('14 kvalitetsprøver bygger ekte kontekst uten nettverk, elevdata eller vur
 	assert.equal(work('ett-steg').feedback, undefined);
 	assert.equal(work('gammelt-forsok').lastTest.isCurrent, false);
 	assert.equal(work('bestatt-test').lastTest.coverage.passed, work('bestatt-test').lastTest.coverage.total);
-	assert.match(work('lagringsfeil').viewedEvent[2], /verken minnet eller filen/);
+	assert.equal(work('lagringsfeil').viewedEvent, undefined);
 	assert.equal(work('lagringsfeil').feedback, undefined);
-	assert.match(work('lagringsfeil').code, /res.status\(500\)/);
+	assert.match(work('lagringsfeil').examples[3].code, /res.status\(500\)/);
 	const other = buildPartnerMessages({ question: 'Forklar dette', history: [], snapshot: {
 		activityId: 'page-help', version: 1, pageId: 'database-grunnlag', running: false, events: []
 	} });

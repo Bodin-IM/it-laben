@@ -1,52 +1,52 @@
-# Øving 5 – samme melding fra kode til fil og tilbake
+# Øving 5 – eksempel, forklaring og prøv selv
 
-Dev, 2. november 2026. Tidligere startet øving 5 med et separat Node-eksempel og en simulator som brukte nye startdata ved hvert forsøk. Nå følger eleven samme melding gjennom ett sammenhengende chatforsøk. Øving 6–7 beholder sine nåværende sider. [Pedagogisk grunnlag](pedagogisk-grunnlag.md), [designgrunnlaget](webdesign-og-brukeropplevelse.md) og [aktivitetsmalen](aktivitetsmal.md) styrer endringen.
+Dev, 2. november 2026. Brukeren opplevde den forrige utgaven som uoversiktlig: for mye skjedde i hvert steg. Siden er derfor lagt om til fem åpne deler under hverandre i én kolonne. Hver del følger **eksempel → kort forklaring → prøv selv**. Kodefaner, simulerte data, valg av kodevariant, kjøringsknapper og separate prosjektpaneler er fjernet. Eleven arbeider i en testkopi av egen chat.
+
+[Pedagogisk grunnlag](pedagogisk-grunnlag.md), [designgrunnlaget](webdesign-og-brukeropplevelse.md) og [aktivitetsmalen](aktivitetsmal.md) styrer valgene. Enkel betjening frigjør plass til å lese, endre og teste kode. Nettsiden er et forklart eksempel; elevens eget prosjekt er aktiviteten. Det kreves ingen refleksjonsfelter eller nye fullføringsknapper.
 
 ## Mål og forkunnskaper
 
-Målgruppe: Vg2 informasjonsteknologi, programfaget Utvikling. Eleven skal lagre en melding, lese samme fil etter omstart, undersøke en skrivefeil og endre rekkefølgen slik at aktivt minne bare oppdateres etter vellykket lagring. Eleven skal også skille en manglende fil fra eksisterende, ødelagt JSON.
+Målgruppe: Vg2 informasjonsteknologi, programfaget Utvikling. Eleven skal lagre en melding i JSON, lese samme melding etter omstart, undersøke en kontrollert feil og endre rekkefølgen slik at minnet oppdateres etter lagring. Eleven skal skille manglende fil fra eksisterende, ødelagt JSON.
 
 Læreplan [ITK02-01](laereplan/ITK02-01.md):
 
-- **UTV-08:** «anvende relevant testmiljø og utføre testing tilpasset IT-løsningen som utvikles». Eleven prøver normal sending, omstart, en kontrollert skrivefeil og oppstartsfeil. Simuleringen forbereder; eget chatprosjekt er det faktiske testmiljøet.
-- **UTV-01**, støttemål: «vurdere fordeler og ulemper ved ulike programmeringsspråk og velge og anvende relevante programmeringsspråk og algoritmer i eget arbeid». Her anvendes JavaScript og en lagringsrekkefølge. Øvingen dekker ikke sammenligning og valg mellom programmeringsspråk.
+- **UTV-08:** «anvende relevant testmiljø og utføre testing tilpasset IT-løsningen som utvikles». Eleven prøver sending, omstart, en kontrollert feil før skriving og oppstartsfeil i eget chatprosjekt.
+- **UTV-01**, støttemål: «vurdere fordeler og ulemper ved ulike programmeringsspråk og velge og anvende relevante programmeringsspråk og algoritmer i eget arbeid». Her anvendes JavaScript og en lagringsrekkefølge. Sammenligning og valg mellom språk dekkes ikke.
 
-UTV-numrene er lokale referanser. JSON-filer er ikke databasearbeid. Lesing av kode, egen kodeendring, test og muntlig forklaring inngår i forløpet.
+UTV-numrene er lokale referanser. Kjerneelementet utviklingsprosesser og kreativ problemløsing konkretiseres gjennom å teste og forbedre samme kode. Grunnleggende lesing og skriving inngår gjennom kodeforståelse og kodeendring.
 
-Forkunnskaper: GET/POST virker i egen chat; eleven kjenner variabler, objekter, lister, funksjonskall og grunnprinsippet fra Fillagring. Forbindelsen til Fillagring vises ved starten. NyMelding er allerede laget og kontrollert i elevens POST-rute; denne øvingen gjentar ikke all requestbehandling.
+Forkunnskaper: Fillagring, fungerende GET/POST, meldingsliste, filsti, objekter, lister og funksjoner. Import, filsti, opprettelse av listen og rutene beholdes fra elevens prosjekt; siden sier hva som erstattes. Ny melding er allerede laget og kontrollert i POST. Eksemplene er utdrag, ikke en komplett Express-server.
 
-Vanlige misforståelser: `push` skriver filen; `stringify` lagrer; et feilsvar angrer en tidligere minneendring; et kodebytte fjerner gamle ulagrede meldinger; ødelagt fil og manglende fil kan alltid behandles likt.
+Vanlige misforståelser: stringify skriver filen; catch angrer push; omstart bevarer minnet; ødelagt og manglende fil kan alltid behandles likt.
 
-## Elevens arbeid og respons
+## Arbeid og respons
 
-| Del | Elevhandling | Respons og videre undersøkelse |
+| Del | Eksempel og elevhandling | Forventet resultat å undersøke |
 | --- | --- | --- |
-| Lagre | Velg egen melding, følg POST og filskriving. | Aktuell kode, aktiv liste og faktisk JSON-tekst vises sammen. Arbeidskopi/filtekst/midlertidig fil vises når de er relevante. |
-| Omstart | Start den simulerte serveren på nytt. | Minnet tømmes og samme fil leses inn. Eleven finner sin egen melding igjen. |
-| Skrivefeil | Prøv kodevarianten som endrer minnet først, med feil før filskriving. | Feilsvar og avvik mellom minne og fil gjør problemet synlig. |
-| Endre koden | Les filen på nytt, bytt til ny liste og lagring før minnebytte. Prøv feil og normal lagring. | Begge kodeutdragene oppdateres. En feil hopper over minnebyttet; normal lagring må fortsatt fungere. |
-| Oppstart | Sammenlign to isolerte testkopier med manglende/ødelagt fil. | Bare manglende fil gir tom liste. Ødelagt JSON beholdes, og oppstarten stopper. Hovedforsøkets chatfil beholdes. |
+| 1. Lagre | Funksjon som gjør listen til tekst og skriver den. Eleven kaller funksjonen i POST og sender egne meldinger. | Meldingene finnes i JSON-filen. |
+| 2. Omstart | Les tekst og bruk JSON.parse. Eleven stopper og starter backend. | GET viser samme lagrede meldinger. |
+| 3. Feil | try/catch rundt POST. Eleven legger en midlertidig throw først i lagringsfunksjonen. | 500, men push har allerede endret minnet. Filen er urørt fordi feilen kom før skriving. |
+| 4. Endre rekkefølge | Lag nyListe, lagre og bytt minnet etterpå. Eleven starter fra filen og prøver feil og normal sending. | Testfeilen gir ingen ny melding i GET eller fil; uten testlinjen virker lagring og omstart. |
+| 5. Oppstart | Lesefunksjon med egen håndtering av ENOENT. Eleven prøver manglende og ødelagt fil. | Bare manglende fil gir []; ødelagt fil bevares og oppstarten stopper. |
 
-Korte instruksjoner, linjeforklaringer og hint står ved arbeidet. Eleven styrer stegvis kjøring og kan gå tilbake eller kjøre ferdig. Forrige/Neste leser snapshots; det gjentar ikke skrivingen. Ny handling bygger på tilstanden etter siste avsluttede kjøring. Felt og oppgavebytte er låst mens et forsøk gjøres ferdig. Kode-/inputendring tømmer kjøringsvisningen uten å endre chatfilen. Delbytte nullstiller heller ikke chatten. Full nullstilling er en egen navngitt knapp.
+Forventningene står ved prøv-selv-oppgavene. De er ikke observerte resultater. Læreren følger opp forskjellen mellom forventning og faktisk GET, HTTP-status og filinnhold. Ved behov kan eleven gå tilbake til eksemplet, bruke Labpartner eller be om hjelp. Ingen obligatorisk spørsmålsrekke eller poengtrekk.
 
-Valg mellom de to kodevariantene er en avgrenset kodeendring i modellen, ikke en fri JavaScript-editor. I hver del får eleven også en konkret endring/test i egen chat. Prosjektveiledningen viser komplett erstatning for lagringsoppsettet og et POST-utdrag med kjent funksjonsnavn, filnavn og plassering. Utdraget er ikke en komplett Express-server. Alternative gyldige løsninger i elevens prosjekt vurderes etter funksjon og forklaring.
+Fem deler er en innholdsrekkefølge, ikke registrert progresjon. Aktivitets-ID, fagsjekk og XP-regler beholdes. Klikk på kopier eller nedlasting registreres ikke som forsøk eller forståelse. Den generelle tilbakemeldingsmuligheten består; siden lager ikke automatiske invitasjoner basert på påståtte lokale kjøringer.
 
-Den midlertidige filen er en utvidelse av den enkle skrivingen i Fillagring. Den er synlig når den brukes; begrunnelsen kan åpnes etter grunnprinsippet. Modellen simulerer en feil før skriving, ikke alle diskfeil. Én prosess og små datamengder er forutsetninger. Filbytte er ikke backup.
+## Avgrensninger og læreroppfølging
 
-Det tidligere `lagre.mjs`-eksemplet er beholdt som en tydelig separat grunnøving nederst. Det erstatter sin egen `ovingsdata.json` med startdata og brukes fortsatt av øving 6s separate Node-eksempel. Det er ikke hovedløpet eller chatfilen.
+Direkte writeFileSync viderefører det enkle grunnprinsippet fra Fillagring. Midlertidig fil og rename er tatt ut av denne siden. Testfeilen utløses før skriving; den viser betydningen av rekkefølge, ikke beskyttelse mot delvis filskriving, strømbrudd eller alle diskfeil. Oppsettet er for små datamengder og én backendprosess. Filbytte, backup og mer robust lagring må behandles videre når det er relevant.
 
-## Vurdering, motivasjon og overføring
+La eleven vise en normal test og en feiltest, og forklare forskjellen mellom push og nyListe. Funksjon og begrunnelse teller; alternative gyldige løsninger er mulige. Overføring med mindre støtte kan være å lagre en annen liten liste i eget prosjekt og velge egne testtilfeller. Dette kan følges opp i undervisningen uten en ekstra del på siden.
 
-Fem deler viser hvor eleven er, uten nye poeng eller automatisk godkjenning. Eksisterende aktivitets-ID, fagsjekk, XP og fremgangsregler beholdes. Fagsjekkens emner om skrivefeil, rekkefølge og ødelagt JSON inngår fortsatt i hovedløpet; oppfølgingslenkenes instruksjoner er oppdatert. Det åpne quizspørsmålet om skrivefeil bruker nå lagreMeldinger(nyListe) og presiserer at det gjelder den forbedrede ruten; svar og poengregler er uendret.
+Øving 6–7 er ikke redesignet. Det gamle selvstendige lagre.mjs-eksemplet tilbys som en liten nedlastingslenke nederst, fordi øving 6s separate Node-eksempel bruker filen det lager. Det er ikke del av chatprosjektets fem steg.
 
-Læreren lar eleven forutsi én dataendring, vise en normal test og en feiltest i egen chat og forklare kodelinjen som gjør forskjellen. Et bestått funksjonstilfelle viser bare at akkurat det tilfellet virker. Ingen fritekst blir faglig godkjent ut fra utfylling. Hjelp har ingen poengtrekk og krever ikke KI.
+## Teknisk kontroll og utprøving
 
-Ny anvendelse: lagre og lese en annen liten liste i eget prosjekt med mindre støtte. Eleven velger ett normaltilfelle og ett relevant feiltilfelle selv. Læreren kan følge opp senere uten simuleringen. Motivasjonen søkes gjennom egen melding, synlig nytte og en kodeendring som løser et konkret problem; nytte og læringseffekt må undersøkes i vanlig undervisning.
+`storageExercise.js` eier eksempler og prøveoppgaver. `StorageExercise.svelte` viser dem i leserekkefølge med kopiering, tastaturtilgjengelige kodefelt og felles temastiler. Den tidligere simulatorens tilstand og kjøringsmodell er fjernet.
 
-## Teknisk kontroll og videre utprøving
+Labpartner bruker `storage-guide`, adapterversjon 1, med en tom og streng values-kontrakt. Serveren deler bare sidens offentlige eksempler og oppgaver. Den vet ikke hvilken del eleven leser eller hva som er kjørt på elevens maskin. Gamle simulatorpayloads avvises. Praksislenker, lærerhjelp og syntetiske KI-prøver bruker den nye arbeidsformen.
 
-Ny ren modell og visning: `storageExercise.js` og `StorageExercise.svelte`. Øving 6–10 og den eldre deterministiske modellen beholdes. Labpartner bruker en egen streng `storage-course`-kontrakt (adapterversjon 1): del, kodevalg, kodevisning, kjent synlig hendelse, valgt linje og revisjon. Ingen meldingstekst, JSON-fil, antall eller lokal prosjektkode deles. Serveren henter kode og forklaring fra samme kilde og rekonstruerer ikke usett tilstand. Delbytte bytter samtalekontekst. Gamle arbeidsstatuspayloads for øving 5 avvises med eksisterende melding om oppdatering.
+Kildekode og diff gjennomgås på dev. Eksisterende tester er tilpasset de faktiske viste kodeutdragene: lagring/omstart, kontrollert feil før skriving, reparert rekkefølge, manglende/ødelagt fil, avgrenset KI-kontekst og nedlastingen til øving 6. Testene er ikke kjørt i denne dev-leveransen. Samlet testsuite, Svelte-sjekk, bygg og relevant nettleserprøving gjenstår før main etter AGENTS.md. Svelte MCP er ikke tilgjengelig; eksisterende offisiell Svelte-referanse og prosjektets mønstre brukes.
 
-Kildekode og diff gjennomgås på dev. Nye regresjonstester dekker sammenhengende lagring/omstart, begge kodevarianter, bevaring av testdata, snapshots, kode/linjekobling, kjøring av viste kodeutdrag på reelle midlertidige filer og avgrenset KI-kontekst. Testene er lagt til, men ikke kjørt i denne dev-leveransen. Samlet testsuite, Svelte-sjekk, bygg og nettleserprøving gjenstår før main etter AGENTS.md. Svelte MCP er ikke tilgjengelig; offisiell Svelte-dokumentasjon er brukt som referanse.
-
-Før main: prøv hele elevforløpet, kodebytte etter feil, inspeksjon bakover uten ny skriving, omstart med egen melding, testkopier uten tap av hovedfil, reset, kopiering og reservevei, direkte lenker til `#forsok`/`#eget-prosjekt`, Labpartner/Vis meg hvor, tastatur, smal skjerm, zoom og begge temaer. Verifiser også at øving 6–7 er uendret. I undervisningen observeres oppgaveforståelse, bruk av respons, overføring til egen kode og interesse separat.
+Før main: prøv alle delene i et chatprosjekt og kontroller kodeplassering, kopiering/reservevei, nedlasting, ankerlenker, Labpartner/Vis meg hvor, tastatur, mobil, zoom og begge temaer. I undervisningen undersøkes om eleven lettere finner neste handling og kan forklare og bruke koden. Det er ikke dokumentert læringseffekt.

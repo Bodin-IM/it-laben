@@ -56,7 +56,6 @@
 						? `${context.state?.values?.section ?? ''}:${context.state?.values?.section === 'dataflyt' ? context.state?.values?.operation : ''}`
 						: undefined) ??
 					(current?.kind === 'database-practice' ? context.state?.values?.phase : undefined) ??
-					(current?.kind === 'storage-course' ? context.state?.values?.task : undefined) ??
 					context.state?.values?.caseId ??
 					context.state?.values?.questionId ??
 					'')

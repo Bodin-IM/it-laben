@@ -73,7 +73,7 @@ test('alle oppgavestarter er gyldige valg, kan kjøres og bevarer metadata og la
 		const trace = buildTrace(lesson.number, values);
 		assert.ok(trace.length > 1);
 		const state = lesson.number === 5
-			? { version: 1, values: { task, mode: 'original', source: 'post', event: null, line: null, revision: 0 } }
+			? { version: 1, values: {} }
 			: { version: 1, values: { choices: lessonChoices(lesson, values), step: trace.length - 1, line: -1, task } };
 		assert.doesNotThrow(() => readPartnerState(`oving-${lesson.number}`, state));
 		const messages = buildPartnerMessages({ question: 'Hva bør jeg undersøke videre?', history: [], snapshot: {

@@ -4,9 +4,9 @@ Dev, oppdatert 2. november 2026. Modulen forberedes for ordinær undervisning fr
 
 Målgruppe: Vg2 informasjonsteknologi. Eleven bygger videre på én Svelte-frontend og én Express-backend med JSON-fillagring. Simulatorene gjør sammenhengene synlige; eget chatprosjekt er stedet eleven anvender dem. Øving 1–4 dekkes gjennom dataflyt, tidligere øvingsark og eget prosjekt; de nummererte simulatorene starter på 5. Modulen er et forløp over flere økter, ikke et krav om å fullføre alt på én uke.
 
-## Øving 5: sammenhengende lagring og kodeendring · 2. november
+## Øving 5: eksempel, forklaring og prøv selv · 2. november
 
-Øving 5 er nå lagt om til fem deler i samme chatforsøk: lagre egen melding, omstart, skrivefeil, endre koden og undersøke oppstartsfeil. Kode, aktiv liste og JSON-fil står sammen. Minne og fil videreføres mellom handlingene; oppstartsfeil bruker isolerte testkopier. Eleven bytter lagringsrekkefølge og gjør samme endring i egen chat. [Aktivitetsbeskrivelsen](oving-5-lagring.md) dokumenterer mål, respons, læreroppfølging, avgrensninger og kontroll som gjenstår før main. Det tidligere Node-eksemplet ligger nå som ekstra grunnøving nederst. Øving 6–7 følger fortsatt beskrivelsen nedenfor.
+Øving 5 viser fem åpne deler under hverandre: lagring, omstart, feil, forbedret rekkefølge og oppstartsfeil. Hver del har et kodeeksempel, en kort forklaring og to konkrete prøvehandlinger i egen chat. Den omfattende simulatorvisningen er fjernet etter brukerens tilbakemelding om at det skjedde for mye på hvert steg. Eksemplene bruker enkel filskriving; feiltesten stopper før skriving. [Aktivitetsbeskrivelsen](oving-5-lagring.md) dokumenterer mål, respons, læreroppfølging, avgrensninger og kontroll som gjenstår før main. Startskriptet til øving 6s separate Node-eksempel kan lastes ned nederst. Øving 6–7 følger fortsatt beskrivelsen nedenfor.
 
 ## Koden først i øving 5–7 · 1. november
 

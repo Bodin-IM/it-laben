@@ -7,10 +7,10 @@ export const backendProjectGuides = {
 	5: {
 		where: 'Samme server.js og meldinger.json som i Fillagring. Behold eksisterende filsti utenfor public og static.',
 		prerequisite: 'POST og GET virker med en meldingsliste. Bruk én backendprosess og en egen testkopi når du prøver feil.',
-		firstChange: 'Send en gjenkjennelig melding og finn den i JSON-filen. Start backend på nytt, og hent den samme meldingen med GET.',
+		firstChange: 'La lagreMeldinger ta imot listen slik del 1 viser. Kall lagreMeldinger(meldinger) etter push i POST. Send en gjenkjennelig melding og finn den i JSON-filen.',
 		steps: [
 			'Undersøk en kontrollert skrivefeil med push før lagringen. Sammenlign minnet, filen og HTTP-svaret.',
-			'Les filen på nytt for å fjerne ulagrede endringer. Erstatt push med nyListe, la lagreMeldinger ta imot listen, og bytt meldinger først etter vellykket lagring. Bruk det komplette lagringsoppsettet på siden.',
+			'Start backend på nytt for å fjerne ulagrede endringer. Erstatt try/catch-blokken med eksemplet i del 4: lag nyListe, lagre den, og bytt meldinger først etter vellykket lagring.',
 			'Prøv både normal lagring og feil. Undersøk deretter manglende fil og ugyldig JSON i separate testkopier. Bare manglende fil skal gi en tom liste.'
 		],
 		tests: [

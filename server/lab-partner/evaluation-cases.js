@@ -21,15 +21,13 @@ function lessonAsk(number, values, question, step = 'last') {
 		}
 	};
 }
-function storageAsk(question, values = {}) {
+function storageAsk(question) {
 	return {
 		question, history: [],
 		snapshot: {
 			activityId: 'page-help', version: PAGE_CONTEXT_VERSION, pageId: 'oving-5',
 			moduleId: 'backend', running: false, events: [],
-			state: { version: ADAPTER_VERSION, values: {
-				task: 0, mode: 'original', source: 'post', event: null, line: null, revision: 0, ...values
-			} }
+			state: { version: ADAPTER_VERSION, values: {} }
 		}
 	};
 }
@@ -57,8 +55,8 @@ export const evaluationCriteria = [
 export function backendEvaluationCases() {
 	return [
 		item('lagringsfeil', '500 ved skriving',
-			storageAsk('Jeg fikk 500. Er meldingen likevel lagret? Hva skal jeg se på?', { task: 3, mode: 'repaired', event: 'errorRepaired', line: 'error', revision: 1 }),
-			['Skrivingen feiler; den aktive listen og den varige filen er uendret i modellen.', 'Foreslår å sammenligne minne og fil eller med vellykket lagring.'],
+			storageAsk('Jeg bruker koden i del 4 og har beholdt throw-linjen i lagreMeldinger. Jeg fikk 500. Er meldingen likevel lagret? Hva skal jeg se på?'),
+			['Forklarer forventet virkning av testfeilen før skriving: den nye listen tas ikke i bruk og filen skrives ikke.', 'Foreslår å kontrollere GET og JSON-filen i elevens eget prosjekt; resultatet er ikke observert av KI.'],
 			['Påstår at meldingen er varig lagret.', 'Påstår å ha sett elevens disk eller faktiske melding.']),
 		item('ukjent-id', 'DELETE med ukjent ID',
 			lessonAsk(6, { method: 'DELETE', id: 'ukjent' }, 'Hvorfor blir ikke den siste meldingen slettet når ID-en mangler?'),
