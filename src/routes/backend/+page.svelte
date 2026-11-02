@@ -1,4 +1,5 @@
 <script>
+	import { siteHref } from '#lib/sitePaths.js';
 	import PartnerContext from '#lib/components/PartnerContext.svelte';
 	import { textShape } from '#lib/partnerContext.js';
 
@@ -578,7 +579,7 @@
 			alt» eller en oppdatering av siden tømmer begge listene.
 		</p>
 		<footer>
-			<a href="/">← Flere forsøk i IT-laben</a><span>Prøv. Les koden. Prøv igjen.</span>
+			<a href={siteHref('/')}>← Flere forsøk i IT-laben</a><span>Prøv. Les koden. Prøv igjen.</span>
 		</footer>
 	</main>
 </div>

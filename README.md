@@ -111,6 +111,19 @@ Prosjektet er bygget med **Svelte 5, SvelteKit 3 og Vite**. Demonstrasjonene sim
 
 Nettsiden bygges som statiske filer med `@sveltejs/adapter-static`, konfigurert i [vite.config.js](vite.config.js). [Rotlayouten](src/routes/+layout.js) aktiverer prerendering og avsluttende skråstrek i sidestiene. Produksjonsbygget legges i `build/` og kan serveres av Nginx.
 
+### Offentlig utgave
+
+På testbranchen `public-version` kan samme kildekode også bygges for en offentlig nettside uten forbindelse til skolebackend. Backend- og databasemodulen, lokale simuleringer, VLAN-øvinger og sidehjelp er tilgjengelige. Konto, XP, KI og læreradministrasjon brukes i skoleversjonen.
+
+```bash
+npm run dev:public
+# Eller bygg og prøv den ferdige statiske nettsiden:
+npm run build:public
+npm run preview:public
+```
+
+Den offentlige utgaven legges i `build-public/`. [Veiledningen for offentlig versjon](docs/offentlig-versjon.md) beskriver modulutvalg, lokal lagring, testresultater og bygging under en prosjektsti som `/it-laben/`. GitHub Pages er ikke satt opp av denne endringen.
+
 ### Lyst og mørkt tema
 
 Alle sidene har den felles Svelte-komponenten [ThemeToggle](src/lib/components/ThemeToggle.svelte) i toppfeltet. Første besøk følger enhetens fargetema. Et manuelt valg lagres som `light` eller `dark` i `localStorage` under nøkkelen `it-laben-theme`, og gjelder videre på tvers av sidene og neste besøk. Åpne faner synkroniseres også.

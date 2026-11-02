@@ -1,4 +1,5 @@
 <script>
+	import { siteHref } from '#lib/sitePaths.js';
 	import PartnerContext from '#lib/components/PartnerContext.svelte';
 
 	import PageLinks from '#lib/components/PageLinks.svelte';
@@ -567,7 +568,7 @@
 							class="next-case"
 							onclick={() => changeCase(caseIndex + 1)}
 							>Åpne neste sak <span aria-hidden="true">→</span></button
-						>{:else}<a class="next-case" href="/#spill">Til spilloversikten ↗</a>{/if}
+						>{:else}<a class="next-case" href={siteHref('/#spill')}>Til spilloversikten ↗</a>{/if}
 				</div>{/if}
 		</section>
 
@@ -587,14 +588,14 @@
 					spillsiden er åpen.
 				</p>
 				<nav aria-label="Relaterte hjelpesider">
-					<a href="/backend/">Frontend og backend ↗</a><a href="/sessions/"
+					<a href={siteHref('/backend/')}>Frontend og backend ↗</a><a href={siteHref('/sessions/')}
 						>Sessions og pålogging ↗</a
-					><a href="/chatrom/">Bygg videre på chatten ↗</a>
+					><a href={siteHref('/chatrom/')}>Bygg videre på chatten ↗</a>
 				</nav>
 			</div>
 		</details>
 		<footer>
-			<a href="/#spill">← Spill og utfordringer</a><span
+			<a href={siteHref('/#spill')}>← Spill og utfordringer</a><span
 				>En vellykket request er ett spor. Følg dataene helt fram.</span
 			>
 		</footer>

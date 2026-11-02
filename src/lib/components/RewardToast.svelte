@@ -1,4 +1,5 @@
 <script>
+	import { siteHref } from '#lib/sitePaths.js';
 	import { rewardNotice, lab } from '#lib/lab.js';
 	import { playRewardSound } from '#lib/labPreferences.js';
 	import BadgeIcon from '#lib/components/BadgeIcon.svelte';
@@ -49,7 +50,7 @@
 					<div class="reward-bottom">
 						{#if $rewardNotice.points}<span class="xp"
 								>+<AnimatedNumber value={$rewardNotice.points} fromZero /> XP</span
-							>{/if}<a href="/min-lab/#merker">Se i Min lab →</a>
+							>{/if}<a href={siteHref('/min-lab/#merker')}>Se i Min lab →</a>
 					</div>
 				</div>
 				<button type="button" aria-label="Lukk belønning" onclick={() => rewardNotice.set(null)}

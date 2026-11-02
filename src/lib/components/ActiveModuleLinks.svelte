@@ -1,4 +1,5 @@
 <script>
+	import { appPathname, siteHref } from '#lib/sitePaths.js';
 	import { page } from '$app/state';
 	import { connection } from '#lib/connection.js';
 	import { moduler } from '#lib/moduler.js';
@@ -21,8 +22,8 @@
 	<ul aria-label={`Moduler i ${subject.navn}`} role="list">
 		{#each modules as module (module.id)}
 			<li>
-				<a href={`/moduler/${module.id}/`}
-					aria-current={page.url.pathname === `/moduler/${module.id}/` ? 'page' : undefined}
+				<a href={siteHref(`/moduler/${module.id}/`)}
+					aria-current={appPathname(page.url.pathname) === `/moduler/${module.id}/` ? 'page' : undefined}
 					>{module.title}</a>
 			</li>
 		{/each}

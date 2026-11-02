@@ -1,4 +1,5 @@
 <script>
+	import { siteHref } from '#lib/sitePaths.js';
 	import { lab } from '#lib/lab.js';
 	import { fag } from '#lib/innhold.js';
 	/** @type {{subject?:string}} */
@@ -44,7 +45,7 @@
 									class:done={requirement.completed}
 								>
 									<span aria-hidden="true">{requirement.completed ? '✓' : '○'}</span><a
-										href={requirement.href}>{requirement.title}</a
+										href={siteHref(requirement.href)}>{requirement.title}</a
 									><small
 										>{requirement.completed
 											? requirement.evidence === 'reviewed'

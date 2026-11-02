@@ -1,4 +1,5 @@
 <script>
+	import { appPathname, siteHref } from '#lib/sitePaths.js';
 	import PartnerContext from '#lib/components/PartnerContext.svelte';
 	import { getInterfaceHelp } from '#lib/interfaceHelp.js';
 	import CodeTokens from '#lib/components/CodeTokens.svelte';
@@ -70,7 +71,7 @@
 		clearTrace();
 	}
 	function run() {
-		noteFeedbackAttempt(`oving-${lesson.number}`, page.url.pathname + page.url.search);
+		noteFeedbackAttempt(`oving-${lesson.number}`, appPathname(page.url.pathname) + page.url.search);
 		avatarFeedback(
 			`oving-${lesson.number}`,
 			'working',
@@ -133,7 +134,7 @@
 			{#each lessons as item}
 				<a
 					class:active={lesson.number === item.number}
-					href={moduleLink(`/oving-${item.number}/`, moduleId)}
+					href={siteHref(moduleLink(`/oving-${item.number}/`, moduleId))}
 					aria-current={lesson.number === item.number ? 'page' : undefined}
 					aria-label={`Øving ${item.number}: ${item.title}`}
 				>
@@ -342,7 +343,7 @@
 			<div class="validation-next">
 				<h2>Neste: få tekstkontrollen til å virke</h2>
 				<p>I Redd chatten reparerer du koden du nettopp undersøkte.</p>
-				<a href={moduleLink(validationJourney[1].href, moduleId)}>Reparer tekstkontrollen →</a>
+				<a href={siteHref(moduleLink(validationJourney[1].href, moduleId))}>Reparer tekstkontrollen →</a>
 			</div>
 			<details id="eget-prosjekt" class="project-fold" open={ready && page.url.hash === '#eget-prosjekt'}>
 				<summary>Bygg selv: gi brukeren et gyldig visningsnavn</summary>
@@ -354,7 +355,7 @@
 				<summary>Bygg selv: endre og slette i din egen chat</summary>
 				<ProjectTask instruction={lesson.transfer.instruction} check={lesson.transfer.check} guide={lesson.transfer.guide} />
 				<p>{lesson.context}</p>
-				{#each lesson.related as related}<a href={moduleLink(related.href, moduleId)}>{related.label} →</a>{/each}
+				{#each lesson.related as related}<a href={siteHref(moduleLink(related.href, moduleId))}>{related.label} →</a>{/each}
 			</details>
 		{:else if lesson.number !== 5}
 		<ProjectTask id="eget-prosjekt" instruction={lesson.transfer.instruction} check={lesson.transfer.check} guide={lesson.transfer.guide} />
@@ -379,7 +380,7 @@
 					Øvingsarket bruker intern HTTP og testkontoer. En offentlig tjeneste trenger blant annet
 					HTTPS, riktig secure-cookie, varig sessionlager og begrensning av innloggingsforsøk.
 				</p>{/if}
-			{#each lesson.related as related}<a href={moduleLink(related.href, moduleId)}>{related.label} →</a>{/each}
+			{#each lesson.related as related}<a href={siteHref(moduleLink(related.href, moduleId))}>{related.label} →</a>{/each}
 		</details>
 		{/if}
 	</main>

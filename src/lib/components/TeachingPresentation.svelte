@@ -1,4 +1,5 @@
 <script>
+	import { siteHref } from '#lib/sitePaths.js';
 	import { goto } from '$app/navigation';
 	import { onMount } from 'svelte';
 	import { presentationLessons, presentationLink, studentLessonLink } from '#lib/teaching.js';
@@ -36,12 +37,12 @@
 	}
 	async function finish() {
 		if (document.fullscreenElement) await document.exitFullscreen().catch(() => {});
-		await goto(guideHref);
+		await goto(siteHref(guideHref));
 	}
 	function choose(/** @type {Event} */ event) {
 		const id = /** @type {HTMLSelectElement} */ (event.currentTarget).value;
 		const lesson = lessons.find((item) => item.id === id);
-		if (lesson) void goto(presentationLink(lesson.href, plan?.id ?? null));
+		if (lesson) void goto(siteHref(presentationLink(lesson.href, plan?.id ?? null)));
 	}
 </script>
 
@@ -58,18 +59,18 @@
 	>
 	<nav aria-label="Bytt leksjon">
 		{#if position > 0}<a
-				href={presentationLink(lessons[position - 1].href, plan?.id ?? null)}
+				href={siteHref(presentationLink(lessons[position - 1].href, plan?.id ?? null))}
 				aria-label="Forrige leksjon">← Forrige</a
 			>{/if}{#if position < lessons.length - 1}<a
-				href={presentationLink(lessons[position + 1].href, plan?.id ?? null)}
+				href={siteHref(presentationLink(lessons[position + 1].href, plan?.id ?? null))}
 				aria-label="Neste leksjon">Neste →</a
 			>{/if}
 	</nav>
 	<div class="actions">
 		<button type="button" onclick={toggleFullscreen}
 			>{fullscreen ? 'Avslutt fullskjerm' : 'Fullskjerm'}</button
-		><a href={guideHref} target="_blank" rel="noopener">Lærerveiledning</a
-		>{#if activity.audience === 'student'}<a href={studentLessonLink(activity.href)}>Elevversjon</a
+		><a href={siteHref(guideHref)} target="_blank" rel="noopener">Lærerveiledning</a
+		>{#if activity.audience === 'student'}<a href={siteHref(studentLessonLink(activity.href))}>Elevversjon</a
 			>{/if}<button type="button" class="finish" onclick={finish}>Avslutt visning</button>
 	</div>
 	{#if error}<p role="alert">{error}</p>{/if}

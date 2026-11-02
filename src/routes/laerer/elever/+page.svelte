@@ -1,4 +1,5 @@
 <script>
+	import { siteHref } from '#lib/sitePaths.js';
 	import { page } from '$app/state';
 	import { goto } from '$app/navigation';
 	import { onMount } from 'svelte';
@@ -108,7 +109,7 @@
 		const params = new URLSearchParams();
 		if (search.trim()) params.set('q', search.trim());
 		params.set('status', status);
-		void goto(`/laerer/elever/?${params}`);
+		void goto(siteHref(`/laerer/elever/?${params}`));
 	}
 	function openAction(/** @type {string} */ action) {
 		if (!detail || !$lab.user || busy) return;
@@ -139,7 +140,7 @@
 			dialog?.close();
 			pendingAction = null;
 			if (command.action === 'delete') {
-				await goto(listHref(undefined));
+				await goto(siteHref(listHref(undefined)));
 				return;
 			}
 			message =
@@ -170,7 +171,7 @@
 	{#if error}<p class="notice error" role="alert">{error}</p>{/if}
 	{#if message}<p class="notice" role="status">{message}</p>{/if}
 	{#if selectedId}
-		<p><a href={listHref(undefined)}>← Til elevlisten</a></p>
+		<p><a href={siteHref(listHref(undefined))}>← Til elevlisten</a></p>
 		{#if !detail}<p role="status">
 				{loading ? 'Henter elevprofilen …' : 'Elevprofilen kunne ikke hentes.'}
 			</p>
@@ -271,7 +272,7 @@
 										>
 									</li>{/each}
 							</ul>
-							<a href={item.href}>Åpne aktiviteten →</a>
+							<a href={siteHref(item.href)}>Åpne aktiviteten →</a>
 						</details>{/each}
 				</div>
 			</section>
@@ -379,7 +380,7 @@
 							><tbody
 								>{#each listing.students as student}<tr
 										><td
-											><a class="student-name" href={studentHref(student.id)}>{student.nickname}</a
+											><a class="student-name" href={siteHref(studentHref(student.id))}>{student.nickname}</a
 											>{#if student.disabledAt !== null}<small class="disabled-label"
 													>Deaktivert</small
 												>{/if}</td
@@ -389,7 +390,7 @@
 											>{student.checksCompleted} bestått</td
 										><td
 											><a
-												href={studentHref(student.id)}
+												href={siteHref(studentHref(student.id))}
 												aria-label={`Se progresjon for ${student.nickname}`}>Se progresjon →</a
 											></td
 										></tr
@@ -398,9 +399,9 @@
 						</table>
 					</div>{/if}
 				<nav class="pagination" aria-label="Sider i elevlisten">
-					{#if listing.page > 1}<a href={listHref(listing.page - 1)}>← Forrige</a
+					{#if listing.page > 1}<a href={siteHref(listHref(listing.page - 1))}>← Forrige</a
 						>{/if}{#if listing.page * listing.pageSize < listing.total}<a
-							href={listHref(listing.page + 1)}>Neste →</a
+							href={siteHref(listHref(listing.page + 1))}>Neste →</a
 						>{/if}
 				</nav>{/if}
 		</section>

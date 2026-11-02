@@ -1,9 +1,11 @@
 <script>
+	import { appPathname, siteHref } from '#lib/sitePaths.js';
 	import { lab, refreshLab } from '#lib/lab.js';
 	import { hasTeacherRole } from '#lib/learning.js';
 	import TeacherNav from '#lib/components/TeacherNav.svelte';
 	import { connection, secureHref } from '#lib/connection.js';
 	import { page } from '$app/state';
+	import { publicMode } from '#lib/deployment.js';
 	/** @type {{title:string,intro?:string,adminOnly?:boolean,children:import('svelte').Snippet}} */
 	let { title, intro = '', adminOnly = false, children } = $props();
 </script>
@@ -15,30 +17,35 @@
 	/></svelte:head
 >
 <div class="teacher-shell">
-	{#if hasTeacherRole($lab.user?.role)}<TeacherNav />{/if}
+	{#if !publicMode && hasTeacherRole($lab.user?.role)}<TeacherNav />{/if}
 	<main id="hovedinnhold" tabindex="-1">
 		<p class="eyebrow">{adminOnly ? 'ADMINISTRASJON' : 'LÆRERPANEL'}</p>
 		<h1>{title}<span>.</span></h1>
-		{#if $connection.publicHttp}<section class="panel">
+		{#if publicMode}<section class="panel">
+				<h2>Lærerpanelet finnes i skoleversjonen</h2>
+				<p>Bruk skolens IT-laben-adresse for elevoversikt og undervisningsstyring.</p>
+				<a class="button-link" href={siteHref('/')}>Til fagoversikten →</a>
+			</section>
+		{:else if $connection.publicHttp}<section class="panel">
 				<h2>Lærerpanelet bruker HTTPS</h2>
 				<p>Åpne den sikre adressen for å logge inn med lærerprofilen din.</p>
 				<a
 					class="button-link"
-					href={secureHref($connection.httpsOrigin, page.url.pathname + page.url.search)}
+					href={secureHref($connection.httpsOrigin, appPathname(page.url.pathname) + page.url.search)}
 					>Åpne lærerpanel på HTTPS →</a
 				>
-				<p><a href="/kom-i-gang/">Sertifikat og hjelp til pålogging →</a></p>
+				<p><a href={siteHref('/kom-i-gang/')}>Sertifikat og hjelp til pålogging →</a></p>
 			</section>
 		{:else if !$lab.ready}<p role="status">Henter profilen din …</p>
 		{:else if adminOnly && $lab.user?.role !== 'admin'}
 			<section class="panel">
 				<h2>Kun for administratorer</h2>
 				<p>Elevtilbakemeldinger krever administratorrollen.</p>
-				{#if !$lab.user}<a href="/min-lab/">Logg inn i Min lab →</a>
-				{:else if hasTeacherRole($lab.user.role)}<a href="/laerer/undervisning/"
+				{#if !$lab.user}<a href={siteHref('/min-lab/')}>Logg inn i Min lab →</a>
+				{:else if hasTeacherRole($lab.user.role)}<a href={siteHref('/laerer/undervisning/')}
 						>Til undervisningen →</a
 					>
-				{:else}<a href="/?visning=elev">Til fagoversikten →</a>{/if}
+				{:else}<a href={siteHref('/?visning=elev')}>Til fagoversikten →</a>{/if}
 			</section>
 		{:else if !hasTeacherRole($lab.user?.role)}
 			<section class="panel">
@@ -50,7 +57,7 @@
 				{#if $lab.user}<p>Din profil-ID:</p>
 					<code>{$lab.user.id}</code>
 					<p><button type="button" onclick={() => refreshLab()}>Oppdater tilgangen min</button></p>
-				{:else}<a href="/min-lab/">Logg inn i Min lab →</a>{/if}
+				{:else}<a href={siteHref('/min-lab/')}>Logg inn i Min lab →</a>{/if}
 			</section>
 		{:else}
 			{#if intro}<p class="intro">{intro}</p>{/if}

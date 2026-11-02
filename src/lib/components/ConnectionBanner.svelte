@@ -1,8 +1,14 @@
 <script>
+	import { siteHref } from '#lib/sitePaths.js';
+	import { publicMode } from '#lib/deployment.js';
 	import { connection, secureHref } from '#lib/connection.js';
 </script>
 
-{#if $connection.publicHttp}
+{#if publicMode}
+	<aside class="connection-banner" aria-label="Offentlig versjon">
+		<div><strong>Åpen øving</strong><span>Les, prøv og utforsk. Konto og XP brukes i skoleversjonen.</span></div>
+	</aside>
+{:else if $connection.publicHttp}
 	<aside class="connection-banner" aria-label="Utforsk uten innlogging">
 		<div>
 			<strong>Utforsk IT-laben uten innlogging.</strong><span
@@ -13,8 +19,8 @@
 			{#if $connection.probe === 'reachable'}<a
 					class="primary"
 					href={secureHref($connection.httpsOrigin)}>Åpne Min lab →</a
-				>{:else}<a class="primary" href="/kom-i-gang/">Kom i gang med Min lab →</a>{/if}
-			{#if $connection.probe === 'reachable'}<a href="/kom-i-gang/">Sertifikat og hjelp</a>{/if}
+				>{:else}<a class="primary" href={siteHref('/kom-i-gang/')}>Kom i gang med Min lab →</a>{/if}
+			{#if $connection.probe === 'reachable'}<a href={siteHref('/kom-i-gang/')}>Sertifikat og hjelp</a>{/if}
 		</nav>
 	</aside>
 {/if}

@@ -1,4 +1,5 @@
 <script>
+	import { siteHref } from '#lib/sitePaths.js';
 	import { tick } from 'svelte';
 	import DatabaseFrame from '#lib/components/DatabaseFrame.svelte';
 	import EquipmentCard from '#lib/components/EquipmentCard.svelte';
@@ -102,10 +103,10 @@
 		{#if attempt.run && !stale}<details><summary>Sammenlign med gjetningen din</summary><p>{sameIds(attempt.run.prediction, found.map((r) => r.document._id)) ? 'Gjetningen og resultatet har de samme dokumentene.' : 'Resultatet er forskjellig fra gjetningen. Undersøk et dokument som overrasket deg.'}</p><p>Gjetning: {attempt.run.prediction.join(', ') || 'Ingen'}. Treff: {found.map((r) => r.document._id).join(', ') || 'Ingen'}.</p></details>{/if}
 		<div class="db-actions">
 			{#if passed && currentIndex < queryTasks.length - 1}<button class="db-button" onclick={() => selectTask(queryTasks[currentIndex + 1].id)}>Neste bestilling →</button>{/if}
-			<a href="/databaser/grunnlag/?modul=databaser&del=filter">Åpne en forklaring av søk</a>
+			<a href={siteHref('/databaser/grunnlag/?modul=databaser&del=filter')}>Åpne en forklaring av søk</a>
 		</div>
 	</section>
-	{#if complete.length === 3}<div class="db-callout success"><strong>De tre søkene passer bestillingene.</strong><p>Kan nye data avsløre noe filtrene ikke viser ennå?</p><a class="db-button" href="/databaser/utstyrsboden/?modul=databaser">Åpne dataverkstedet →</a><p><a href="/databaser/praksis/?modul=databaser">Eller gå til kodeoppgaven</a></p></div>{/if}
+	{#if complete.length === 3}<div class="db-callout success"><strong>De tre søkene passer bestillingene.</strong><p>Kan nye data avsløre noe filtrene ikke viser ennå?</p><a class="db-button" href={siteHref('/databaser/utstyrsboden/?modul=databaser')}>Åpne dataverkstedet →</a><p><a href={siteHref('/databaser/praksis/?modul=databaser')}>Eller gå til kodeoppgaven</a></p></div>{/if}
 	{#if progress.state.warning || place.state.warning}<p class="db-callout warning" role="status">{progress.state.warning || place.state.warning}</p>{/if}
 	<p class="db-muted">{complete.length} av 3 søk består med de nåværende filtrene. Forsøkene lagres i denne nettleseren for aktiv profil, uten XP. Gjestestatus deles her.</p>
 	<details><summary>Om øvingsmodellen</summary><p>Her undersøker du likhet, flere samtidige betingelser og $lte i seks fiktive dokumenter. Ingen database kontaktes. Et søk kan passe disse dataene uten å passe alle framtidige data. Dataverkstedet lar deg undersøke nettopp det.</p></details>

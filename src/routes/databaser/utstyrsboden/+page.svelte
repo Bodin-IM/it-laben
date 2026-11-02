@@ -1,4 +1,5 @@
 <script>
+	import { siteHref } from '#lib/sitePaths.js';
 	import { tick } from 'svelte';
 	import { lab, learningContext } from '#lib/lab.js';
 	import DatabaseFrame from '#lib/components/DatabaseFrame.svelte';
@@ -90,13 +91,13 @@
 		{/if}
 		<div class="db-actions">
 			{#if result?.passed && !stale && currentIndex < workshopTasks.length - 1}<button class="db-button" onclick={() => select(workshopTasks[currentIndex + 1].id)}>Neste oppdrag →</button>{/if}
-			<a href={`/databaser/grunnlag/?modul=databaser&del=${task.theory}`}>Åpne en forklaring</a>
+			<a href={siteHref(`/databaser/grunnlag/?modul=databaser&del=${task.theory}`)}>Åpne en forklaring</a>
 		</div>
-		{#if result?.passed && !stale}<details><summary>Prøv dette i egen kode</summary><p>{task.transfer}</p><a href="/databaser/praksis/?modul=databaser">Åpne kodeoppgaven →</a></details>{/if}
+		{#if result?.passed && !stale}<details><summary>Prøv dette i egen kode</summary><p>{task.transfer}</p><a href={siteHref('/databaser/praksis/?modul=databaser')}>Åpne kodeoppgaven →</a></details>{/if}
 	</section>
 	{#if progress.state.warning || place.state.warning}<p class="db-callout warning" role="status">{progress.state.warning || place.state.warning}</p>{/if}
 	<p class="db-muted">Øvingsmodell i nettleseren. Valg og forsøk lagres her for aktiv profil, uten XP eller automatisk vurdering av forståelse. Gjestestatus deles i denne nettleseren.</p>
-	{#if completed.length === workshopTasks.length}<div class="db-callout success"><strong>De tre forsøkene virker med de nåværende valgene.</strong><p>Bruk ideene i et register på egen maskin.</p><a class="db-button" href="/databaser/praksis/?modul=databaser">Kod ditt eget register →</a></div>{/if}
+	{#if completed.length === workshopTasks.length}<div class="db-callout success"><strong>De tre forsøkene virker med de nåværende valgene.</strong><p>Bruk ideene i et register på egen maskin.</p><a class="db-button" href={siteHref('/databaser/praksis/?modul=databaser')}>Kod ditt eget register →</a></div>{/if}
 </DatabaseFrame>
 
 <style>.brief { font-size: 1.125rem; } #workshop-task { scroll-margin-top: 30px; }</style>

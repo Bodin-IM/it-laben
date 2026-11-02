@@ -1,4 +1,5 @@
 <script>
+	import { siteHref } from '#lib/sitePaths.js';
 	import TeacherSettings from '#lib/components/TeacherSettings.svelte';
 	import { page } from '$app/state';
 	import { lab, schoolRequest } from '#lib/lab.js';
@@ -151,15 +152,15 @@
 	<TeacherSettings />
 	{#if planId}
 		<div class="return-links">
-			{#if planModule}<a href={`/moduler/${planModule.id}/`}>← Til {planModule.title}</a>{/if}
-			<a href="/laerer/undervisning/?vis=opplegg">Alle undervisningsopplegg</a>
+			{#if planModule}<a href={siteHref(`/moduler/${planModule.id}/`)}>← Til {planModule.title}</a>{/if}
+			<a href={siteHref('/laerer/undervisning/?vis=opplegg')}>Alle undervisningsopplegg</a>
 		</div>
 		{#if !plan}<p class="notice error" role="alert">Undervisningsopplegget finnes ikke.</p>
 		{:else}
 			<div class="plan-actions">
 				<a
 					class="button-link"
-					href={presentationLink(activity(plan.lessonIds[0])?.href ?? '/', plan.id)}
+					href={siteHref(presentationLink(activity(plan.lessonIds[0])?.href ?? '/', plan.id))}
 					>Start gjennomgangen →</a
 				><span>{plan.minutes} minutter · {fag.find((item) => item.id === plan.subject)?.navn}</span>
 			</div>
@@ -200,7 +201,7 @@
 									</div>
 									<a
 										class="button-link secondary"
-										href={presentationLink(lesson?.href ?? '/', plan.id)}>Vis leksjon →</a
+										href={siteHref(presentationLink(lesson?.href ?? '/', plan.id))}>Vis leksjon →</a
 									>
 								</div>
 								<div class="step-notes">
@@ -227,7 +228,7 @@
 						{#each guide.wrapUp as note}<li>{note}</li>{/each}
 					</ul>
 					<div class="self-work">
-						{#each plan.selfWorkIds as id}{@const item = activity(id)}<a href={item?.href}
+						{#each plan.selfWorkIds as id}{@const item = activity(id)}<a href={siteHref(item?.href)}
 								>{item?.tittel} →</a
 							>{/each}
 					</div>
@@ -236,8 +237,8 @@
 		{/if}
 	{:else}
 		{#if view !== 'modules'}<div class="mode-links">
-				<a href="/laerer/undervisning/">← Til modulene</a>
-				<a class="button-link secondary" href="/?visning=elev">Åpne elevvisningen →</a>
+				<a href={siteHref('/laerer/undervisning/')}>← Til modulene</a>
+				<a class="button-link secondary" href={siteHref('/?visning=elev')}>Åpne elevvisningen →</a>
 			</div>{/if}
 		<div class="filters">
 			<div>
@@ -267,7 +268,7 @@
 					</p>
 				</div>
 				<div class="overview-actions">
-					<a class="button-link secondary" href="/?visning=elev">Åpne elevvisningen →</a>
+					<a class="button-link secondary" href={siteHref('/?visning=elev')}>Åpne elevvisningen →</a>
 					<button
 						type="button"
 						class="secondary"
@@ -310,7 +311,7 @@
 					>
 						<div class="module-heading">
 							<h3>
-								<a href={`/moduler/${item.id}/`}
+								<a href={siteHref(`/moduler/${item.id}/`)}
 									>{item.title}<span class="open-arrow" aria-hidden="true"> →</span></a
 								>
 							</h3>
@@ -335,8 +336,8 @@
 					elevleksjoner samlet.
 				</p>
 				<div>
-					<a href="/laerer/undervisning/?vis=opplegg">Alle undervisningsopplegg →</a>
-					<a href="/laerer/undervisning/?vis=leksjoner">Elevleksjoner til storskjerm →</a>
+					<a href={siteHref('/laerer/undervisning/?vis=opplegg')}>Alle undervisningsopplegg →</a>
+					<a href={siteHref('/laerer/undervisning/?vis=leksjoner')}>Elevleksjoner til storskjerm →</a>
 				</div>
 			</section>
 		{:else}
@@ -345,25 +346,25 @@
 					class="button-link"
 					class:secondary={view !== 'plans'}
 					aria-current={view === 'plans' ? 'page' : undefined}
-					href="/laerer/undervisning/?vis=opplegg">Undervisningsopplegg</a
+					href={siteHref('/laerer/undervisning/?vis=opplegg')}>Undervisningsopplegg</a
 				>
 				<a
 					class="button-link"
 					class:secondary={view !== 'lessons'}
 					aria-current={view === 'lessons' ? 'page' : undefined}
-					href="/laerer/undervisning/?vis=leksjoner">Elevleksjoner · rask tilgang</a
+					href={siteHref('/laerer/undervisning/?vis=leksjoner')}>Elevleksjoner · rask tilgang</a
 				>
 			</nav>
 			{#if view === 'plans'}<div class="plan-grid">
 					{#each plans as item}<article class="panel plan-card">
 							<p class="eyebrow">FELLES GJENNOMGANG · {item.minutes} MIN</p>
-							<h2><a href={`/laerer/undervisning/?opplegg=${item.id}`}>{item.title}</a></h2>
+							<h2><a href={siteHref(`/laerer/undervisning/?opplegg=${item.id}`)}>{item.title}</a></h2>
 							<p>{item.description}</p>
 							<p class="small">{item.lessonIds.length} leksjoner · med spørsmål og lærernotater</p>
 							<div>
-								<a class="button-link" href={`/laerer/undervisning/?opplegg=${item.id}`}
+								<a class="button-link" href={siteHref(`/laerer/undervisning/?opplegg=${item.id}`)}
 									>Åpne opplegget →</a
-								><a href={presentationLink(activity(item.lessonIds[0])?.href ?? '/', item.id)}
+								><a href={siteHref(presentationLink(activity(item.lessonIds[0])?.href ?? '/', item.id))}
 									>Vis på storskjerm →</a
 								>
 							</div>
@@ -383,9 +384,9 @@
 									<p>{item.beskrivelse}</p>
 								</div>
 								<div>
-									<a class="button-link secondary" href={presentationLink(item.href)}
+									<a class="button-link secondary" href={siteHref(presentationLink(item.href))}
 										>Vis leksjon →</a
-									><a href={item.href}>Åpne elevversjon</a>
+									><a href={siteHref(item.href)}>Åpne elevversjon</a>
 								</div>
 							</article>{/each}
 					</div>

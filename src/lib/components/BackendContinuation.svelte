@@ -1,4 +1,5 @@
 <script>
+	import { siteHref } from '#lib/sitePaths.js';
 	import { onMount } from 'svelte';
 	import { page } from '$app/state';
 	import { backendContinuation } from '#lib/backendCourse.js';
@@ -13,12 +14,12 @@
 	<nav class="continuation" aria-label="Videre i Backend-modulen">
 		<div>
 			<p>Når du er klar for neste del</p>
-			{#if links.next}<a class="next" href={links.next.href}>{links.next.title} →</a>
+			{#if links.next}<a class="next" href={siteHref(links.next.href)}>{links.next.title} →</a>
 			{:else}<p>Vis og forklar en rute i egen chat for en medelev. Velg en ny test sammen.</p>{/if}
 		</div>
 		<div class="back-links">
-			<a href={links.backHref}>Til moduloversikten</a>
-			{#if links.previous}<a href={links.previous.href}>← {links.previous.title}</a>{/if}
+			<a href={siteHref(links.backHref)}>Til moduloversikten</a>
+			{#if links.previous}<a href={siteHref(links.previous.href)}>← {links.previous.title}</a>{/if}
 		</div>
 	</nav>
 {/if}

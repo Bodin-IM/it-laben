@@ -1,4 +1,5 @@
 <script>
+	import { siteHref } from '#lib/sitePaths.js';
 	import { storageSteps } from '#lib/storageExercise.js';
 	import { moduleLink } from '#lib/moduleNavigation.js';
 	import { getInterfaceHelp } from '#lib/interfaceHelp.js';
@@ -18,7 +19,7 @@
 
 <div id="forsok" class="storage-guide">
 	<div id="eget-prosjekt" class="start">
-		<p>Bruk en testkopi av chatprosjektet fra <a href={moduleLink('/fillagring/', moduleId)}>Fillagring</a>. Du trenger en fungerende GET/POST-rute, listen <code>meldinger</code> og <code>fil</code> som peker på JSON-filen din.</p>
+		<p>Bruk en testkopi av chatprosjektet fra <a href={siteHref(moduleLink('/fillagring/', moduleId))}>Fillagring</a>. Du trenger en fungerende GET/POST-rute, listen <code>meldinger</code> og <code>fil</code> som peker på JSON-filen din.</p>
 		<p>Legg <code>readFileSync</code> og <code>writeFileSync</code> til den eksisterende importen fra <code>node:fs</code>. Arbeid i <code>server.js</code>, én del om gangen, og start Node fra backendmappen.</p>
 	</div>
 
@@ -53,7 +54,7 @@
 			</div>
 		</section>
 	{/each}
-	<p class="next-example">Til det separate Node-eksemplet i øving 6: <a href="/eksempler/lagre.mjs" download>last ned lagre.mjs</a>.</p>
+	<p class="next-example">Til det separate Node-eksemplet i øving 6: <a href={siteHref('/eksempler/lagre.mjs')} download>last ned lagre.mjs</a>.</p>
 </div>
 
 <style>

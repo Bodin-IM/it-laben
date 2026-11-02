@@ -1,5 +1,6 @@
 import { error, redirect } from '@sveltejs/kit';
 import { moduler, moduleAliases } from '#lib/moduler.js';
+import { siteHref } from '#lib/sitePaths.js';
 
 export function entries() {
 	return [
@@ -11,7 +12,7 @@ export function entries() {
 /** @param {{params:{slug:string}}} event */
 export function load({ params }) {
 	const alias = Object.hasOwn(moduleAliases, params.slug) ? moduleAliases[params.slug] : null;
-	if (alias) redirect(307, `/moduler/${alias.id}/#del-${alias.start}`);
+	if (alias) redirect(307, siteHref(`/moduler/${alias.id}/#del-${alias.start}`));
 	const module = moduler.find((item) => item.id === params.slug);
 	if (!module) error(404, 'Modulen finnes ikke.');
 	return { module };

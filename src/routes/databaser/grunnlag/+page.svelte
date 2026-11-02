@@ -1,4 +1,5 @@
 <script>
+	import { siteHref } from '#lib/sitePaths.js';
 	import { tick } from 'svelte';
 	import { lab, learningContext } from '#lib/lab.js';
 	import { createDatabasePlace } from '#lib/databasePlace.svelte.js';
@@ -437,7 +438,7 @@
 						</li>
 						<li>Kjør kommandoene under. Den siste kjører eksemplet du nettopp har lest.</li>
 					</ol>
-					<a class="db-button" href="/ressurser/utstyrsboden-start.zip" download
+					<a class="db-button" href={siteHref('/ressurser/utstyrsboden-start.zip')} download
 						>Last ned startprosjekt med eksemplet (.zip)</a
 					>
 					<pre><code
@@ -473,7 +474,7 @@
 							class="db-button"
 							onclick={() => select(databaseSections[index + 1].id)}
 							>Neste: {databaseSections[index + 1].label} →</button
-						>{:else}<a class="db-button" href="/databaser/finn-utstyr/?modul=databaser"
+						>{:else}<a class="db-button" href={siteHref('/databaser/finn-utstyr/?modul=databaser')}
 							>Prøv søkene i grunnøvingene →</a
 						>{/if}
 				</nav>

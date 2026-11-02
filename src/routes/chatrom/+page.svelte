@@ -1,4 +1,5 @@
 <script>
+	import { siteHref } from '#lib/sitePaths.js';
 	import PartnerContext from '#lib/components/PartnerContext.svelte';
 	import { textShape } from '#lib/partnerContext.js';
 
@@ -331,7 +332,7 @@
 			{#if kind !== 'rooms'}<p class="sessionhint">
 					Vi starter etter innlogging: {#if user}<code>req.session.bruker</code> kan inneholde
 						<strong>{user.navn}</strong>.{:else}ingen bruker ligger i sessionen.{/if}
-					<a href="/sessions/">Se hvordan sessionen opprettes ↗</a>
+					<a href={siteHref('/sessions/')}>Se hvordan sessionen opprettes ↗</a>
 				</p>{/if}
 			{#if activeExperiments}<p class="eksperimentvarsel">
 					Et feilforsøk er aktivt. Se «Prøv en endring» nedenfor.
@@ -549,12 +550,12 @@
 					<ol>
 						<li>
 							<strong>Lag et fungerende utgangspunkt.</strong>
-							<a href="/backend/">Frontend møter backend</a>
+							<a href={siteHref('/backend/')}>Frontend møter backend</a>
 							viser hvordan <code>fetch</code>, <code>req.body</code> og JSON-svar henger sammen.
 						</li>
 						<li>
 							<strong>Opprett sessionen ved innlogging.</strong>
-							<a href="/sessions/">Sessions og pålogging</a>
+							<a href={siteHref('/sessions/')}>Sessions og pålogging</a>
 							viser cookie og <code>req.session.bruker</code>. I chatforsøket bruker vi en allerede
 							opprettet session.
 						</li>
@@ -584,7 +585,7 @@
 					<p>
 						I forsøket er rommene åpne, og meldingene ligger i minnet. Romfiltrering er ikke en
 						kontroll av hvem som får lese et privat rom. Vil du beholde data etter omstart, bygg
-						videre med <a href="/fillagring/">lagring i JSON-fil</a>.
+						videre med <a href={siteHref('/fillagring/')}>lagring i JSON-fil</a>.
 					</p>
 					<p class="kildelenker">
 						Les videre: <a
@@ -674,7 +675,7 @@
 			instruction="La egen chat hente meldinger fra valgt rom. Behold avsender og eiersjekk på backend når du legger til sending og sletting."
 			check="Bytt rom, send som to ulike brukere og prøv å slette en annens melding. Undersøk både svaret og listen. Romfiltrering alene beskytter ikke et privat rom." />
 		<footer>
-			<a href="/">← Tilbake til IT-laben</a>
+			<a href={siteHref('/')}>← Tilbake til IT-laben</a>
 			<p>Ta ett steg om gangen. Klikk når du lurer.</p>
 		</footer>
 		<PageLinks

@@ -3,16 +3,17 @@
 	import { avatars } from '#lib/avatars.js';
 	import { lab, changeLabProfile } from '#lib/lab.js';
 	import { labPreferences, setLabPreferences } from '#lib/labPreferences.js';
+	import { publicMode } from '#lib/deployment.js';
 	let saving = $state(false);
 	let message = $state('');
-	const selected = $derived($lab.summary?.lab.avatarId ?? $labPreferences.partnerAvatar);
+	const selected = $derived(publicMode ? $labPreferences.partnerAvatar : $lab.summary?.lab.avatarId ?? $labPreferences.partnerAvatar);
 	/** @param {string} id */
 	async function choose(id) {
 		if (saving) return;
 		message = '';
 		saving = true;
 		try {
-			if ($lab.user && $lab.summary) {
+			if (!publicMode && $lab.user && $lab.summary) {
 				const profile = $lab.summary.lab;
 				await changeLabProfile(profile.colorId, profile.featuredAchievementId, id);
 			} else setLabPreferences({ partnerAvatar: id });
@@ -36,7 +37,7 @@
 	</div>
 </fieldset>
 <p class="note">
-	{$lab.user
+	{publicMode ? 'Figuren lagres i denne nettleseren.' : $lab.user
 		? 'Figuren lagres på profilen og vises også i Min lab.'
 		: 'Figuren lagres i denne nettleseren. Logg inn for å bruke en profil.'}
 </p>

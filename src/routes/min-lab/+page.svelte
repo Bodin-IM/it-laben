@@ -1,6 +1,8 @@
 <script>
+	import { siteHref } from '#lib/sitePaths.js';
 	import TeacherSettings from '#lib/components/TeacherSettings.svelte';
 	import { connection } from '#lib/connection.js';
+	import { publicMode } from '#lib/deployment.js';
 	import SecureAccessGuide from '#lib/components/SecureAccessGuide.svelte';
 	import { onMount } from 'svelte';
 	import { goto } from '$app/navigation';
@@ -75,7 +77,7 @@
 		}
 	});
 	async function prepareRotation() {
-		if (busy) return;
+		if (publicMode || busy) return;
 		const owner = $lab.user?.id;
 		busy = true;
 		rotationError = '';
@@ -93,7 +95,7 @@
 		}
 	}
 	async function confirmRotation() {
-		if (busy || !preparedKey || !rotationDownloaded || !rotationConfirmed) return;
+		if (publicMode || busy || !preparedKey || !rotationDownloaded || !rotationConfirmed) return;
 		const file = preparedKey.recoveryKey,
 			owner = preparedOwner;
 		busy = true;
@@ -118,7 +120,7 @@
 	}
 	/** @param {() => Promise<unknown>} action */
 	async function perform(action) {
-		if (busy) return;
+		if (publicMode || busy) return;
 		busy = true;
 		message = '';
 		messageSuccess = false;
@@ -144,7 +146,7 @@
 				throw new Error('Kunne ikke lese nøkkelfilen. Velg JSON-filen du lastet ned fra IT-laben.');
 			}
 			await loginWithKey(data, remember);
-			if (hasTeacherRole($lab.user?.role)) await goto('/laerer/undervisning/');
+			if (hasTeacherRole($lab.user?.role)) await goto(siteHref('/laerer/undervisning/'));
 		});
 		input.value = '';
 	}
@@ -179,11 +181,37 @@
 </script>
 
 <svelte:head
-	><title>{settingsView ? 'Innstillinger' : 'Min lab – fremgang og merker'} | IT-laben</title><meta
+	><title>{settingsView ? 'Innstillinger' : publicMode ? 'Min lab' : 'Min lab – fremgang og merker'} | IT-laben</title><meta
 		name="robots"
 		content="noindex"
 	/></svelte:head
 >
+{#if publicMode}
+	<div class="profile-page">
+		<main id="hovedinnhold" tabindex="-1">
+			<header class="page-heading">
+				<h1>{settingsView ? 'Innstillinger' : 'Min lab'}</h1>
+				<p>{settingsView ? 'Tilpass lyd, tema og animasjoner i denne nettleseren.' : 'Konto og skoleprogresjon brukes i skoleversjonen av IT-laben.'}</p>
+			</header>
+			{#if settingsView}
+				<ExperienceSettings />
+				<section class="panel" aria-labelledby="public-theme-title">
+					<h2 id="public-theme-title">Tema</h2>
+					<ThemeToggle />
+				</section>
+			{:else}
+				<section class="panel">
+					<h2>Min lab finnes i skoleversjonen</h2>
+					<p>Bruk skolens IT-laben-adresse for innlogging, lagret progresjon og merker.</p>
+					<p>Her kan du utforske leksjoner og øvinger fra fagoversikten.</p>
+					<a class="primary" href={siteHref('/')}>Åpne fagoversikten →</a>
+					<p><a href={siteHref(settingsHref)}>Tilpass denne nettleseren →</a></p>
+				</section>
+			{/if}
+			<footer><a href={siteHref('/')}>← Til IT-laben</a><span>Se. Prøv. Forstå.</span></footer>
+		</main>
+	</div>
+{:else}
 <div class="profile-page">
 	<main id="hovedinnhold" tabindex="-1">
 		{#if !$connection.publicHttp || settingsView}
@@ -197,14 +225,14 @@
 			</header>
 		{/if}
 		<nav class="view-nav" aria-label="Min lab og innstillinger">
-			<a href={labHref} aria-current={!settingsView ? 'page' : undefined}>Min lab</a>
-			<a href={settingsHref} aria-current={settingsView ? 'page' : undefined}>Innstillinger</a>
+			<a href={siteHref(labHref)} aria-current={!settingsView ? 'page' : undefined}>Min lab</a>
+			<a href={siteHref(settingsHref)} aria-current={settingsView ? 'page' : undefined}>Innstillinger</a>
 		</nav>
 		{#if $connection.publicHttp}
 			{#if settingsView}
 				<p class="notice">
 					Profilvalg krever sikker tilkobling.
-					<a href="/kom-i-gang/">Åpne tilkoblingshjelpen →</a>
+					<a href={siteHref('/kom-i-gang/')}>Åpne tilkoblingshjelpen →</a>
 				</p>
 			{:else}<SecureAccessGuide />{/if}
 		{:else if !$lab.ready}<p class="status" role="status">Henter profilen din …</p>
@@ -212,7 +240,7 @@
 			{#if settingsView}
 				<p class="notice">
 					Du kan tilpasse denne nettleseren uten profil.
-					<a href={labHref}>Opprett eller åpne profilen din →</a>
+					<a href={siteHref(labHref)}>Opprett eller åpne profilen din →</a>
 				</p>
 			{:else}
 				{#if !$lab.available}<div class="notice" role="status">
@@ -220,7 +248,7 @@
 							Min lab er ikke tilgjengelig akkurat nå. Du kan fortsatt bruke alle leksjonene og
 							spillene.
 						</p>
-						<button type="button" onclick={() => refreshLab()}>Prøv igjen</button><a href="/"
+						<button type="button" onclick={() => refreshLab()}>Prøv igjen</button><a href={siteHref('/')}
 							>Til innholdet →</a
 						>
 					</div>{/if}
@@ -310,7 +338,7 @@
 			{#if !settingsView}
 				<nav class="subject-filter" aria-label="Velg fag for fremgangen din">
 					{#each [{ id: 'alle', navn: 'Alle fag' }, ...fag] as item (item.id)}
-						<a href={item.id === 'alle' ? '/min-lab/' : `/min-lab/?fag=${item.id}`}
+						<a href={siteHref(item.id === 'alle' ? '/min-lab/' : `/min-lab/?fag=${item.id}`)}
 							aria-current={filter === item.id ? 'true' : undefined}>{item.navn}</a>
 					{/each}
 				</nav>
@@ -326,15 +354,15 @@
 							<div class="next-step">
 								<span class="small">Neste steg</span>
 								<h3>{next.title}</h3>
-								<a class="primary" href={next.href}>{next.evidence === 'checked' ? 'Prøv fagsjekken' : 'Fortsett'} →</a>
+								<a class="primary" href={siteHref(next.href)}>{next.evidence === 'checked' ? 'Prøv fagsjekken' : 'Fortsett'} →</a>
 							</div>
 						{:else}<p class="small">Ingen nye steg klare akkurat nå. Du kan gå tilbake til aktivitetene under.</p>{/if}
 					</section>
 				</div>
 				<nav class="collection-nav" aria-label="I samlingen din">
-					<a href={`${labHref}#fagspor`}>Fagspor</a>
-					<a href={`${labHref}#merker`}>Merker og milepæler</a>
-					<a href={`${labHref}#aktiviteter`}>Aktiviteter</a>
+					<a href={siteHref(`${labHref}#fagspor`)}>Fagspor</a>
+					<a href={siteHref(`${labHref}#merker`)}>Merker og milepæler</a>
+					<a href={siteHref(`${labHref}#aktiviteter`)}>Aktiviteter</a>
 				</nav>
 				<details class="reward-help">
 					<summary>Slik fungerer XP og fremgang</summary>
@@ -345,7 +373,7 @@
 					<p>XP og gjennomføring viser aktivitet. De dokumenterer ikke alene hva du har forstått.</p>
 				</details>
 				{#if $lab.user.role === 'student' && !$lab.user.classCode}
-					<p class="small">Du har ikke valgt klasse ennå. <a href={`${settingsHref}#klasse`}>Velg klasse i Innstillinger →</a></p>
+					<p class="small">Du har ikke valgt klasse ennå. <a href={siteHref(`${settingsHref}#klasse`)}>Velg klasse i Innstillinger →</a></p>
 				{/if}
 				<div id="fagspor"><TrackList subject={filter} /></div>
 				<AchievementGallery subject={filter} />
@@ -353,7 +381,7 @@
 					<summary>Aktivitetene dine <span class="small">{finished} av {activities.length} gjennomgått eller bestått</span></summary>
 					<p class="small">Gjennomgang og fagsjekker vises hver for seg.</p>
 					<div class="activity-list">
-						{#each activities as activity}<a href={resumeLink(activity)} class="activity-row"
+						{#each activities as activity}<a href={siteHref(resumeLink(activity))} class="activity-row"
 								><div>
 									<span class="small"
 										>{fag.find((item) => item.id === activity.subject)?.navn ?? activity.subject} · {innholdsformat(
@@ -412,7 +440,7 @@
 							<p>Din profil-ID: <code style="overflow-wrap:anywhere">{$lab.user.id}</code></p>
 						</details>
 						{#if hasTeacherRole($lab.user.role)}<p>
-								<a href="/laerer/undervisning/">Åpne lærerpanel →</a>
+								<a href={siteHref('/laerer/undervisning/')}>Åpne lærerpanel →</a>
 							</p>{/if}
 						<p>
 							Brukernavnet er tildelt av IT-laben. Be læreren om hjelp hvis det må endres. Nøkkelfilen
@@ -457,7 +485,7 @@
 				</details>
 			{/if}
 		{/if}
-		<footer><a href="/">← Til IT-laben</a><span>Se. Prøv. Forstå.</span></footer>
+		<footer><a href={siteHref('/')}>← Til IT-laben</a><span>Se. Prøv. Forstå.</span></footer>
 	</main>
 	<dialog bind:this={rotationDialog} aria-labelledby="rotation-title">
 		<h2 id="rotation-title">Bytt nøkkelfil trygt</h2>
@@ -519,6 +547,7 @@
 		{#if rotationError}<p class="error" role="alert">{rotationError}</p>{/if}
 	</dialog>
 </div>
+{/if}
 
 <style>
 	.profile-page {

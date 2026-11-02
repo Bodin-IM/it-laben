@@ -1,4 +1,5 @@
 <script>
+	import { siteHref } from '#lib/sitePaths.js';
 	import { moduleLink } from '#lib/moduleNavigation.js';
 	import { fag, innholdsformat } from '#lib/innhold.js';
 	import { lab } from '#lib/lab.js';
@@ -7,7 +8,7 @@
 	const status = $derived($lab.summary?.progress.find((item) => item.id === activity.id)?.status);
 </script>
 
-<a class="sidekort" class:compact href={moduleLink(activity.href, null)}>
+<a class="sidekort" class:compact href={siteHref(moduleLink(activity.href, null))}>
 	<span class="activity-icon" aria-hidden="true">{activity.symbol}</span>
 	<div class="copy">
 		<div class="meta">

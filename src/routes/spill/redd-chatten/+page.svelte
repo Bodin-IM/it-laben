@@ -1,4 +1,6 @@
 <script>
+	import { siteHref } from '#lib/sitePaths.js';
+	import { publicMode } from '#lib/deployment.js';
 	import { page } from '$app/state';
 	import { moduleContext, moduleLink } from '#lib/moduleNavigation.js';
 	import ValidationJourney from '#lib/components/ValidationJourney.svelte';
@@ -689,7 +691,7 @@
 					<strong>{storageStatus.label}</strong>
 					<p>{storageStatus.detail}</p>
 					{#if $learningContext.mode !== 'normal'}<p>Lagringen gjelder {$learningContext.mode === 'practice' ? 'øvingsmodus' : 'denne lærerøkten'}, atskilt fra ordinær fremgang.</p>{/if}
-					{#if !$account.user}<a href="/min-lab/">Start Min lab →</a>{/if}
+					{#if !publicMode && !$account.user}<a href={siteHref('/min-lab/')}>Start Min lab →</a>{/if}
 				</div>
 				{#key mission.id}
 					<details class="code-example">
@@ -861,7 +863,7 @@
 								</dl>
 								{#if mission.id === 'tekst'}
 									<p>Bruk nå prinsippet på et annet felt. Lag validering for et visningsnavn i eget prosjekt, og undersøk både svaret og dataene.</p>
-									<a class="project-link" href={moduleLink(validationJourney[2].href, partnerModule)}>Neste: Valider et visningsnavn i egen kode →</a>
+									<a class="project-link" href={siteHref(moduleLink(validationJourney[2].href, partnerModule))}>Neste: Valider et visningsnavn i egen kode →</a>
 								{:else}
 								<details class="transfer-task">
 									<summary>Prøv prinsippet i egen kode</summary>
@@ -876,7 +878,7 @@
 										onclick={() => changeMission(missionIndex + 1)}
 										>Neste reparasjon <span aria-hidden="true">→</span></button
 									>
-								{:else if missionIndex === MISSIONS.length - 1}<a class="next-mission" href="/spill/chat/">Sammenlign med første spill ↗</a
+								{:else if missionIndex === MISSIONS.length - 1}<a class="next-mission" href={siteHref('/spill/chat/')}>Sammenlign med første spill ↗</a
 									>{/if}
 							</section>
 						{/if}
@@ -1124,19 +1126,19 @@
 					<pre><code>{fullCode}</code></pre>
 				</details>
 				<div class="lesson-links">
-					<a href="/chatrom/">Utforsk chatrom, sessions og sletting ↗</a><a href="/sessions/"
+					<a href={siteHref('/chatrom/')}>Utforsk chatrom, sessions og sletting ↗</a><a href={siteHref('/sessions/')}
 						>Hvordan fungerer sessions? ↗</a
 					>
 				</div>
 				<details class="legacy-pilot">
 					<summary>Tidligere læringspilot</summary>
 					<p>Har du påbegynt arbeid i piloten, kan du fortsette der med den samme nettleserfanen og lagringen.</p>
-					<a href="/spill/redd-chatten/pilot/">Åpne den tidligere piloten →</a>
+					<a href={siteHref('/spill/redd-chatten/pilot/')}>Åpne den tidligere piloten →</a>
 				</details>
 			</div>
 		</details>
 		<footer>
-			<a href="/#spill">← Spill og utfordringer</a><span
+			<a href={siteHref('/#spill')}>← Spill og utfordringer</a><span
 				>Bygg en regel som holder for flere enn én request.</span
 			>
 		</footer>

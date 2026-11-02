@@ -1,25 +1,27 @@
 <script>
+	import { appPathname, siteHref } from '#lib/sitePaths.js';
 	import { page } from '$app/state';
 	import { onMount } from 'svelte';
 	import { lab } from '#lib/lab.js';
 	import AnimatedNumber from '#lib/components/AnimatedNumber.svelte';
 	import Avatar from '#lib/components/Avatar.svelte';
 	import { connection } from '#lib/connection.js';
+	import { publicMode } from '#lib/deployment.js';
 
 	let mounted = $state(false);
 	onMount(() => {
 		mounted = true;
 	});
 	const settingsPage = $derived(
-		mounted && page.url.pathname === '/min-lab/' && page.url.searchParams.get('visning') === 'innstillinger'
+		mounted && appPathname(page.url.pathname) === '/min-lab/' && page.url.searchParams.get('visning') === 'innstillinger'
 	);
 </script>
 
-<a
-	href={$connection.publicHttp ? '/kom-i-gang/' : '/min-lab/'}
+{#if !publicMode}<a
+	href={siteHref($connection.publicHttp ? '/kom-i-gang/' : '/min-lab/')}
 	class="account-link"
 	aria-current={!settingsPage &&
-	page.url.pathname === ($connection.publicHttp ? '/kom-i-gang/' : '/min-lab/')
+	appPathname(page.url.pathname) === ($connection.publicHttp ? '/kom-i-gang/' : '/min-lab/')
 		? 'page'
 		: undefined}
 >
@@ -40,7 +42,7 @@
 			title="Fremgang venter på lagring"
 			aria-label="Fremgang venter på lagring">•</span
 		>{/if}
-</a>
+</a>{/if}
 
 <style>
 	.account-link {

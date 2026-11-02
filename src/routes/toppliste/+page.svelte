@@ -1,4 +1,5 @@
 <script>
+	import { siteHref } from '#lib/sitePaths.js';
 	import { page } from '$app/state';
 	import { onMount } from 'svelte';
 	import { lab, schoolRequest } from '#lib/lab.js';
@@ -7,6 +8,7 @@
 	import ClassMembership from '#lib/components/ClassMembership.svelte';
 	import ClassStandings from '#lib/components/ClassStandings.svelte';
 	import { connection, secureHref } from '#lib/connection.js';
+	import { publicMode } from '#lib/deployment.js';
 	const browser = typeof window !== 'undefined';
 	/** @type {import('#lib/school.js').Leaderboard|null} */
 	let board = $state(null);
@@ -16,7 +18,7 @@
 	let revision = 0;
 	const number = $derived(browser ? (page.url.searchParams.get('side') ?? '1') : '1');
 	async function load() {
-		if (!$connection.ready || $connection.publicHttp) return;
+		if (publicMode || !$connection.ready || $connection.publicHttp) return;
 		const request = ++revision,
 			userId = $lab.user?.id;
 		loading = true;
@@ -33,7 +35,7 @@
 		}
 	}
 	$effect(() => {
-		if (!$connection.ready || $connection.publicHttp) {
+		if (publicMode || !$connection.ready || $connection.publicHttp) {
 			board = null;
 			error = '';
 			loadedKey = '';
@@ -50,6 +52,7 @@
 		void load();
 	});
 	onMount(() => {
+		if (publicMode) return;
 		const poll = setInterval(() => {
 			if (
 				$connection.ready &&
@@ -68,6 +71,17 @@
 >
 <div class="leaderboard-page">
 	<main id="hovedinnhold" tabindex="-1">
+		{#if publicMode}
+			<section class="intro">
+				<h1>Toppliste</h1>
+				<p>Topplisten finnes i skoleversjonen av IT-laben.</p>
+			</section>
+			<section class="empty">
+				<h2>Se skoleprogresjonen på skolen</h2>
+				<p>Bruk skolens IT-laben-adresse for profiler, poeng og klasseoversikt.</p>
+				<a href={siteHref('/')}>Til fagoversikten →</a>
+			</section>
+		{:else}
 		<section class="intro">
 			<p class="eyebrow">SMÅ STEG. SYNLIG FREMGANG.</p>
 			<h1>Læring som<br /><em>setter spor.</em></h1>
@@ -82,7 +96,7 @@
 					<a href={secureHref($connection.httpsOrigin, '/toppliste/')}>Åpne topplisten på HTTPS →</a
 					>
 				</p>
-				<a href="/kom-i-gang/">Sertifikat og hjelp til pålogging →</a>
+				<a href={siteHref('/kom-i-gang/')}>Sertifikat og hjelp til pålogging →</a>
 			</section>
 		{:else}
 			{#if error}<p class="notice" role="alert">{error}</p>{/if}
@@ -131,7 +145,7 @@
 								? 'Fullfør aktiviteter i Min lab og la læringen synes.'
 								: 'Gå tilbake til første side for å se deltakerne.'}
 						</p>
-						{#if board.total !== 0}<a href="/toppliste/">Til første side →</a>{/if}
+						{#if board.total !== 0}<a href={siteHref('/toppliste/')}>Til første side →</a>{/if}
 					</section>
 				{:else}<ol class="ranking" aria-label="Deltakere rangert etter samlet XP">
 						{#each board.entries as entry}<li>
@@ -144,9 +158,9 @@
 							</li>{/each}
 					</ol>{/if}
 				<nav class="pagination" aria-label="Sider i topplisten">
-					{#if board.page > 1}<a href={`/toppliste/?side=${board.page - 1}`}>← Forrige</a
+					{#if board.page > 1}<a href={siteHref(`/toppliste/?side=${board.page - 1}`)}>← Forrige</a
 						>{/if}{#if board.page * board.pageSize < board.total}<a
-							href={`/toppliste/?side=${board.page + 1}`}>Neste →</a
+							href={siteHref(`/toppliste/?side=${board.page + 1}`)}>Neste →</a
 						>{/if}
 				</nav>
 			{:else}<p role="status">
@@ -155,6 +169,7 @@
 			{#if !$lab.user || $lab.user.role === 'student'}<section class="participation">
 					<LeaderboardPreference showLink={false} />
 				</section>{/if}
+		{/if}
 		{/if}
 	</main>
 </div>

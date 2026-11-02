@@ -1,4 +1,5 @@
 <script>
+	import { siteHref } from '#lib/sitePaths.js';
 	import PartnerContext from '#lib/components/PartnerContext.svelte';
 
 	import { tick } from 'svelte';
@@ -85,7 +86,7 @@
 <div class="quiz-page">
 	<a class="skip" href="#quiz">Hopp til spørsmålene</a>
 	<main id="hovedinnhold" tabindex="-1">
-		<a class="back" href="/?fag=utvikling#utforsk">← Tilbake til Utvikling</a>
+		<a class="back" href={siteHref('/?fag=utvikling#utforsk')}>← Tilbake til Utvikling</a>
 		<section class="intro" aria-labelledby="page-title">
 			<p class="eyebrow">AKTIVITET · FLERVALG</p>
 			<h1 id="page-title">Backend, fra første rute til drift.</h1>
@@ -173,7 +174,7 @@
 										<span>{q.title}</span><span class="note">{status(q)} →</span>
 									</button>
 								{/each}
-								<a href={topic.href}>Åpne kodelab for repetisjon →</a>
+								<a href={siteHref(topic.href)}>Åpne kodelab for repetisjon →</a>
 							</li>
 						{/each}
 					</ul>
@@ -297,7 +298,7 @@
 		</div>
 	</main>
 	<footer>
-		<a href="/?fag=utvikling#utforsk">← Alle aktiviteter i Utvikling</a><span
+		<a href={siteHref('/?fag=utvikling#utforsk')}>← Alle aktiviteter i Utvikling</a><span
 			>IT-laben · Se. Prøv. Forstå.</span
 		>
 	</footer>

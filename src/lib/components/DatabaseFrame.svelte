@@ -1,4 +1,5 @@
 <script>
+	import { siteHref } from '#lib/sitePaths.js';
 	import { databaseActivities } from '#lib/databaseCourse.js';
 	import { moduleLink } from '#lib/moduleNavigation.js';
 	import { databasePlaces } from '#lib/databaseJourney.js';
@@ -15,7 +16,7 @@
 	/></svelte:head
 >
 <main class="database-page" id="hovedinnhold" tabindex="-1">
-	<a class="db-back" href="/moduler/databaser/">← Databaser – fra tabeller til dokumenter</a>
+	<a class="db-back" href={siteHref('/moduler/databaser/')}>← Databaser – fra tabeller til dokumenter</a>
 	<header class="db-hero">
 		<p class="db-eyebrow">Utvikling · MongoDB · Runde 1</p>
 		<h1>{current.tittel}</h1>
@@ -24,7 +25,7 @@
 	<nav class="db-sequence" aria-label="Arbeid i databasemodulen">
 		{#each databasePlaces.slice(0, 3) as activity, step}
 			<a
-				href={moduleLink(activity.path, 'databaser')}
+				href={siteHref(moduleLink(activity.path, 'databaser'))}
 				aria-current={activity.id === activityId ? 'step' : undefined}
 				><span aria-hidden="true">{step + 1}</span><span
 					>{step === 0
@@ -36,6 +37,6 @@
 			>
 		{/each}
 	</nav>
-	<p class="db-muted"><a href="/databaser/grunnlag/?modul=databaser" aria-current={activityId === 'database-grunnlag' ? 'page' : undefined}>Teori og kodeeksempler</a> · Åpne når du trenger en forklaring.</p>
+	<p class="db-muted"><a href={siteHref('/databaser/grunnlag/?modul=databaser')} aria-current={activityId === 'database-grunnlag' ? 'page' : undefined}>Teori og kodeeksempler</a> · Åpne når du trenger en forklaring.</p>
 	{@render children()}
 </main>

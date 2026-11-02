@@ -1,4 +1,6 @@
 <script>
+	import { siteHref } from '#lib/sitePaths.js';
+	import { publicMode } from '#lib/deployment.js';
 	import { avatarFeedback } from '#lib/avatarFeedback.js';
 	import {
 		activityLab as lab,
@@ -78,6 +80,12 @@
 	}
 </script>
 
+{#if publicMode}
+	<section class="checkpoint" id={`fagsjekk-${question.id}`} aria-labelledby={`question-${question.id}`}>
+		<h3 id={`question-${question.id}`}>{question.title}</h3>
+		<p class="guest">Fagsjekken brukes i skoleversjonen. Du kan øve videre med eksemplene og oppgavene på denne siden.</p>
+	</section>
+{:else}
 <section
 	class="checkpoint"
 	class:passed
@@ -104,7 +112,7 @@
 	</p>
 	{#if !$lab.user}
 		<p class="guest">
-			<a href="/min-lab/">Start Min lab</a> for å ta fagsjekken og lagre XP. Du kan fortsatt lese og øve
+			<a href={siteHref('/min-lab/')}>Start Min lab</a> for å ta fagsjekken og lagre XP. Du kan fortsatt lese og øve
 			fritt.
 		</p>
 	{:else if !passed}
@@ -205,10 +213,10 @@
 								{#if item.practice}
 									<p><strong>Øv på dette:</strong> {item.practice.instruction}</p>
 									<p><strong>Se etter:</strong> {item.practice.lookFor}</p>
-									<a href={moduleLink(item.practice.href, 'backend')}>{item.practice.title} →</a>
+									<a href={siteHref(moduleLink(item.practice.href, 'backend'))}>{item.practice.title} →</a>
 								{:else}
 									<p>Bruk forklaringen til å finne temaet du vil øve mer på.</p>
-									<a href="/aktiviteter/backend-oppsummering/?modul=backend">Åpne fri backend-repetisjon →</a>
+									<a href={siteHref('/aktiviteter/backend-oppsummering/?modul=backend')}>Åpne fri backend-repetisjon →</a>
 								{/if}
 								<small>Du kan øve videre nå, også mens du venter på et nytt fagsjekkforsøk.</small>
 							</div>
@@ -224,6 +232,8 @@
 			><span>Ingen XP. Dagens ordinære forsøk beholdes.</span>
 		</div>{/if}
 </section>
+
+{/if}
 
 <style>
 	.checkpoint {

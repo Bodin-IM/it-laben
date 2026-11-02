@@ -41,6 +41,30 @@ export const guideSteps = [
 		text: 'Forklar hva du endret og hvorfor det virket. Prøv også et annet tilfelle. I Min lab ser du lagret fremgang når du er innlogget. Gjennomgått, bestått test og XP betyr ulike ting; de er ikke en karakter eller bevis på forståelse.'
 	}
 ];
+
+// The tutorial and its Sidehjelp use the same wording in the public edition.
+export const publicGuideSteps = guideSteps.map((step) => {
+	if (step.id === 'finn')
+		return {
+			...step,
+			title: 'Finn en oppgave',
+			text: 'Velg fag i hovedmenyen. Under Utvikling finner du Backend og Databaser. Åpne en modul og velg delen du vil prøve. Bruk «Tilbake til …» over oppgaven for å finne igjen modulen.'
+		};
+	if (step.id === 'hjelp')
+		return {
+			...step,
+			speech: 'Du kan åpne hint i oppgaven eller Sidehjelp i menyen. Prøv knappen under og les et av tipsene.',
+			text: 'Åpne oppgavens hint eller forklaringen ved koden. Sidehjelp gir faste tips. På sider med «Vis meg hvor» kan hjelpen også vise kontrollene. Tannhjulet åpner figur, bakgrunn og animasjoner.'
+		};
+	if (step.id === 'videre')
+		return {
+			...step,
+			speech: 'Nå har du fått et kart over laben. Finn en oppgave du vil prøve. Du kan åpne Sidehjelp og starte omvisningen igjen.',
+			text: 'Forklar hva du endret og hvorfor det virket. Prøv også et annet tilfelle. En bestått funksjonstest viser hva løsningen gjør i testen; prøv også å forklare og bruke ideen i egen kode.'
+		};
+	return step;
+});
+
 export const tutorialSamples = [
 	{ id: 'spaces', label: 'Bare mellomrom', text: '   ' },
 	{ id: 'message', label: 'En vanlig melding', text: 'Hei!' }

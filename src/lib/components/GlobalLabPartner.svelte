@@ -1,4 +1,5 @@
 <script>
+	import { appPathname } from '#lib/sitePaths.js';
 	import {
 		avatarReaction,
 		setAvatarContext,
@@ -17,11 +18,12 @@
 	const channel = getContext(partnerChannelKey);
 	import { partnerPageFor } from '#lib/partnerPages.js';
 	import LabPartnerPanel from '#lib/components/LabPartnerPanel.svelte';
+	import { publicMode } from '#lib/deployment.js';
 	/** @type {{inSidebar?:boolean}} */
 	let { inSidebar = false } = $props();
 	const current = $derived(
 		partnerPageFor(
-			page.url.pathname,
+			appPathname(page.url.pathname),
 			typeof window !== 'undefined' ? page.url.searchParams.get('fag') : null
 		)
 	);
@@ -100,13 +102,13 @@
 
 <svelte:document oninput={interact} />
 {#if current}
-	<aside class="global-partner" class:in-sidebar={inSidebar} aria-label="Labpartner">
+	<aside class="global-partner" class:in-sidebar={inSidebar} aria-label={publicMode ? 'Sidehjelp' : 'Labpartner'}>
 		{#key `${scope}:${current.id}:${moduleId ?? ''}:${taskKey}`}
 			<LabPartnerPanel
 				{snapshot}
 				contextError={context.error}
-				accountId={$lab.user?.id ?? null}
-				csrf={$lab.csrfToken ?? ''}
+				accountId={publicMode ? null : $lab.user?.id ?? null}
+				csrf={publicMode ? '' : $lab.csrfToken ?? ''}
 				avatarId={$lab.summary?.lab.avatarId ?? $labPreferences.partnerAvatar}
 				dialogBreakpoint={inSidebar ? 1199 : 1799}
 				compact={inSidebar}

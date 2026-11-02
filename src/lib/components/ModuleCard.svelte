@@ -1,4 +1,6 @@
 <script>
+	import { siteHref } from '#lib/sitePaths.js';
+	import { publicMode } from '#lib/deployment.js';
 	import { moduleSummary, moduleProgress } from '#lib/moduler.js';
 	import { fag } from '#lib/innhold.js';
 	import { lab } from '#lib/lab.js';
@@ -12,7 +14,7 @@
 	class="module-card"
 	class:compact
 	class:completed={publication?.status === 'completed'}
-	href={`/moduler/${module.id}/`}
+	href={siteHref(`/moduler/${module.id}/`)}
 >
 	<div class="top">
 		<span class="module-icon" aria-hidden="true"
@@ -21,7 +23,7 @@
 			></span
 		>
 		<span class="badge"
-			>{publication?.status === 'active'
+			>{publicMode ? 'Åpen modul' : publication?.status === 'active'
 				? 'Aktiv modul'
 				: publication?.status === 'completed'
 					? 'Tidligere modul'

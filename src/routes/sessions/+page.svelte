@@ -1,4 +1,5 @@
 <script>
+	import { siteHref } from '#lib/sitePaths.js';
 	import PartnerContext from '#lib/components/PartnerContext.svelte';
 
 	import PageLinks from '#lib/components/PageLinks.svelte';
@@ -267,7 +268,7 @@
 					Følg en innlogging og finn samme session-ID i nettleseren og på serveren. Prøv deretter hva som skjer når cookien ikke sendes med.
 				</p>
 				<p class="ovingslenke">
-					<a href="/oving-8/">Bygg videre i øving 8: registrering, passordhash og utlogging →</a>
+					<a href={siteHref('/oving-8/')}>Bygg videre i øving 8: registrering, passordhash og utlogging →</a>
 				</p>
 			</div>
 			<span class="intromerke" aria-hidden="true">ID <span>↔</span> bruker</span>
@@ -605,7 +606,7 @@
 			instruction="Koble /meg til en synlig innloggingsstatus i egen frontend. Bruk kodehjelpen på denne siden og øving 8 for faktisk registrering og passordkontroll."
 			check="Sammenlign /meg uten cookie, med en gyldig session og etter utlogging. Forklar hvorfor en lagret cookie alene ikke er bevis på en innlogget bruker." />
 		<footer>
-			<a href="/">← Flere forsøk i IT-laben</a><span>Ett spørsmål om gangen</span>
+			<a href={siteHref('/')}>← Flere forsøk i IT-laben</a><span>Ett spørsmål om gangen</span>
 		</footer>
 		<PageLinks links={[{ href: '/backend/', label: 'Frontend og backend' }]} />
 	</main>

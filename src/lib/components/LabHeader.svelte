@@ -1,4 +1,5 @@
 <script>
+	import { appPathname, siteHref } from '#lib/sitePaths.js';
 	import { onMount, tick } from 'svelte';
 	import { setLabPreferences } from '#lib/labPreferences.js';
 	import { afterNavigate } from '$app/navigation';
@@ -11,6 +12,7 @@
 	import { hasTeacherRole } from '#lib/learning.js';
 	import { partnerAllowed } from '#lib/partnerPages.js';
 	import { fag } from '#lib/innhold.js';
+	import { publicMode } from '#lib/deployment.js';
 
 	let menuOpen = $state(false);
 	let mounted = $state(false);
@@ -18,10 +20,10 @@
 		mounted = true;
 	});
 	const settingsPage = $derived(
-		mounted && page.url.pathname === '/min-lab/' && page.url.searchParams.get('visning') === 'innstillinger'
+		mounted && appPathname(page.url.pathname) === '/min-lab/' && page.url.searchParams.get('visning') === 'innstillinger'
 	);
 	const settingsSubject = $derived(
-		mounted && page.url.pathname === '/min-lab/'
+		mounted && appPathname(page.url.pathname) === '/min-lab/'
 			? fag.find((subject) => subject.id === page.url.searchParams.get('fag'))?.id
 			: undefined
 	);
@@ -32,8 +34,8 @@
 	let subjectsMenu;
 	/** @type {HTMLElement|undefined} */
 	let header;
-	const teacherPage = $derived(page.url.pathname.startsWith('/laerer/'));
-	const teacher = $derived(hasTeacherRole($lab.user?.role));
+	const teacherPage = $derived(appPathname(page.url.pathname).startsWith('/laerer/'));
+	const teacher = $derived(!publicMode && hasTeacherRole($lab.user?.role));
 
 	async function openPartner() {
 		closeMenus();
@@ -74,7 +76,7 @@
 	<div class="header-inner">
 		<a
 			class="brand"
-			href={teacher ? '/laerer/undervisning/' : '/'}
+			href={siteHref(teacher ? '/laerer/undervisning/' : '/')}
 			aria-label={teacher ? 'IT-laben – undervisning' : 'IT-laben – forside'}
 		>
 			<span class="brand-mark" aria-hidden="true">IT</span><span
@@ -94,15 +96,15 @@
 		</button>
 		<nav id="site-navigation" class="main-nav" class:open={menuOpen} aria-label="Hovedmeny">
 			<a
-				href={teacher ? '/?visning=elev' : '/'}
-				aria-current={page.url.pathname === '/' ? 'page' : undefined}>Fagoversikt</a
+				href={siteHref(teacher ? '/?visning=elev' : '/')}
+				aria-current={appPathname(page.url.pathname) === '/' ? 'page' : undefined}>Fagoversikt</a
 			>
 			<details class="subjects" bind:this={subjectsMenu} onfocusout={leaveSubjects}>
 				<summary>Velg fag <span aria-hidden="true">⌄</span></summary>
 				<div class="subject-links">
 					{#each fag as subject (subject.id)}
 						<div>
-							<a href={`/?fag=${subject.id}${teacher ? '&visning=elev' : ''}`}
+							<a href={siteHref(`/?fag=${subject.id}${teacher ? '&visning=elev' : ''}`)}
 								><strong>{subject.navn}</strong><span>{subject.beskrivelse}</span></a
 							>
 							<ActiveModuleLinks {subject} />
@@ -110,31 +112,31 @@
 					{/each}
 				</div>
 			</details>
-			<a href="/tutorial/" aria-current={page.url.pathname === '/tutorial/' ? 'page' : undefined}
+			<a href={siteHref('/tutorial/')} aria-current={appPathname(page.url.pathname) === '/tutorial/' ? 'page' : undefined}
 				>Slik bruker du laben</a
 			>
-			<a href="/toppliste/" aria-current={page.url.pathname === '/toppliste/' ? 'page' : undefined}
+			{#if !publicMode}<a href={siteHref('/toppliste/')} aria-current={appPathname(page.url.pathname) === '/toppliste/' ? 'page' : undefined}
 				>Toppliste</a
-			>
+			>{/if}
 			{#if teacher}
 				<a
-					href="/laerer/undervisning/"
+					href={siteHref('/laerer/undervisning/')}
 					aria-current={teacherPage
-						? page.url.pathname === '/laerer/undervisning/'
+						? appPathname(page.url.pathname) === '/laerer/undervisning/'
 							? 'page'
 							: 'location'
 						: undefined}>Lærerpanel</a
 				>
 			{/if}
-			{#if partnerAllowed(page.url.pathname)}<button
+			{#if partnerAllowed(appPathname(page.url.pathname))}<button
 					class="partner-link"
 					type="button"
-					onclick={openPartner}>Labpartner</button
+					onclick={openPartner}>{publicMode ? 'Sidehjelp' : 'Labpartner'}</button
 				>{/if}
 		</nav>
 		<div class="account">
 			<AccountLink />
-			<a class="settings-link" href={settingsHref} aria-label="Innstillinger" title="Innstillinger"
+			<a class="settings-link" href={siteHref(settingsHref)} aria-label="Innstillinger" title="Innstillinger"
 				aria-current={settingsPage ? 'page' : undefined}>
 				<svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor"
 					stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">

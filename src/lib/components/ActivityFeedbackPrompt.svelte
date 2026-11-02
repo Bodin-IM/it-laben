@@ -6,6 +6,7 @@
 	import { feedbackAnswers } from '#lib/activityFeedback.js';
 	import { feedbackOpportunity, feedbackPromptPreference, resetFeedbackSession, loadFeedbackPreference, setFeedbackPromptPreference, leaveFeedbackActivity } from '#lib/activityFeedbackClient.js';
 	import Avatar from '#lib/components/Avatar.svelte';
+	import { publicMode } from '#lib/deployment.js';
 	/** @type {{enabled:boolean,avatar:string,oncomment:(prompt:import('#lib/activityFeedback.js').FeedbackPrompt,answer:string)=>void,onclose:()=>void}} */
 	let { enabled, avatar, oncomment, onclose } = $props();
 	/** @type {import('#lib/activityFeedback.js').FeedbackPrompt|null} */
@@ -15,7 +16,7 @@
 	/** @type {HTMLHeadingElement|undefined} */
 	let heading = $state();
 	let busy = $state(false), answer = $state(''), error = $state(''), pendingAnswer = $state('');
-	const accountId = $derived($lab.user?.role === 'student' ? $lab.user.id : null);
+	const accountId = $derived(!publicMode && $lab.user?.role === 'student' ? $lab.user.id : null);
 	let serial = 0, considered = '';
 	/** @type {AbortController|null} */
 	let controller = null;
@@ -50,7 +51,7 @@
 		return a.left < b.right && a.right > b.left && a.top < b.bottom && a.bottom > b.top;
 	}
 	async function offer(/** @type {import('#lib/activityFeedbackClient.js').FeedbackOpportunity} */ opportunity) {
-		if (!safeMoment()) return;
+		if (publicMode || !safeMoment()) return;
 		const request = ++serial;
 		controller?.abort();
 		controller = new AbortController();
@@ -88,12 +89,13 @@
 	});
 	function dismiss(restoreFocus = false) {
 		const current = prompt;
-		if (current && !answer && !pendingAnswer)
+		if (!publicMode && current && !answer && !pendingAnswer)
 			void feedbackRequest(`/feedback/prompts/${current.id}`, { dismiss: true }).catch(() => {});
 		clear();
 		if (restoreFocus) onclose();
 	}
 	onMount(() => {
+		if (publicMode) return;
 		function continuing(/** @type {Event} */ event) {
 			if (event.target instanceof Node && card?.contains(event.target)) return;
 			if (!busy && !pendingAnswer) dismiss();
@@ -122,7 +124,7 @@
 		};
 	});
 	async function respond(/** @type {string} */ value) {
-		if (!prompt || busy || answer) return;
+		if (publicMode || !prompt || busy || answer) return;
 		const current = prompt, request = ++serial;
 		busy = true;
 		pendingAnswer = value;
@@ -141,7 +143,7 @@
 		} finally { if (request === serial) { busy = false; controller = null; } }
 	}
 	async function disable() {
-		if (busy) return;
+		if (publicMode || busy) return;
 		const request = ++serial;
 		busy = true;
 		error = '';
@@ -154,8 +156,8 @@
 	}
 </script>
 
-<p class="sr-only" role="status">{enabled && prompt && !answer ? `Et frivillig spørsmål om ${prompt.title} er tilgjengelig ved tilbakemeldingsknappen.` : ''}</p>
-{#if enabled && prompt}
+{#if !publicMode}<p class="sr-only" role="status">{enabled && prompt && !answer ? `Et frivillig spørsmål om ${prompt.title} er tilgjengelig ved tilbakemeldingsknappen.` : ''}</p>{/if}
+{#if !publicMode && enabled && prompt}
 	<aside class="prompt" bind:this={card} aria-labelledby="activity-feedback-heading">
 		<div class="greeting">
 			<Avatar id={avatar} size={48} animate={false} mood="greeting" decorative />

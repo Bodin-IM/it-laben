@@ -1,4 +1,5 @@
 <script>
+	import { siteHref } from '#lib/sitePaths.js';
 	import { lab, changeLeaderboardVisibility } from '#lib/lab.js';
 	/** @type {{showLink?:boolean}} */
 	let { showLink = true } = $props();
@@ -43,7 +44,7 @@
 	>
 		<h3>Din plass på topplisten</h3>
 		{#if !$lab.user}<p>Logg inn for å se din egen plassering.</p>
-			<a href="/min-lab/">Til Min lab →</a>
+			<a href={siteHref('/min-lab/')}>Til Min lab →</a>
 		{:else}<p>
 				{#if $lab.user.leaderboardVisible}Brukernavnet ditt og poengene dine vises på topplisten. Du
 					kan skjule deg når du vil.{:else}Du er skjult fra topplisten. Poengene og fremgangen din
@@ -60,7 +61,7 @@
 		{#if error}<p class="error" role="alert">{error}</p>{/if}{#if message}<p role="status">
 				{message}
 			</p>{/if}
-		{#if showLink}<p><a href="/toppliste/">Se topplisten →</a></p>{/if}
+		{#if showLink}<p><a href={siteHref('/toppliste/')}>Se topplisten →</a></p>{/if}
 	</section>{/if}
 
 <style>

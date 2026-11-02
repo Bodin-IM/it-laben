@@ -1,4 +1,5 @@
 <script>
+	import { siteHref } from '#lib/sitePaths.js';
 	import { page } from '$app/state';
 	import { onMount } from 'svelte';
 	const browser = typeof window !== 'undefined';
@@ -177,7 +178,7 @@
 								til {time(item.closesAt)}
 							</p>
 							<div>
-								<a href={learningLink(content?.href ?? '/', item.mode, item.id)}
+								<a href={siteHref(learningLink(content?.href ?? '/', item.mode, item.id))}
 									>Åpne aktiviteten →</a
 								><button
 									class="secondary"
@@ -225,14 +226,14 @@
 						<h3>{item.title}</h3>
 					</div>
 					<div class="row-actions">
-						<a href={item.href}>Vanlig aktivitet</a><a
+						<a href={siteHref(item.href)}>Vanlig aktivitet</a><a
 							class="button-link"
-							href={learningLink(
+							href={siteHref(learningLink(
 								item.href,
 								'practice',
 								null,
 								withoutTime && timedChallenges.some((timed) => timed.id === item.id)
-							)}>Test selv →</a
+							))}>Test selv →</a
 						>
 					</div>
 				</article>{/each}

@@ -1,4 +1,5 @@
 <script>
+	import { siteHref } from '#lib/sitePaths.js';
 	import { onMount, onDestroy, tick } from 'svelte';
 	import { MediaQuery } from 'svelte/reactivity';
 	import PartnerAppearance from '#lib/components/PartnerAppearance.svelte';
@@ -8,6 +9,8 @@
 	import { MISSIONS, casesFor, programCode } from '#lib/reddChatten.js';
 	import { partnerRequest, partnerSnapshotKey } from '#lib/labPartner.js';
 	import { getInterfaceHelp } from '#lib/interfaceHelp.js';
+	import { publicMode } from '#lib/deployment.js';
+	import { publicGuideSteps } from '#lib/studentGuide.js';
 	const interfaceHelp = getInterfaceHelp();
 	let whereError = $state('');
 	/** @type {{snapshot:import('#lib/labPartner.js').PartnerSnapshot, accountId:string|null, csrf:string, avatarId?:string, onreset:()=>void, contextError?:string, dialogBreakpoint?:number,compact?:boolean,reactionMood?:import('#lib/avatarFeedback.js').AvatarMood,reactionMessage?:string}} */
@@ -32,13 +35,26 @@
 	const pageState = $derived(snapshot.activityId === 'page-help' ? snapshot.state : null);
 
 	const repair = $derived(snapshot.activityId === 'redd-chatten' ? snapshot : null);
-	const pageHelp = $derived(
-		partnerPageById(snapshot.activityId === 'page-help' ? snapshot.pageId : 'redd-chatten') ??
-			partnerPages[0]
-	);
+	const pageHelp = $derived.by(() => {
+		const help = partnerPageById(snapshot.activityId === 'page-help' ? snapshot.pageId : 'redd-chatten') ?? partnerPages[0];
+		if (publicMode && help.id === 'tutorial')
+			return { ...help, tips: publicGuideSteps.map((step) => `${step.title}: ${step.text}`) };
+		if (!publicMode || !['site-help', 'profile', 'leaderboard', 'start'].includes(help.id)) return help;
+		return {
+			...help,
+			title: 'Hjelp i den åpne IT-laben',
+			summary: 'Utforsk fag, moduler og øvinger uten innlogging.',
+			tips: [
+				'Velg et fag i menyen. Modulene samler undervisning og øvinger i en anbefalt rekkefølge.',
+				'Tannhjulet i toppmenyen åpner lokale innstillinger. Høyttaleren slår lyd av og på.',
+				'Konto, lagret skoleprogresjon og toppliste brukes i skoleversjonen av IT-laben.'
+			]
+		};
+	});
 	const workContext = $derived(!!pageState && pageHelp.kind !== 'challenge');
 	/** @param {string} value */
 	function chooseMode(value) {
+		if (publicMode && value === 'ai') return;
 		modeChosen = true;
 		mode = value;
 		if (value === 'ai') void checkStatus(true);
@@ -98,7 +114,7 @@
 	const oldTest = $derived(
 		repair?.lastRun != null && repair.lastRun.program.join('|') !== repair.program.join('|')
 	);
-	const canAsk = $derived(enabled === true && !busy && !snapshot.running && !contextError);
+	const canAsk = $derived(!publicMode && enabled === true && !busy && !snapshot.running && !contextError);
 	const eventLabels = {
 		'code-changed': 'Endret kode',
 		'case-selected': 'Valgte testsituasjon',
@@ -178,7 +194,7 @@
 		statusController?.abort();
 	});
 	async function checkStatus(retry = false) {
-		if (!accountId || checking || (!retry && enabled !== null)) return;
+		if (publicMode || !accountId || checking || (!retry && enabled !== null)) return;
 		checking = true;
 		error = '';
 		const controller = new AbortController();
@@ -304,8 +320,8 @@
 			<button type="button" aria-pressed={mode === 'guide'} onclick={() => chooseMode('guide')}
 				>Sidehjelp</button
 			>
-			<button type="button" aria-pressed={mode === 'ai'} onclick={() => chooseMode('ai')}>KI</button
-			>
+			{#if !publicMode}<button type="button" aria-pressed={mode === 'ai'} onclick={() => chooseMode('ai')}>KI</button
+			>{/if}
 			<button
 				type="button"
 				class="appearance-button"
@@ -330,10 +346,10 @@
 				>
 			</button>
 		</div>
-		{#if mode === 'ai'}
+		{#if !publicMode && mode === 'ai'}
 			{#if !accountId}
 				<p class="availability">
-					<a href="/min-lab/">Logg inn i Min lab</a> for å bruke KI. Sidehjelp og utseende virker uten
+					<a href={siteHref('/min-lab/')}>Logg inn i Min lab</a> for å bruke KI. Sidehjelp og utseende virker uten
 					innlogging.
 				</p>
 			{:else if enabled}
@@ -539,10 +555,10 @@
 					<details class="guide-more">
 						<summary>Mer hjelp</summary>
 						<p>{pageHelp.summary}</p>
-						<p class="fine">Sidehjelp gir faste tips. KI lar deg stille egne spørsmål når tjenesten er tilgjengelig. Hjelpen gir ingen poengtrekk og vurderer ikke forståelsen din.</p>
+						<p class="fine">{publicMode ? 'Sidehjelp gir faste tips som du kan prøve i oppgaven.' : 'Sidehjelp gir faste tips. KI lar deg stille egne spørsmål når tjenesten er tilgjengelig. Hjelpen gir ingen poengtrekk og vurderer ikke forståelsen din.'}</p>
 						<p>
 							<a
-								href="/tutorial/?tur=finn"
+								href={siteHref('/tutorial/?tur=finn')}
 								onclick={() => {
 									expanded = false;
 									dialog?.close();
@@ -563,11 +579,11 @@
 		class="mobile-launch"
 		class:compact
 		aria-haspopup="dialog"
-		aria-label={newAnswerReady ? 'Spør labpartneren, nytt svar klart' : 'Spør labpartneren'}
+		aria-label={publicMode ? 'Åpne sidehjelpen' : newAnswerReady ? 'Spør labpartneren, nytt svar klart' : 'Spør labpartneren'}
 		onclick={openPanel}
 	>
 		<Avatar id={avatarId} {mood} size={compact ? 32 : 44} decorative /><span class="launch-label"
-			>{compact ? 'Labpartner' : 'Spør labpartneren'}{#if newAnswerReady}<small>Nytt svar klart</small>{/if}</span
+			>{publicMode ? 'Sidehjelp' : compact ? 'Labpartner' : 'Spør labpartneren'}{#if newAnswerReady}<small>Nytt svar klart</small>{/if}</span
 		>{#if !compact}<span aria-hidden="true">→</span>{/if}
 	</button>
 	<dialog
@@ -583,7 +599,7 @@
 		<div class="dialog-header">
 			<div class="dialog-title">
 				<PartnerStage {avatarId} {mood} {expanded} reveal /><strong id="partner-dialog-title"
-					>Labpartneren</strong
+					>{publicMode ? 'Sidehjelp' : 'Labpartneren'}</strong
 				>
 			</div>
 			<button type="button" class="secondary" onclick={closeMobile}>← Tilbake til siden</button>
@@ -602,7 +618,7 @@
 	>
 		<summary class="panel-heading"
 			><PartnerStage {avatarId} {mood} {expanded} /><span
-				><strong>{expanded ? 'Labpartneren' : compact ? 'Labpartner' : 'Spør labpartneren'}</strong>{#if !expanded && reactionMessage}<small>{reactionMessage}</small>{/if}</span
+				><strong>{publicMode ? 'Sidehjelp' : expanded ? 'Labpartneren' : compact ? 'Labpartner' : 'Spør labpartneren'}</strong>{#if !expanded && reactionMessage}<small>{reactionMessage}</small>{/if}</span
 			></summary
 		>
 		{@render body()}

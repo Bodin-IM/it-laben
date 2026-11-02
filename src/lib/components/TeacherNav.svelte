@@ -1,4 +1,5 @@
 <script>
+	import { appPathname, siteHref } from '#lib/sitePaths.js';
 	import { page } from '$app/state';
 	import { lab } from '#lib/lab.js';
 	const links = [
@@ -11,12 +12,12 @@
 
 <nav class="teacher-nav" aria-label="Lærerpanel">
 	{#each links as item}<a
-			href={item.href}
-			aria-current={page.url.pathname === item.href ? 'page' : undefined}>{item.label}</a
+			href={siteHref(item.href)}
+			aria-current={appPathname(page.url.pathname) === item.href ? 'page' : undefined}>{item.label}</a
 		>{/each}
 	{#if $lab.user?.role === 'admin'}<a
-			href="/laerer/tilbakemeldinger/"
-			aria-current={page.url.pathname === '/laerer/tilbakemeldinger/' ? 'page' : undefined}
+			href={siteHref('/laerer/tilbakemeldinger/')}
+			aria-current={appPathname(page.url.pathname) === '/laerer/tilbakemeldinger/' ? 'page' : undefined}
 			>Tilbakemeldinger · admin</a
 		>{/if}
 </nav>

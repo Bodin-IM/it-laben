@@ -1,4 +1,5 @@
 <script>
+	import { siteHref } from '#lib/sitePaths.js';
 	import { onMount, tick } from 'svelte';
 	import { MediaQuery } from 'svelte/reactivity';
 	import GlobalLabPartner from '#lib/components/GlobalLabPartner.svelte';
@@ -112,7 +113,7 @@
 		landingEntry = null;
 		// A person may already have chosen a filter while their login was being checked.
 		if (destination && teacherLanding($lab.user?.role, window.location))
-			void goto(destination, { replace: true });
+			void goto(siteHref(destination), { replace: true });
 	});
 	$effect(() => {
 		if (!klar) return;

@@ -1,4 +1,5 @@
 import { writable, get } from 'svelte/store';
+import { publicMode } from '#lib/deployment.js';
 
 /** @typedef {{ready:boolean,publicHttp:boolean,httpsOrigin:string,caSha256:string|null,probe:'unknown'|'checking'|'reachable'|'unverified'}} Connection */
 /** @type {Connection} */
@@ -22,7 +23,7 @@ export function isPublicHttp(location) {
 	);
 }
 export function backendDisabled() {
-	return typeof window !== 'undefined' && isPublicHttp(window.location);
+	return publicMode || (typeof window !== 'undefined' && isPublicHttp(window.location));
 }
 /** @param {unknown} value @returns {{httpsOrigin:string,caSha256:string|null}} */
 export function parseConnectionConfig(value) {
@@ -55,6 +56,7 @@ export function resolveHttpsOrigin(configuredOrigin, location) {
 }
 /** @param {string} origin @param {typeof fetch} [request] */
 export async function checkHttps(origin, request = fetch) {
+	if (publicMode) return false;
 	try {
 		const { httpsOrigin } = parseConnectionConfig({ httpsOrigin: origin });
 		const response = await request(`${httpsOrigin}/tilkobling.json`, {
@@ -72,6 +74,7 @@ export async function checkHttps(origin, request = fetch) {
 	}
 }
 export async function probeHttps() {
+	if (publicMode) return;
 	const origin = get(state).httpsOrigin;
 	if (!origin) return;
 	const revision = ++probeRevision;
@@ -86,6 +89,10 @@ export function secureHref(origin, path = '/min-lab/') {
 	return origin ? origin + path : path;
 }
 export function initializeConnection() {
+	if (publicMode) {
+		state.set({ ...initial, ready: true });
+		return;
+	}
 	const location = window.location;
 	const local = ['localhost', '127.0.0.1', '[::1]', 'terminal.local'].includes(location.hostname);
 	state.set({

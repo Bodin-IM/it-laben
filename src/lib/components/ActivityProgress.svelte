@@ -1,4 +1,5 @@
 <script>
+	import { appPathname, siteHref } from '#lib/sitePaths.js';
 	import { page } from '$app/state';
 	import { aktiviteter } from '#lib/innhold.js';
 	import {
@@ -10,7 +11,7 @@
 	} from '#lib/lab.js';
 	import { checkpointsFor } from '#lib/checkpoints.js';
 	import Checkpoint from '#lib/components/Checkpoint.svelte';
-	const activity = $derived(aktiviteter.find((item) => item.href === page.url.pathname));
+	const activity = $derived(aktiviteter.find((item) => item.href === appPathname(page.url.pathname)));
 	const progress = $derived($lab.summary?.progress.find((item) => item.id === activity?.id));
 	const questions = $derived(activity ? checkpointsFor(activity.id) : []);
 	let startedFor = $state('');
@@ -45,7 +46,7 @@
 			{#if !$lab.user}<p>
 					Start Min lab for å lagre fremgang, samle XP og ta med profilen til en annen PC.
 				</p>
-				<a class="action" href="/min-lab/">Start min lab →</a>
+				<a class="action" href={siteHref('/min-lab/')}>Start min lab →</a>
 			{:else if activity.tracking.kind === 'review'}<p>
 					Marker leksjonen som gjennomgått når du har prøvd forsøkene og lest forklaringene. Dette
 					er din egen gjennomgang. {$learningContext.mode === 'practice'
@@ -69,7 +70,7 @@
 						? 'Dette er øving uten XP. Alle oppdrag kan utforskes.'
 						: 'XP får du når alle oppdragene og spillets fagsjekk er bestått.'}
 				</p>
-				<a href="/min-lab/">Se progresjonen din →</a>{/if}
+				<a href={siteHref('/min-lab/')}>Se progresjonen din →</a>{/if}
 		</div>
 		{#if progress?.pendingXp}<p class="sync">
 				{progress.pendingXp} XP venter på bestått fagsjekk. Arbeidet ditt er lagret.

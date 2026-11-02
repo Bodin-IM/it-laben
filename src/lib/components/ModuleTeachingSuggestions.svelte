@@ -1,4 +1,5 @@
 <script>
+	import { siteHref } from '#lib/sitePaths.js';
 	import { teachingPlans, presentationLessons, presentationLink } from '#lib/teaching.js';
 	import { aktiviteter } from '#lib/innhold.js';
 	/** @type {{module:import('#lib/moduler.js').Module}} */
@@ -27,15 +28,15 @@
 		{#each plans as plan (plan.id)}
 			<article>
 				<div>
-					<h3><a href={`/laerer/undervisning/?opplegg=${plan.id}`}>{plan.title}</a></h3>
+					<h3><a href={siteHref(`/laerer/undervisning/?opplegg=${plan.id}`)}>{plan.title}</a></h3>
 					<p>{plan.description}</p>
 					<p class="meta">Ca. {plan.minutes} min · {plan.lessonIds.length} leksjoner</p>
 				</div>
 				<div class="actions">
-					<a class="primary" href={`/laerer/undervisning/?opplegg=${plan.id}`}
+					<a class="primary" href={siteHref(`/laerer/undervisning/?opplegg=${plan.id}`)}
 						>Åpne lærerveiledningen →</a
 					>
-					{#if firstLesson(plan)}<a href={presentationLink(firstLesson(plan)?.href ?? '/', plan.id)}
+					{#if firstLesson(plan)}<a href={siteHref(presentationLink(firstLesson(plan)?.href ?? '/', plan.id))}
 							>Vis gjennomgangen på storskjerm →</a
 						>{/if}
 				</div>

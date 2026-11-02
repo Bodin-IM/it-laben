@@ -1,4 +1,5 @@
 <script>
+	import { siteHref } from '#lib/sitePaths.js';
 	import PartnerContext from '#lib/components/PartnerContext.svelte';
 
 	import PageLinks from '#lib/components/PageLinks.svelte';
@@ -842,7 +843,7 @@
 					><span>{step + 1} / 6</span>{#if step < 5}<button
 							type="button"
 							onclick={() => go(step + 1)}>Neste: {STEPS[step + 1].short} →</button
-						>{:else}<a href="/spill/redd-chatten/">Til Redd chatten →</a>{/if}
+						>{:else}<a href={siteHref('/spill/redd-chatten/')}>Til Redd chatten →</a>{/if}
 				</footer>
 			</section>
 		</div>

@@ -1,4 +1,5 @@
 <script>
+	import { siteHref } from '#lib/sitePaths.js';
 	import PartnerContext from '#lib/components/PartnerContext.svelte';
 
 	import PageLinks from '#lib/components/PageLinks.svelte';
@@ -657,7 +658,7 @@
 													>{line}</code
 												></pre>{/each}
 									</details>
-									<a href={item.lesson.href}>Øv: {item.lesson.title} →</a>
+									<a href={siteHref(item.lesson.href)}>Øv: {item.lesson.title} →</a>
 								</div>
 							</details>{/each}
 					</div>
@@ -715,7 +716,7 @@
 						<ul>
 							{#each prerequisiteList as item}<li>
 									<span class:complete={item.completed}>{item.completed ? '✓' : '○'}</span><a
-										href={item.href}>{item.title}<span>→</span></a
+										href={siteHref(item.href)}>{item.title}<span>→</span></a
 									>
 								</li>{/each}
 						</ul>{:else}<p>
@@ -725,7 +726,7 @@
 						</p>{/if}
 					{#if !$lab.ready}<p role="status">Henter Min lab …</p>{:else if !$lab.user}<a
 							class="primary"
-							href="/min-lab/">Start Min lab →</a
+							href={siteHref('/min-lab/')}>Start Min lab →</a
 						>{:else if !info}<button type="button" class="secondary" onclick={() => syncStatus()}
 							>Hent vaktstatus</button
 						>{:else if teaching && info.access?.used}<p class="cooldown">

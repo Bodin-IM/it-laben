@@ -3,6 +3,7 @@ import { buildCelebration } from '#lib/celebrations.js';
 import { createProgressQueue } from '#lib/progressQueue.js';
 import { avatarFeedback } from '#lib/avatarFeedback.js';
 import { backendDisabled } from '#lib/connection.js';
+import { publicMode } from '#lib/deployment.js';
 
 /** @typedef {{id:string,nickname:string,createdAt:number,role:'student'|'teacher'|'admin',leaderboardVisible:boolean,classCode:string|null}} User */
 /** @typedef {import('#lib/progression.js').ObjectiveProgress} Objective */
@@ -18,7 +19,7 @@ import { backendDisabled } from '#lib/connection.js';
 /** @typedef {{eventId:string,accountId:string,version:number,kind:string,activityId:string,objectiveId:string,confirmed?:boolean,attemptId?:string,mode?:import('./learning.js').LearningMode,openingId?:string|null,answers?:import('./timedChallenges.js').TimedAnswers,solution?:string[]|Record<string,string>,client?:{at:number,deferred:boolean}}} Event */
 /** @type {LabState} */
 const initial = {
-	ready: false,
+	ready: publicMode,
 	available: false,
 	user: null,
 	csrfToken: null,
@@ -159,6 +160,8 @@ export class ApiError extends Error {
 }
 /** @param {string} path @param {unknown} [body] */
 async function api(path, body) {
+	if (publicMode)
+		throw new ApiError('Denne funksjonen brukes i skoleversjonen av IT-laben.', 503, 'PUBLIC_EDITION');
 	if (backendDisabled())
 		throw new ApiError(
 			'Åpne Min lab på HTTPS for å logge inn og lagre fremgangen.',

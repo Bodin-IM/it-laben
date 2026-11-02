@@ -1,4 +1,6 @@
 <script>
+	import { appPathname } from '#lib/sitePaths.js';
+	import { publicMode } from '#lib/deployment.js';
 	import { setContext } from 'svelte';
 	import { createPartnerChannel, partnerChannelKey } from '#lib/partnerChannel.js';
 	import { createInterfaceHelp, interfaceHelpKey } from '#lib/interfaceHelp.js';
@@ -33,8 +35,8 @@
 	setContext(partnerChannelKey, createPartnerChannel());
 	setContext(interfaceHelpKey, createInterfaceHelp());
 	const browser = typeof window !== 'undefined';
-	const activity = $derived(presentationLessons.find((item) => item.href === page.url.pathname));
-	const courseActivity = $derived(altElevinnhold.find((item) => item.href === page.url.pathname));
+	const activity = $derived(presentationLessons.find((item) => item.href === appPathname(page.url.pathname)));
+	const courseActivity = $derived(altElevinnhold.find((item) => item.href === appPathname(page.url.pathname)));
 	const presentationRequested = $derived(
 		browser &&
 			page.url.searchParams.get('visning') === 'presentasjon' &&
@@ -47,11 +49,11 @@
 	});
 	const showStudentTools = $derived(!presentationRequested || ($lab.ready && !presenting));
 	// The catalogue places the shared partner above its own subject menu.
-	const localPartner = $derived(page.url.pathname === '/' || page.url.pathname.replace(/\/$/, '') === '/spill/redd-chatten');
+	const localPartner = $derived(appPathname(page.url.pathname) === '/' || appPathname(page.url.pathname).replace(/\/$/, '') === '/spill/redd-chatten');
 	const showCompanion = $derived(
 		!localPartner &&
 			showStudentTools &&
-			partnerAllowed(page.url.pathname) &&
+			partnerAllowed(appPathname(page.url.pathname)) &&
 			$labPreferences.companion
 	);
 	const plan = $derived(
@@ -83,7 +85,7 @@
 		{#if showCompanion}<GlobalLabPartner />{/if}
 		<div class="activity-content">
 			{@render children()}
-			{#if showStudentTools}<ActivityProgress /><RewardToast />
+			{#if showStudentTools}{#if !publicMode}<ActivityProgress /><RewardToast />{/if}
 				{#if courseActivity}<BackendContinuation activityId={courseActivity.id} />{/if}
 			{/if}
 		</div>
@@ -91,7 +93,7 @@
 	<StudentFeedback
 		enabled={showStudentTools &&
 			!hasTeacherRole($lab.user?.role) &&
-			!page.url.pathname.startsWith('/laerer/')}
+			!appPathname(page.url.pathname).startsWith('/laerer/')}
 	/>
 	<InterfaceHelpNotice />
 </div>

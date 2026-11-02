@@ -1,4 +1,5 @@
 <script>
+	import { appPathname, siteHref } from '#lib/sitePaths.js';
 	import { page } from '$app/state';
 	import { onMount } from 'svelte';
 	const browser = typeof window !== 'undefined';
@@ -6,13 +7,16 @@
 	import { lab, learningContext, setLearningContext, refreshLearningActivity } from '#lib/lab.js';
 	import { learningLink, hasTeacherRole } from '#lib/learning.js';
 	import { teacherPreview } from '#lib/teacherPreview.js';
-	const activity = $derived(aktiviteter.find((item) => item.href === page.url.pathname));
+	import { publicMode } from '#lib/deployment.js';
+	const activity = $derived(aktiviteter.find((item) => item.href === appPathname(page.url.pathname)));
 	const mode = $derived(
-		(activity && $teacherPreview) || (browser && page.url.searchParams.get('modus') === 'oving')
-			? 'practice'
-			: browser && page.url.searchParams.get('modus') === 'undervisning'
-				? 'teaching'
-				: 'normal'
+		publicMode
+			? 'normal'
+			: (activity && $teacherPreview) || (browser && page.url.searchParams.get('modus') === 'oving')
+				? 'practice'
+				: browser && page.url.searchParams.get('modus') === 'undervisning'
+					? 'teaching'
+					: 'normal'
 	);
 	const openingId = $derived(browser ? page.url.searchParams.get('apning') : null);
 	const opening = $derived($lab.openings.find((item) => item.activityId === activity?.id));
@@ -27,6 +31,7 @@
 		});
 	});
 	onMount(() => {
+		if (publicMode) return;
 		const poll = setInterval(() => {
 			if (document.visibilityState === 'visible') void refreshLearningActivity();
 		}, 15000);
@@ -38,7 +43,7 @@
 	}
 </script>
 
-{#if activity && (teacher || mode !== 'normal' || opening)}
+{#if !publicMode && activity && (teacher || mode !== 'normal' || opening)}
 	<aside
 		class="learning-access"
 		class:practice={mode === 'practice'}
@@ -65,27 +70,27 @@
 			</p>
 		</div>
 		<div class="actions">
-			{#if $teacherPreview}<a href="/min-lab/?visning=innstillinger#laererinnstillinger">Lærerinnstillinger →</a>
-			{:else if mode !== 'normal'}<a href={activity.href}>Til vanlig aktivitet →</a>{/if}
-			{#if mode === 'normal' && teacher}<a href={learningLink(activity.href, 'practice')}
+			{#if $teacherPreview}<a href={siteHref('/min-lab/?visning=innstillinger#laererinnstillinger')}>Lærerinnstillinger →</a>
+			{:else if mode !== 'normal'}<a href={siteHref(activity.href)}>Til vanlig aktivitet →</a>{/if}
+			{#if mode === 'normal' && teacher}<a href={siteHref(learningLink(activity.href, 'practice'))}
 					>Test selv →</a
 				>{/if}
 			{#if mode === 'normal' && opening}<a
 					class="primary"
-					href={learningLink(activity.href, opening.mode, opening.id)}
+					href={siteHref(learningLink(activity.href, opening.mode, opening.id))}
 					>{opening.mode === 'practice' ? 'Åpne øvingen' : 'Ta undervisningsforsøket'} →</a
 				>{/if}
-			{#if teacher}<a href={`/laerer/aktiviteter/?aktivitet=${activity.id}`}>Lærerpanel →</a>{/if}
-			{#if !$lab.user && mode !== 'normal'}<a href="/min-lab/">Logg inn i Min lab →</a>{/if}
+			{#if teacher}<a href={siteHref(`/laerer/aktiviteter/?aktivitet=${activity.id}`)}>Lærerpanel →</a>{/if}
+			{#if !$lab.user && mode !== 'normal'}<a href={siteHref('/min-lab/')}>Logg inn i Min lab →</a>{/if}
 		</div>
 	</aside>
-{:else if page.url.pathname === '/' && $lab.openings.length}
+{:else if !publicMode && appPathname(page.url.pathname) === '/' && $lab.openings.length}
 	<section class="openings" aria-label="Åpne aktiviteter">
 		<p class="eyebrow">ÅPENT FOR ALLE NÅ</p>
 		{#each $lab.openings as item (item.id)}{@const content = aktiviteter.find(
 				(value) => value.id === item.activityId
 			)}
-			{#if content}<a href={learningLink(content.href, item.mode, item.id)}
+			{#if content}<a href={siteHref(learningLink(content.href, item.mode, item.id))}
 					><strong>{content.tittel}</strong><span
 						>{item.mode === 'practice' ? 'Fri øving · uten XP' : 'Ett ekstra undervisningsforsøk'} · til
 						{time(item.closesAt)} →</span

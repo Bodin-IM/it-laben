@@ -1,4 +1,5 @@
 <script>
+	import { siteHref } from '#lib/sitePaths.js';
 	import { connection, secureHref, probeHttps } from '#lib/connection.js';
 	const fingerprint = $derived($connection.caSha256?.match(/.{2}/g)?.join(':'));
 </script>
@@ -47,7 +48,7 @@
 			<!-- The certificate belongs to the host's Nginx configuration, outside the static build. -->
 			{#if $connection.ready}<a
 					class="download"
-					href="/sertifikat/it-laben-root-ca.crt"
+					href={siteHref('/sertifikat/it-laben-root-ca.crt')}
 					download="it-laben-root-ca.crt">Last ned skolens sertifikat</a
 				>{:else}<span>Henter sertifikatlenken …</span>{/if}
 		</article>
@@ -80,7 +81,7 @@
 			</p>
 			<code>{fingerprint}</code>
 		</details>{/if}
-	<p class="continue"><a href="/">Fortsett å utforske uten innlogging →</a></p>
+	<p class="continue"><a href={siteHref('/')}>Fortsett å utforske uten innlogging →</a></p>
 </section>
 
 <style>

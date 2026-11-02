@@ -1,3 +1,5 @@
+import { publicMode } from '#lib/deployment.js';
+
 // Public protocol only. The teaching instructions and context builder stay on the server.
 export const PARTNER_VERSION = 1;
 export const PARTNER_ACTIVITY = 'redd-chatten';
@@ -23,6 +25,7 @@ export function appendPartnerEvent(events, event) {
 
 /** @param {string} path @param {string} csrf @param {AbortSignal} signal @param {unknown} [body] */
 export async function partnerRequest(path, csrf, signal, body) {
+	if (publicMode) throw new Error('KI-veiledning brukes i skoleversjonen. Sidehjelpen er tilgjengelig her.');
 	const response = await fetch(`/api/lab-partner/${path}`, {
 		method: body === undefined ? 'GET' : 'POST',
 		credentials: 'same-origin',

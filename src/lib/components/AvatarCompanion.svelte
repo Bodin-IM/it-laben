@@ -1,4 +1,5 @@
 <script>
+	import { appPathname } from '#lib/sitePaths.js';
 	import { page } from '$app/state';
 	import { MediaQuery } from 'svelte/reactivity';
 	import { aktiviteter } from '#lib/innhold.js';
@@ -13,7 +14,7 @@
 	import Avatar from '#lib/components/Avatar.svelte';
 	/** @type {{embedded?:boolean}} */
 	let { embedded = false } = $props();
-	const activity = $derived(aktiviteter.find((item) => item.href === page.url.pathname));
+	const activity = $derived(aktiviteter.find((item) => item.href === appPathname(page.url.pathname)));
 	const active = $derived(!!activity && $lab.user?.role === 'student');
 	const wide = new MediaQuery('(min-width: 1800px)', false);
 	const mobile = new MediaQuery('(max-width: 600px)', false);

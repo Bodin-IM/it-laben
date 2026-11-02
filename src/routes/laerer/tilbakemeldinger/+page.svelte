@@ -1,4 +1,5 @@
 <script>
+	import { siteHref } from '#lib/sitePaths.js';
 	import { onDestroy, tick } from 'svelte';
 	import { lab, ApiError } from '#lib/lab.js';
 	import { schoolDate } from '#lib/school.js';
@@ -182,7 +183,7 @@
 				</h2>
 				<p class="page-context">
 					<strong>Side:</strong>
-					<a href={item.pageHref === '/' ? '/?visning=elev' : item.pageHref}>{item.pageTitle} →</a
+					<a href={siteHref(item.pageHref === '/' ? '/?visning=elev' : item.pageHref)}>{item.pageTitle} →</a
 					><code>{item.pageHref}</code>
 				</p>
 				{#if item.question}<p><strong>{item.question}</strong> {feedbackAnswers.find((answer) => answer.id === item.answer)?.label}<br /><span class="small">Oppgaveversjon {item.activityVersion}</span></p>{/if}

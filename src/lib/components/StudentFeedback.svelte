@@ -1,4 +1,5 @@
 <script>
+	import { appPathname } from '#lib/sitePaths.js';
 	import { tick, onDestroy } from 'svelte';
 	import { afterNavigate } from '$app/navigation';
 	import { page } from '$app/state';
@@ -12,6 +13,7 @@
 	import ActivityFeedbackPrompt from '#lib/components/ActivityFeedbackPrompt.svelte';
 	import FeedbackPromptSettings from '#lib/components/FeedbackPromptSettings.svelte';
 	import { getInterfaceHelp } from '#lib/interfaceHelp.js';
+	import { publicMode } from '#lib/deployment.js';
 	const interfaceHelp = getInterfaceHelp();
 	/** @type {{enabled:boolean}} */
 	let { enabled } = $props();
@@ -37,9 +39,9 @@
 	let openedAtHref = '';
 	/** @type {AbortController|null} */
 	let controller = null;
-	const currentPage = $derived(feedbackPage(page.url.pathname + page.url.search));
+	const currentPage = $derived(feedbackPage(appPathname(page.url.pathname) + page.url.search));
 	const avatar = $derived($lab.summary?.lab.avatarId ?? $labPreferences.partnerAvatar);
-	const visible = $derived(enabled && $lab.ready && currentPage !== null);
+	const visible = $derived(!publicMode && enabled && $lab.ready && currentPage !== null);
 	const accountId = $derived($lab.user?.id ?? null);
 
 	function reset() {
@@ -110,7 +112,7 @@
 	});
 	async function send(/** @type {SubmitEvent} */ event) {
 		event.preventDefault();
-		if (busy || !source) return;
+		if (publicMode || busy || !source) return;
 		if (!message.trim()) {
 			error = 'Skriv hva du vil gi tilbakemelding om.';
 			return;
@@ -145,7 +147,7 @@
 	}
 </script>
 
-<ActivityFeedbackPrompt
+{#if !publicMode}<ActivityFeedbackPrompt
 	enabled={visible && !opened && !message.trim() && !$rewardNotice && !$interfaceHelp.active && $labPreferences.companion}
 	{avatar}
 	oncomment={openForPrompt}
@@ -270,7 +272,7 @@
 		</form>
 	{/if}
 	{#if $lab.user?.role === 'student'}<details class="prompt-settings"><summary>Innstillinger for spørsmål</summary><FeedbackPromptSettings /></details>{/if}
-</dialog>
+</dialog>{/if}
 
 <style>
 	.prompt-settings { margin-top: 20px; border-top: 1px solid var(--color-border); padding-top: 8px; }

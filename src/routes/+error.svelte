@@ -1,4 +1,5 @@
 <script>
+	import { siteHref } from '#lib/sitePaths.js';
 	import { page } from '$app/state';
 </script>
 
@@ -15,7 +16,7 @@
 			? 'Lenken kan være gammel. Finn modulen eller aktiviteten i fagoversikten.'
 			: 'Prøv å laste siden på nytt, eller gå til fagoversikten.'}
 	</p>
-	<a href="/">Til fagoversikten →</a>
+	<a href={siteHref('/')}>Til fagoversikten →</a>
 </main>
 
 <style>

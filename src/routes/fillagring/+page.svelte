@@ -1,4 +1,5 @@
 <script>
+	import { siteHref } from '#lib/sitePaths.js';
 	import PartnerContext from '#lib/components/PartnerContext.svelte';
 
 	import ProjectTask from '#lib/components/ProjectTask.svelte';
@@ -216,7 +217,7 @@
 				<h1 id="tittel">Hva overlever en omstart?</h1>
 				<p class="ingress">Kjør oppstart, send en melding og start serveren på nytt. Se om meldingen kommer tilbake fra filen.</p>
 				<p class="ovingslenke">
-					Først undersøker vi minne og fil. <a href="/oving-5/"
+					Først undersøker vi minne og fil. <a href={siteHref('/oving-5/')}
 						>Deretter: trygg lagring og feiltilfeller i øving 5 →</a
 					>
 				</p>

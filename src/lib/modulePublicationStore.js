@@ -2,6 +2,8 @@ import { get, writable } from 'svelte/store';
 import { backendDisabled } from '#lib/connection.js';
 import { ApiError, schoolRequest } from '#lib/lab.js';
 import { isModuleStatus } from '#lib/modulePublication.js';
+import { publicMode } from '#lib/deployment.js';
+import { publicModules } from '#lib/publicModules.js';
 
 /** @typedef {import('#lib/modulePublication.js').ModulePublication} ModulePublication */
 /** @typedef {import('#lib/modulePublication.js').ModuleStatus} ModuleStatus */
@@ -9,6 +11,7 @@ import { isModuleStatus } from '#lib/modulePublication.js';
 
 /** Only public pacing metadata is requested. This call must never send a login cookie. */
 async function readPublications() {
+	if (publicMode) return { modules: publicModules };
 	const response = await fetch('/api/modules', {
 		credentials: 'omit',
 		cache: 'no-store',
@@ -127,7 +130,25 @@ export function createModulePublicationStore({
 	return { subscribe: state.subscribe, refresh, update, dispose: invalidateRead };
 }
 
-const store = createModulePublicationStore();
+/** A public catalogue is available during prerendering and never calls an API.
+ * @param {ModulePublication[]} modules
+ */
+export function createPublicModulePublicationStore(modules) {
+	const records = parsePublications({ modules });
+	const state = writable({ ready: true, loading: false, error: '', modules: records });
+	return {
+		subscribe: state.subscribe,
+		refresh: async () => {},
+		update: async () => {
+			throw new ApiError('Moduloversikten følger den publiserte nettsiden.', 403, 'PUBLIC_EDITION');
+		},
+		dispose: () => {}
+	};
+}
+
+const store = publicMode
+	? createPublicModulePublicationStore(publicModules)
+	: createModulePublicationStore();
 export const modulePublication = { subscribe: store.subscribe };
 export const refreshModulePublication = store.refresh;
 export const updateModulePublication = store.update;

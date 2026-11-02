@@ -1,4 +1,5 @@
 <script>
+	import { siteHref } from '#lib/sitePaths.js';
 	import PartnerContext from '#lib/components/PartnerContext.svelte';
 
 	import PageLinks from '#lib/components/PageLinks.svelte';
@@ -607,7 +608,7 @@
 								type="button"
 								class="hovedknapp"
 								onclick={restartGame}>Spill på nytt <span aria-hidden="true">↺</span></button
-							><a href="/chatrom/">Bygg videre med sessions og sletting ↗</a>{/if}
+							><a href={siteHref('/chatrom/')}>Bygg videre med sessions og sletting ↗</a>{/if}
 					</div>{/if}
 			</section>
 		{/if}
@@ -878,14 +879,14 @@
 					mange ganger du vil.
 				</p>
 				<div class="videre-lenker">
-					<a href="/backend/">Utforsk frontend og backend ↗</a><a href="/chatrom/"
+					<a href={siteHref('/backend/')}>Utforsk frontend og backend ↗</a><a href={siteHref('/chatrom/')}
 						>Koble til sessions og sletting ↗</a
 					>
 				</div>
 			</div>
 		</details>
 		<footer>
-			<a href="/#spill">← Flere ting å utforske i IT-laben</a><span
+			<a href={siteHref('/#spill')}>← Flere ting å utforske i IT-laben</a><span
 				>Prøv. Undersøk. Prøv igjen.</span
 			>
 		</footer>

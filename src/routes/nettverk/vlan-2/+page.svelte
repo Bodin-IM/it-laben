@@ -1,5 +1,9 @@
 <script>
+	import { siteHref } from '#lib/sitePaths.js';
 	import { onMount, tick, untrack } from 'svelte';
+	import { publicMode } from '#lib/deployment.js';
+	import { publicNetworkProgress } from '#lib/publicNetworkProgress.js';
+	import { vlanTasks } from '#lib/vlanLab.js';
 	import { teacherPreview } from '#lib/teacherPreview.js';
 	import { lab, learningContext } from '#lib/lab.js';
 	import { labPreferences, reducedMotion, registerSoundPlayer } from '#lib/labPreferences.js';
@@ -36,6 +40,7 @@
 		saving = $state(false),
 		loadError = $state(''),
 		saveMessage = $state('');
+	let publicStorageMessage = $state('');
 	let hints = $state(0),
 		resetPending = $state(false),
 		routerVlan = $state(''),
@@ -65,7 +70,7 @@
 		};
 	});
 	const scope = $derived(
-		`${$lab.user?.id ?? 'guest'}:${$teacherPreview}:${$learningContext.mode}:${$learningContext.openingId ?? ''}`
+		publicMode ? 'public-practice' : `${$lab.user?.id ?? 'guest'}:${$teacherPreview}:${$learningContext.mode}:${$learningContext.openingId ?? ''}`
 	);
 	const task = $derived(vlan2Tasks.find((t) => t.id === taskId) ?? vlan2Tasks[0]);
 	$effect(() => { taskId; interfaceHelp.clear(); });
@@ -76,7 +81,7 @@
 	const selectedSwitch = $derived(task.switches.find((s) => s.id === switchId) ?? task.switches[0]);
 	/** @param {Attempt} a */
 	const passes = (a) => !!a.check && a.check.revision === a.revision && a.check.result.passed;
-	const available = $derived($teacherPreview ? -1 : vlan2Tasks.findIndex((t) => !passes(work[t.id])));
+	const available = $derived(!publicMode && $teacherPreview ? -1 : vlan2Tasks.findIndex((t) => !passes(work[t.id])));
 	const passed = $derived(passes(attempt));
 	const stale = $derived.by(
 		() =>
@@ -105,6 +110,18 @@
 		saving = false;
 		loadError = '';
 		saveMessage = '';
+		if (publicMode) {
+			const prerequisite = publicNetworkProgress.vlan1.load();
+			const saved = publicNetworkProgress.vlan2.load();
+			unlocked = prerequisite.tasks.length === vlanTasks.length;
+			for (const item of saved.tasks) {
+				work[item.taskId] = { config: item.config, revision: 0, check: { revision: 0, result: item.result } };
+			}
+			publicStorageMessage = !saved.persisted || !prerequisite.persisted ? 'Nettleserlagring er ikke tilgjengelig. Beståtte oppsett beholdes bare i den åpne fanen og går tapt ved omlasting.' : saved.ignored || prerequisite.ignored ? 'Noen lagrede oppsett kunne ikke gjenåpnes. Kontroller disse oppdragene på nytt.' : '';
+			saveMessage = saved.tasks.length ? `${saved.tasks.length} beståtte oppsett hentet fra denne ${saved.persisted ? 'nettleseren' : 'åpne fanen'}.` : '';
+			loaded = true;
+			return;
+		}
 		if (!$lab.user || ($learningContext.mode !== 'normal' && !$teacherPreview)) return;
 		loading = true;
 		try {
@@ -251,6 +268,19 @@
 	async function check() {
 		if (saving) return;
 		playing = false;
+		if (publicMode) {
+			const result = checkVlan2Task(task, config);
+			attempt.check = { revision: attempt.revision, result };
+			checkError = false;
+			showCheck = true;
+			if (result.passed) {
+				const saved = publicNetworkProgress.vlan2.save(task.id, config);
+				saveMessage = saved.persisted ? 'Oppsettet består kontrollen og er lagret i denne nettleseren.' : 'Oppsettet består kontrollen, men kunne ikke lagres i nettleseren. Du kan fortsette i denne fanen; omlasting mister fremgangen.';
+				publicStorageMessage = saved.persisted ? '' : saveMessage;
+			} else saveMessage = 'Kontrollen fant feil. Rett oppsettet og prøv igjen. Tidligere lokalt lagrede beståtte oppsett beholdes.';
+			if ($labPreferences.sound) void sound.play(result.passed, $labPreferences.volume);
+			return;
+		}
 		const request = sequence,
 			view = ++checkViewSequence,
 			id = task.id,
@@ -283,7 +313,7 @@
 			check: null
 		};
 		resetView();
-		saveMessage = 'Lokalt forsøk nullstilt. Tidligere bestått på kontoen beholdes.';
+		saveMessage = publicMode ? 'Forsøket er nullstilt. Tidligere lokalt lagrede beståtte oppsett beholdes.' : 'Lokalt forsøk nullstilt. Tidligere bestått på kontoen beholdes.';
 		await tick();
 		document.getElementById('task-title')?.focus();
 	}
@@ -295,7 +325,7 @@
 		content="Fortsett fra VLAN-lab 1 med gateway, ruting, trådløse nett og avgrenset gjestetilgang."
 	/></svelte:head
 >
-{#if unlocked && loaded}<PartnerContext
+{#if !publicMode && unlocked && loaded}<PartnerContext
 		pageId="vlan-lab-2"
 		running={playing}
 		values={{
@@ -309,25 +339,27 @@
 	/>{/if}
 
 <main id="hovedinnhold" tabindex="-1">
-	<a href="/?fag=drift">← Driftsstøtte</a>
+	<a href={siteHref('/?fag=drift')}>← Driftsstøtte</a>
 	<header>
 		<p class="eyebrow">VLAN-LAB 2 · RUTER OG WI-FI</p>
 		<h1>Fra adskilte nett til styrt tilgang.</h1>
 		<p>Koble nett sammen med R1, få laptopene på Wi-Fi og bestem hvem som skal få kommunisere.</p>
+		{#if publicMode}<p class="muted"><strong>Offentlig øving.</strong> Kontrollene kjøres her i nettleseren. Beståtte oppsett lagres lokalt, uten elevkonto eller XP.</p>{/if}
 	</header>
-	{#if !$lab.ready || loading}<section class="gate" role="status"><h2>Henter laben …</h2></section>
-	{:else if !$lab.user}<section class="gate">
+	{#if publicMode && publicStorageMessage}<p role="status">{publicStorageMessage}</p>{/if}
+	{#if (!publicMode && !$lab.ready) || loading}<section class="gate" role="status"><h2>Henter laben …</h2></section>
+	{:else if !publicMode && !$lab.user}<section class="gate">
 			<h2>Fortsett med elevkontoen din</h2>
 			<p>Logg inn for å hente bestått VLAN-lab 1 og åpne lab 2.</p>
-			<a class="action primary" href="/min-lab/">Åpne Min lab →</a><a
+			<a class="action primary" href={siteHref('/min-lab/')}>Åpne Min lab →</a><a
 				class="action"
-				href="/nettverk/vlan/">Til VLAN-lab 1</a
+				href={siteHref('/nettverk/vlan/')}>Til VLAN-lab 1</a
 			>
 		</section>
-	{:else if ($learningContext.mode !== 'normal' && !$teacherPreview)}<section class="gate">
+	{:else if (!publicMode && $learningContext.mode !== 'normal' && !$teacherPreview)}<section class="gate">
 			<h2>Åpne laben i vanlig modus</h2>
 			<p>VLAN-labene bruker beståtte oppsett på kontoen, uten XP.</p>
-			<a class="action" href="/nettverk/vlan-2/">Åpne vanlig lab</a>
+			<a class="action" href={siteHref('/nettverk/vlan-2/')}>Åpne vanlig lab</a>
 		</section>
 	{:else if loadError}<section class="gate">
 			<h2>Fremgangen kunne ikke hentes</h2>
@@ -338,16 +370,17 @@
 			<span class="eyebrow">FORKUNNSKAPSKRAV</span>
 			<h2>Bestå VLAN-lab 1 først</h2>
 			<p>
-				Alle seks oppdrag må være kontrollert og lagret på denne kontoen. Da åpnes lab 2 automatisk.
+				{publicMode ? 'Bestå alle seks kontrollene i VLAN-lab 1 i denne nettleseren. Da åpnes lab 2 automatisk.' : 'Alle seks oppdrag må være kontrollert og lagret på denne kontoen. Da åpnes lab 2 automatisk.'}
 			</p>
-			<a class="action primary" href="/nettverk/vlan/">Fortsett VLAN-lab 1 →</a><button
+			<a class="action primary" href={siteHref('/nettverk/vlan/')}>Fortsett VLAN-lab 1 →</a><button
 				onclick={restore}>Sjekk bestått-status igjen</button
 			>
 			<details>
 				<summary>Jeg har allerede gjort lab 1</summary>
 				<p>
-					Tidligere versjoner lagret bare i den åpne fanen. Hvis bestått ikke er registrert på
-					kontoen, gjennomfør kontrollene i lab 1 på nytt mens du er innlogget.
+					{#if publicMode}Fremgangen fra skoleversjonen eller en annen nettleser følger ikke med hit. Hvis de lokale oppsettene er borte, gjennomfør kontrollene i lab 1 på nytt.
+					{:else}Tidligere versjoner lagret bare i den åpne fanen. Hvis bestått ikke er registrert på
+					kontoen, gjennomfør kontrollene i lab 1 på nytt mens du er innlogget.{/if}
 				</p>
 			</details>
 		</section>
@@ -371,7 +404,7 @@
 				>{/each}
 		</nav>
 		<p class="muted">
-			{#if $teacherPreview}Lærerforhåndsvisning · alle oppdrag åpne. <a href='/min-lab/?visning=innstillinger#laererinnstillinger'>Innstillinger</a>{:else}Bestå kontrollen for å åpne neste oppdrag.{/if}
+			{#if !publicMode && $teacherPreview}Lærerforhåndsvisning · alle oppdrag åpne. <a href={siteHref('/min-lab/?visning=innstillinger#laererinnstillinger')}>Innstillinger</a>{:else}Bestå kontrollen{publicMode ? ' lokalt' : ''} for å åpne neste oppdrag.{/if}
 		</p>
 		<section class="mission">
 			<p class="eyebrow">OPPDRAG {index + 1} AV 5</p>
@@ -757,10 +790,10 @@
 			<div class="actions">
 				{#if index < vlan2Tasks.length - 1}<button
 						class="primary"
-						disabled={(!passed && !$teacherPreview) || saving}
+						disabled={(!passed && (publicMode || !$teacherPreview)) || saving}
 						onclick={() => selectTask(vlan2Tasks[index + 1].id)}>Neste oppdrag →</button
 					>{:else if passed}<p class="good">
-						<strong>{$teacherPreview ? '✓ Dette oppdraget består forhåndsvisningen.' : '✓ Alle fem oppdrag er bestått og lagret.'}</strong>
+						<strong>{publicMode ? '✓ Alle fem oppdrag består kontrollene lokalt.' : $teacherPreview ? '✓ Dette oppdraget består forhåndsvisningen.' : '✓ Alle fem oppdrag er bestått og lagret.'}</strong>
 					</p>{/if}<button disabled={hints === task.hints.length} onclick={() => hints++}
 					>Vis {hints ? 'neste ' : ''}hint</button
 				>
@@ -776,11 +809,13 @@
 			</details>
 			<details>
 				<summary>Lagring og nytt forsøk</summary>
-				<p>Beståtte oppsett lagres på kontoen. Omlasting henter sist beståtte versjon; andre endringer beholdes bare mens siden er åpen. Ingen XP.</p>
+				{#if publicMode}<p>Beståtte oppsett lagres i denne nettleseren når du kontrollerer dem. Omlasting henter sist lokalt lagrede beståtte versjon; andre endringer beholdes bare mens siden er åpen. Sletting av nettleserdata fjerner fremgangen. Den deles ikke med skolen og gir ikke XP.</p>
+				<p>Nullstilling erstatter det åpne oppsettet med startverdiene. Sist lokalt lagrede beståtte oppsett beholdes og hentes ved omlasting.</p>
+				{:else}<p>Beståtte oppsett lagres på kontoen. Omlasting henter sist beståtte versjon; andre endringer beholdes bare mens siden er åpen. Ingen XP.</p>
 				<p>
 					Dette erstatter det åpne oppsettet med startverdiene. Sist beståtte oppsett på kontoen
 					beholdes og hentes ved omlasting.
-				</p>
+				</p>{/if}
 				{#if resetPending}<div class="actions">
 						<button disabled={saving} onclick={resetTask}>Ja, nullstill lokalt</button><button
 							onclick={() => (resetPending = false)}>Avbryt</button

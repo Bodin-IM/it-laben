@@ -1,11 +1,14 @@
 <script>
+	import { siteHref } from '#lib/sitePaths.js';
+	import { publicMode } from '#lib/deployment.js';
 	import { onMount, tick } from 'svelte';
 	import { goto } from '$app/navigation';
 	import { page } from '$app/state';
 	import Avatar from '#lib/components/Avatar.svelte';
 	import { lab } from '#lib/lab.js';
 	import { labPreferences, reducedMotion } from '#lib/labPreferences.js';
-	import { guideSteps, tutorialSamples, tutorialResult } from '#lib/studentGuide.js';
+	import { guideSteps as schoolGuideSteps, publicGuideSteps, tutorialSamples, tutorialResult } from '#lib/studentGuide.js';
+	const guideSteps = publicMode ? publicGuideSteps : schoolGuideSteps;
 	import PartnerContext from '#lib/components/PartnerContext.svelte';
 	let mounted = $state(false);
 	/** @type {HTMLHeadingElement|undefined} */
@@ -27,13 +30,13 @@
 	async function visit(/** @type {number} */ index) {
 		const target = guideSteps[index];
 		if (!target) return;
-		await goto(`/tutorial/?tur=${target.id}`, { reset: false });
+		await goto(siteHref(`/tutorial/?tur=${target.id}`), { reset: false });
 		await tick();
 		tourHeading?.focus({ preventScroll: true });
 		tourPanel?.scrollIntoView({ block: 'start', behavior: 'instant' });
 	}
 	async function endTour() {
-		await goto('/tutorial/', { reset: false });
+		await goto(siteHref('/tutorial/'), { reset: false });
 		await tick();
 		startButton?.focus();
 	}
@@ -60,7 +63,7 @@
 <PartnerContext pageId="tutorial" values={{ section, sample, trim, run }} />
 <main id="hovedinnhold" tabindex="-1">
 	<nav class="breadcrumbs" aria-label="Brødsmuler">
-		<a href="/?visning=elev">Fagoversikt</a><span aria-hidden="true">/</span><span
+		<a href={siteHref('/?visning=elev')}>Fagoversikt</a><span aria-hidden="true">/</span><span
 			aria-current="page">Slik bruker du IT-laben</span
 		>
 	</nav>
@@ -124,7 +127,7 @@
 						onclick={() => visit(tourIndex + 1)}
 						>Neste: {guideSteps[tourIndex + 1].shortTitle} →</button
 					>
-				{:else}<a class="primary" href="/?fag=utvikling&visning=elev">Finn dagens oppgave →</a>{/if}
+				{:else}<a class="primary" href={siteHref('/?fag=utvikling&visning=elev')}>Finn dagens oppgave →</a>{/if}
 				<button class="tour-exit" onclick={endTour}>Avslutt omvisningen</button>
 			</div>
 		</div>
@@ -152,8 +155,9 @@
 						><span>Frontend møter backend</span>
 					</div>
 					<p class="note">
-						Ingen moduler synlige? Læreren styrer når de åpnes. Bruk søket eller «Finn
-						enkeltoppgaver» på fagoversikten hvis du skal repetere en bestemt oppgave.
+						{#if publicMode}Bruk søket eller «Finn enkeltoppgaver» på fagoversikten hvis du vil repetere et bestemt tema.
+						{:else}Ingen moduler synlige? Læreren styrer når de åpnes. Bruk søket eller «Finn
+						enkeltoppgaver» på fagoversikten hvis du skal repetere en bestemt oppgave.{/if}
 					</p>
 				{:else if step.id === 'les'}
 					<div class="callout">
@@ -233,9 +237,9 @@
 					<button
 						class="secondary"
 						onclick={() => window.dispatchEvent(new CustomEvent('labpartner-open'))}
-						>Prøv å åpne labpartneren</button
+						>{publicMode ? 'Prøv å åpne Sidehjelp' : 'Prøv å åpne labpartneren'}</button
 					>
-					<div class="callout">
+					{#if !publicMode}<div class="callout">
 						<strong>Et spørsmål som gir nyttig hjelp</strong>
 						<p>
 							«Meldingen med bare mellomrom ble lagret. Jeg forventet at den skulle avvises. Hva bør
@@ -246,7 +250,7 @@
 						KI-svar er veiledning og kan inneholde feil. Prøv forslaget i oppgaven og sjekk
 						resultatet selv. Ikke skriv passord eller andre hemmeligheter i spørsmålet. «Tilbake til
 						siden» lukker hjelpevisningen på mindre skjermer.
-					</p>
+					</p>{:else}<p>Les tipset, prøv selv og undersøk resultatet. På sider med «Vis meg hvor» kan du også få vist en kontroll. «Tilbake til siden» lukker hjelpevisningen på mindre skjermer.</p>{/if}
 				{:else if step.id === 'videre'}
 					<div class="callout">
 						<strong>Prøv med mindre hjelp</strong>
@@ -256,7 +260,10 @@
 							læreren ber om det.
 						</p>
 					</div>
-					<details>
+					{#if publicMode}<details>
+						<summary>Hva blir lagret?</summary>
+						<p>Øvingene viser selv når arbeid lagres i denne nettleseren. Denne prøveoppgaven lagrer ikke forsøket. Lokalt arbeid overføres ikke til skolekontoen, og konto, XP og fagsjekker brukes i skoleversjonen.</p>
+					</details>{:else}<details>
 						<summary>Fremgang, fagsjekker og innlogging</summary>
 						<p>
 							De interaktive eksemplene kan brukes til øving. Logg inn i Min lab når arbeidet skal
@@ -269,13 +276,13 @@
 							tutorialen gir ingen poeng og lagrer ikke prøveforsøket.
 						</p>
 						<p>
-							<a href="/min-lab/">Åpne Min lab →</a> ·
-							<a href="/kom-i-gang/">Hjelp med sikker tilkobling →</a>
+							<a href={siteHref('/min-lab/')}>Åpne Min lab →</a> ·
+							<a href={siteHref('/kom-i-gang/')}>Hjelp med sikker tilkobling →</a>
 						</p>
-					</details>
+					</details>{/if}
 					<div class="actions finish">
-						<a class="primary" href="/?fag=utvikling&visning=elev">Finn en modul i Utvikling →</a><a
-							href="/?visning=elev">Se alle fag →</a
+						<a class="primary" href={siteHref('/?fag=utvikling&visning=elev')}>Finn en modul i Utvikling →</a><a
+							href={siteHref('/?visning=elev')}>Se alle fag →</a
 						>
 					</div>
 				{/if}

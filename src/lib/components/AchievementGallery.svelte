@@ -1,4 +1,5 @@
 <script>
+	import { siteHref } from '#lib/sitePaths.js';
 	import { tick } from 'svelte';
 	import { lab } from '#lib/lab.js';
 	import BadgeIcon from '#lib/components/BadgeIcon.svelte';
@@ -94,16 +95,16 @@
 							Oppnådd {formatDate(achievement.earnedAt)}. Du beholder merket.
 						</p>{:else if achievement.next}<a
 							class="next"
-							href={(subject !== 'alle' && !achievement.subjects.length
+							href={siteHref((subject !== 'alle' && !achievement.subjects.length
 								? achievement.requirements.find(
 										(item) => !item.completed && item.subject === subject
 									)?.href
-								: null) ?? achievement.next.href}>Neste steg →</a
+								: null) ?? achievement.next.href)}>Neste steg →</a
 						>{/if}
 					{#if listsAllRequirements(achievement.goal)}<ul>
 							{#each achievement.requirements as requirement (requirement.id)}<li>
 									<span aria-hidden="true">{requirement.completed ? '✓' : '○'}</span><a
-										href={requirement.href}>{requirement.title}</a
+										href={siteHref(requirement.href)}>{requirement.title}</a
 									>
 								</li>{/each}
 						</ul>{/if}

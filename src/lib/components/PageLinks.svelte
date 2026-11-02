@@ -1,10 +1,11 @@
 <script>
+	import { siteHref } from '#lib/sitePaths.js';
 	/** @type {{links: {href:string, label:string}[]}} */
 	let { links } = $props();
 </script>
 
 <nav class="page-links" aria-label="Relatert innhold">
-	{#each links as link (link.href)}<a href={link.href}>{link.label}</a>{/each}
+	{#each links as link (link.href)}<a href={siteHref(link.href)}>{link.label}</a>{/each}
 </nav>
 
 <style>

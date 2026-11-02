@@ -1,4 +1,5 @@
 <script>
+	import { siteHref } from '#lib/sitePaths.js';
 	import { tick } from 'svelte';
 	import DatabaseFrame from '#lib/components/DatabaseFrame.svelte';
 	import PartnerContext from '#lib/components/PartnerContext.svelte';
@@ -44,7 +45,7 @@
 				<li>Kjør <code>node --version</code> og <code>npm install mongodb</code>.</li>
 				<li>Kopier <code>.env.example</code> til <code>.env</code>. Fyll inn lærerens adresse og navnet på din øvingsdatabase.</li>
 			</ol>
-			<a class="db-button" href="/ressurser/utstyrsboden-start.zip" download use:helpTarget={{ label: 'Last ned startprosjektet', hint: 'Pakk ut ZIP-filen og åpne mappen utstyrsboden-start i editoren.', order: 1 }}>Last ned startprosjektet (.zip)</a>
+			<a class="db-button" href={siteHref('/ressurser/utstyrsboden-start.zip')} download use:helpTarget={{ label: 'Last ned startprosjektet', hint: 'Pakk ut ZIP-filen og åpne mappen utstyrsboden-start i editoren.', order: 1 }}>Last ned startprosjektet (.zip)</a>
 			<h3>Prøv forbindelsen</h3>
 			<pre><code>node --env-file=.env sjekk.mjs</code></pre>
 			<p class="db-callout"><strong>Se etter [KLAR].</strong> Forbindelsen og lesetilgangen virker. Kontrollen endrer ingen data; skrivetilgang prøves i neste steg.</p>
@@ -63,7 +64,7 @@
 			<pre><code>node --env-file=.env finn.mjs</code></pre>
 			<ol>{#each practicalRequirements.slice(1) as requirement}<li>{requirement}</li>{/each}</ol>
 			<details><summary>Se startkoden</summary><pre><code>{starterCode}</code></pre><p>Behold søkene som navngitte variabler eller egne funksjoner, slik at du kan vise dem igjen.</p></details>
-			<details><summary>Fra dataverkstedet til eget prosjekt</summary><p>Sammenlign søket etter alle kameraer med søket etter kameraer til høyst 500 kr. Legg til et dokument som gir forskjell. Prøv deretter prisgrensen.</p><p>Du kan legge til et fiktivt dokument med en ubrukt ID i <code>utstyr.json</code> og kjøre <code>klargjor.mjs</code> igjen. Bruk samme felter og datatyper. Dette endrer ikke dokumenter som allerede finnes.</p><a href="/databaser/grunnlag/?modul=databaser&del=lagre">Se hvordan insertOne legger inn fra kode →</a></details>
+			<details><summary>Fra dataverkstedet til eget prosjekt</summary><p>Sammenlign søket etter alle kameraer med søket etter kameraer til høyst 500 kr. Legg til et dokument som gir forskjell. Prøv deretter prisgrensen.</p><p>Du kan legge til et fiktivt dokument med en ubrukt ID i <code>utstyr.json</code> og kjøre <code>klargjor.mjs</code> igjen. Bruk samme felter og datatyper. Dette endrer ikke dokumenter som allerede finnes.</p><a href={siteHref('/databaser/grunnlag/?modul=databaser&del=lagre')}>Se hvordan insertOne legger inn fra kode →</a></details>
 			<button class="db-button" onclick={() => select('forklar')}>Test og forklar →</button>
 		{:else}
 			<h2>Vis hva registeret gjør</h2>
@@ -71,7 +72,7 @@
 			<details><summary>Kontroller søkene dine</summary><ul>{#each practiceChecks as check}<li>{check}</li>{/each}</ul></details>
 			<div class="db-callout"><strong>Prøv en ny situasjon:</strong> Lag tre fiktive supportsaker i en egen collection. Velg feltene selv, finn åpne saker med høy prioritet og identifiser én bestemt sak. Forklar hvilke datatyper du valgte.</div>
 			<p>Behold prosjektet. Neste runde skal utvide registeret med innsetting, oppdatering, sletting og validering.</p>
-			<a class="db-button" href="/moduler/databaser/">Til moduloversikten →</a>
+			<a class="db-button" href={siteHref('/moduler/databaser/')}>Til moduloversikten →</a>
 		{/if}
 		<details>
 			<summary use:helpTarget={{ label: 'Finn hjelp til en feil', hint: 'Velg det du ser i terminalen. Hjelpen foreslår ett sted å undersøke.', order: 2 }}>Noe virker ikke</summary>

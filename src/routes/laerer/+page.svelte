@@ -1,4 +1,5 @@
 <script>
+	import { siteHref } from '#lib/sitePaths.js';
 	import { onMount } from 'svelte';
 	import { goto } from '$app/navigation';
 	import { lab, schoolRequest } from '#lib/lab.js';
@@ -44,7 +45,7 @@
 	onMount(() => {
 		const activity = new URL(window.location.href).searchParams.get('aktivitet');
 		if (activity)
-			void goto(`/laerer/aktiviteter/?aktivitet=${encodeURIComponent(activity)}`, {
+			void goto(siteHref(`/laerer/aktiviteter/?aktivitet=${encodeURIComponent(activity)}`), {
 				replaceState: true
 			});
 		const poll = setInterval(() => {
@@ -63,7 +64,7 @@
 		<button type="button" disabled={loading} onclick={load}>Prøv igjen</button>
 	{:else}
 		<div class="metrics">
-			<a class="metric" href="/laerer/elever/"
+			<a class="metric" href={siteHref('/laerer/elever/')}
 				><span>Aktive elevprofiler</span><strong>{overview.enabled}</strong><small
 					>{overview.disabled} deaktivert · {overview.students} totalt</small
 				></a
@@ -85,10 +86,10 @@
 			</div>
 		</div>
 		<div class="quick-links">
-			<a class="button-link" href="/laerer/undervisning/">Start undervisning →</a><a
+			<a class="button-link" href={siteHref('/laerer/undervisning/')}>Start undervisning →</a><a
 				class="button-link secondary"
-				href="/laerer/elever/">Se elevene →</a
-			><a class="button-link secondary" href="/laerer/aktiviteter/">Åpne en felles aktivitet →</a
+				href={siteHref('/laerer/elever/')}>Se elevene →</a
+			><a class="button-link secondary" href={siteHref('/laerer/aktiviteter/')}>Åpne en felles aktivitet →</a
 			><button class="secondary" type="button" disabled={loading} onclick={load}
 				>Oppdater oversikten</button
 			>
@@ -126,7 +127,7 @@
 						><tbody
 							>{#each activities as item}<tr
 									><td
-										><a href={item.href}>{item.title}</a><small class="activity-kind"
+										><a href={siteHref(item.href)}>{item.title}</a><small class="activity-kind"
 											>{item.format === 'spill' ? 'Spill' : 'Leksjon'}</small
 										></td
 									><td>{item.started}</td><td>{item.completed}</td><td>{item.checksCompleted}</td

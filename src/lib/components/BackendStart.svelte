@@ -1,7 +1,12 @@
+<script>
+	import { siteHref } from '#lib/sitePaths.js';
+	import { publicMode } from '#lib/deployment.js';
+</script>
+
 <section class="backend-start" aria-labelledby="backend-start-title">
 	<h2 id="backend-start-title">Bygg en chat som tåler å bli brukt</h2>
 	<p>Undersøk én del i IT-laben, og bruk den i ditt eget prosjekt. Du bygger videre på samme Svelte-frontend og Express-backend gjennom modulen, med JSON-filer som lagring.</p>
-	<a class="start" href="/backend/?modul=backend">Start med dataflyten →</a>
+	<a class="start" href={siteHref('/backend/?modul=backend')}>Start med dataflyten →</a>
 	<p class="note">Følg delen læreren har valgt hvis dere allerede er i gang. Øving 1–4 arbeides med gjennom dataflyten og eget prosjekt; de nummererte simulatorene begynner på øving 5.</p>
 	<details>
 		<summary>Før du begynner på egen maskin</summary>
@@ -17,7 +22,7 @@
 		<summary>Slik bruker du hjelp og fremgang</summary>
 		<p>Prøv én handling, les resultatet og velg neste test. Åpne hint, linjeforklaring eller labpartneren når du trenger hjelp. Hint og eksempler virker også uten et KI-svar.</p>
 		<p>«Gjennomgått» er din egen markering. Oppdragstester og fagsjekker kontrollerer bestemte krav; du viser forståelse ved å forklare og bruke prinsippet i egen kode. Et ventende fagsjekkforsøk hindrer ikke videre øving eller arbeid i prosjektet.</p>
-		<p>Simulatorenes valg og kjøringer starter på nytt når siden åpnes igjen. Min lab lagrer gjennomgang og bekreftede oppdragsresultater når du er innlogget. Følg lagringsmeldingen i aktiviteten.</p>
+		<p>Simulatorenes valg og kjøringer starter på nytt når siden åpnes igjen. {#if publicMode}Velg en del i oversikten, og prøv eksemplene i ditt eget tempo.{:else}Min lab lagrer gjennomgang og bekreftede oppdragsresultater når du er innlogget. Følg lagringsmeldingen i aktiviteten.{/if}</p>
 	</details>
 </section>
 

@@ -1,4 +1,5 @@
 <script>
+	import { appPathname, siteHref } from '#lib/sitePaths.js';
 	import { onMount } from 'svelte';
 	import { page } from '$app/state';
 	import { moduleContext } from '#lib/moduleNavigation.js';
@@ -7,13 +8,13 @@
 		ready = true;
 	});
 	const context = $derived(
-		ready ? moduleContext(page.url.pathname, page.url.searchParams.get('modul')) : null
+		ready ? moduleContext(appPathname(page.url.pathname), page.url.searchParams.get('modul')) : null
 	);
 </script>
 
 {#if context && page.url.searchParams.get('visning') !== 'presentasjon'}
 	<nav class="module-context" aria-label="Tilbake til modulen">
-		<a href={context.backHref}
+		<a href={siteHref(context.backHref)}
 			><span aria-hidden="true">←</span> Tilbake til {context.module.title}</a
 		>
 		<span class="context-label">Del av en modul</span>

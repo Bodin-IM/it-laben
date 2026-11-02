@@ -1,4 +1,6 @@
 <script>
+	import { appPathname, siteHref } from '#lib/sitePaths.js';
+	import { publicMode } from '#lib/deployment.js';
 	import { page } from '$app/state';
 	import { tick } from 'svelte';
 	import { moduleLink } from '#lib/moduleNavigation.js';
@@ -79,9 +81,9 @@
 	{#if canView}<a class="skip" href="#forlop">Hopp til modulens innhold</a>{/if}
 	<main id="hovedinnhold" tabindex="-1">
 		<nav class="breadcrumbs" aria-label="Brødsmuler">
-			{#if teacher}<a href="/laerer/undervisning/">Undervisning</a>
-			{:else}<a href="/?visning=elev">Fagoversikt</a><span aria-hidden="true">/</span><a
-					href={studentOverview}>{subject?.navn}</a
+			{#if teacher}<a href={siteHref('/laerer/undervisning/')}>Undervisning</a>
+			{:else}<a href={siteHref('/?visning=elev')}>Fagoversikt</a><span aria-hidden="true">/</span><a
+					href={siteHref(studentOverview)}>{subject?.navn}</a
 				>{/if}<span aria-hidden="true">/</span><span aria-current="page">{module.title}</span>
 		</nav>
 		<section class="hero" aria-labelledby="module-title">
@@ -90,7 +92,7 @@
 				<h1 id="module-title">{module.title}</h1>
 				{#if $modulePublication.ready && !$connection.publicHttp}
 					<p class="publication-status" class:active={publication.status === 'active'}>
-						{publication.status === 'active'
+						{publicMode && publication.status !== 'upcoming' ? 'Åpen modul · velg ditt eget tempo' : publication.status === 'active'
 							? 'Aktiv modul'
 							: publication.status === 'completed'
 								? 'Ferdig i undervisningen · åpen for repetisjon'
@@ -131,10 +133,10 @@
 					class="primary"
 					href={secureHref(
 						$connection.httpsOrigin,
-						page.url.pathname + page.url.search + page.url.hash
+						appPathname(page.url.pathname) + page.url.search + page.url.hash
 					)}>Åpne modulen på HTTPS →</a
 				>
-				<p><a href="/kom-i-gang/">Hjelp til tilkobling →</a></p>
+				<p><a href={siteHref('/kom-i-gang/')}>Hjelp til tilkobling →</a></p>
 			</section>
 		{:else if !$modulePublication.ready}
 			<section class="panel availability" aria-labelledby="availability-title">
@@ -151,12 +153,12 @@
 					>
 				{:else}<h2 id="availability-title">Henter modulstatus …</h2>
 					<p role="status">Sjekker om modulen er åpen for klassen.</p>{/if}
-				<p><a href={studentOverview}>← Til moduloversikten</a></p>
+				<p><a href={siteHref(studentOverview)}>← Til moduloversikten</a></p>
 			</section>
 		{:else if publication.status === 'upcoming'}
 			<section class="panel availability" aria-labelledby="availability-title">
 				<h2 id="availability-title">Modulen er ikke åpnet ennå</h2>
-				<p>Læreren gjør modulen tilgjengelig når dere skal begynne.</p>
+					<p>{publicMode ? 'Denne modulen er ikke med i den offentlige utgaven ennå.' : 'Læreren gjør modulen tilgjengelig når dere skal begynne.'}</p>
 				{#if $modulePublication.error || publicationError}
 					<p class="load-error" role="alert">{$modulePublication.error || publicationError}</p>
 					<p>Viser sist hentede modulstatus. Prøv igjen for å se om modulen er åpnet.</p>
@@ -169,7 +171,7 @@
 					>
 				{/if}
 				<p>
-					<a class="primary" href={studentOverview}>Til de åpne modulene →</a>
+					<a class="primary" href={siteHref(studentOverview)}>Til de åpne modulene →</a>
 				</p>
 			</section>
 		{/if}
@@ -235,6 +237,7 @@
 											>{/if}
 									</div>
 									<h3>{step.title}</h3>
+									{#if publicMode && step.id === 'nattvakt'}<p class="muted">Denne tidsstyrte utfordringen brukes i skoleversjonen.</p>{/if}
 									<p class="step-description">{step.description}</p>
 									{#if step.kind === 'undervisning'}
 										<p class="muted">Felles gjennomgang · ca. {step.minutes} min</p>
@@ -242,16 +245,16 @@
 											<summary>Innhold til gjennomgang og repetisjon</summary>
 											<ul>
 												{#each step.lessons as lesson}<li>
-														<a href={moduleLink(lesson.href, module.id)}
+														<a href={siteHref(moduleLink(lesson.href, module.id))}
 															>{lesson.title} <span aria-hidden="true">→</span></a
 														>
 													</li>{/each}
 											</ul>
 										</details>
-										{#if teacher}<a class="step-link" href={step.teacherHref}
+										{#if teacher}<a class="step-link" href={siteHref(step.teacherHref)}
 												>Åpne læreropplegget <span aria-hidden="true">→</span></a
 											>{/if}
-									{:else}<a class="step-link" href={moduleLink(step.href, module.id)}
+									{:else}<a class="step-link" href={siteHref(moduleLink(step.href, module.id))}
 											>{step.kind === 'oving'
 												? 'Åpne øvingen'
 												: step.kind === 'teori'
@@ -311,14 +314,14 @@
 							<h2>Ressurser og repetisjon</h2>
 							<ul>
 								{#each module.resources as resource}<li>
-										<a href={moduleLink(resource.href, module.id)}
+										<a href={siteHref(moduleLink(resource.href, module.id))}
 											>{resource.label} <span aria-hidden="true">→</span></a
 										>
 									</li>{/each}
 							</ul>
 						</section>{/if}
-					<a class="back-link" href="/tutorial/">Slik bruker du IT-laben →</a>
-					<a class="back-link" href={`${studentOverview}#utforsk`}
+					<a class="back-link" href={siteHref('/tutorial/')}>Slik bruker du IT-laben →</a>
+					<a class="back-link" href={siteHref(`${studentOverview}#utforsk`)}
 						>Alle øvinger og spill i {subject?.navn.toLocaleLowerCase('nb-NO')}
 						<span aria-hidden="true">→</span></a
 					>
@@ -327,7 +330,7 @@
 		{/if}
 	</main>
 	<footer>
-		<a href={teacher ? '/laerer/undervisning/' : studentOverview}
+		<a href={siteHref(teacher ? '/laerer/undervisning/' : studentOverview)}
 			>← Tilbake til {teacher ? 'undervisningen' : subject?.navn}</a
 		><span>IT-laben · Se. Prøv. Forstå.</span>
 	</footer>

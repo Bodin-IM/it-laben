@@ -1,4 +1,5 @@
 <script>
+	import { appPathname, siteHref } from '#lib/sitePaths.js';
 	import { tick } from 'svelte';
 	import { page } from '$app/state';
 	import { taskStartValues } from '#lib/ovingene.js';
@@ -68,7 +69,7 @@
 		clear();
 	}
 	async function run() {
-		noteFeedbackAttempt(`oving-${lesson.number}`, page.url.pathname + page.url.search);
+		noteFeedbackAttempt(`oving-${lesson.number}`, appPathname(page.url.pathname) + page.url.search);
 		trace = buildTrace(lesson.number, values);
 		index = 0;
 		selectedLine = 0;
@@ -152,7 +153,7 @@
 	</div>
 	{#if current}
 		{#key taskIndex}<details class="explanation"><summary>Hva skal jeg oppdage?</summary><p>{task.observe}</p><p>{task.answer}</p>{#if feedback}<p><strong>Prøv videre:</strong> {feedback.next}</p>{/if}</details>{/key}
-		{#if finished}<div class="next"><p>Prøv gjerne en annen variant og sammenlign.</p>{#if position < order.length - 1}<button type="button" onclick={nextTask}>Neste oppdrag →</button>{:else if lesson.number === 7}<a href={moduleLink(validationJourney[1].href, moduleId)}>Reparer tekstkontrollen →</a>{:else}<a href="#eget-prosjekt" onclick={openProject}>Bruk dette i egen chat →</a>{/if}</div>{/if}
+		{#if finished}<div class="next"><p>Prøv gjerne en annen variant og sammenlign.</p>{#if position < order.length - 1}<button type="button" onclick={nextTask}>Neste oppdrag →</button>{:else if lesson.number === 7}<a href={siteHref(moduleLink(validationJourney[1].href, moduleId))}>Reparer tekstkontrollen →</a>{:else}<a href="#eget-prosjekt" onclick={openProject}>Bruk dette i egen chat →</a>{/if}</div>{/if}
 	{/if}
 	<p class="simulation">Simulator · Hvert forsøk starter med eksempeldata på nytt. Valgene lagres ikke når du forlater siden.</p>
 </section>

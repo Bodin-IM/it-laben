@@ -1,4 +1,5 @@
 <script>
+	import { siteHref } from '#lib/sitePaths.js';
 	import { validationJourney } from '#lib/backendValidation.js';
 	import { moduleLink } from '#lib/moduleNavigation.js';
 	/** @type {{current?:string,moduleId?:string|null}} */
@@ -10,7 +11,7 @@
 	<ol>
 		{#each validationJourney as step, index (step.id)}
 			<li class:current={current === step.id}>
-				<a href={moduleLink(step.href, moduleId)} aria-current={current === step.id ? 'step' : undefined}>
+				<a href={siteHref(moduleLink(step.href, moduleId))} aria-current={current === step.id ? 'step' : undefined}>
 					{index + 1}. {step.title}
 				</a>
 				<span>{step.description}</span>

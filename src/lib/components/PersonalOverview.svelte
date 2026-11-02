@@ -1,4 +1,5 @@
 <script>
+	import { siteHref } from '#lib/sitePaths.js';
 	import { lab } from '#lib/lab.js';
 	import { connection } from '#lib/connection.js';
 	import { moduler, moduleContents } from '#lib/moduler.js';
@@ -21,7 +22,7 @@
 			<p class="description">{next.description}</p>
 			<p class="reason">{next.reason}</p>
 		</div>
-		<a href={next.href}>{next.action} <span aria-hidden="true">→</span></a>
+		<a href={siteHref(next.href)}>{next.action} <span aria-hidden="true">→</span></a>
 	</aside>
 {/if}
 

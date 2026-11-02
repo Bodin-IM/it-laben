@@ -1,4 +1,5 @@
 <script>
+	import { siteHref } from '#lib/sitePaths.js';
 	import { lab, learningContext } from '#lib/lab.js';
 	import { journeyKey, restoreJourney, resumeDatabase } from '#lib/databaseJourney.js';
 	let resume = $state(/** @type {ReturnType<typeof resumeDatabase>} */ (null));
@@ -15,11 +16,11 @@
 <section class="database-start" aria-labelledby="database-start-title">
 	<h2 id="database-start-title">Få Utstyrsboden til å fungere</h2>
 	<p>Finn utstyr, prøv egne testdata og bygg et register. Åpne forklaringene når du trenger dem.</p>
-	{#if resume}<a class="start" href={resume.href}>Fortsett der du slapp →</a><p class="note">Sist åpnet her: {resume.title}</p>
-	{:else}<a class="start" href="/databaser/finn-utstyr/?modul=databaser">Start med å finne utstyr →</a>{/if}
+	{#if resume}<a class="start" href={siteHref(resume.href)}>Fortsett der du slapp →</a><p class="note">Sist åpnet her: {resume.title}</p>
+	{:else}<a class="start" href={siteHref('/databaser/finn-utstyr/?modul=databaser')}>Start med å finne utstyr →</a>{/if}
 	{#if warning}<p role="status">{warning}</p>{/if}
 	<p class="note">Søkeforsøk, verkstedforsøk og sist åpnet del lagres i denne nettleseren for aktiv profil. Egen prosjektkode lagrer du på maskinen din.</p>
-	<details><summary>Før du begynner</summary><p>Du trenger kjennskap til objekter, lister og enkle betingelser i JavaScript. Aktivitetene kan prøves direkte i nettleseren. Kodeoppgaven trenger Node.js og tilgang til en egen MongoDB-øvingsdatabase fra læreren.</p><a href="/databaser/grunnlag/?modul=databaser">Åpne teori og kodeeksempler →</a><p>På en annen maskin kan du velge riktig del direkte. Lokal status er ikke en vurdering av forståelse eller en kopi av prosjektfilene dine.</p></details>
+	<details><summary>Før du begynner</summary><p>Du trenger kjennskap til objekter, lister og enkle betingelser i JavaScript. Aktivitetene kan prøves direkte i nettleseren. Kodeoppgaven trenger Node.js og tilgang til en egen MongoDB-øvingsdatabase fra læreren.</p><a href={siteHref('/databaser/grunnlag/?modul=databaser')}>Åpne teori og kodeeksempler →</a><p>På en annen maskin kan du velge riktig del direkte. Lokal status er ikke en vurdering av forståelse eller en kopi av prosjektfilene dine.</p></details>
 </section>
 
 <style>
