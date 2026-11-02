@@ -1,6 +1,6 @@
 # Øving 5 – eksempel, forklaring og prøv selv
 
-Dev, 2. november 2026. Brukeren opplevde den forrige utgaven som uoversiktlig: for mye skjedde i hvert steg. Siden er derfor lagt om til fem åpne deler under hverandre i én kolonne. Hver del følger **eksempel → kort forklaring → prøv selv**. Kodefaner, simulerte data, valg av kodevariant, kjøringsknapper og separate prosjektpaneler er fjernet. Eleven arbeider i en testkopi av egen chat.
+Revidert 2. november 2026. Brukeren opplevde den forrige utgaven som uoversiktlig: for mye skjedde i hvert steg. Siden er derfor lagt om til fem åpne deler under hverandre i én kolonne. Hver del følger **eksempel → kort forklaring → prøv selv**. Kodefaner, simulerte data, valg av kodevariant, kjøringsknapper og separate prosjektpaneler er fjernet. Eleven arbeider i en testkopi av egen chat.
 
 [Pedagogisk grunnlag](pedagogisk-grunnlag.md), [designgrunnlaget](webdesign-og-brukeropplevelse.md) og [aktivitetsmalen](aktivitetsmal.md) styrer valgene. Enkel betjening frigjør plass til å lese, endre og teste kode. Nettsiden er et forklart eksempel; elevens eget prosjekt er aktiviteten. Det kreves ingen refleksjonsfelter eller nye fullføringsknapper.
 
@@ -47,6 +47,6 @@ La eleven vise en normal test og en feiltest, og forklare forskjellen mellom pus
 
 Labpartner bruker `storage-guide`, adapterversjon 1, med en tom og streng values-kontrakt. Serveren deler bare sidens offentlige eksempler og oppgaver. Den vet ikke hvilken del eleven leser eller hva som er kjørt på elevens maskin. Gamle simulatorpayloads avvises. Praksislenker, lærerhjelp og syntetiske KI-prøver bruker den nye arbeidsformen.
 
-Kildekode og diff gjennomgås på dev. Eksisterende tester er tilpasset de faktiske viste kodeutdragene: lagring/omstart, kontrollert feil før skriving, reparert rekkefølge, manglende/ødelagt fil, avgrenset KI-kontekst og nedlastingen til øving 6. Testene er ikke kjørt i denne dev-leveransen. Samlet testsuite, Svelte-sjekk, bygg og relevant nettleserprøving gjenstår før main etter AGENTS.md. Svelte MCP er ikke tilgjengelig; eksisterende offisiell Svelte-referanse og prosjektets mønstre brukes.
+Kildekode og diff er gjennomgått. Før publisering til main bestod hele testsuiten (311 tester), Svelte-sjekk og produksjonsbygg. De faktiske kodeutdragene er også prøvd i et midlertidig Express-prosjekt med POST/GET, JSON-fil, omstart og de beskrevne feiltilfellene. Nettleserprøvingen omfatter kopiering, nedlasting, Labpartner/Vis meg hvor, tastatur, mobil, tekstforstørrelse og begge temaer. Se [publiseringskontrollen 2. november](publiseringskontroll-backend-databaser-2026-11-02.md) for omfang og begrensninger.
 
-Før main: prøv alle delene i et chatprosjekt og kontroller kodeplassering, kopiering/reservevei, nedlasting, ankerlenker, Labpartner/Vis meg hvor, tastatur, mobil, zoom og begge temaer. I undervisningen undersøkes om eleven lettere finner neste handling og kan forklare og bruke koden. Det er ikke dokumentert læringseffekt.
+I undervisningen undersøkes om eleven lettere finner neste handling og kan forklare og bruke koden i eget prosjekt. Det er ikke dokumentert læringseffekt.

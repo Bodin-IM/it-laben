@@ -1,6 +1,8 @@
 import { untrack } from 'svelte';
+import { fromStore } from 'svelte/store';
 import { page } from '$app/state';
 import { goto } from '$app/navigation';
+import { lab } from './lab.js';
 import { databasePlaces, restoreJourney, journeyKey } from './databaseJourney.js';
 
 /** A bookmark is a location, never proof of completion. Explicit links take precedence.
@@ -10,8 +12,13 @@ export function createDatabasePlace(activityId, getScope) {
 	if (!definition) throw new Error('Ukjent databaseside.');
 	const place = definition;
 	const scope = $derived(getScope());
+	const session = fromStore(lab);
+	const sessionReady = $derived(session.current.ready);
 	const state = $state({ position: place.steps[0].id, ready: false, scope: '', warning: '' });
 	$effect(() => {
+		// Resolve the initial account before treating a scope change as a profile switch.
+		// Otherwise a direct link can be replaced by the new profile's first step.
+		if (!sessionReady) return;
 		const currentScope = scope;
 		const parameter = page.url.searchParams.get(place.parameter);
 		untrack(() => {

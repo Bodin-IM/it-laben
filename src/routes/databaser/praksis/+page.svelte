@@ -59,7 +59,7 @@
 			<button class="db-button" onclick={() => select('kode')}>Lag egne søk →</button>
 		{:else if phase === 'kode'}
 			<h2>Endre filteret i finn.mjs</h2>
-			<p>Finn linjen <code>const filter = {};</code>. Start med å finne alle mikrofonene. Kjør filen etter hver endring:</p>
+			<p>Finn linjen <code>{'const filter = {};'}</code>. Start med å finne alle mikrofonene. Kjør filen etter hver endring:</p>
 			<pre><code>node --env-file=.env finn.mjs</code></pre>
 			<ol>{#each practicalRequirements.slice(1) as requirement}<li>{requirement}</li>{/each}</ol>
 			<details><summary>Se startkoden</summary><pre><code>{starterCode}</code></pre><p>Behold søkene som navngitte variabler eller egne funksjoner, slik at du kan vise dem igjen.</p></details>
