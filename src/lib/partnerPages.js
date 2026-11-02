@@ -124,7 +124,7 @@ export const partnerPages = [
 		const lesson = lessons.find((item) => `oving-${item.number}` === activity.id);
 		return {
 			id: activity.id,
-			kind: lesson ? 'lesson' : (kinds[activity.id] ?? 'overview'),
+			kind: activity.id === 'oving-5' ? 'storage-course' : lesson ? 'lesson' : (kinds[activity.id] ?? 'overview'),
 			path: activity.href,
 			title: activity.tittel,
 			summary: lesson?.intro ?? activity.beskrivelse,

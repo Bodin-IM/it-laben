@@ -17,9 +17,9 @@ const practice = {
 		instruction: 'Hent meldinger fra Generelt og Gaming. Sammenlign rommet i forespørselen med meldingene i svaret.',
 		lookFor: 'Hva må endres i forespørselen for å hente det andre rommet?'
 	},
-	restart: exercise(5, 'Velg «Start serveren på nytt» og følg innlesingen fra fil til minne.', 'Hvor kommer meldingene i den nye prosessens minne fra?'),
-	write: exercise(5, 'Sammenlign «Lagre en melding» og «Skrivingen feiler». Følg både listen, filen og HTTP-svaret.', 'Hvilke steg blir ikke utført når filskrivingen feiler?'),
-	broken: exercise(5, 'Sammenlign «Filen finnes ikke» og «Filen har ugyldig JSON».', 'Hvorfor gir bare det ene tilfellet en tom liste?'),
+	restart: exercise(5, 'Send en egen melding i del 1. Gå til Omstart og følg den samme filen tilbake til minnet.', 'Hvor kommer meldingene i den nye prosessens minne fra?'),
+	write: exercise(5, 'Gå til Skrivefeil og prøv «Send med skrivefeil». Gå deretter til Endre koden, les filen på nytt og sammenlign de to kodevariantene.', 'Hvilke steg blir ikke utført når filskrivingen feiler?'),
+	broken: exercise(5, 'Gå til Oppstart og sammenlign «Prøv manglende fil» og «Prøv ødelagt JSON».', 'Hvorfor gir bare det ene tilfellet en tom liste?'),
 	missingId: exercise(6, 'Velg DELETE og ID-en «ukjent». Kjør helt til svaret.', 'Hvilke meldinger finnes før og etter forsøket?'),
 	patch: exercise(6, 'Velg PATCH, en kjent ID og en ny tekst. Følg endringen og den påfølgende GET-forespørselen.', 'Hvilken melding endres, og når viser frontend den nye teksten?'),
 	json: exercise(7, 'Velg «Ugyldig JSON» og følg kjøringen fra parseren.', 'Kommer forespørselen frem til den vanlige rutekoden eller lagringen?'),

@@ -320,7 +320,7 @@ export const backendQuestions = [
 		title: 'Hva om skrivingen feiler?',
 		pages: '2–3',
 		prompt:
-			'En gyldig POST er klar, men lagreListe() kaster en feil fordi datafilen ikke kan skrives. Hvordan skal ruten fra øving 5 behandle dette?',
+			'En gyldig POST er klar, men lagreMeldinger(nyListe) kaster en feil fordi datafilen ikke kan skrives. Hvordan skal den forbedrede ruten fra øving 5 behandle dette?',
 		hint: 'Klienten bør bare få en lagringsbekreftelse når lagringen faktisk har lykkes.',
 		correct: 2,
 		choices: [

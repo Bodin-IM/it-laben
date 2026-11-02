@@ -110,8 +110,8 @@ export const teachingGuides = [
 					'Hvorfor brukes en midlertidig fil?'
 				],
 				notes: [
-					'Start med det synlige lagre.mjs-eksemplet i en tom øvingsmappe. La eleven endre en tekst, kjøre skriptet og åpne JSON-filen. Hvilken linje lagrer faktisk til fil?',
-					'Start deretter chatforsøket og bruk Neste steg. Koden vises hele tiden. Sammenlign vanlig lagring med skrivefeil og undersøk hvorfor chatten bruker en midlertidig fil.'
+					'Fortsett med chatten fra Fillagring. Send en egen melding i del 1 og følg samme fil gjennom omstart i del 2. Knytt forsøket til POST/GET i elevens prosjekt.',
+					'I del 3 viser en kontrollert skrivefeil problemet med push før lagring. I del 4 leses filen på nytt før eleven bytter til nyListe og prøver feil og normal lagring. Gjør samme kodeendring i egen chat. Del 5 skiller manglende og ødelagt fil i testkopier; knytt det til fagsjekken. Forklar midlertidig fil etter hovedprinsippet.'
 				]
 			},
 			{

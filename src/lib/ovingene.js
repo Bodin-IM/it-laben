@@ -1,6 +1,7 @@
 // Øvingsarkene er kilden. Alle forsøk kjøres lokalt som undervisningsmodeller.
 import { validationTransfer } from '#lib/backendValidation.js';
 import { backendProjectGuides } from '#lib/backendProjectGuides.js';
+import { storageTasks } from '#lib/storageExercise.js';
 /** @typedef {{value: string, label: string}} Choice */
 /** @typedef {{key: string, label: string, kind: string, value: string, choices?: Choice[]}} Field */
 /** @typedef {{title: string, label: string, instruction: string, observe: string, hint: string, answer: string, start: Record<string,string>}} Task */
@@ -25,13 +26,13 @@ export const lessons = [
 		question: 'Når er meldingen egentlig lagret?',
 		category: 'Utvikling',
 		intro:
-			'Bruk Node til å skrive en liste til en JSON-fil og lese den tilbake. Følg så koden som lagrer en melding i chatten.',
+			'Bygg videre på chatten fra Fillagring. Lagre din melding, les den tilbake etter omstart og forbedre koden når lagringen feiler.',
 		context:
-			'Utdrag fra lagring.js og POST /meldinger. Filnavnet bestemmes av serveren. Synkron lagring er valgt for en liten øvelse med én serverprosess.',
+			'Samme server.js og meldinger.json som i Fillagring. Fem deler bruker ett sammenhengende chatforsøk. POST og lagreMeldinger kan byttes fra å endre minnet først til å lagre en ny liste først. Synkron lagring brukes med én prosess og små datamengder.',
 		example: {
 			title: 'Bekreft først etter lagring',
-			code: 'const nyListe = [...meldinger, melding];\nlagreListe("meldinger.json", nyListe);\nmeldinger = nyListe;\nres.status(201).json(melding);',
-			explanation: 'Utdrag fra ruten: Den nye listen lagres før den erstatter minnet og serveren svarer. I forsøket åpner vi lagreListe og følger filskrivingen.'
+			code: 'const nyListe = [...meldinger, nyMelding];\nlagreMeldinger(nyListe);\nmeldinger = nyListe;\nres.status(201).json(nyMelding);',
+			explanation: 'Utdrag fra ruten: Den nye listen lagres før den erstatter minnet og serveren svarer. I forsøket åpner vi lagreMeldinger og følger filskrivingen.'
 		},
 		transfer: {
 			guide: backendProjectGuides[5],
@@ -49,38 +50,7 @@ export const lessons = [
 			]),
 			input('text', 'Ny melding', 'Vi sees i laben!', 'textarea')
 		],
-		tasks: [
-			{
-				title: 'Få meldingen inn i filen',
-				label: 'Lagre',
-				start: { scenario: 'save' },
-				instruction: 'Skriv en melding og trykk «Send meldingen». Bruk «Neste steg» og finn koden som gjør listen til JSON og skriver filen.',
-				observe: 'Når endres filen, når endres minnet, og når får nettleseren svar?',
-				hint: 'Sammenlign nyListe, .tmp-filen og meldinger.json.',
-				answer:
-					'writeFileSync skriver først til .tmp. renameSync erstatter den egentlige filen. Deretter oppdateres minnet, og til slutt sendes 201.'
-			},
-			{
-				title: 'Får du et ærlig svar når lagringen feiler?',
-				label: 'Prøv en feil',
-				start: { scenario: 'fail' },
-				instruction: 'Send med «Skrivingen feiler». Følg koden til feilsvaret. Prøv så samme tekst med «Lagre en melding».',
-				observe: 'Sammenlign serverens svar, listen i minnet og datafilen med det vellykkede forsøket.',
-				hint: 'Velg «Skrivingen feiler». Følg minnet helt til siste steg.',
-				answer:
-					'Serveren svarer 500. Den gamle listen og den gamle datafilen beholdes. meldinger = nyListe kjøres aldri.'
-			},
-			{
-				title: 'Sammenlign manglende og ødelagt fil',
-				label: 'Oppstart',
-				start: { scenario: 'missing' },
-				instruction: 'Start serveren uten fil. Prøv igjen med ødelagt JSON. Hvilket forsøk starter?',
-				observe: 'Hvilket forsøk får en tom liste, og hvilket stopper oppstarten for å beskytte dataene?',
-				hint: 'Bare én av feilene skal gi en tom liste.',
-				answer:
-					'ENOENT betyr at filen mangler og gir []. Ugyldig JSON eller feil datatype stopper oppstarten. Filen skal ikke overskrives med en tom liste.'
-			}
-		],
+		tasks: storageTasks,
 		takeaway:
 			'Lag en ny liste → lagre filen → bytt listen i minnet → send svar. En feilet lagring skal ikke se ut som en vellykket endring.',
 		related: [{ href: '/fillagring/', label: 'Grunnlag: minne, fil og omstart' }]

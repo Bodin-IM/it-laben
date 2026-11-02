@@ -5,7 +5,7 @@ import { buildTrace } from '../src/lib/ovingModel.js';
 import { messageChanges, messageList, playgroundChoices, playgroundResultIndex } from '../src/lib/exercisePlayground.js';
 
 test('alle hurtigvalg bruker eksisterende forsøk; tall og tekst kan sammenlignes', () => {
-	for (const lesson of lessons.filter((item) => [5, 7].includes(item.number))) {
+	for (const lesson of lessons.filter((item) => item.number === 7)) {
 		lesson.tasks.forEach((_, task) => {
 			for (const choice of playgroundChoices(lesson, task)) {
 				assert.ok(lesson.fields[0].choices.some((item) => item.value === choice.value));

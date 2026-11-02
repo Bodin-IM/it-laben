@@ -1,8 +1,12 @@
 # Backend – samlet undervisningsforløp
 
-Dev, oppdatert 1. november 2026. Modulen forberedes for ordinær undervisning fra neste uke. Utprøvingen skjer i timene: vi følger elevenes bruk og justerer etter erfaringene. Det legges ikke inn en separat elevpilot før resten av modulen kan brukes. Teknisk kontroll før publisering består.
+Dev, oppdatert 2. november 2026. Modulen forberedes for ordinær undervisning fra neste uke. Utprøvingen skjer i timene: vi følger elevenes bruk og justerer etter erfaringene. Det legges ikke inn en separat elevpilot før resten av modulen kan brukes. Teknisk kontroll før publisering består.
 
 Målgruppe: Vg2 informasjonsteknologi. Eleven bygger videre på én Svelte-frontend og én Express-backend med JSON-fillagring. Simulatorene gjør sammenhengene synlige; eget chatprosjekt er stedet eleven anvender dem. Øving 1–4 dekkes gjennom dataflyt, tidligere øvingsark og eget prosjekt; de nummererte simulatorene starter på 5. Modulen er et forløp over flere økter, ikke et krav om å fullføre alt på én uke.
+
+## Øving 5: sammenhengende lagring og kodeendring · 2. november
+
+Øving 5 er nå lagt om til fem deler i samme chatforsøk: lagre egen melding, omstart, skrivefeil, endre koden og undersøke oppstartsfeil. Kode, aktiv liste og JSON-fil står sammen. Minne og fil videreføres mellom handlingene; oppstartsfeil bruker isolerte testkopier. Eleven bytter lagringsrekkefølge og gjør samme endring i egen chat. [Aktivitetsbeskrivelsen](oving-5-lagring.md) dokumenterer mål, respons, læreroppfølging, avgrensninger og kontroll som gjenstår før main. Det tidligere Node-eksemplet ligger nå som ekstra grunnøving nederst. Øving 6–7 følger fortsatt beskrivelsen nedenfor.
 
 ## Koden først i øving 5–7 · 1. november
 

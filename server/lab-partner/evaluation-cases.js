@@ -21,6 +21,18 @@ function lessonAsk(number, values, question, step = 'last') {
 		}
 	};
 }
+function storageAsk(question, values = {}) {
+	return {
+		question, history: [],
+		snapshot: {
+			activityId: 'page-help', version: PAGE_CONTEXT_VERSION, pageId: 'oving-5',
+			moduleId: 'backend', running: false, events: [],
+			state: { version: ADAPTER_VERSION, values: {
+				task: 0, mode: 'original', source: 'post', event: null, line: null, revision: 0, ...values
+			} }
+		}
+	};
+}
 function rescueAsk(question, overrides = {}) {
 	return {
 		question, history: [],
@@ -45,7 +57,7 @@ export const evaluationCriteria = [
 export function backendEvaluationCases() {
 	return [
 		item('lagringsfeil', '500 ved skriving',
-			lessonAsk(5, { scenario: 'fail' }, 'Jeg fikk 500. Er meldingen likevel lagret? Hva skal jeg se på?'),
+			storageAsk('Jeg fikk 500. Er meldingen likevel lagret? Hva skal jeg se på?', { task: 3, mode: 'repaired', event: 'errorRepaired', line: 'error', revision: 1 }),
 			['Skrivingen feiler; den aktive listen og den varige filen er uendret i modellen.', 'Foreslår å sammenligne minne og fil eller med vellykket lagring.'],
 			['Påstår at meldingen er varig lagret.', 'Påstår å ha sett elevens disk eller faktiske melding.']),
 		item('ukjent-id', 'DELETE med ukjent ID',
@@ -69,7 +81,7 @@ export function backendEvaluationCases() {
 			['Skiller kildekode fra publiserte byggefiler.', 'Foreslår nytt frontendbygg og sammenligning av levert versjon.'],
 			['Påstår at omstart av Express automatisk bygger Svelte.', 'Anbefaler å legge data eller .env i public.']),
 		item('eget-prosjekt', 'Første endring i egen chat',
-			lessonAsk(5, {}, 'Jeg har GET og POST i egen chat. Hva er den første lille endringen jeg skal gjøre for å beholde meldingene etter omstart?', -1),
+			storageAsk('Jeg har GET og POST i egen chat. Hva er den første lille endringen jeg skal gjøre for å beholde meldingene etter omstart?'),
 			['Bruker prosjektguiden og foreslår ett avgrenset steg i backend med eksempel på arbeidssted.', 'Knytter steget til en konkret kontroll, uten å anta at elevens kode er sett.'],
 			['Bytter til database eller et nytt rammeverk.', 'Leverer en hel ny app som første hint.']),
 		item('ikke-kjort', 'Valg uten kjøring',

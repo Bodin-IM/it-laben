@@ -3,6 +3,7 @@
 	import { getInterfaceHelp } from '#lib/interfaceHelp.js';
 	import CodeTokens from '#lib/components/CodeTokens.svelte';
 	import ExercisePlayground from '#lib/components/ExercisePlayground.svelte';
+	import StorageExercise from '#lib/components/StorageExercise.svelte';
 	import ValidationJourney from '#lib/components/ValidationJourney.svelte';
 	import ValidationProject from '#lib/components/ValidationProject.svelte';
 	import { validationJourney } from '#lib/backendValidation.js';
@@ -162,7 +163,9 @@
 			<p class="lead">{lesson.intro}</p>
 		</section>
 
-		{#if lesson.number <= 7}
+		{#if lesson.number === 5}
+			<StorageExercise {moduleId} />
+		{:else if lesson.number <= 7}
 			{#key lesson.number}<ExercisePlayground {lesson} {moduleId} />{/key}
 		{:else}
 		<section id="forsok" class="lab" aria-labelledby="lab-title">
@@ -346,14 +349,14 @@
 				<ValidationJourney current="bruk-selv" {moduleId} />
 				<ValidationProject id="validation-project" />
 			</details>
-		{:else if lesson.number <= 6}
+		{:else if lesson.number === 6}
 			<details id="eget-prosjekt" class="project-fold" open={ready && page.url.hash === '#eget-prosjekt'}>
-				<summary>Bygg selv: {lesson.number === 5 ? 'behold meldingene etter omstart' : 'endre og slette i din egen chat'}</summary>
+				<summary>Bygg selv: endre og slette i din egen chat</summary>
 				<ProjectTask instruction={lesson.transfer.instruction} check={lesson.transfer.check} guide={lesson.transfer.guide} />
 				<p>{lesson.context}</p>
 				{#each lesson.related as related}<a href={moduleLink(related.href, moduleId)}>{related.label} →</a>{/each}
 			</details>
-		{:else}
+		{:else if lesson.number !== 5}
 		<ProjectTask id="eget-prosjekt" instruction={lesson.transfer.instruction} check={lesson.transfer.check} guide={lesson.transfer.guide} />
 		<details class="context">
 			<summary>Oppsett og kodehjelp til prosjektet</summary>
