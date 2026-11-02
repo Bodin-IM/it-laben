@@ -17,7 +17,7 @@ test('14 kvalitetsprøver bygger ekte kontekst uten nettverk, elevdata eller vur
 	t.mock.method(globalThis, 'fetch', () => { throw new Error('Dry run must not contact a model'); });
 	const cases = backendEvaluationCases();
 	assert.equal(new Set(cases.map((c) => c.id)).size, 14);
-	const report = await evaluatePartner({ dryRun: true });
+	const report = await evaluatePartner({ dryRun: true, cases });
 	assert.equal(report.mode, 'contexts-only');
 	assert.equal(report.results.length, 0);
 	assert.equal(report.model, null);
@@ -33,7 +33,9 @@ test('14 kvalitetsprøver bygger ekte kontekst uten nettverk, elevdata eller vur
 	assert.equal(work('ett-steg').feedback, undefined);
 	assert.equal(work('gammelt-forsok').lastTest.isCurrent, false);
 	assert.equal(work('bestatt-test').lastTest.coverage.passed, work('bestatt-test').lastTest.coverage.total);
-	assert.match(work('lagringsfeil').feedback.result, /500/);
+	assert.equal(work('lagringsfeil').viewedEvent, undefined);
+	assert.equal(work('lagringsfeil').feedback, undefined);
+	assert.match(work('lagringsfeil').examples[3].code, /res.status\(500\)/);
 	const other = buildPartnerMessages({ question: 'Forklar dette', history: [], snapshot: {
 		activityId: 'page-help', version: 1, pageId: 'database-grunnlag', running: false, events: []
 	} });

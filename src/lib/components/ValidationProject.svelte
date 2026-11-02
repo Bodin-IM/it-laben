@@ -1,8 +1,10 @@
 <script>
 	import { validationTransfer } from '#lib/backendValidation.js';
+	/** @type {{id?:string}} */
+	let { id = 'eget-prosjekt' } = $props();
 </script>
 
-<section id="eget-prosjekt" tabindex="-1" aria-labelledby="validation-project-title">
+<section {id} tabindex="-1" aria-labelledby="validation-project-title">
 	<p class="eyebrow">BRUK SELV · I DITT EGET PROSJEKT</p>
 	<h2 id="validation-project-title">Gi brukeren et gyldig visningsnavn</h2>
 	<p><strong>Her jobber du:</strong> I kodeeditoren, med din egen Express-backend og Svelte-frontend. Bruk testdata.</p>

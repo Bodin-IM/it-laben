@@ -72,7 +72,9 @@ test('alle oppgavestarter er gyldige valg, kan kjøres og bevarer metadata og la
 			assert.ok(field.choices.some((choice) => choice.value === values[field.key]), `${lesson.number}: ${field.key}`);
 		const trace = buildTrace(lesson.number, values);
 		assert.ok(trace.length > 1);
-		const state = { version: 1, values: { choices: lessonChoices(lesson, values), step: trace.length - 1, line: -1, task } };
+		const state = lesson.number === 5
+			? { version: 1, values: {} }
+			: { version: 1, values: { choices: lessonChoices(lesson, values), step: trace.length - 1, line: -1, task } };
 		assert.doesNotThrow(() => readPartnerState(`oving-${lesson.number}`, state));
 		const messages = buildPartnerMessages({ question: 'Hva bør jeg undersøke videre?', history: [], snapshot: {
 			version: 2, activityId: 'page-help', pageId: `oving-${lesson.number}`, moduleId: 'backend',
@@ -105,7 +107,7 @@ test('læreropplegg dekker de veiledede øvingene i modulrekkefølge og har priv
 	validateTeachingGuides();
 	const plans = backend.teachingPlanIds.map((id) => teachingPlans.find((plan) => plan.id === id));
 	assert.deepEqual(plans.flatMap((plan) => plan.lessonIds), contents.filter((step) => step.kind === 'oving').map((step) => step.id));
-	assert.equal(teachingGuides.length, plans.length);
+	assert.equal(teachingGuides.filter((guide) => backend.teachingPlanIds.includes(guide.planId)).length, plans.length);
 	for (const plan of plans) {
 		assert.ok(!('notes' in plan) && !('preparation' in plan));
 		assert.ok(teachingGuides.find((guide) => guide.planId === plan.id).wrapUp.length);

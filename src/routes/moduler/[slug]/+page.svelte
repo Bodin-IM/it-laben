@@ -14,6 +14,7 @@
 	import PersonalOverview from '#lib/components/PersonalOverview.svelte';
 	import ValidationJourney from '#lib/components/ValidationJourney.svelte';
 	import BackendStart from '#lib/components/BackendStart.svelte';
+	import DatabaseStart from '#lib/components/DatabaseStart.svelte';
 	import ProjectTask from '#lib/components/ProjectTask.svelte';
 	import { backendSections } from '#lib/backendCourse.js';
 	/** @type {{data:{module:import('#lib/moduler.js').Module}}} */
@@ -186,6 +187,7 @@
 				</div>
 			{/if}
 			{#if module.id === 'backend'}<BackendStart />{/if}
+			{#if module.id === 'databaser'}<DatabaseStart />{/if}
 			<details class="module-guide">
 				<summary>Mål og forkunnskaper</summary>
 				<div class="guide-content">
@@ -202,7 +204,7 @@
 				</div>
 			</details>
 			{#if teacher}<ModuleTeachingSuggestions {module} />{/if}
-			{#if !teacher}<PersonalOverview moduleId={module.id} />{/if}
+			{#if !teacher && module.id !== 'databaser'}<PersonalOverview moduleId={module.id} />{/if}
 			<div class="layout">
 				<section id="forlop" aria-labelledby="forlop-title" tabindex="-1">
 					<div class="section-heading">

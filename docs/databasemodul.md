@@ -3,7 +3,7 @@
 Første runde i utviklingsfaget, Vg2 IT. Modul: `/moduler/databaser/`.
 Elevene bør ha sett objekter/lister i JavaScript og vite at frontend og backend har ulike oppgaver. Innføringen forklarer databasebegrepet fra starten; den forutsetter ikke at eleven husker MySQL fra Vg1. Node.js-driveren, `await`, forbindelsen og databaseoperasjonene introduseres med forklart kode.
 
-Modulen starter som **kommende**. Læreren kan gjennomgå innholdet og aktivere modulen fra **Lærerpanel → Undervisning**, i kortet «Databaser – fra tabeller til dokumenter». Før aktivering må elevene ha tilgang til MongoDB for kodeoppgaven. Modulstatus er separat fra lokal øvingsstatus og oppretter ingen poeng eller vurderingsdata.
+Læreren styrer tilgjengeligheten fra **Lærerpanel → Undervisning**, i kortet «Databaser – fra tabeller til dokumenter». Nettleseraktivitetene kan brukes uten MongoDB; før kodeoppgaven må elevene få tilgang til en egen øvingsdatabase. Modulstatus er separat fra lokal øvingsstatus og oppretter ingen poeng eller vurderingsdata.
 
 ## Læreplan og avgrensning
 
@@ -15,7 +15,7 @@ Læreplan ITK02-01, programfag **utvikling**. Referansene er lokale, ikke offisi
 
 Se [full læreplan](laereplan/ITK02-01.md#utv-09), [læreplangrunnlag](laereplangrunnlag.md), [pedagogisk grunnlag](pedagogisk-grunnlag.md) og [aktivitetsmal](aktivitetsmal.md).
 
-Denne runden introduserer databasebegrepet, dokumentmodellen og metoder for å hente og sette inn bestemte data. Eleven følger data mellom frontend, backend og database, leser et gjennomarbeidet Node.js-eksempel og oppretter en øvingscollection fra et startprosjekt. Dette støtter UTV-09 gjennom en enkel, ferdig modell, UTV-10 gjennom sammenligning av tabell/dokument og konkret `find()`/`insertOne()`, og UTV-08 gjennom testdata og kjøringer i eget øvingsmiljø. Selvstendig modellering, full CRUD, relasjoner, produksjonssikkerhet og systemintegrasjon krever videre arbeid. Runden dekker ikke hele kompetansemålene.
+Denne runden introduserer databasebegrepet, dokumentmodellen og metoder for å hente og sette inn bestemte data. Eleven følger data mellom frontend, backend og database, leser et gjennomarbeidet Node.js-eksempel og oppretter en øvingscollection fra et startprosjekt. Dette støtter UTV-09 gjennom valg av felt i et avgrenset register og arbeid med egen collection, UTV-10 gjennom sammenligning av tabell/dokument og konkret `find()`/`insertOne()`, og UTV-08 gjennom testdata og kjøringer i eget øvingsmiljø. Selvstendig modellering, full CRUD, relasjoner, produksjonssikkerhet og systemintegrasjon krever videre arbeid. Runden dekker ikke hele kompetansemålene.
 
 Sikkerhet inngår gjennom egen øvingsdatabase, avgrensede tilganger og tilkoblingshemmeligheter utenfor Git og KI-kontekst. Datasettene er fiktive. Muntlig forklaring, lesing av kode og sammenligning av modeller inngår i arbeidet.
 
@@ -23,11 +23,12 @@ Sikkerhet inngår gjennom egen øvingsdatabase, avgrensede tilganger og tilkobli
 
 | Del                      | Elevens arbeid                                                                                        | Respons og grunnlag for oppfølging                                                                      |
 | ------------------------ | ----------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------- |
-| Databaser fra grunnen av | Lese kode, følge dataflyt, sammenligne tabell/dokument og forklare tilkobling, henting og innsetting. | Trinnvis kodeforklaring og synlige eksempelresultater. Et åpnet avsnitt er ikke dokumentert læring.     |
+| Databaser fra grunnen av (oppslag) | Lese kode, følge dataflyt, sammenligne tabell/dokument og forklare tilkobling, henting og innsetting. | Trinnvis kodeforklaring og synlige eksempelresultater. Et åpnet avsnitt er ikke dokumentert læring.     |
 | Finn riktig utstyr       | Forutsi, kjøre og reparere tre filtre. Undersøke dokumenter som blir med og faller utenfor.           | Rekonstruert resultat, kontroll per betingelse og sammenligning med prediksjonen. Hint uten poengtrekk. |
+| Utstyrsboden · dataverksted | Lage testdata, reparere datatyper og velge felt ut fra to behov. | Resultat fra begge søk, konsekvens av feltene og ett konkret neste forsøk. |
 | Kod ditt eget register   | Koble Node.js til ekte MongoDB. Skrive egne søk, legge til et fiktivt testdokument og prøve igjen.    | Synlig terminalresultat og testkriterier. Læreren følger opp kode, forklaring og valg av testdata.      |
 
-### Innføring før grunnøvingene
+### Teori og eksempler ved behov
 
 Åtte korte deler vises én om gangen, med nummer, tittel, forrige/neste og direkte kapittelvalg. På smal skjerm erstatter en merket nedtrekksmeny sidemenyen. URL-parameteren `del` gjør det mulig å åpne riktig kapittel igjen, også fra tilbakemeldinger. Bytte med kapittelknapp flytter fokus til den nye overskriften. Valgt del formidles med tekst og `aria-current`, ikke bare farge.
 
@@ -48,7 +49,7 @@ Grunnøvingene prøver likhet, implisitt AND og en inkluderende tallgrense (`$lt
 
 Oppdragene godtar like resultatsett i dette datasettet, også ulike filtre som gir samme resultat. Det er ikke bevis på at filteret uttrykker samme krav for alle mulige data. Derfor legger eleven til egne testdata i kodeoppgaven og forklarer virkningen. Feil prediksjon er formativ og hindrer ikke videre arbeid.
 
-Tre søk som består med nåværende filter, åpner den normale veien til kodeoppgaven. Oppgaveteksten kan åpnes for gjennomgang med lærer uten å fabrikere ferdigstatus. Dette støtter repetisjon, elever som allerede kan stoffet og situasjoner der lokal lagring er blokkert. Dette er en pedagogisk rekkefølge, ikke en tilgangs- eller vurderingsgrense.
+Anbefalt rekkefølge er søkeoppdrag → dataverksted → egen kode. Alle deler er tilgjengelige direkte innenfor modulens publiseringsregler. Kodeoppgaven er ikke sperret av lokal øvingsstatus; dette støtter videre arbeid fra en annen PC og blokkert lagring. Teorien er et oppslagsverk og en mulig felles introduksjon, ikke åtte obligatoriske lesesteg før eleven får prøve.
 
 ## Progresjon og bevaring
 
@@ -60,7 +61,7 @@ Filterutkast, siste kjøringsvalg og prediksjoner lagres lokalt med innholdsvers
 
 Eleven trenger Node.js 22+ og MongoDB tilgjengelig fra maskinen som kjører Node. Læreren klargjør en database med avgrenset tilgang per elev/gruppe, eller eleven bruker sin egen lokale MongoDB. Ingen ny MongoDB installeres på IT-labens server av denne endringen. Eksisterende Atlas kan brukes, men det er ikke krav om skykonto.
 
-ZIP-en under `static/ressurser/utstyrsboden-start.zip` inneholder `.env.example`, `.gitignore`, `package.json`, `utstyr.json`, `klargjor.mjs`, `eksempel.mjs`, `finn.mjs` og `LES-MEG.md`. Ingen faktiske tilkoblingsopplysninger følger med. Eleven installerer driveren med `npm install mongodb`. Klargjøringen validerer typer og unike ID-er før den skriver, og bruker `$setOnInsert` med `upsert` for å legge til manglende dokumenter uten å overskrive eller slette eksisterende arbeid. En avbrutt klargjøring kan kjøres igjen.
+ZIP-en under `static/ressurser/utstyrsboden-start.zip` inneholder `.env.example`, `.gitignore`, `package.json`, `utstyr.json`, `sjekk.mjs`, `klargjor.mjs`, `eksempel.mjs`, `finn.mjs` og `LES-MEG.md`. Ingen faktiske tilkoblingsopplysninger følger med. Eleven installerer driveren med `npm install mongodb`. Klargjøringen validerer typer og unike ID-er før den skriver, og bruker `$setOnInsert` med `upsert` for å legge til manglende dokumenter uten å overskrive eller slette eksisterende arbeid. En avbrutt klargjøring kan kjøres igjen.
 
 Etter klargjøring i en ny database kan eleven kjøre `node --env-file=.env eksempel.mjs`. Det viser tre kameraer, legger til Mikrofon Bord med ID M203 og viser tre mikrofoner. Databasen har da sju dokumenter. Gjentatt innsetting gir en forklart duplikatfeil og beholder det eksisterende dokumentet. Dette håndteres også i testkriteriene for den senere kodeoppgaven: de seks startdokumentene må være til stede, og M203 er forventet hvis eksemplet er kjørt. Eksemplet lukker klienten når terminalprogrammet avsluttes; siden forklarer at en webserver normalt gjenbruker klienten mellom forespørsler.
 
@@ -68,10 +69,11 @@ Datasett, øvingsmodell og startkode eies av `src/lib/databaseCourse.js`. Innfø
 
 ## Labpartner
 
-Følger [felles kontekstsystem](labpartner-kontekst.md). Tre eksplisitte adaptere har kontraktversjon 1:
+Følger [felles kontekstsystem](labpartner-kontekst.md). Fire eksplisitte adaptere har kontraktversjon 1:
 
 - Teori deler én av åtte kjente deler, valgt hente-/lagreflyt og hendelse, kjent søkeeksempel og om resultatet er åpnet, samt innsettingssteget. Backend rekonstruerer det aktuelle offentlige eksemplet. Et uåpnet søkeresultat følger ikke med. Bare kjente enumverdier, boolsk verdi og avgrensede heltall godtas. Kontraktversjon 1 utvides med valgfrie felt med standardverdier, slik at eldre klienter som bare sender `section` fortsatt virker.
 - Søkeøvingen deler kjente oppdrags-ID-er, enumverdier for filteret, prediksjon som kjente dokument-ID-er, tidligere kjøringsvalg, valgt dokument, siste navngitte handling og antall åpnede hint. Backend rekonstruerer filter og resultat fra samme modell. Gamle resultater merkes. Bare allerede åpnede hint og undersøkt forklaring følger med.
+- Dataverkstedet deler kjent oppdrag, tillatte menyvalg, valg fra siste kjøring og antall åpne hint. Backend bygger dokumenter og respons fra samme modell. En utestet eller utdatert kjøring deler ikke resultat som om det var synlig. Ingen egen fritekst eller rå filer inngår.
 - Praksis deler bare oppgavesteget. Backend supplerer med oppdrag, startkode på kodesteget og synlige testkriterier på oppsummeringssteget. Modellen får uttrykkelig beskjed om at den ikke ser lokal kode, terminal eller database.
 
 Bytte av teorikapittel, hente-/lagreflyt, oppdrag eller praksissteg tømmer samtalen. Endring av eksempelsteg, filter eller resultat gjør eldre svar utdaterte. Ingen automatisk deling av fritekst, URI, passord, DOM eller rå filer. Elevens eget spørsmål behandles som i resten av labpartneren.
@@ -95,7 +97,9 @@ Planlagt videre arbeid (tydelig merket som upublisert i modulen): CRUD og valide
 - [MongoDB: likhetsoperator](https://www.mongodb.com/docs/manual/reference/operator/query/eq/)
 - [Svelte: reaktiv tilstand](https://svelte.dev/docs/svelte/$state)
 
-## Kontroll og elevutprøving
+## Historisk kontroll og videre elevutprøving
+
+Kontrollene under gjelder tidligere utgaver. De validerer ikke dev-endringen fra 1. november beskrevet nedenfor.
 
 29. oktober 2026, utvidet innføring: Alle 209 tester består, inkludert nye kontroller av eksempelresultater, avgrensede eksempelsteg, bakoverkompatibel KI-kontrakt og samsvar mellom nettsidens kode og ZIP-en. Den kjørbare filen er syntakskontrollert og kjørt mot en kontrollert driverdobbel: henting, innsetting, gjentakelse, forbindelses-/skrivefeil og lukking. Dette er ikke en prøve mot en faktisk MongoDB-server. `npm run check` gir ingen feil eller advarsler, og produksjonsbygget består. Svelte MCP var fortsatt utilgjengelig; offisiell dokumentasjon og prosjektets kontroller ble brukt.
 
@@ -111,4 +115,60 @@ Nettleserprøven kontrollerte kommende status og læreraktivering, og gjennomfø
 
 Kontrollene skal dekke datatype og grenseverdier, gyldige alternativer, utdatert resultat, lokal lagring, avvisning av ugyldig KI-kontekst og samsvar med nedlastingen. Nettleserprøven skal dekke hele veien fra modul til kodeoppgave, mobil, tastatur, tema, forstørrelse, profilbytte og hjelp uten KI.
 
-Teknisk kontroll erstatter ikke elevutprøving. Prøv først med 3–5 elever med ulike forkunnskaper. Undersøk om de kan plassere kodeoperasjonene i frontend/backend/database, skille tilkobling fra henting og innsetting, forklare et tomt resultat og en duplikatfeil, og bruke forklaringen til å rette et filter og lage et eget søk med mindre støtte. Tilkobling til skolens faktiske MongoDB, kvaliteten på lokale Ollama-svar og pedagogisk utprøving må kontrolleres i skolens miljø.
+Teknisk kontroll erstatter ikke elevutprøving. Bruk ordinær undervisning til å undersøke om elevene kan plassere kodeoperasjonene i frontend/backend/database, skille tilkobling fra henting og innsetting, forklare et tomt resultat og en duplikatfeil, og bruke forklaringen til å rette et filter og lage et eget søk med mindre støtte. Tilkobling til skolens faktiske MongoDB, kvaliteten på lokale Ollama-svar og pedagogisk utprøving må kontrolleres i skolens miljø.
+
+
+## Strategi og interaktiv utgave – dev, 1. november 2026
+
+Brukerens føring er korte oppdrag, handling og synlige konsekvenser, med forklaringer ved behov. Dette følger strategiutkastet fra 30. oktober og prioriterer sammenheng, anvendelig respons, overgang til eget prosjekt og presis bevaring av arbeidsplass. Aktiviteten er en lokal designløsning; det er ikke dokumentert at mindre tekst eller kortvisning gir samme eller bedre læring.
+
+### Elevhandling, respons og gradvis mindre støtte
+
+| Oppdrag | Elevens produkt/handling | Respons | Ny anvendelse |
+| --- | --- | --- | --- |
+| Tre bestillinger | Velge filter, kjøre og undersøke konkrete dokumenter | Kort med Treff/Utenfor, kontroll av hver betingelse og et konkret manglende/uønsket dokument | Skrive egne filtre i finn.mjs |
+| To søk, samme resultat? | Lage et ekstra dokument med valgt kategori og pris | Sammenligne faktiske resultatsett for kameraer med/uten prisgrense; 500 og 501 er tilgjengelige valg | Legge til eget moteksempel og prøve grensen i ekte MongoDB |
+| Hvor ble utstyret av? | Rette tekst til boolsk/tall i to importerte dokumenter | Null, ett eller to treff etter ny kjøring; årsak for hvert manglende dokument | Gjenskape ett datatypeproblem i eget testmiljø |
+| Bygg et register som virker | Velge felt og velge ID-/navnefilter for to like kameraer | Ett søk skal identifisere K402, ett skal finne ledig utstyr til høyst 300. Kategori kan tas med eller utelates | Modellere tre supportsaker og søke på status/prioritet uten ferdige feltvalg |
+
+Forkunnskaper: objekter, lister og enkle betingelser i JavaScript. Illustrasjonene viser utstyrstypen; kortet viser de faktiske verdiene. Navn, ID og tekstetiketter bærer informasjonen også uten farge eller illustrasjon. Hint er frivillige og gir ikke trekk. Gjetning før kjøring er valgfri, beholdes som del av kjøringen og brukes til sammenligning. En ny, ennå ikke kjørt gjetning lagres ikke som forsøksresultat.
+
+Begge søk i moteksempeloppdraget og filteret i datatypeoppdraget vises direkte. Lengre kode og forklaringer åpnes ved behov. Resultat vises først etter Kjør. Endrede valg gjør tidligere resultat utdatert og fjerner gjeldende beståttmarkering, uten å slette de lagrede kjøringsvalgene. Automatisk kontroll gjelder avgrenset funksjon i modellen, aldri generell forståelse. Ved modelloppdraget godtas begge gyldige valg av kategori. Fritekst vurderes ikke automatisk.
+
+Dataverkstedets modell dekker bare de eksplisitte feltene og operatorene i oppdragene. Sammenligning mot en tallgrense omfatter tall, ikke tekst; et manglende felt oppfyller ikke de brukte betingelsene. Dette er ikke en full modell for BSON, arrayer, null, collation, referanser, innbygging, indeksvalg eller CRUD. De eksisterende seks grunnøving-dokumentene endres aldri av verkstedet.
+
+### Bevaring, navigasjon og hjelp
+
+- Eksisterende søk beholder ID-er, innholdsversjon og lagringsnøkkel. Ingen elevforsøk migreres eller slettes.
+- Dataverkstedets valg og siste kjøring har egen versjonert lagringsnøkkel. Gjenoppretting godtar bare kjente kontrollverdier; bestått beregnes på nytt. Profil, øvingsmodus og læreråpning avgrenser både gamle og nye forsøk.
+- Sist åpnet aktivitet/steg lagres separat som bokmerke. Modulstart tilbyr Fortsett der du slapp. Dette er en arbeidsplass, ikke gjennomføringsstatus. URL-parametrene `oppdrag`, `steg` og `del` støtter direkte lenker og tilbake/frem. Eksplisitte lenker går foran bokmerket ved sideåpning.
+- Lokal status følger ikke mellom maskiner. Kodeoppgaven er åpen selv om grunnøvingene mangler på denne PC-en. Arbeid i elevens editor lagres ikke av nettsiden.
+- Lagringsfeil får en kort melding. Prøving og navigering kan fortsette. Gjestestatus deles mellom gjester i samme nettleser.
+- «Vis meg hvor» peker på filter/valg, kjøringsknapp, tilgjengelig resultat, nedlasting eller feilhjelp. Markering ryddes ved oppdrags-, fase- og profilbytte. Ingen modellkall brukes til navigasjonshjelpen.
+- Nytt læreropplegg «Utstyrsboden: finn, undersøk og bygg» finnes i modulens lærerforslag. Offentlige aktivitetssider er tilgjengelige for presentasjon uten å bli registrert som XP-aktiviteter. Detaljerte lærernotater ligger på serveren.
+
+### Fra nettleser til egen maskin
+
+Praksissiden har fire korte arbeidssteg: koble til, hente startdata, lage egne søk, teste/forklare. Startpakken har `sjekk.mjs`, som bare kobler til og forsøker å lese én enhet. [KLAR] betyr forbindelse og lesetilgang, også i en tom collection. Den sier ikke at skrivetilgang er kontrollert.
+
+Faste feilkategorier skiller oppsett, kontakt, innlogging, rettigheter, startdata, duplikat, lesing og lagring. Rå feilmeldinger og tilkoblingsopplysninger skrives ikke ut av hjelpen. Feilkategoriene beskriver hva eleven kan undersøke; de er ikke en sikker diagnose av alle driverfeil. En innsetting som ikke kunne bekreftes følges opp med ny lesing. Klargjøringen kan ha lagt til noen dokumenter før en feil; den kan kjøres på nytt uten å overskrive eksisterende ID-er.
+
+Læreren må fortsatt prøve startprosjektet fra elevmiljøet mot skolens MongoDB. Nettlesermodellen trenger ingen MongoDB og skal ikke opprette kontoer eller installere en server på elevens vegne.
+
+### Kontrollstatus og neste arbeid
+
+Kode og diff gjennomgås på dev, og ZIP-en genereres fra de samme kildene som brukes av sidene. Nye regresjonsprøver er skrevet for 500/501-grensen, datatypeforskjeller, flere gyldige modeller, lokale bokmerker, gammel kjøring, avgrenset KI-kontekst og feilhåndtering uten hemmeligheter. De er ikke kjørt i denne dev-leveransen. Eksisterende prøver er oppdatert for nye læreropplegg og skjult dokumentinspeksjon etter filterendring.
+
+Svelte MCP er ikke tilgjengelig. Offisiell dokumentasjon og den installerte SvelteKit-typingen er brukt; steglenkene bruker SvelteKit 3 sitt `reset: false`. Samlet testsuite, Svelte-sjekk, produksjonsbygg og nettleser-/tilgjengelighetskontroll gjenstår før main i tråd med AGENTS.md.
+
+Før publisering: prøv alle seks oppdrag med feil og gyldige valg, endring etter kjøring, gjenåpning og konto-/modusbytte, direkte lenker og tilbake/frem, korrupt/blokkert lagring, alle fire praksissteg og den genererte ZIP-en. Kontroller særlig fokus etter oppdragsbytte/Undersøk/Vis meg hvor, 320/390 px, tastatur, begge temaer og 200 % tekst. Kontroller at oppdatert filter ikke presenterer gammelt resultat eller forklaring som gjeldende.
+
+Labpartnerens kvalitetsprøve har fem nye databasesituasjoner (før kjøring, gammel kjøring, datatyper, alternative feltvalg og eget oppsett). De inngår sammen med de 14 Backend-situasjonene. Faktiske modellsvar er ikke prøvd. Eleven kan alltid bruke fast hint og sidehjelp.
+
+Neste faglige runde er fortsatt innsetting, oppdatering, sletting og validering i samme register, deretter Express/Svelte og mer selvstendig modellering med utlån. Denne leveransen fullfører ikke disse senere rundene.
+
+### Tekniske kilder for denne utgaven
+
+- [MongoDB: typer i sammenligningsfiltre](https://www.mongodb.com/docs/manual/reference/mql/query-predicates/type-bracketing/)
+- [Node.js-driver: feilsøking av forbindelse og innlogging](https://www.mongodb.com/docs/drivers/node/current/connect/connection-troubleshooting/)
+- [Svelte: effekter og avhengigheter](https://svelte.dev/docs/svelte/$effect)

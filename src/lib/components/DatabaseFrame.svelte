@@ -1,10 +1,11 @@
 <script>
 	import { databaseActivities } from '#lib/databaseCourse.js';
 	import { moduleLink } from '#lib/moduleNavigation.js';
+	import { databasePlaces } from '#lib/databaseJourney.js';
 	import '#lib/database.css';
-	/** @type {{index:number,children:import('svelte').Snippet}} */
-	let { index, children } = $props();
-	const current = $derived(databaseActivities[index]);
+	/** @type {{activityId:string,children:import('svelte').Snippet}} */
+	let { activityId, children } = $props();
+	const current = $derived(databaseActivities.find((a) => a.id === activityId) ?? databaseActivities[0]);
 </script>
 
 <svelte:head
@@ -19,22 +20,22 @@
 		<p class="db-eyebrow">Utvikling · MongoDB · Runde 1</p>
 		<h1>{current.tittel}</h1>
 		<p class="db-intro">{current.beskrivelse}</p>
-		<p class="db-meta">Utstyrsboden · Fra et forståelig forsøk til din egen kode</p>
 	</header>
-	<nav class="db-sequence" aria-label="Rekkefølge i første runde">
-		{#each databaseActivities as activity, step}
+	<nav class="db-sequence" aria-label="Arbeid i databasemodulen">
+		{#each databasePlaces.slice(0, 3) as activity, step}
 			<a
-				href={moduleLink(activity.href, 'databaser')}
-				aria-current={step === index ? 'step' : undefined}
+				href={moduleLink(activity.path, 'databaser')}
+				aria-current={activity.id === activityId ? 'step' : undefined}
 				><span aria-hidden="true">{step + 1}</span><span
 					>{step === 0
-						? 'Teori og eksempel'
+						? 'Finn utstyr'
 						: step === 1
-							? 'Øv i IT-laben'
+							? 'Dataverkstedet'
 							: 'Kod på egen maskin'}</span
 				></a
 			>
 		{/each}
 	</nav>
+	<p class="db-muted"><a href="/databaser/grunnlag/?modul=databaser" aria-current={activityId === 'database-grunnlag' ? 'page' : undefined}>Teori og kodeeksempler</a> · Åpne når du trenger en forklaring.</p>
 	{@render children()}
 </main>

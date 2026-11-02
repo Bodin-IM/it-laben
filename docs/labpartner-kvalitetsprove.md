@@ -72,3 +72,8 @@ Ta så tre korte kontroller i elevpanelet: et feil forsøk, en utestet kodeendri
 De 14 kontekstene er bygget med `--dry-run`. Åtte avgrensede regresjonstester for fagsjekkoppfølging og evalueringsverktøyet bestod. De bruker SQLite i minnet og kontrollerte modellsvar; dette er ikke svar fra skolens modell. Felles modellklient er hentet ut fra API-ruten uten å endre kall, grenser eller API-ets håndtering av timeout.
 
 Arbeidsmiljøet har ingen konfigurert tilgang til skolens modell. Faktiske modellsvar, faglig vurdering, ventetid i skoledrift og panelprøven gjenstår. Tidligere bekreftet rask drift av `qwen3.8:27b` med `LAB_PARTNER_THINK=false` er ikke en kvalitetsvurdering av disse situasjonene. Samlet testsuite, Svelte-sjekk, bygg og relevant nettleserprøving gjenstår før main.
+
+
+## Databasesituasjoner – dev, 1. november 2026
+
+Kommandoen inkluderer nå også `database-uten-kjoring`, `database-gammelt-resultat`, `database-datatyper`, `database-modellvalg` og `database-egen-maskin`. Bruk `--case=ID` for å avgrense kjøringen. Totalt er det 19 situasjoner, hvor de 14 eksisterende Backend-situasjonene beholdes. Ingen databasesvar fra skolens modell er vurdert i denne leveransen. Kontroll av de nye kontekstene inngår i testene før main.

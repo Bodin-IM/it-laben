@@ -5,19 +5,20 @@
 /** @type {Record<number,ProjectGuide>} */
 export const backendProjectGuides = {
 	5: {
-		where: 'Backend: lagring.js og GET/POST /meldinger i server.js. Datafil: data/meldinger.json utenfor public og static.',
-		prerequisite: 'POST og GET må virke med en liste i minnet. Bruk lærerens lagringsoppsett med en eksisterende datamappe og én backendprosess.',
-		firstChange: 'Finn linjen som legger meldingen direkte i listen. Lag i stedet en ny liste som inneholder de gamle meldingene og den nye, uten å endre den gamle listen ennå.',
+		where: 'Samme server.js og meldinger.json som i Fillagring. Behold eksisterende filsti utenfor public og static.',
+		prerequisite: 'POST og GET virker med en meldingsliste. Bruk én backendprosess og en egen testkopi når du prøver feil.',
+		firstChange: 'La lagreMeldinger ta imot listen slik del 1 viser. Kall lagreMeldinger(meldinger) etter push i POST. Send en gjenkjennelig melding og finn den i JSON-filen.',
 		steps: [
-			'Koble lagreListe til POST: skriv den nye listen til en midlertidig fil og erstatt datafilen som i øvingen. Bytt listen i minnet og send 201 først etter vellykket lagring.',
-			'La en skrivefeil gi et feilsvar og beholde den gamle listen. Ved oppstart leses datafilen før rutene tar imot requests. Bare manglende fil skal gi en tom liste.',
-			'Bruk den eksisterende GET-ruten til å hente den innleste listen. La frontend sjekke svar.ok før den viser sendingen som vellykket.'
+			'Undersøk en kontrollert skrivefeil med push før lagringen. Sammenlign minnet, filen og HTTP-svaret.',
+			'Start backend på nytt for å fjerne ulagrede endringer. Erstatt try/catch-blokken med eksemplet i del 4: lag nyListe, lagre den, og bytt meldinger først etter vellykket lagring.',
+			'Prøv både normal lagring og feil. Undersøk deretter manglende fil og ugyldig JSON i separate testkopier. Bare manglende fil skal gi en tom liste.'
 		],
 		tests: [
-			'Send en gjenkjennelig testmelding, stopp backend og start på nytt. GET skal fortsatt inneholde meldingen.',
-			'I en testkopi: la lagringsfunksjonen kaste en feil før filskriving. Send en ny melding; du skal få et feilsvar, og minnet og datafilen skal være uendret. Fjern testfeilen og prøv igjen.'
+			'Send en egen melding, stopp backend og start igjen. GET skal fortsatt inneholde meldingen.',
+			'La lagreMeldinger kaste en feil før filskriving i testkopien. Med den forbedrede koden skal forsøket gi et feilsvar uten å endre minnet eller filen. Fjern testfeilen og prøv igjen.',
+			'Prøv oppstart uten fil og med ødelagt JSON. Den eksisterende ødelagte filen skal beholdes.'
 		],
-		hint: 'Hvis en avvist melding likevel dukker opp ved neste GET, se etter push eller tildeling til meldinger før lagringen er ferdig. Ta vare på fungerende kode og data før du prøver feil.'
+		hint: 'En endret rekkefølge fjerner ikke allerede ulagrede meldinger. Start fra filen før du sammenligner. Vis hvilken linje som hoppes over når lagringen feiler.'
 	},
 	6: {
 		where: 'Backend: PATCH og DELETE /meldinger/:id i server.js. Frontend: redigerings-/sletteknapp og hentMeldinger i src/routes/+page.svelte.',

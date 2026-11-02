@@ -24,7 +24,8 @@ En kanal er lokal for én layout, også ved serverrendering. En komponent som fo
 | Chatrom                               | Rom, fiktiv øvingsbruker, kodevalg, steg, status, antall og det separate romlisteforsøket | Ingen meldingsinnhold eller ekte session-ID                                                          |
 | Fillagring                            | Operasjon, lagringsvalg, aktiv/valgt linje, fil/minnestatus og antall                     | Ingen filinnhold                                                                                     |
 | Sessions                              | Seksjon, trinn, eksperiment, fiktiv profil A/B, cookietilstedeværelse og status           | Ingen cookieverdi, navn eller kontohemmelighet; backendkoden er faglig referanse                     |
-| Øving 5–10 og nye ark i `ExerciseLab` | Menyvalg, egenskaper ved tekstfelt, synlig kjøringssteg, kodelinje og åpnet deloppgave    | Backend bruker eksempelverdier til å velge riktig modellgren; råtekst og modellens datadump utelates |
+| Øving 5                              | Bare sidens offentlige eksempler, forklaringer og prøveoppgaver                           | Ingen simulatorstatus, lest del, meldingstekst, filinnhold eller resultater fra elevens maskin         |
+| Øving 6–10 og nye ark i `ExerciseLab` | Menyvalg, egenskaper ved tekstfelt, synlig kjøringssteg, kodelinje og åpnet deloppgave    | Backend bruker eksempelverdier til å velge riktig modellgren; råtekst og modellens datadump utelates |
 | To nettlesere, én chat                | Oppdrag, kodekort, valgt kodevisning og synlig kjøringssteg                               | Ingen fremtidige steg eller ferdigresultat fra en uferdig visning                                    |
 | Meldingsdetektiven                    | Sak, kodevalg, undersøkelse og valgt hendelse fra siste viste kjøring                     | Gamle kjøringer merkes; komplette kontrollsett og fremtidige hendelser utelates                      |
 | Redd chatten                          | Eksisterende detaljerte kode-, test- og handlingskontekst, nå også modul                  | Se [pilotbeskrivelsen](labpartner-ki-pilot.md)                                                       |
@@ -119,3 +120,16 @@ Backend-modulen samler de tidligere tre utviklingsmodulene. Gamle modulparametre
 `server/lab-partner/evaluation-cases.js` definerer 14 syntetiske situasjoner. `npm run partner:eval` bygger dem med `buildPartnerMessages` og bruker samme modellklient som elev-API-et. Vurderingskriterier blir i rapporten og sendes ikke til modellen. `--dry-run` bygger bare konteksten. Se [kjøring, kriterier og status](labpartner-kvalitetsprove.md).
 
 Sideinstruksjonen er flyttet til `instructions.js` og presisert for Backend med kort, tilpasset støtte, begrensning til vist steg, håndtering av utestet/gammel kjøring og hjelp i egen chat fra `transfer.guide`. Ingen nye klientfelt eller rå inndata er lagt til. Fagsjekkenes nye oppfølgingskoblinger er servereid vurderingsrespons og inngår ikke i modellkonteksten. Den nye kontrollen er åtte fokuserte tester og 14 bygde eksempelkontekster; tidligere test- og nettleserresultater i dokumentet er historikk. Reelle svar fra skolens modell og samlet kontroll før main gjenstår.
+
+
+## Dataverkstedet og søkeoppdragene – dev, 1. november 2026
+
+`database-verksted` har en egen `database-workshop`-adapter, versjon 1. Bare kjent oppdrag, tillatte valg, siste kjøringsvalg og åpne hint deles. Backend gjenbruker `databaseWorkshop.js`, rekonstruerer dokumentene og deler resultat bare når siste kjøring gjelder de nåværende valgene. Nytt oppdrag tømmer samtalen, endret valg merker eldre svar. Ingen rå input, URI eller filer inngår.
+
+Søkeadapteren godtar nå også `inspectedId: null` når ingen dokumentforklaring er åpnet. Eldre klienters kjente ID-er virker fortsatt. Etter filterendring skjules dokumentinspeksjonen og deles ikke som gjeldende. Den korte responsen fra `queryFeedback` er felles for siden og serveren. «Vis meg hvor» registreres lokalt for de relevante kontrollene i søk, verksted og praksis.
+
+Fem syntetiske databasesituasjoner er lagt til kvalitetsprøven. Den samlede kommandoen bruker `partnerEvaluationCases`; de 14 eksisterende Backend-eksemplene beholdes uendret. Nye kontraktprøver er skrevet, men samlet testing og faktiske modellprøver gjenstår. Se [databasemodulens oppdatering](databasemodul.md#strategi-og-interaktiv-utgave--dev-1-november-2026).
+
+## Øving 5 – enkel eksempelside, dev 2. november 2026
+
+`storage-guide` bruker adapterversjon 1 med `values: {}`. Den tidligere simulatoren er erstattet av en side med eksempel, forklaring og Prøv selv. Serveren gjenbruker `storageExercise.js` for kode og oppgaver. Ingen delindeks, kodevalg, kjøringshendelser, meldinger, filinnhold eller lokale resultater deles; gamle simulatorpayloads og andre felt avvises. Labpartner vet ikke hvilken del eleven leser og skal bruke elevens spørsmål til å avgrense hjelpen. Forventet virkning av koden må ikke fremstilles som observert. De to syntetiske kvalitetsprøvene for øving 5 bruker denne kontrakten; antallet Backend-prøver er fortsatt 14. Tester er tilpasset, men kjøring og nettleserprøving gjenstår før main. Se [aktivitetsbeskrivelsen](oving-5-lagring.md).

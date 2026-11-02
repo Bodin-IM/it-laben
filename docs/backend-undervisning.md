@@ -1,8 +1,32 @@
 # Backend – samlet undervisningsforløp
 
-Dev, 31. oktober 2026. Modulen forberedes for ordinær undervisning fra neste uke. Utprøvingen skjer i timene: vi følger elevenes bruk og justerer etter erfaringene. Det legges ikke inn en separat elevpilot før resten av modulen kan brukes. Teknisk kontroll før publisering består.
+Dev, oppdatert 2. november 2026. Modulen forberedes for ordinær undervisning fra neste uke. Utprøvingen skjer i timene: vi følger elevenes bruk og justerer etter erfaringene. Det legges ikke inn en separat elevpilot før resten av modulen kan brukes. Teknisk kontroll før publisering består.
 
 Målgruppe: Vg2 informasjonsteknologi. Eleven bygger videre på én Svelte-frontend og én Express-backend med JSON-fillagring. Simulatorene gjør sammenhengene synlige; eget chatprosjekt er stedet eleven anvender dem. Øving 1–4 dekkes gjennom dataflyt, tidligere øvingsark og eget prosjekt; de nummererte simulatorene starter på 5. Modulen er et forløp over flere økter, ikke et krav om å fullføre alt på én uke.
+
+## Øving 5: eksempel, forklaring og prøv selv · 2. november
+
+Øving 5 viser fem åpne deler under hverandre: lagring, omstart, feil, forbedret rekkefølge og oppstartsfeil. Hver del har et kodeeksempel, en kort forklaring og to konkrete prøvehandlinger i egen chat. Den omfattende simulatorvisningen er fjernet etter brukerens tilbakemelding om at det skjedde for mye på hvert steg. Eksemplene bruker enkel filskriving; feiltesten stopper før skriving. [Aktivitetsbeskrivelsen](oving-5-lagring.md) dokumenterer mål, respons, læreroppfølging, avgrensninger og kontroll som gjenstår før main. Startskriptet til øving 6s separate Node-eksempel kan lastes ned nederst. Øving 6–7 følger fortsatt beskrivelsen nedenfor.
+
+## Koden først i øving 5–7 · 1. november
+
+Brukeren presiserte at forenklingen skjulte det viktigste: koden. Mindre lesing skal bety korte forklaringer knyttet til god kode, ikke at eleven må lete etter koden. Alle tre øvingene viser nå et komplett Node-eksempel før simulatorens kontroller, med filnavn, terminalkommando, kommentarer, kopiering og én liten endring eleven kan prøve. Lange prosjektveiledninger og rådata kan fortsatt åpnes ved behov. Øving 8–10 beholder sin eksisterende flyt.
+
+| Øving | Synlig kodeeksempel | Elevhandling og faglig poeng |
+| --- | --- | --- |
+| 5 · Ta vare på meldingene | `lagre.mjs`: `JSON.stringify` → `writeFileSync` → `readFileSync` → `JSON.parse`. | Kjør i en tom øvingsmappe, endre en tekst og undersøk `ovingsdata.json`. Skill listen i minnet fra tekst og faktisk filskriving. |
+| 6 · Endre riktig melding | `endre.mjs` med `map`, eller `slett.mjs` med `filter`, etterfulgt av JSON-lagring. | Bruk samme JSON-fil som i 5. Endre hvilken ID som velges, og undersøk at de andre meldingene beholdes. |
+| 7 · Stopp feil før de lagres | `valider.mjs`: typesjekk, `trim()` og lengdekontroll i `tekstFeil`. | Bytt mellom vanlig tekst, mellomrom og tall. Finn kodelinjen som forklarer svaret; prøv så kontrollen i chatforsøket. |
+
+Eksemplene kjøres av eleven på egen maskin. Forventet resultat på siden er merket som et eksempel, ikke som en bekreftelse på elevens kjøring. Det lille fil-eksemplet bruker direkte, synkron skriving til en egen øvingsfil. Det isolerer grunnprinsippet og er ikke en komplett Express-server. Chatmodellen viser neste nivå med requestkontroller, midlertidig fil/filbytte og bekreftelse etter lagring. Øvingsfilen skal ikke erstatte elevens eksisterende chatdata. Filnavn, import og plassering er med i de kopierbare eksemplene; de krever Node.js og ingen ekstra npm-pakker.
+
+Et chatforsøk starter nå på første kjøringssteg. Kode, linjeforklaring og stegknapper er alltid synlige under kjøringen og står før meldingskortene. Eleven kan bruke Neste/Forrige, gå til starten eller hoppe til resultatet. I øving 6 hopper «Vis backend-svaret» til svaret før siste GET; «Hent chatten på nytt» viser oppdateringen i nettleseren. Dette er avlesning av modellens snapshots, ikke nye nettverkskall.
+
+Oppgavebytte stiller inn et nytt forsøk og fjerner gammel kjøring. Endring av input fjerner også gammel respons. Hvert forsøk starter med eksempeldata, og omstartsforsøket i 5 viderefører ikke forrige melding. Kortene markerer faktiske nye, endrede eller fjernede meldinger, ikke elevmestring. Oppgaveindekser, scenario-ID-er, progresjon og XP-regler er beholdt. Labpartneren bruker det samme servereide kodeeksemplet som siden, valgt ut fra øving og kjent metode. Rå felttekst, utklippstavle og elevens eksterne kode deles ikke.
+
+**Læreroppfølging:** La eleven først forutsi hva en liten kodeendring gjør, kjøre og undersøke filen. Be eleven finne linjen som forklarer forskjellen før dere går videre til chatruten. Bruk en ny melding eller et nytt felt i egen chat med mindre støtte. I 7 går eleven videre via tekstreparasjonen til visningsnavnoppgaven. Kopiering og fungerende eksempel alene dokumenterer ikke forståelse. Mål og avgrensninger nedenfor gjelder fortsatt; konkret kode og synlige konsekvenser følger pedagogikkens arbeid med eksempler, utprøving og egen anvendelse.
+
+**Dev-kontroll:** Kildekode og diff er gjennomgått. Det er lagt til prøver som kjører de nøyaktige viste kodeeksemplene i en midlertidig mappe og kontrollerer JSON-filen, ID-ene og valideringsgrensene. De er ikke kjørt. Samlet testsuite, Svelte-sjekk, produksjonsbygg og nettleserprøving gjenstår før main. Svelte MCP er ikke tilgjengelig; offisiell Svelte- og Node-dokumentasjon er brukt som referanse. Før publisering prøves kodevisning før første kjøring, kopi og manuell reservevei, oppgave-/metodebytte, stegvis kjøring og hopp til svar, GET, endrede input, Labpartner/«Vis meg hvor», tastatur, 320 px og begge temaer. Elevutprøving skjer i ordinær undervisning; enklere bruk eller læringseffekt er ikke dokumentert.
 
 ## Mål og avgrensning
 
@@ -79,7 +103,7 @@ I en senere time brukes et nytt felt, en annen grense eller en ny rute med mindr
 
 - Synlig start og forberedelser i Backend. Prosjektoppgaver er åpne i modulens hoveddeler og sentrale leksjoner; utfyllende kodehjelp kan fortsatt åpnes ved behov.
 - Felles neste-/forrige-lenker følger katalogens rekkefølge, inkludert Sessions før øving 8, Chatrom etter øving 9 og øving 10 før oppsummeringen. Valideringsforløpet går via tekstreparasjon og eget prosjekt.
-- Alle 19 deloppgaver i øving 5–10 har definerte startvalg. «Still inn første forsøk» fyller dem inn og fjerner forrige kjøring. Oppgavebytte alene overskriver ikke elevens innstillinger. Oppgaveindekser og scenario-ID-er er bevart.
+- Alle 19 deloppgaver i øving 5–10 har definerte startvalg. «Still inn første forsøk» fyller dem inn og fjerner forrige kjøring. Dette gjelder fortsatt 8–10. I den nye inngangen til 5–7 stiller oppgavebytte inn startvalgene automatisk og tømmer gammel kjøring. Oppgaveindekser og scenario-ID-er er bevart.
 - Fem læreropplegg dekker hele den veiledede rekken, med egne opplegg for validering og publisering. Private lærernotater ligger fortsatt bare på serveren. Eksisterende delankre og modulaliaser består.
 - Labpartnerens modulgrunnlag gjenbruker prosjektoppgavene og omtaler Nattevakten som valgfri. Ingen nye elevdata sendes, og labpartneren får ikke tilgang til elevens eksterne kode.
 - Den parallelle «Vis meg hvor»-endringen fra dev er flettet inn. Eksisterende frivillig elevtilbakemelding er bevart.

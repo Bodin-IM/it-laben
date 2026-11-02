@@ -11,8 +11,11 @@ import {
 	flowExample,
 	completeDatabaseExample
 } from '../../src/lib/databaseIntro.js';
+import { workshopTasks, workshopDocuments, runWorkshop, sameWorkshop, queryFeedback } from '../../src/lib/databaseWorkshop.js';
 import { guideSteps, tutorialResult } from '../../src/lib/studentGuide.js';
 import { lessons } from '../../src/lib/ovingene.js';
+import { backendCodeExample } from '../../src/lib/backendCodeExamples.js';
+import { storageSteps } from '../../src/lib/storageExercise.js';
 import { buildTrace } from '../../src/lib/ovingModel.js';
 import { exerciseFeedback } from '../../src/lib/exerciseFeedback.js';
 import { moduleContext } from '../../src/lib/moduleNavigation.js';
@@ -145,7 +148,9 @@ export function pageTask(page, moduleId) {
 			? {
 					learningQuestion: lesson.question,
 					framework: lesson.context,
-					tasks: lesson.tasks.map(({ title, instruction, observe, hint }) => ({ title, instruction, observe, hint })),
+					tasks: lesson.number === 5
+						? storageSteps.map(({ title }) => ({ title }))
+						: lesson.tasks.map(({ title, instruction, observe, hint }) => ({ title, instruction, observe, hint })),
 					example: lesson.example,
 					transfer: lesson.transfer,
 					related: lesson.related
@@ -211,6 +216,19 @@ export function pageWork(page, raw) {
 		if (v.phase === 'forklar') work.visibleChecks = practiceChecks;
 		work.limit =
 			'Status angir bare hvilket oppgavesteg som er åpnet. Ingen lokal kode, terminalutskrift eller bekreftelse på gjennomføring er delt.';
+	} else if (page.kind === 'database-workshop') {
+		const task = workshopTasks.find((item) => item.id === v.taskId);
+		work.task = { title: task.title, brief: task.brief, goal: task.goal, transfer: task.transfer };
+		work.currentDocuments = workshopDocuments(task.id, v.choices);
+		work.code = runWorkshop(task.id, v.choices).code;
+		work.openHints = task.hints.slice(0, v.hintCount);
+		work.oldRun = !!v.run && !sameWorkshop(v.choices, v.run);
+		// Old output is hidden in the UI after an edit; do not send it as a visible result.
+		if (v.run && !work.oldRun) {
+			const result = runWorkshop(task.id, v.run);
+			work.visibleResult = { groups: result.groups, result: result.result, cause: result.cause, next: result.next };
+		}
+		work.limit = 'Dette er en avgrenset øvingsmodell med faste felter og fiktive data. Ingen ekte MongoDB kontaktes. Nytt resultat finnes bare etter kjøring med gjeldende valg. Forklar konkrete konsekvenser, uten å godkjenne forståelse eller gi XP. Du ser ikke elevens eksterne filer. Flere feltvalg kan oppfylle modelloppdraget; kategori er ikke nødvendig for de to oppgitte behovene.';
 	} else if (page.kind === 'database-query') {
 		const task = queryTasks.find((item) => item.id === v.taskId);
 		work.task = { title: task.title, brief: task.brief, goal: task.goal };
@@ -224,10 +242,17 @@ export function pageWork(page, raw) {
 				prediction: v.run.prediction,
 				result: rows.filter((row) => row.matches).map((row) => row.document._id)
 			};
-			work.inspectedDocument = rows.find((row) => row.document._id === v.inspectedId);
+			if (!work.oldRun) {
+				work.feedback = queryFeedback(task.id, v.run.choices);
+				if (v.inspectedId) work.inspectedDocument = rows.find((row) => row.document._id === v.inspectedId);
+			}
 		}
 		work.limit =
 			'Resultatet er rekonstruert fra kjente filtervalg. En bestått søkeøving er ikke en vurdering av forståelse. Gi hjelp som kan brukes i neste forsøk; ikke finn opp støtte for andre operatorer i simulatoren.';
+	} else if (page.kind === 'storage-guide') {
+		work.source = 'Sidens offentlige eksempler og prøveoppgaver. Ingen arbeidsstatus eller lokale kjøreresultater er delt.';
+		work.examples = storageSteps.map(({ title, placement, code, explanation, trials }) => ({ title, placement, code, explanation, trials }));
+		work.limit = 'Øving 5 er én side med fem deler: eksempel, kort forklaring og Prøv selv i egen chat. Det finnes ingen simulator, kodefaner eller kjøringsknapper. Du ser undervisningseksemplene, men IKKE hvilken del eleven leser, elevens kode, meldinger, filinnhold eller kjøreresultater. Bruk det eleven beskriver og skill forventet resultat fra observert resultat. Ikke påstå at noe er kjørt eller godkjent. Feiltesten bruker en midlertidig throw før filskriving; direkte writeFileSync beskytter ikke mot alle diskfeil. Hjelp eleven med én konkret endring eller test i server.js.';
 	} else if (page.kind === 'lesson') {
 		const lesson = lessons.find((item) => `oving-${item.number}` === page.id);
 		const trace = v.step < 0 ? [] : buildTrace(lesson.number, exampleValues(lesson, v.choices));
@@ -247,6 +272,10 @@ export function pageWork(page, raw) {
 			work.feedbackSource = 'Oppsummeringen er beregnet fra rekonstruerte eksempeldata. Tall og tekst er ikke elevens faktiske input. Den gjelder simulatoren, ikke elevens eksterne prosjekt eller en vurdering av forståelse.';
 		}
 		const task = lesson.tasks[v.task];
+		if (lesson.number <= 7) {
+			work.codeExample = backendCodeExample(lesson.number, v.choices);
+			work.presentation = 'Koden er hovedinnholdet: Et kjørbart Node-eksempel vises alltid øverst. Det kjøres i elevens editor, ikke på nettsiden; du ser ikke resultatet på elevens maskin. Chatforsøket starter på første steg med synlig kode og linjeforklaring. Neste steg følger kjøringen; Vis resultat kan hoppe frem. I øving 6 kan Hent chatten på nytt utføre siste GET. Kodeeksemplet isolerer grunnprinsippet; chatmodellen legger til kontroller og sikrere filbytte. Ingen automatisk godkjenning.';
+		}
 		work.task = task
 			? { title: task.title, instruction: task.instruction, observe: task.observe, hint: task.hint }
 			: null;

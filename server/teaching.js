@@ -107,11 +107,11 @@ export const teachingGuides = [
 				focus: 'Lagre før minnet oppdateres.',
 				questions: [
 					'Hva bør skje hvis skrivingen til fil feiler?',
-					'Hvorfor brukes en midlertidig fil?'
+					'Hvorfor endres minnet først etter lagringen i den forbedrede koden?'
 				],
 				notes: [
-					'Velg skrivefeil som situasjon og stopp før svaret vises.',
-					'La elevene følge neste liste, filskriving og oppdatering av minne som tre forskjellige steg.'
+					'Siden viser fem deler under hverandre: eksempel, kort forklaring og Prøv selv. Les én del sammen og la eleven utføre testen i en kopi av egen chat. Nettsiden kjører ikke koden.',
+					'Del 1–2 lagrer og leser samme fil. Del 3–4 bruker en midlertidig throw før skriving for å sammenligne push med nyListe; fjern testlinjen og prøv normal sending igjen. Del 5 skiller manglende og ødelagt fil. La eleven vise resultatet og forklare én relevant kodelinje. Direkte filskriving er en forenkling; den beskytter ikke mot alle diskfeil.'
 				]
 			},
 			{
@@ -122,7 +122,7 @@ export const teachingGuides = [
 					'Hvorfor søker vi etter ID?',
 					'Hva må nettleseren gjøre for å vise det nye resultatet?'
 				],
-				notes: ['Knytt PATCH og DELETE til det tidligere POST-/GET-opplegget.']
+				notes: ['Bruk map/filter-eksemplet på JSON-filen fra øving 5. Følg deretter chatkoden for Noahs melding. Sammenlign listene før Hent chatten på nytt. Knytt PATCH og DELETE til POST/GET.']
 			}
 		],
 		wrapUp: [
@@ -153,7 +153,23 @@ export const teachingGuides = [
 			notes: ['Sammenlign kildeendring uten bygg, full publisering og besøk fra en annen PC.', 'Vis at enabled systemd-tjeneste starter etter VM-omstart. Standard sessionlager i minnet bevares ikke.', 'Gjenoppretting gjøres i en egen testkopi. Ikke overskriv eneste kopi av elevenes data.']
 		}],
 		wrapUp: ['La elevene publisere egen app, teste fra en annen PC og kontrollere omstart. Dokumenter kommandoer, adresse og hva som ble testet.', 'Avslutt modulen med én rute fra klikk til svar og et nytt feiltilfelle. Oppsummeringen er fri repetisjon; Nattevakten er valgfri.', 'Samle erfaringer i den ordinære undervisningen: hva var uklart, hvilken hjelp ble brukt, og hva fikk eleven til i egen kode?']
+	},
+	{
+		planId: 'utstyrsboden',
+		preparation: [
+			'Åpne Utstyrsboden. La elevene starte med ett kort søkeoppdrag; teorien kan brukes ved behov.',
+			'Før kodeøkten: prøv startprosjektet fra en elevmaskin mot en egen øvingsdatabase med begrenset tilgang. Kontroller Node.js, nettverk og rettigheter til å lese og legge inn testdata. Gi hver elev eller gruppe eget databaseområde.',
+			'Kjør sjekk.mjs, klargjor.mjs og finn.mjs i rekkefølge. Kontroller også feilkodene ved manglende konfigurasjon eller tilgang. Unngå å vise tilkoblingsstreng eller passord på storskjerm.',
+			'Utvikling, ITK02-01: «modellere og opprette databaser for informasjonsflyt i systemer» og «beskrive ulike datalagringsmodeller og metoder for å hente ut og sette inn bestemte data fra databaser som brukes av andre systemer». Her øves valg av felt og spørringer; egen database opprettes i kodeoppgaven. Integrasjon med en nettside kommer senere.',
+			'Støttemål: «anvende relevant testmiljø og utføre testing tilpasset IT-løsningen som utvikles». Eleven lager testdata og undersøker grenser; beståtte modellforsøk dokumenterer ikke alene forståelse.'
+		],
+		steps: [
+			{ activityId: 'database-finn', minutes: 10, focus: 'Knytt en bestilling til filter, dokument og resultat.', questions: ['Hvilket dokument overrasket deg?', 'Hvilken betingelse avgjorde resultatet?'], notes: ['La én elev velge filter og den andre forutsi. Bytt roller. Alle skal også gjøre en egen endring.', 'Skille tomt filter, tom resultatliste og teknisk feil. Bruk kortenes Undersøk-knapp ved behov.'] },
+			{ activityId: 'database-verksted', minutes: 25, focus: 'Lag en test som viser forskjell, og prøv datamodellen mot behov.', questions: ['Hvorfor skilte dette dokumentet søkene?', 'Hva skjer akkurat på prisgrensen?', 'Hvorfor kan navnet finne flere enheter?', 'Når ville kategori blitt nødvendig?'], notes: ['Moteksemplet må være et kamera over 500 kr. La eleven vise årsaken før dere samler opp.', 'I modelloppdraget er kategori valgfritt for de to oppgitte behovene. Flere løsninger er gyldige. MongoDB-dokumentene har alltid unik _id i eksemplet.', 'En tom resultatliste etter datatypefeil betyr ikke at dokumentet er slettet. Vis samme dokument før og etter retting.'] }
+		],
+		wrapUp: ['La hver elev lage nye testdata i eget prosjekt og vise to kjøringer som gir forskjellig resultat.', 'Ny anvendelse med mindre støtte: modeller tre fiktive supportsaker, finn åpne saker med høy prioritet og identifiser én bestemt sak. Be eleven begrunne felter og typer.', 'Bruk ordinære timer til å undersøke om kort tekst og visuelle resultater hjelper: finner eleven neste handling, kan eleven forklare én årsak, og kan eleven bruke den i egen kode?']
 	}
+
 
 ];
 
