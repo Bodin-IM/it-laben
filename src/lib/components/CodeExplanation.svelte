@@ -8,6 +8,7 @@
 	 *
 	 * Anchored mode needs a gutter that stretches alongside the code, without
 	 * clipping or transformed ancestors. Inline mode belongs after the line.
+	 * Set responsive=false for an inline explanation at every viewport width.
 	 *
 	 * @typedef {{
 	 *   anchor: HTMLElement | null,
@@ -17,6 +18,7 @@
 	 *   explanation: string,
 	 *   label: string,
 	 *   onclose: () => void,
+	 *   responsive?: boolean,
 	 *   mode?: 'anchored' | 'inline'
 	 * }} Props
 	 */
@@ -30,6 +32,7 @@
 		explanation,
 		label,
 		onclose,
+		responsive = true,
 		mode = 'anchored'
 	} = $props();
 	/** @type {HTMLElement | undefined} */
@@ -105,7 +108,7 @@
 		const element = currentPanel;
 
 		const mobile = window.matchMedia('(max-width: 900px)');
-		matchesViewport = form === 'inline' ? mobile.matches : !mobile.matches;
+		matchesViewport = !responsive || (form === 'inline' ? mobile.matches : !mobile.matches);
 		let closed = false;
 		let frame = 0;
 		let dirty = true;
@@ -187,7 +190,7 @@
 			dirty = true;
 		}
 		function changeViewportMode() {
-			const matches = form === 'inline' ? mobile.matches : !mobile.matches;
+			const matches = !responsive || (form === 'inline' ? mobile.matches : !mobile.matches);
 			matchesViewport = matches;
 			if (!matches) close(false);
 			else invalidate();

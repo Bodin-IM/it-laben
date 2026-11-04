@@ -39,6 +39,8 @@ Fagsjekker har ingen kontekstkobling. Labpartneren får eventuelt grunnlaget for
 
 ## Deling og grenser
 
+**Kodeeksempler i modulene (dev-utkast):** Modulens eksisterende side-ID kan dele `exampleId`, `fileId` og `lineId` i adapterversjon 1. Bare gyldige kombinasjoner fra den aktuelle modulen godtas. Serveren henter valgt offentlig kode, forutsetninger og linjeforklaring fra `moduleCodeExamples.js`. Ingen elevkode eller kjøreresultat deles. Se [kodeeksemplene](kodeeksempler.md).
+
 **Backend sammen (dev-utkast):** Adapter `backend-simulator`, versjon 1, deler bare kjent rolle, valgt frontend-/backendpanel, publiseringsstatus, siste HTTP-status og om resultatet er utdatert etter inputendring. JSON, romkode, elevnavn, trafikk og svarinnhold deles ikke. Serveren bygger et fast oppgavegrunnlag med GET/POST, statuskoder og forskjellen mellom lagrede data og et hentet øyeblikksbilde. Se [aktivitet og gjenstående kontroller](backend-simulator.md).
 
 **VLAN-laben (utkast):** Deler kjent oppdrag, valgt enhet/port, åpne hint, om en test er kjørt/utdatert og revisjonsnummer. Serveren henter mål og teori fra `vlanLab.js`. IP-adresser, VLAN-konfigurasjon og testresultat deles ikke; veilederen får en uttrykkelig begrensning og skal ikke anta at oppsettet er riktig. Se [VLAN-laben](vlan-lab.md). Kontrakten er testet før publisering. **VLAN-lab 2** bruker egen adapter `vlan2` med kjent oppdrag, valgt enhet, åpne hint, kjørt/utdatert og revisjon. Serveren bygger offentlig teori om gateway, ruting og SSID fra `vlanLab2.js`. Ingen elevkonfigurasjon eller testresultat deles. Se [lab 2](vlan-lab-2.md).

@@ -1,5 +1,7 @@
 # Fag, moduler og enkeltinnhold
 
+**Kodeeksempler, dev 4. november 2026:** Backend og Databaser har et eget valg ved siden av Innhold. Små tittelkort åpner modulens eksisterende kode med klikkbare linjeforklaringer, og flyttes til høyre ved visning av et eksempel. Se [innhold, deling og kontroll før main](kodeeksempler.md).
+
 **Dev, 31. oktober 2026:** Forslag til neste oppgave bruker nå aktiv modul, fagvalg og modulrekkefølge. Påbegynt elevarbeid prioriteres; ferdige moduler merkes som repetisjon når ingen relevante moduler er aktive. Moduler uten kontolagret progresjon leder til sin oversikt. Øving 7 har en avgrenset overgang til eksisterende tekstreparasjon og egen kode. Modulsidens delnumre, aliaser og progresjon er bevart. Se [valg, lagring og kontroller](backend-validering.md).
 
 Moduler samler undervisning, øvinger og oppdrag. I elevens vanlige fagoversikt vises aktive moduler først og ferdige moduler etterpå. Kommende moduler er skjult fra elevoversikten til læreren aktiverer dem. Kortene har tekstmerket **Modul** og en tydelig status. Under modulene ligger et kompakt forslag til neste oppgave og «Finn enkeltoppgaver», som kan åpnes for å bla i øvinger, oppdrag og spill. Merker, XP og labnivå vises i Min lab, ikke som egne paneler på fagoversikten.

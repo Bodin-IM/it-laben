@@ -21,6 +21,7 @@ import { exerciseFeedback } from '../../src/lib/exerciseFeedback.js';
 import { moduleContext } from '../../src/lib/moduleNavigation.js';
 import { partnerPageById } from '../../src/lib/partnerPages.js';
 import { readPartnerState, invalidContext } from '../../src/lib/partnerContext.js';
+import { moduleCodeExamples } from '../../src/lib/moduleCodeExamples.js';
 import { codeLines as backendCode } from '../../src/lib/frontendBackendLab.js';
 import { codeLines as roomCode, CHATROOM_LESSONS } from '../../src/lib/chatromLab.js';
 import { kilde, forklaringer } from '../../src/lib/storageLesson.js';
@@ -167,7 +168,18 @@ export function pageWork(page, raw) {
 			'Avgrenset status rapportert av nettleseren, ikke dokumentasjon på forståelse. Kode og forklaringer hentes fra IT-labens undervisningsmodeller. Tekstfelt er bare kategorier; eksempler er ikke elevens faktiske tekst.',
 		selection: v
 	};
-	if (page.kind === 'backend-simulator') {
+	if (page.kind === 'overview' && page.id.startsWith('module-')) {
+		const examples = moduleCodeExamples(page.id.slice('module-'.length));
+		const example = examples.find((item) => item.id === v.exampleId);
+		const file = example?.files.find((item) => item.id === v.fileId);
+		work.example = example && file ? {
+			title: example.title, summary: example.summary, source: example.sourceTitle,
+			file: file.label, context: file.context,
+			code: file.lines.map((line) => line.text).join('\n'),
+			selectedLine: file.lines.find((line) => line.id === v.lineId) ?? null
+		} : null;
+		work.limit = 'Dette er offentlig kode fra modulen som eleven har valgt å se på, ikke elevens egen kode eller et kjøreresultat. Gi en kort forklaring og foreslå én undersøkelse i kildeøvingen eller eget prosjekt. Et åpnet eksempel eller en linjeforklaring dokumenterer ikke forståelse.';
+	} else if (page.kind === 'backend-simulator') {
 		work.task = {
 			title: 'Koble sammen en LAN-kveld',
 			goal: 'Publiser et JSON-endepunkt, hent data fra en medelev og vis ett felt i frontend.',
