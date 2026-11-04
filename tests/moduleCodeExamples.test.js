@@ -1,9 +1,9 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { existsSync } from 'node:fs';
-import { moduleCodeExamples } from '../src/lib/moduleCodeExamples.js';
+import { moduleCodeExamples, moduleCodeExampleSelection } from '../src/lib/moduleCodeExamples.js';
 import { codeLines } from '../src/lib/frontendBackendLab.js';
-import { storageSteps } from '../src/lib/storageExercise.js';
+import { storageSetupCode, storageSaveCode, storageSafeReadCode, storageRepairedCode } from '../src/lib/storageExercise.js';
 import { connectionCode, readExamples, readExample, insertCode } from '../src/lib/databaseIntro.js';
 import { readPartnerState, ADAPTER_VERSION } from '../src/lib/partnerContext.js';
 import { partnerPageById } from '../src/lib/partnerPages.js';
@@ -17,19 +17,17 @@ test('module examples preserve the exact source code and valid source links', ()
 		const example = backend.find((item) => item.id === `${operation}-meldinger`);
 		for (const file of example.files) assert.deepEqual(file.lines, codeLines(operation, file.id));
 	}
-	for (const source of storageSteps) {
-		const example = backend.find((item) => item.id === `fil-${source.id}`);
-		assert.equal(code(example.files[0]), source.code);
-		assert.equal(example.summary, source.explanation);
-	}
+	assert.equal(code(backend.find((item) => item.id === 'json-fil').files[0]), [storageSetupCode, storageSafeReadCode, storageSaveCode].join('\n\n'));
+	assert.equal(code(backend.find((item) => item.id === 'lagre-melding').files[0]), storageRepairedCode);
 	assert.equal(code(database.find((item) => item.id === 'mongo-tilkobling').files[0]), connectionCode);
 	assert.equal(code(database.find((item) => item.id === 'mongo-innsetting').files[0]), insertCode);
 	for (const source of readExamples) {
-		assert.equal(code(database.find((item) => item.id === `mongo-${source.id}`).files[0]), readExample(source.id).code);
+		assert.equal(code(database.find((item) => item.id === 'mongo-hente').files.find((file) => file.id === source.id)), readExample(source.id).code);
 	}
 	for (const list of [backend, database]) {
 		assert.equal(new Set(list.map((item) => item.id)).size, list.length);
 		for (const example of list) {
+			for (const id of example.relatedIds ?? []) assert.ok(id !== example.id && list.some((item) => item.id === id), id);
 			const path = new URL(example.sourceHref, 'https://it-laben.invalid').pathname;
 			assert.ok(existsSync(new URL(`../src/routes${path}+page.svelte`, import.meta.url)), example.sourceHref);
 			for (const file of example.files) {
@@ -41,6 +39,34 @@ test('module examples preserve the exact source code and valid source links', ()
 	}
 	assert.deepEqual(moduleCodeExamples('finnes-ikke'), []);
 	assert.deepEqual(moduleCodeExamples('__proto__'), []);
+});
+
+test('shared example links retain their topic and database variant after regrouping', () => {
+	for (const id of ['fil-lagre', 'fil-omstart', 'fil-oppstart']) {
+		const { example, file } = moduleCodeExampleSelection('backend', id, 'backend');
+		assert.equal(example.id, 'json-fil');
+		assert.ok(code(file).includes(storageSaveCode));
+		assert.ok(code(file).includes(storageSafeReadCode));
+	}
+	for (const id of ['fil-skrivefeil', 'fil-endre-koden']) {
+		assert.equal(moduleCodeExampleSelection('backend', id, null).example.id, 'lagre-melding');
+	}
+	for (const source of readExamples) {
+		for (const fileId of [null, 'node']) {
+			const { example, file } = moduleCodeExampleSelection('databaser', `mongo-${source.id}`, fileId);
+			assert.equal(example.id, 'mongo-hente');
+			assert.equal(code(file), readExample(source.id).code);
+			const work = pageWork(partnerPageById('module-databaser'), {
+				version: ADAPTER_VERSION, values: { exampleId: example.id, fileId: file.id, lineId: null }
+			});
+			assert.equal(work.example.code, code(file));
+		}
+	}
+	assert.equal(moduleCodeExampleSelection('databaser', 'mongo-hente', 'ledige').file.id, 'ledige');
+	assert.equal(moduleCodeExampleSelection('databaser', 'mongo-hente', 'ukjent').file.id, 'alle');
+	for (const [moduleId, exampleId] of [['backend', 'mongo-alle'], ['databaser', 'fil-lagre'], ['__proto__', 'fil-lagre'], ['backend', '__proto__']]) {
+		assert.deepEqual(moduleCodeExampleSelection(moduleId, exampleId, null), { example: undefined, file: undefined });
+	}
 });
 
 test('module example context accepts only that module, file and visible line; server owns all code', () => {

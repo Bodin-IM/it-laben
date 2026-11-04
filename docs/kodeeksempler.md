@@ -1,10 +1,24 @@
-# Kodeeksempler under modulene – første utkast på dev
+# Kodeeksempler under modulene – oppslagsverk på dev
 
 Modulsiden har valgene **Innhold** og **Kodeeksempler**. Eksempeloversikten viser kompakte kort med nummer og tittel. Når et eksempel åpnes, får koden hovedplassen og kortene en egen kolonne til høyre. På smale skjermer ligger en vannrett liste over koden. Modulinformasjon og øvingslisten vises under Innhold, slik at de ikke fortrenger eksemplet.
 
-Backend har ni eksempler: GET, POST, de fem lagringseksemplene i øving 5 og listeendring med map/filter fra øving 6. Databaser har seks: tilkobling, de fire søkene fra grunnlaget og innsetting av ett dokument. GET og POST lar eleven veksle mellom frontend og backend. Hver ikke-tomme kodelinje kan åpnes med mus eller tastatur; den eksisterende `CodeExplanation` brukes for forklaringen. Escape og lukkeknappen lukker og gir fokus tilbake til linjen.
+Eksemplene velges etter hva eleven trenger å gjøre i egen kode. Antall øvinger og øvingssteg bestemmer ikke antall kort. Kortene har funksjonsnavn uten løpenummer; kildeøvingen ligger som en lenke under koden. Dette er brukerens avklarte retning for samlingen.
 
-Eksemplene har en kort forklaring, plassering/forutsetninger, kopiering og lenke tilbake til kildeøvingen. De viser kode; de kjører ikke elevens kode eller starter nettverkskall. Utdrag merkes med sammenhengen de hører til i. Øving 5-eksemplet med skrivefeil beholder forklaringen på hvorfor minnet kan være endret selv om lagringen feiler.
+| Modul | Eksempel | Hva koden viser |
+| --- | --- | --- |
+| Backend | Hent meldinger med GET | Forespørsel i frontend og svar fra Express |
+| Backend | Send en melding med POST | JSON fra frontend, mottak og kontroll i backend |
+| Backend | Lese og skrive en JSON-fil | Import, filsti, innlesing ved oppstart og skrivefunksjon samlet |
+| Backend | Lagre en ny melding | Ny liste, lagring, oppdatering av minnet og svar med try/catch |
+| Backend | Endre én melding med map | Ny liste med én endret melding |
+| Backend | Slett én melding med filter | Ny liste uten meldingen som skal slettes |
+| Databaser | Koble Node.js til MongoDB | Tilkobling, database og collection |
+| Databaser | Hente og filtrere dokumenter | Fire valg: alle dokumenter, ett vilkår, flere vilkår og prisgrense |
+| Databaser | Legg inn ett dokument | Objekt, insertOne og bekreftet ID |
+
+Backend har dermed seks kort og Databaser tre. GET og POST har valg for frontend/backend. Søkevariantene erstatter hverandre og samles under ett kort fordi de viser samme operasjon med forskjellige filtre. Fillagring deles i to fordi oppsettet plasseres før rutene, mens lagringen av en ny melding plasseres inne i POST-ruten. Relaterte eksempler lenkes sammen.
+
+Eksemplene har en kort forklaring, plassering/forutsetninger, kopiering og lenke tilbake til kildeøvingen. De viser kode; de kjører ikke elevens kode eller starter nettverkskall. Utdrag merkes med sammenhengen de hører til i. Lagringsreferansen bruker den rettede rekkefølgen fra øving 5. Forsøket med feil rekkefølge blir værende i øvingen, der eleven undersøker feilen. Hver ikke-tomme kodelinje kan åpnes med mus eller tastatur; den eksisterende `CodeExplanation` brukes for forklaringen. Escape og lukkeknappen lukker og gir fokus tilbake til linjen.
 
 ## Mål, elevarbeid og oppfølging
 
@@ -26,17 +40,23 @@ UTV-referansene er lokale henvisninger, ikke offisielle Udir-koder. Lesing av ko
 
 Som ny anvendelse kan eleven tilpasse en meldingsrute til en annen datatype eller lage et databasesøk med en annen kombinasjon av felter. Læreren ber eleven begrunne endringen og vise et testresultat. Et åpnet eksempel, et kopieringsklikk eller en lest forklaring gir ingen ny XP, fullføringsmarkering eller vurdering av forståelse.
 
+For fillagring kan eleven lagre en liste med utstyr i eget prosjekt og finne den igjen etter omstart. Læreren undersøker om eleven kan forklare forskjellen mellom en liste i minnet og JSON-tekst på disk, hvorfor skrivefunksjonen må kalles, og hvorfor minnet oppdateres etter lagringen. Oppsettet er avgrenset til én lokal øvingsserver med synkron filtilgang; det er ikke en løsning for samtidige serverprosesser eller en garanti mot avbrutt diskskriving. JSON-filer forbereder forståelse av lagring, men erstatter ikke databasearbeidet i UTV-10.
+
 ## Felles kilder og vedlikehold
 
-`moduleCodeExamples.js` samler metadata og henter selve koden fra `frontendBackendLab.js`, `storageExercise.js`, `ovingModel.js` og `databaseIntro.js`. Koden kopieres ikke inn i en ny innholdskilde. Eksisterende linjeforklaringer gjenbrukes; manglende forklaringer til lagring og databaseutdrag er knyttet til linjenes tekst. Hvis disse kildene endres med en ny linje, skal forklaringen oppdateres samtidig. Ukjent tekst stopper katalogopprettingen i stedet for å få en upresis standardforklaring.
+`moduleCodeExamples.js` samler metadata og henter selve koden fra `frontendBackendLab.js`, `storageExercise.js`, `ovingModel.js` og `databaseIntro.js`. Utvalget er redaksjonelt og opprettes ikke automatisk fra alle øvingssteg. Fillagringsoppsettet setter sammen `storageSetupCode`, `storageSafeReadCode` og `storageSaveCode`; bruken i POST henter `storageRepairedCode`. Import og filsti eies også av `storageExercise.js`. Koden fra øvingene kopieres ikke inn i en ny innholdskilde. Eksisterende linjeforklaringer gjenbrukes; manglende forklaringer til lagring og databaseutdrag er knyttet til linjenes tekst. Hvis disse kildene endres med en ny linje, skal forklaringen oppdateres samtidig. Ukjent tekst stopper katalogopprettingen i stedet for å få en upresis standardforklaring.
 
 `ModuleCodeExamples` eier oversikt, kort og filvalg. `AnnotatedCode` gjenbruker `CodeTokens` og `CodeExplanation`, og åpnes på nytt ved bytte av eksempel/fil. Forklaringsboksen ligger rett under linjen også på stor skjerm, slik at høyrekolonnen kan brukes til eksemplene. Den nye valgfrie `responsive`-innstillingen i `CodeExplanation` lar denne visningen bruke inline-modus på alle bredder; standardoppførselen på eksisterende sider er uendret.
 
 Valgt eksempel og fil ligger i URL-en, for eksempel `/moduler/backend/?visning=eksempler&eksempel=get-meldinger&fil=backend`. Omlasting, deling og nettleserens tilbake/frem bruker samme valg. Linjeforklaringer lagres ikke i URL eller lokal lagring. Ukjente eksempler gir en melding og oversikten; et eksempel fra en annen modul kan ikke åpnes gjennom feil modul. Visningen ligger innenfor den eksisterende kontrollen av modulens synlighet.
 
+Tidligere delte lenker til `fil-lagre`, `fil-omstart` og `fil-oppstart` åpner det samlede `json-fil`-eksemplet. `fil-skrivefeil` og `fil-endre-koden` åpner den rettede lagringsblokken i `lagre-melding`. De fire tidligere databasesøkene åpner riktig variant i `mongo-hente`, også med den gamle `fil=node`-parameteren. `moduleCodeExampleSelection` gjør denne omleggingen innenfor riktig modul. Nye lenker og labpartnerkontekst bruker de nåværende ID-ene.
+
 Labpartneren bruker modulens kjente side-ID og adapterversjon 1. Bare valgt eksempel-ID, fil-ID og linje-ID deles. Backend kontrollerer at kombinasjonen finnes i den aktuelle modulen og henter kode/forklaring fra de samme offentlige kildene. Ingen innlimt kode, DOM, elevdata eller kjøreresultat deles. Når eksemplene lukkes, frigjøres denne arbeidsstatusen.
 
 ## Kontroll før main
+
+**Omgruppering 4. november 2026:** Kildekode, linjeforklaringer, avhengigheter, lenker og diff er gjennomgått. Eksisterende tester er oppdatert for det kuraterte utvalget, og regresjonstester beskriver gamle delte lenker og riktig søkevariant i labpartnerkonteksten. Testene er ikke kjørt i denne dev-justeringen. Svelte MCP er ikke tilgjengelig; ingen MCP-kontroll er utført. Kontrollen nedenfor gjelder versjonen før omgrupperingen. Den nye samlingen skal prøves samlet før main, særlig kopiering av fillagringsoppsettet, gamle lenker, variantbytte og lenkene mellom eksempler.
 
 Kode og diff gjennomgås på dev. Testene i `tests/moduleCodeExamples.test.js` er lagt til for kildeidentitet, linjeforklaringer, lenker, ugyldige valg og avgrenset labpartnerkontekst. Samlet testing, Svelte-sjekk, bygg og nettleserprøving gjenstår før main.
 

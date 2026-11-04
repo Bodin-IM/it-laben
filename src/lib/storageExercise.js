@@ -3,6 +3,9 @@
  * @typedef {{text:string,code?:string}} StorageTrial
  * @typedef {{id:string,label:string,title:string,placement:string,code:string,explanation:string,trials:StorageTrial[],scenario:string}} StorageStep
  */
+/** Setup for the module's reusable file-storage example. */
+export const storageSetupCode = `import { readFileSync, writeFileSync } from "node:fs";
+const fil = "./meldinger.json";`;
 export const storageSaveCode = `function lagreMeldinger(liste) {
   const json = JSON.stringify(liste, null, 2);
   writeFileSync(fil, json, "utf8");

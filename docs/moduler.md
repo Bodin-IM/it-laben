@@ -1,6 +1,6 @@
 # Fag, moduler og enkeltinnhold
 
-**Kodeeksempler, dev 4. november 2026:** Backend og Databaser har et eget valg ved siden av Innhold. Små tittelkort åpner modulens eksisterende kode med klikkbare linjeforklaringer, og flyttes til høyre ved visning av et eksempel. Se [innhold, deling og kontroll før main](kodeeksempler.md).
+**Kodeeksempler, dev 4. november 2026:** Backend og Databaser har et eget valg ved siden av Innhold. Små tittelkort samler kode etter hva eleven trenger å gjøre, med seks backendeksempler og tre databaseeksempler. Kortene flyttes til høyre ved visning av kode med klikkbare linjeforklaringer. Fillagring samler oppsettet og viser bruken i POST separat; databasesøk har filtervarianter under samme kort. Se [innhold, deling og kontroll før main](kodeeksempler.md).
 
 **Dev, 31. oktober 2026:** Forslag til neste oppgave bruker nå aktiv modul, fagvalg og modulrekkefølge. Påbegynt elevarbeid prioriteres; ferdige moduler merkes som repetisjon når ingen relevante moduler er aktive. Moduler uten kontolagret progresjon leder til sin oversikt. Øving 7 har en avgrenset overgang til eksisterende tekstreparasjon og egen kode. Modulsidens delnumre, aliaser og progresjon er bevart. Se [valg, lagring og kontroller](backend-validering.md).
 
