@@ -1,8 +1,8 @@
 <script>
 	import { teachingPlans, presentationLessons, presentationLink } from '#lib/teaching.js';
 	import { aktiviteter } from '#lib/innhold.js';
-	/** @type {{module:import('#lib/moduler.js').Module}} */
-	let { module } = $props();
+	/** @type {{module:import('#lib/moduler.js').Module,embedded?:boolean}} */
+	let { module, embedded = false } = $props();
 	const plans = $derived(
 		(module.teachingPlanIds ?? module.steps
 			.filter((step) => step.kind === 'undervisning').map((step) => step.id))
@@ -17,7 +17,7 @@
 </script>
 
 {#if plans.length}
-	<section class="suggestions" aria-labelledby={`teaching-suggestions-${module.id}`}>
+	<section class="suggestions" class:embedded aria-labelledby={`teaching-suggestions-${module.id}`}>
 		<p class="eyebrow">FOR LÆREREN</p>
 		<h2 id={`teaching-suggestions-${module.id}`}>Forslag til undervisning i denne modulen</h2>
 		<p class="intro">
@@ -45,6 +45,8 @@
 {/if}
 
 <style>
+	.suggestions.embedded { margin: 0; padding: 8px 0 0; border: 0; background: transparent; }
+	.embedded h2 { font-size: 1.125rem; }
 	.suggestions {
 		margin-block: 20px;
 		padding: 24px;

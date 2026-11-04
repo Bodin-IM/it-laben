@@ -4,8 +4,8 @@
 	import { moduler, moduleContents } from '#lib/moduler.js';
 	import { modulePublication } from '#lib/modulePublicationStore.js';
 	import { recommendNextActivity } from '#lib/moduleRecommendation.js';
-	/** @type {{subject?:string,moduleId?:string}} */
-	let { subject = 'alle', moduleId = '' } = $props();
+	/** @type {{subject?:string,moduleId?:string,compact?:boolean}} */
+	let { subject = 'alle', moduleId = '', compact = false } = $props();
 	const modules = $derived(moduler.filter((module) => !moduleId || module.id === moduleId)
 		.map((module) => ({ ...module, steps: moduleContents(module) })));
 	const next = $derived($modulePublication.ready && !$modulePublication.error && !$connection.publicHttp
@@ -14,18 +14,21 @@
 </script>
 
 {#if $lab.user && $lab.summary && next}
-	<aside class="next-task" aria-labelledby="next-task-title">
+	<aside class="next-task" class:compact aria-labelledby="next-task-title">
 		<div>
 			<p id="next-task-title">Forslag til neste oppgave</p>
 			<strong>{next.title}</strong>
-			<p class="description">{next.description}</p>
-			<p class="reason">{next.reason}</p>
+			{#if compact}<details><summary>Om forslaget</summary>
+				<p class="description">{next.description}</p><p class="reason">{next.reason}</p>
+			</details>{:else}<p class="description">{next.description}</p><p class="reason">{next.reason}</p>{/if}
 		</div>
 		<a href={next.href}>{next.action} <span aria-hidden="true">→</span></a>
 	</aside>
 {/if}
 
 <style>
+	.next-task.compact { margin: 0; padding: 14px 16px; gap: 4px; border-radius: 10px; }
+	summary { color: var(--color-accent); font-size: var(--font-small); cursor: pointer; min-height: 44px; padding-block: 10px; box-sizing: border-box; }
 	.next-task {
 		display: flex;
 		align-items: center;
@@ -55,5 +58,5 @@
 		font-weight: 650;
 		text-underline-offset: 4px;
 	}
-	a:focus-visible { outline: 3px solid var(--color-focus); outline-offset: 4px; }
+	:is(a, summary):focus-visible { outline: 3px solid var(--color-focus); outline-offset: 4px; }
 </style>
