@@ -184,7 +184,7 @@ export const moduler = [
 			},
 			{ kind: 'oppdrag', id: 'nattvakt', optional: true }
 		],
-		resources: []
+		resources: [{ label: 'Backend sammen – flerspillersimulator', href: '/spill/backend-simulator/' }]
 	},
 	...originalModules.slice(3)
 ];

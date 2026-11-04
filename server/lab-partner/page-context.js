@@ -167,7 +167,15 @@ export function pageWork(page, raw) {
 			'Avgrenset status rapportert av nettleseren, ikke dokumentasjon på forståelse. Kode og forklaringer hentes fra IT-labens undervisningsmodeller. Tekstfelt er bare kategorier; eksempler er ikke elevens faktiske tekst.',
 		selection: v
 	};
-	if (page.kind === 'vlan2') {
+	if (page.kind === 'backend-simulator') {
+		work.task = {
+			title: 'Koble sammen en LAN-kveld',
+			goal: 'Publiser et JSON-endepunkt, hent data fra en medelev og vis ett felt i frontend.',
+			hints: ['GET leser data. POST kan endre data.', 'Sammenlign metode og adresse med endepunktet på serverkortet.', 'Et svar er et øyeblikksbilde. Send GET igjen etter at backend er endret.', '400 betyr ugyldig input, 404 manglende adresse, 405 feil metode og 409 konflikt med tilgjengelig antall.'],
+			transfer: 'Lag og test en ny GET-rute i egen Express-app med mindre støtte.'
+		};
+		work.limit = 'Du ser valgt rolle, panel, publiseringsstatus og siste HTTP-status, men ingen kode, romkode, elevnavn, andre elevers data eller svarinnhold. Ikke anta at en konkret verdi eller løsning er riktig. Simulatoren bruker ekte HTTP til isolerte tjenester i én backend; den starter ikke egne serverprosesser. Markeringene viser handlinger, ikke vurdert forståelse.';
+	} else if (page.kind === 'vlan2') {
 		const task = vlan2Tasks.find((t) => t.id === v.taskId);
 		work.task = { title: task.title, goal: task.goal, ready: task.ready, steps: task.steps, theory: task.theory, reflection: task.reflect, networks: task.networks };
 		work.device = task.devices.find((d) => d.id === v.deviceId)?.name;
