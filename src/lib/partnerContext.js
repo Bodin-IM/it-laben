@@ -148,6 +148,12 @@ export function readPartnerState(pageId, raw) {
 			status: choice([null, 200, 201, 400, 404, 405, 409]),
 			stale: bool
 		};
+	} else if (page.kind === 'vlan-together') {
+		shape = {
+			deviceKind: choice(['none', 'pc', 'switch', 'router']),
+			action: choice(['configure', 'connect']),
+			hasRun: bool, stale: bool, revision: integer(0, 1000000000)
+		};
 	} else if (page.kind === 'vlan2') {
 		if (!object(v)) return invalidContext();
 		const task = vlan2Tasks.find((t) => t.id === v.taskId);

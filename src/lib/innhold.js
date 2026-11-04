@@ -2,6 +2,7 @@ import { lessons } from '#lib/ovingene.js';
 import { databaseActivities } from '#lib/databaseCourse.js';
 import { vlanActivity } from '#lib/vlanLab.js';
 import { vlan2Activity } from '#lib/vlanLab2.js';
+import { vlanTogetherActivity } from '#lib/vlanTogether.js';
 import { simulatorActivity } from '#lib/backendSimulator.js';
 
 // Aktiviteter med serverlagret fremgang. Fri repetisjon legges til i repetisjonsaktiviteter.
@@ -198,6 +199,7 @@ export const repetisjonsaktiviteter = [
 	simulatorActivity,
 	vlanActivity,
 	vlan2Activity,
+	vlanTogetherActivity,
 	{
 		id: 'backend-oppsummering',
 		tittel: 'Backend: oppsummering av øving 1–10',

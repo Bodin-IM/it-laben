@@ -48,7 +48,7 @@
 			: null
 	);
 	const taskKey = $derived(
-		current?.kind === 'pilot'
+		source?.localTaskKey ?? (current?.kind === 'pilot'
 			? (context.state?.values?.step ?? '')
 			: (context.state?.values?.level ??
 					context.state?.values?.taskId ??
@@ -58,7 +58,7 @@
 					(current?.kind === 'database-practice' ? context.state?.values?.phase : undefined) ??
 					context.state?.values?.caseId ??
 					context.state?.values?.questionId ??
-					'')
+					''))
 	);
 	/** @type {import('#lib/labPartner.js').PagePartnerSnapshot} */
 	const snapshot = $derived({
