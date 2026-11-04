@@ -8,8 +8,7 @@
 
 	/** @typedef {import('#lib/backendSimulator.js').SimulatorRoom} Room */
 	/** @typedef {import('#lib/backendSimulator.js').SimulatorEvent} Exchange */
-	/** @type {Room|null} */
-	let room = $state(null);
+	let room = $state(/** @type {Room|null} */ (null));
 	/** @type {{id:string,title:string,code:string,paused:boolean}[]} */
 	let rooms = $state([]);
 	let role = $state('utstyr');
@@ -32,8 +31,7 @@
 	let path = $state('');
 	let body = $state('{ "antall": 1 }');
 	let field = $state('');
-	/** @type {{status:number,data:Record<string,unknown>,eventId:string|null,signature:string,target:string,method:string,at:number}|null} */
-	let result = $state(null);
+	let result = $state(/** @type {{status:number,data:Record<string,unknown>,eventId:string|null,signature:string,target:string,method:string,at:number}|null} */ (null));
 	/** @type {{id:string,signature:string}|null} */
 	let pending = $state(null);
 	/** @type {Exchange|null} */
@@ -268,7 +266,7 @@
 				</div>
 				{#if room.players.length < 2}<p class="empty">Del romkoden med en medelev. Dere trenger hverandres data for å løse oppdraget.</p>{/if}
 				<section class="traffic" aria-labelledby="traffic-title"><div class="section-heading"><h2 id="traffic-title">Trafikk mellom serverne</h2><span class="muted small">Siste 30 forespørsler</span></div>
-					{#if currentEvent}<div class="exchange"><p><strong>{name(currentEvent.from)}</strong> <span aria-hidden="true">→</span> <strong>{name(currentEvent.to)}</strong></p><p><span class="verb">{currentEvent.method}</span> <code>{currentEvent.path}</code> <span class="status" class:failed={currentEvent.status >= 400}>{currentEvent.status}</span></p><p class="muted small">Forespørsel til backend · svar tilbake til frontend · {clock(currentEvent.at)}</p><details><summary>Se forespørsel og svar</summary>{#if currentEvent.body}<p>JSON sendt</p><pre><code><CodeTokens source={JSON.stringify(currentEvent.body, null, 2)} /></code></pre>{/if}<p>JSON mottatt</p><pre><code><CodeTokens source={JSON.stringify(currentEvent.response, null, 2)} /></code></pre></details></div>{:else}<p class="empty">Ingen trafikk ennå. Publiser et endepunkt og send den første forespørselen.</p>{/if}
+					{#if currentEvent}<div class="exchange"><p><strong>{name(currentEvent.from)}</strong> <span aria-hidden="true">→</span> <strong>{name(currentEvent.to)}</strong></p><p><span class="verb">{currentEvent.method}</span> <code>{currentEvent.path}</code> <span class="status" class:failed={currentEvent.status >= 400}>{currentEvent.status}</span></p><p class="muted small">Forespørsel til backend · svar tilbake til frontend · {clock(currentEvent.at)}</p><details><summary>Se forespørsel og svar</summary>{#if currentEvent.body}<p>JSON sendt</p><!-- svelte-ignore a11y_no_noninteractive_tabindex (The code region supports keyboard scrolling.) --><pre tabindex="0" role="region" aria-label="JSON sendt"><code><CodeTokens source={JSON.stringify(currentEvent.body, null, 2)} /></code></pre>{/if}<p>JSON mottatt</p><!-- svelte-ignore a11y_no_noninteractive_tabindex (The code region supports keyboard scrolling.) --><pre tabindex="0" role="region" aria-label="JSON mottatt"><code><CodeTokens source={JSON.stringify(currentEvent.response, null, 2)} /></code></pre></details></div>{:else}<p class="empty">Ingen trafikk ennå. Publiser et endepunkt og send den første forespørselen.</p>{/if}
 					{#if room.events.length}<details class="history"><summary>Åpne trafikkloggen</summary><ol>{#each room.events as item (item.id)}<li><button class:chosen={currentEvent?.id === item.id} onclick={() => selectedEvent = item}><time>{clock(item.at)}</time><span>{name(item.from)} → {name(item.to)}<code>{item.method} {item.path}</code></span><strong class:bad={item.status >= 400}>{item.status}</strong></button></li>{/each}</ol><button class="quiet" onclick={() => selectedEvent = null}>Følg nyeste forespørsel</button></details>{/if}
 				</section>
 			</section>
@@ -280,15 +278,15 @@
 					<form onsubmit={(event) => { event.preventDefault(); publish(); }}>
 						<fieldset disabled={busy || sending || room.paused}><legend class="sr-only">Publiser backend</legend><label for="get-path">Adresse for GET</label><input id="get-path" bind:value={getPath} maxlength="80" spellcheck="false" required /><label for="server-json">Data som backend svarer med</label><textarea id="server-json" class="code-input" bind:value={json} rows="7" maxlength="3000" spellcheck="false" required></textarea>
 						{#if me?.role === 'utstyr'}<label class="checkbox"><input type="checkbox" bind:checked={postEnabled} />Ta imot PC-reservasjoner med POST</label>{#if postEnabled}<label for="post-path">Adresse for POST</label><input id="post-path" bind:value={postPath} maxlength="80" spellcheck="false" required /><p class="muted small">Send <code>{'{ "antall": 1 }'}</code>. Serveren kontrollerer antallet, trekker fra <code>pcLedige</code> og svarer med 201. Et for stort antall gir 409.</p>{/if}{/if}
-						<p class="code-caption">GET-ruten uttrykt som Express-kode</p><pre><code><CodeTokens source={simulatorGetCode(getPath, json)} /></code></pre><p class="muted small">Feltene styrer en ferdig backend-mal. Fri JavaScript-kode kjøres ikke i dette utkastet.</p>
+						<p class="code-caption">GET-ruten uttrykt som Express-kode</p><!-- svelte-ignore a11y_no_noninteractive_tabindex (The code region supports keyboard scrolling.) --><pre tabindex="0" role="region" aria-label="GET-rute som Express-kode"><code><CodeTokens source={simulatorGetCode(getPath, json)} /></code></pre><p class="muted small">Feltene styrer en ferdig backend-mal. Fri JavaScript-kode kjøres ikke i dette utkastet.</p>
 						{#if me && me.revision !== draftRevision}<p class="banner">Serverdataene er endret, for eksempel av en reservasjon. Hent lagret oppsett før du publiserer igjen. Dine lokale endringer blir da erstattet.</p>{/if}
 						<div class="button-row"><button class="primary" disabled={me?.revision !== draftRevision}>{busy ? 'Lagrer …' : 'Publiser endepunkter'}</button><button type="button" class="secondary" onclick={loadDraft}>Hent lagret oppsett</button></div></fieldset>
 					</form>
 				{:else}
 					<p class="eyebrow">DIN KLIENT</p><h2>Send en forespørsel</h2><p class="muted">Velg en server på brettet. Forutsi hva du får tilbake, og prøv.</p>
 					<form onsubmit={(event) => { event.preventDefault(); void send(); }}><fieldset disabled={sending || busy || room.paused}><legend class="sr-only">HTTP-forespørsel</legend><label for="target">Server</label><select id="target" bind:value={target} onchange={(event) => { target = event.currentTarget.value; chooseTarget(); }} required><option value="">Velg en server</option>{#each room.players as player}<option value={player.id}>{player.name} · {simulatorRole(player.role)?.title}{player.id === room.me ? ' (din server)' : ''}</option>{/each}</select><div class="request-fields"><div><label for="method">Metode</label><select id="method" bind:value={method} onchange={(event) => { method = event.currentTarget.value; chooseTarget(); }}><option>GET</option><option>POST</option></select></div><div><label for="endpoint-path">Adresse</label><input id="endpoint-path" bind:value={path} placeholder="/utstyr" maxlength="81" spellcheck="false" required /></div></div>{#if method === 'POST'}<label for="request-body">JSON som sendes til backend</label><textarea id="request-body" class="code-input" bind:value={body} rows="3" maxlength="3000" spellcheck="false" required></textarea>{/if}<button class="primary send" disabled={!target}>{sending ? 'Venter på svar …' : pending?.signature === signature ? 'Prøv samme forespørsel igjen →' : 'Send forespørsel →'}</button></fieldset></form>
-					<details class="code-example"><summary>Se forespørselen som fetch-kode</summary><pre><code><CodeTokens source={simulatorFetchCode(requestUrl, method, body)} /></code></pre><p class="muted small">Spillet legger i tillegg ved pålogging, CSRF-beskyttelse og en forespørsels-ID. JSON-innholdet ditt sendes uendret.</p></details>
-					{#if result}<section class="response" aria-label="Mottatt svar"><div class="section-heading"><h3>Svar fra {name(result.target)}</h3><strong class="status" class:failed={result.status >= 400}>HTTP {result.status}</strong></div><p class="muted small">{clock(result.at)} · {result.method} · {stale ? 'Gjelder en tidligere forespørsel. Send igjen for å teste endringene.' : 'Et øyeblikksbilde av dataene da du sendte.'}</p><pre><code><CodeTokens source={JSON.stringify(result.data, null, 2)} /></code></pre>
+					<details class="code-example"><summary>Se forespørselen som fetch-kode</summary><!-- svelte-ignore a11y_no_noninteractive_tabindex (The code region supports keyboard scrolling.) --><pre tabindex="0" role="region" aria-label="Forespørsel som fetch-kode"><code><CodeTokens source={simulatorFetchCode(requestUrl, method, body)} /></code></pre><p class="muted small">Spillet legger i tillegg ved pålogging, CSRF-beskyttelse og en forespørsels-ID. JSON-innholdet ditt sendes uendret.</p></details>
+					{#if result}<section class="response" aria-label="Mottatt svar"><div class="section-heading"><h3>Svar fra {name(result.target)}</h3><strong class="status" class:failed={result.status >= 400}>HTTP {result.status}</strong></div><p class="muted small">{clock(result.at)} · {result.method} · {stale ? 'Gjelder en tidligere forespørsel. Send igjen for å teste endringene.' : 'Et øyeblikksbilde av dataene da du sendte.'}</p><!-- svelte-ignore a11y_no_noninteractive_tabindex (The code region supports keyboard scrolling.) --><pre tabindex="0" role="region" aria-label="JSON i svaret"><code><CodeTokens source={JSON.stringify(result.data, null, 2)} /></code></pre>
 						{#if result.status === 200 && result.method === 'GET' && result.target !== room.me && !stale}<label for="display-field">Hvilket felt trenger din frontend?</label><select id="display-field" bind:value={field}><option value="">Velg et felt</option>{#each fields as key}<option value={key}>{key}</option>{/each}</select><button class="secondary" disabled={!field || busy || sending || room.paused} onclick={() => change('display', { eventId: result?.eventId, field }, 'Feltet er vist i din frontend. Hent data på nytt hvis backend endres.')}>Vis i min frontend</button>{:else if result.target === room.me && result.status === 200}<p class="muted small">Du har testet din egen server. Hent fra en medelev for å koble sammen tjenestene.</p>{/if}
 					</section>{/if}
 				{/if}
@@ -340,7 +338,7 @@
 	.secondary:hover:not(:disabled), .quiet:hover { background: var(--color-surface-hover); }
 	.quiet { background: transparent; color: var(--color-text-muted); text-decoration: underline; }
 	.link-button { display: inline-flex; align-items: center; }
-	:where(button, a, input, textarea, select, summary):focus-visible { outline: 3px solid var(--color-focus); outline-offset: 3px; }
+	:where(button, a, input, textarea, select, summary, pre):focus-visible { outline: 3px solid var(--color-focus); outline-offset: 3px; }
 	.input-row, .button-row { display: flex; gap: .6rem; align-items: center; }
 	.input-row input { min-width: 0; }
 	.input-row button { white-space: nowrap; }

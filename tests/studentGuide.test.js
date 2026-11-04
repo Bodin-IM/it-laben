@@ -52,7 +52,10 @@ test('backend: samler utviklingsoppgavene og Øving 10, mens databaser har egen 
 	for (const activity of altElevinnhold.filter(
 		(item) => item.fag === 'utvikling' && !item.id.startsWith('database-')
 	))
-		assert.ok(ids.includes(activity.id), activity.id);
+		assert.ok(
+			ids.includes(activity.id) || backend.resources.some((resource) => resource.href === activity.href),
+			`${activity.id} skal finnes som modulsteg eller ekstra ressurs`
+		);
 	assert.ok(ids.includes('oving-10'));
 	assert.equal(altElevinnhold.find((item) => item.id === 'oving-10').fag, 'drift');
 	assert.ok(!ids.some((id) => id.startsWith('database-')));

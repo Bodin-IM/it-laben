@@ -69,6 +69,8 @@ Labpartneren bruker `page-help` v2 og adapter v1. Bare kjent rolle, valgt panel,
 
 ## Kontroll og utprøving
 
+Samlet publiseringskontroll er gjennomført 4. november 2026. Se [kontrollnotatet](publiseringskontroll-modulvisning-2026-11-04.md) for rettelser, tester, nettleserprøving og lokal prøve med 24 API-klienter. Elevutprøving og prøving på skolens server gjenstår. Avsnittene nedenfor beskriver status og kontrollplan ved den opprinnelige dev-leveransen.
+
 Kode og diff er gjennomgått på `dev`. En konkret Svelte-syntaksfeil ble rettet, og den nye siden ble deretter kompilert isolert med Svelte-kompilatoren uten advarsler. Full testsuite, Svelte-sjekk, produksjonsbygg og nettleserprøving er utsatt til før `main`, i tråd med repoets arbeidsflyt. Ingen dokumentert elevutprøving eller læringseffekt foreligger.
 
 `tests/backendSimulator.test.js` beskriver regresjonsprøver for faktisk HTTP mellom flere kontoer: GET/POST og feilstatus, medlemskap og eierskap, Origin/CSRF, samtidige reservasjoner, gjentatt kvittering, utdatert oppsett, pause, lagring gjennom API-/databaseomstart og avgrenset labpartnerkontekst. Testene er lagt til, men ikke kjørt i denne dev-leveransen.

@@ -91,7 +91,7 @@ Registrer moduler i `src/lib/moduler.js`. `optional` merker ekstraarbeid utenfor
 
 Ved utprøving: sjekk om elever finner riktig modul, forstår forskjellen på gjennomgang og elevarbeid, og finner igjen et spill uten å gå gjennom modulen først. Vurder pedagogisk effekt separat fra teknisk navigasjon.
 
-## Kompakt modulvisning – dev, 4. november 2026
+## Kompakt modulvisning – 4. november 2026
 
 Brukeren opplevde mye scrolling før og mellom aktivitetene. Innholdslisten kommer derfor rett etter en kort tittelrad. Hver aktivitet har en direkte lenke og en separat, lukket Info-utfelling. Beskrivelsen, personlig status, eventuelle leksjonslenker, valideringsforløp og prosjektoppgaver er beholdt i utfellingen. Den gjentatte innholdsfortegnelsen er fjernet. Felles hovedmeny og Labpartner beholdes.
 
@@ -99,9 +99,11 @@ Synlighetsvalget lagres ved endring på modulsiden, uten egen lagreknapp eller e
 
 Dette er en endring av navigasjon og informasjonsmengde etter U1/U3/U6 i [designgrunnlaget](webdesign-og-brukeropplevelse.md) og del 3 og 5 i [pedagogikkgrunnlaget](pedagogisk-grunnlag.md). Læreplangrunnlaget er gjennomgått; innhold, faglige mål, vurdering og XP-regler er uendret. Målet er at eleven finner og åpner riktig aktivitet med mindre leting. Det er ikke dokumentert brukereffekt. Native lenker og details/summary skiller åpning av aktivitet fra utdyping; temavariabler og lesbar skrift beholdes. Tittellenkene og Info-valgene er minst 44 px høye, og lange titler får bryte over flere linjer.
 
-**Kontrollstatus:** Kildekode og diff er gjennomgått. Ingen tester, Svelte-sjekk, bygg, autofikser eller nettleserprøving er kjørt i denne dev-leveransen. Svelte MCP var ikke tilgjengelig; prosjektets mønstre og offisiell dokumentasjon for [$props](https://svelte.dev/docs/svelte/$props), [klasser](https://svelte.dev/docs/svelte/class) og [elementer/hendelser](https://svelte.dev/docs/svelte/basic-markup) er brukt.
+**Publiseringskontroll:** Samlet testing og nettleserprøving er gjennomført før main; se [kontrollnotatet](publiseringskontroll-modulvisning-2026-11-04.md). Elevutprøving gjenstår.
 
-**Før main:** prøv Backend og Databaser som elev, gjest og lærer: direkte tittellenke, Info uten navigasjon, undervisningslenker, valgfri aktivitet, gamle delankre, bytte av modul og databasebokmerke. Kontroller at alle tre synlighetsvalg lagres med tydelig status, også ved tregt svar, feil, revisjonskonflikt og profilbytte. Prøv mobil, 200 % tekstforstørrelse, begge temaer, tastatur og berøring. Kjør samlet testsuite, Svelte-sjekk og bygg etter AGENTS.md. I elevutprøvingen undersøkes om de finner en bestemt øving og mer informasjon uten hjelp.
+**Historisk dev-status:** Kildekode og diff er gjennomgått. Ingen tester, Svelte-sjekk, bygg, autofikser eller nettleserprøving er kjørt i denne dev-leveransen. Svelte MCP var ikke tilgjengelig; prosjektets mønstre og offisiell dokumentasjon for [$props](https://svelte.dev/docs/svelte/$props), [klasser](https://svelte.dev/docs/svelte/class) og [elementer/hendelser](https://svelte.dev/docs/svelte/basic-markup) er brukt.
+
+**Planlagt kontroll ved dev-leveransen:** prøv Backend og Databaser som elev, gjest og lærer: direkte tittellenke, Info uten navigasjon, undervisningslenker, valgfri aktivitet, gamle delankre, bytte av modul og databasebokmerke. Kontroller at alle tre synlighetsvalg lagres med tydelig status, også ved tregt svar, feil, revisjonskonflikt og profilbytte. Prøv mobil, 200 % tekstforstørrelse, begge temaer, tastatur og berøring. Kjør samlet testsuite, Svelte-sjekk og bygg etter AGENTS.md. I elevutprøvingen undersøkes om de finner en bestemt øving og mer informasjon uten hjelp.
 
 ## Teknisk kontroll av første modulversjon – historikk
 
