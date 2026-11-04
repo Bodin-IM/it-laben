@@ -1,4 +1,9 @@
-<section class="backend-start" aria-labelledby="backend-start-title">
+<script>
+	/** @type {{embedded?:boolean}} */
+	let { embedded = false } = $props();
+</script>
+
+<section class="backend-start" class:embedded aria-labelledby="backend-start-title">
 	<h2 id="backend-start-title">Bygg en chat som tåler å bli brukt</h2>
 	<p>Undersøk én del i IT-laben, og bruk den i ditt eget prosjekt. Du bygger videre på samme Svelte-frontend og Express-backend gjennom modulen, med JSON-filer som lagring.</p>
 	<a class="start" href="/backend/?modul=backend">Start med dataflyten →</a>
@@ -22,6 +27,8 @@
 </section>
 
 <style>
+	.backend-start.embedded { margin: 0; padding: 8px 0 0; border: 0; background: transparent; }
+	.embedded h2 { font-size: 1.125rem; }
 	.backend-start { margin-block: 20px; padding: 24px; border: 1px solid var(--color-border); border-radius: var(--radius-card); background: var(--color-surface); color: var(--color-text); font: 400 var(--font-body)/1.6 var(--font-ui); overflow-wrap: anywhere; }
 	h2 { margin: 0 0 12px; font-size: 1.4rem; line-height: 1.35; }
 	p, ol { max-width: 75ch; }

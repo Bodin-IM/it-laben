@@ -129,7 +129,15 @@ export function readPartnerState(pageId, raw) {
 	const v = wrap.values;
 	/** @type {Record<string,Rule>} */
 	let shape;
-	if (page.kind === 'vlan2') {
+	if (page.kind === 'backend-simulator') {
+		shape = {
+			role: choice(['none', 'utstyr', 'program', 'pamelding', 'kiosk']),
+			view: side,
+			published: bool,
+			status: choice([null, 200, 201, 400, 404, 405, 409]),
+			stale: bool
+		};
+	} else if (page.kind === 'vlan2') {
 		if (!object(v)) return invalidContext();
 		const task = vlan2Tasks.find((t) => t.id === v.taskId);
 		if (!task) return invalidContext();

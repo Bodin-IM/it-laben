@@ -24,7 +24,7 @@ Lærere og administratorer kan endre status fra **Lærerpanel → Undervisning**
 | Aktiv    | Modulen vises først i oversikten.                                                                     | Vis hva klassen arbeider med nå.                              |
 | Ferdig   | Modulen er synlig etter de aktive og kan åpnes igjen.                                                 | Behold forløpet tilgjengelig for repetisjon og videre arbeid. |
 
-I læreroversikten velges status med tre radiovalg som lagres automatisk. **Fullført** er den samme statusen som **Ferdig** (`completed`). Inne på modulsiden beholdes menyen og lagring med **Aktiver modulen**, **Marker som ferdig** eller **Skjul som kommende**. Se [undervisningsveiledningen](undervisning.md) for lagringsrespons og feilretting. Flere moduler kan være aktive samtidig. Å aktivere én modul avslutter ingen andre; læreren velger selv når en modul er ferdig eller skal bli kommende igjen. Innenfor hver statusgruppe beholdes modulenes innholdsrekkefølge.
+I læreroversikten velges status med tre radiovalg som lagres automatisk. **Fullført** er den samme statusen som **Ferdig** (`completed`). Inne på modulsiden brukes ett nedtrekksvalg som lagrer automatisk. Valgene beskriver synligheten for elevene, og **Lagrer …**, **Lagret** eller en feilmelding vises ved kontrollen. Se [undervisningsveiledningen](undervisning.md) for lagringsrespons og feilretting. Flere moduler kan være aktive samtidig. Å aktivere én modul avslutter ingen andre; læreren velger selv når en modul er ferdig eller skal bli kommende igjen. Innenfor hver statusgruppe beholdes modulenes innholdsrekkefølge.
 
 **Ferdig** betyr at undervisningsforløpet er avsluttet av læreren. Det endrer ikke elevenes gjennomføring, vurdering, forsøk, lagrede løsninger eller XP. En elev kan fortsatt arbeide i en ferdig modul og bruke aktivitetenes vanlige progresjonsregler.
 
@@ -65,11 +65,13 @@ Gamle moduladresser videresendes til starten på tilsvarende del i Backend. `/mo
 
 ## Modulsiden
 
-Hver modul har mål, forkunnskaper, anbefalt rekkefølge og eventuelle repetisjonsressurser. Mål og forkunnskaper åpnes rett under introduksjonen. På mobil vises arbeidsrekkefølgen før ekstraressursene. Lenker til modulens aktiviteter tar med `modul` i adressen, slik at eleven får en tilbakevei også etter oppfrisking. Tilhørighet vises bare for sider som faktisk er del av eller lenket fra modulen. Gjennomgang og elevarbeid kan bruke samme side i ulike sammenhenger. Innholdet til gjennomgangen kan åpnes uten lærerrolle; private notater hentes fortsatt bare gjennom det beskyttede lærer-API-et.
+Hver modul viser innholdet først, med nummer og tittel i kompakte rader. Tittelen åpner aktiviteten direkte; **Info** til høyre er en separat utfelling for beskrivelse, innholdstype, personlig status og eventuell prosjekthjelp. For undervisning åpner tittelen læreropplegget for læreren og første elevleksjon for eleven. De øvrige leksjonene er tilgjengelige under Info. Valgfritt arbeid er merket også når raden er lukket.
+
+Modulbeskrivelse, mål, forkunnskaper, anbefalinger, læreropplegg og ressurser ligger i en sidekolonne. På mobil følger denne etter innholdslisten; **Om modulen** ved listen er en snarvei dit. Databasemodulen beholder **Fortsett der du slapp**. Planlagte runder og øvrig utdyping kan foldes ut. Delnumre og eksisterende `#del-…`-lenker beholdes. Lenker til modulens aktiviteter tar med `modul` i adressen, slik at eleven får en tilbakevei også etter oppfrisking. Tilhørighet vises bare for sider som faktisk er del av eller lenket fra modulen. Gjennomgang og elevarbeid kan bruke samme side i ulike sammenhenger. Innholdet til gjennomgangen kan åpnes uten lærerrolle; private notater hentes fortsatt bare gjennom det beskyttede lærer-API-et.
 
 Under **Ditt arbeid** ser eleven antall unike elevaktiviteter som API-et allerede har merket **Gjennomgått** eller **Bestått**. Dette er elevens personlige progresjon, atskilt fra lærerens modulstatus. Undervisning, åpning av modulsiden og bare påbegynt arbeid teller ikke som fullføring. Modulen tildeler ingen nye poeng eller merker, og progresjonen kalles ikke dokumentert forståelse. Uten innlogging eller tilgjengelig progresjon vises ingen personlig status.
 
-Læreren får statuskontroll og relevante forslag til gjennomgang inne i modulen. Forslagene leder til eksisterende læreropplegg og storskjermvisning. Hele biblioteket er fortsatt tilgjengelig fra mindre lenker under modulene på undervisningssiden. Se [undervisningsveiledningen](undervisning.md).
+Læreren får et kompakt synlighetsvalg ved modulnavnet og relevante forslag til gjennomgang i sidekolonnen. Forslagene leder til eksisterende læreropplegg og storskjermvisning. Hele biblioteket er fortsatt tilgjengelig fra mindre lenker under modulene på undervisningssiden. Se [undervisningsveiledningen](undervisning.md).
 
 ## Begrunnelse for organiseringen
 
@@ -88,6 +90,20 @@ Samlingene følger [det pedagogiske grunnlaget](https://github.com/Bodin-IM/it-l
 Registrer moduler i `src/lib/moduler.js`. `optional` merker ekstraarbeid utenfor modultelleren og neste-anbefalingene. `teachingPlanIds` kan angi en ordnet liste læreropplegg uten å flytte de eksisterende elevstegene eller delankrene. Backend bruker dette til fem læreropplegg, inkludert validering og publisering. Bruk stabile aktivitets-ID-er fra `innhold.js` og oppleggs-ID-er fra `teaching.js`. `steps` angir rekkefølge og innholdstype; `resources` lenker til åpne aktiviteter. Et elevsteg fra et annet programfag må oppgi et gyldig `subject` som samsvarer med aktivitetens fag, slik Øving 10 oppgir `drift`. Uten dette gjelder modulens fag. Dette lar modulen samle et sammenhengende forløp uten å endre fagprogresjonen. Private lærernotater skal fortsatt ligge i `server/teaching.js`. De dynamiske modulrutene blir forhåndsbygget som statiske sider, også for direkte åpning og oppfrisking.
 
 Ved utprøving: sjekk om elever finner riktig modul, forstår forskjellen på gjennomgang og elevarbeid, og finner igjen et spill uten å gå gjennom modulen først. Vurder pedagogisk effekt separat fra teknisk navigasjon.
+
+## Kompakt modulvisning – 4. november 2026
+
+Brukeren opplevde mye scrolling før og mellom aktivitetene. Innholdslisten kommer derfor rett etter en kort tittelrad. Hver aktivitet har en direkte lenke og en separat, lukket Info-utfelling. Beskrivelsen, personlig status, eventuelle leksjonslenker, valideringsforløp og prosjektoppgaver er beholdt i utfellingen. Den gjentatte innholdsfortegnelsen er fjernet. Felles hovedmeny og Labpartner beholdes.
+
+Synlighetsvalget lagres ved endring på modulsiden, uten egen lagreknapp eller et stort administrasjonspanel. `ModuleAdministration` får eksplisitte `compact`- og `autoSave`-valg; standardvarianten beholder manuell lagring. Rollekrav, revisjonskontroll, beskyttelse mot sene svar etter profil-/modulbytte, lagringsbekreftelse, feil og ny henting videreføres. Automatisk lagring skjer bare etter et valg, ikke når siden åpnes.
+
+Dette er en endring av navigasjon og informasjonsmengde etter U1/U3/U6 i [designgrunnlaget](webdesign-og-brukeropplevelse.md) og del 3 og 5 i [pedagogikkgrunnlaget](pedagogisk-grunnlag.md). Læreplangrunnlaget er gjennomgått; innhold, faglige mål, vurdering og XP-regler er uendret. Målet er at eleven finner og åpner riktig aktivitet med mindre leting. Det er ikke dokumentert brukereffekt. Native lenker og details/summary skiller åpning av aktivitet fra utdyping; temavariabler og lesbar skrift beholdes. Tittellenkene og Info-valgene er minst 44 px høye, og lange titler får bryte over flere linjer.
+
+**Publiseringskontroll:** Samlet testing og nettleserprøving er gjennomført før main; se [kontrollnotatet](publiseringskontroll-modulvisning-2026-11-04.md). Elevutprøving gjenstår.
+
+**Historisk dev-status:** Kildekode og diff er gjennomgått. Ingen tester, Svelte-sjekk, bygg, autofikser eller nettleserprøving er kjørt i denne dev-leveransen. Svelte MCP var ikke tilgjengelig; prosjektets mønstre og offisiell dokumentasjon for [$props](https://svelte.dev/docs/svelte/$props), [klasser](https://svelte.dev/docs/svelte/class) og [elementer/hendelser](https://svelte.dev/docs/svelte/basic-markup) er brukt.
+
+**Planlagt kontroll ved dev-leveransen:** prøv Backend og Databaser som elev, gjest og lærer: direkte tittellenke, Info uten navigasjon, undervisningslenker, valgfri aktivitet, gamle delankre, bytte av modul og databasebokmerke. Kontroller at alle tre synlighetsvalg lagres med tydelig status, også ved tregt svar, feil, revisjonskonflikt og profilbytte. Prøv mobil, 200 % tekstforstørrelse, begge temaer, tastatur og berøring. Kjør samlet testsuite, Svelte-sjekk og bygg etter AGENTS.md. I elevutprøvingen undersøkes om de finner en bestemt øving og mer informasjon uten hjelp.
 
 ## Teknisk kontroll av første modulversjon – historikk
 

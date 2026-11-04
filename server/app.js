@@ -39,6 +39,7 @@ import { modulePublications, setModulePublication } from './modules.js';
 import { avatars } from '../src/lib/avatars.js';
 import { schoolClasses, classCapacities } from '../src/lib/classes.js';
 import { labPartnerRouter } from './lab-partner/router.js';
+import { backendSimulatorRouter } from './backend-simulator.js';
 import { saveFeedback, listFeedback, setFeedbackStatus } from './feedback.js';
 import { feedbackPreferences, setFeedbackPreferences, offerFeedbackPrompt, respondToFeedbackPrompt, feedbackTotals } from './activity-feedback.js';
 import { networkLabSnapshot, checkNetworkLab } from './network-labs.js';
@@ -151,6 +152,8 @@ export function createApp({ db, config, clock = Date.now, limits = true }) {
 		app.use('/api/auth/key', limit(15 * 60000, 120));
 		app.use('/api/progress', limit(60000, 600));
 		app.use('/api/network-labs', limit(60000, 120));
+		// Hele klassen kan dele IP-adresse; brettet henter status hvert andre sekund.
+		app.use('/api/simulator', limit(60000, 4000));
 		app.use('/api/checkpoints', limit(60000, 600));
 		app.use('/api/timed', limit(60000, 3000));
 		app.use('/api/practice', limit(60000, 3000));
@@ -164,6 +167,7 @@ export function createApp({ db, config, clock = Date.now, limits = true }) {
 		next();
 	};
 	app.use('/api/lab-partner', labPartnerRouter({ db, config, authenticated, limits }));
+	app.use('/api/simulator', backendSimulatorRouter({ db, authenticated, clock }));
 	app.get('/api/network-labs/:labId', authenticated, (req, res) => res.json(networkLabSnapshot(db, req.labUser.id, req.params.labId, req.query.preview === '1')));
 	app.post('/api/network-labs/:labId/:taskId/check', authenticated, (req, res) => res.json(checkNetworkLab(db, req.labUser.id, req.params.labId, req.params.taskId, req.body, clock())));
 	const cookieOptions = { httpOnly: true, secure: config.secure, sameSite: 'lax', path: '/' };
@@ -650,6 +654,7 @@ export function createApp({ db, config, clock = Date.now, limits = true }) {
 			return fail(res, 409, error.code, error.message);
 		if (
 			error.code?.startsWith('PARTNER_') ||
+			error.code?.startsWith('SIMULATOR_') ||
 			error.code?.startsWith('NETWORK_') ||
 			error.code?.startsWith('FEEDBACK_') ||
 			error.code === 'CHECKPOINT_COOLDOWN' ||

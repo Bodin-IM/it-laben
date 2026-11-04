@@ -8,8 +8,8 @@
 		refreshModulePublication,
 		updateModulePublication
 	} from '#lib/modulePublicationStore.js';
-	/** @type {{moduleId:string,title:string}} */
-	let { moduleId, title } = $props();
+	/** @type {{moduleId:string,title:string,compact?:boolean,autoSave?:boolean}} */
+	let { moduleId, title, compact = false, autoSave = false } = $props();
 	/** @type {{status:import('#lib/modulePublication.js').ModuleStatus,revision:number}|null} */
 	let draft = $state(null);
 	/** @type {HTMLSelectElement|undefined} */
@@ -44,12 +44,14 @@
 		notice = '';
 	});
 	function choose(/** @type {Event & {currentTarget:HTMLSelectElement}} */ event) {
+		if (busy || refreshing || unavailable) return;
 		const status = event.currentTarget.value;
 		if (!isModuleStatus(status)) return;
 		draft =
 			status === current.status ? null : { status, revision: draft?.revision ?? current.revision };
 		error = '';
 		notice = '';
+		if (autoSave) void save();
 	}
 	async function save() {
 		if (!draft || !changed || stale || busy || refreshing || unavailable) return;
@@ -65,7 +67,7 @@
 			await updateModulePublication(id, change.status, change.revision);
 			if (request !== requestVersion || id !== moduleId || userId !== $lab.user?.id) return;
 			draft = null;
-			notice =
+			notice = autoSave ? 'Lagret.' :
 				change.status === 'active'
 					? 'Lagret. Modulen er aktiv og vises først for elevene.'
 					: change.status === 'completed'
@@ -116,6 +118,7 @@
 
 <form
 	class="module-administration"
+	class:compact
 	aria-label={`Modulstatus for ${title}`}
 	onsubmit={(event) => {
 		event.preventDefault();
@@ -124,7 +127,7 @@
 >
 	<div class="controls">
 		<div class="selection">
-			<label for={`module-status-${moduleId}`}>Endre modulstatus</label>
+			<label class:sr-only={compact} for={`module-status-${moduleId}`}>Synlighet for elevene</label>
 			<select
 				id={`module-status-${moduleId}`}
 				bind:this={select}
@@ -139,12 +142,13 @@
 				<option value="completed">Ferdig – åpen for repetisjon</option>
 			</select>
 		</div>
-		<button type="submit" disabled={!changed || stale || busy || refreshing || unavailable}
+		{#if !autoSave}<button type="submit" disabled={!changed || stale || busy || refreshing || unavailable}
 			>{busy ? 'Lagrer …' : action}</button
-		>
+		>{/if}
 	</div>
-	<p class="help" id={`module-status-help-${moduleId}`}>
+	<p class="help" class:sr-only={compact} id={`module-status-help-${moduleId}`}>
 		{#if !$modulePublication.ready}Henter lagret status før du kan gjøre endringer.
+		{:else if autoSave}Valget lagres automatisk og gjelder begge klassene. Elevenes arbeid og progresjon beholdes.
 		{:else if changed}Endringen gjelder begge klassene når du lagrer.
 		{:else}Statusen gjelder begge klassene. Elevenes arbeid og progresjon beholdes.{/if}
 	</p>
@@ -162,10 +166,28 @@
 			onclick={reload}>{refreshing ? 'Henter …' : 'Hent siste lagrede status'}</button
 		>
 	{/if}
-	<p class="saved" role="status" aria-live="polite">{notice}</p>
+	<p class="saved" role="status" aria-live="polite">{autoSave && busy ? 'Lagrer …' : notice}</p>
 </form>
 
 <style>
+	.module-administration.compact {
+		margin: 0;
+		padding: 0;
+		border: 0;
+	}
+	.compact .selection { flex-basis: 100%; max-width: none; }
+	.compact select { font-size: var(--font-small); min-height: 44px; padding: 8px 10px; }
+	.sr-only {
+		position: absolute;
+		width: 1px;
+		height: 1px;
+		padding: 0;
+		margin: -1px;
+		overflow: hidden;
+		clip-path: inset(50%);
+		white-space: nowrap;
+		border: 0;
+	}
 	.module-administration {
 		margin-top: 18px;
 		padding-top: 18px;

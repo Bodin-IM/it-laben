@@ -6,6 +6,7 @@ import { lessons } from '#lib/ovingene.js';
 
 /** @type {Record<string,string>} */
 const kinds = {
+	'backend-simulator': 'backend-simulator',
 	'vlan-lab': 'vlan',
 	'vlan-lab-2': 'vlan2',
 	'frontend-backend': 'backend',
@@ -129,7 +130,9 @@ export const partnerPages = [
 			title: activity.tittel,
 			summary: lesson?.intro ?? activity.beskrivelse,
 			topics: activity.emner,
-			tips: activity.id === 'vlan-lab'
+			tips: activity.id === 'backend-simulator'
+				? ['Publiser et GET-endepunkt i Min backend. Velg deretter GET på en medelevs serverkort og send forespørselen fra Min frontend.', 'Et HTTP-svar er et øyeblikksbilde. Etter en reservasjon må du sende GET igjen for å hente oppdaterte data. Sammenlign metode, adresse og statuskode i trafikkloggen.']
+				: activity.id === 'vlan-lab'
 				? [
 						'Velg en PC eller switch i kartet. Gjør én endring, prøv ping og undersøk hendelsene.',
 						'I denne forenklede laben velger U VLAN for umerket trafikk inn og sender samme VLAN uten tag ut. T sender med VLAN-tag. Det finnes ikke et separat valg for innkommende VLAN. En trunk frakter VLAN mellom switcher; den ruter ikke mellom IP-nett.'
