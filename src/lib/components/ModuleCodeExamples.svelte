@@ -29,7 +29,7 @@
 		event.preventDefault();
 		const destination = new URL(event.currentTarget.href);
 		const opening = !example && destination.searchParams.has('eksempel');
-		await goto(destination, { noScroll: true, keepFocus: true });
+		await goto(destination, { reset: false });
 		if (opening && page.url.searchParams.get('eksempel') === destination.searchParams.get('eksempel')) {
 			const heading = document.getElementById('current-example');
 			heading?.focus({ preventScroll: true });

@@ -216,7 +216,7 @@
 			close(true);
 		}
 
-		if (!(form === 'inline' ? mobile.matches : !mobile.matches)) {
+		if (responsive && !(form === 'inline' ? mobile.matches : !mobile.matches)) {
 			close(false);
 			return;
 		}
