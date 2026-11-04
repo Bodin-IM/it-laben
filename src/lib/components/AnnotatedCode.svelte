@@ -3,7 +3,8 @@
 	import CodeExplanation from '#lib/components/CodeExplanation.svelte';
 	/** @type {{file:import('#lib/moduleCodeExamples.js').ExampleFile,onselect?:(id:string|null)=>void}} */
 	let { file, onselect } = $props();
-	const explanationId = $props.id() + '-explanation';
+	const componentId = $props.id();
+	const explanationId = componentId + '-explanation';
 	/** @type {string|null} */
 	let selectedId = $state(null);
 	/** @type {HTMLButtonElement|null} */

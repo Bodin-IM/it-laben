@@ -40,6 +40,8 @@ Labpartneren bruker modulens kjente side-ID og adapterversjon 1. Bare valgt ekse
 
 Kode og diff gjennomgås på dev. Testene i `tests/moduleCodeExamples.test.js` er lagt til for kildeidentitet, linjeforklaringer, lenker, ugyldige valg og avgrenset labpartnerkontekst. Samlet testing, Svelte-sjekk, bygg og nettleserprøving gjenstår før main.
 
+**Feilretting 4. november 2026:** Den rapporterte `props_id_invalid_placement` i `AnnotatedCode` er gjenskapt og rettet ved å tilordne `$props.id()` direkte til en egen variabel før suffikset legges til. Den rettede komponenten, `ModuleCodeExamples`, `CodeExplanation` og modulsiden er kompilert isolert for både klient og server uten advarsler. Dette er en avgrenset kontroll av kompileringsfeilen; samlet kontroll før main gjenstår.
+
 Prøv særlig modulenes synlighetskontroll, første åpning fra kort, raske eksempelbytter, frontend/backend, kopiering og reservebeskjed, klikk og tastatur på alle kodelinjer, Escape/lukk, kildeøvingens tilbakevei, delte lenker, ukjente ID-er, tilbake/frem og omlasting. Prøv begge temaer, 320 px, tekstzoom og lange kodelinjer. Kontroller at det gamle linjeforklaringsmønsteret på eksisterende aktiviteter fortsatt virker, og at labpartneren får valgt offentlig eksempel uten gammel arbeidsstatus.
 
 Ved elevutprøving undersøkes om elevene finner riktig eksempel og kan forklare og tilpasse det. Bruk av eksempelsamlingen er ikke i seg selv dokumentasjon på læringseffekt. Utformingen følger [aktivitetsmalen](aktivitetsmal.md), [det pedagogiske grunnlaget](pedagogisk-grunnlag.md) og [designgrunnlaget](webdesign-og-brukeropplevelse.md).
