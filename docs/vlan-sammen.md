@@ -22,8 +22,8 @@ Misforståelser som skal undersøkes: kabel betyr fungerende nett; samme VLAN-ID
 
 ## Start med to elever
 
-1. Læreren logger inn i Min lab, åpner aktiviteten og oppretter et rom. Del romkoden med klassen.
-2. Elevene blir med på egne kontoer. Hver deltaker, inkludert læreren, får S1 og PC1 med en kabel på eth0. Start-PC-ene får ulike adresser i `10.10.10.0/24`. Switchene starter med U i VLAN 1.
+1. Læreren logger inn i Min lab, åpner aktiviteten og oppretter et rom med et gjenkjennelig navn. Rommet vises i elevenes romliste, uten kode.
+2. Elevene logger inn, velger rommet og trykker **Bli med**. **Fortsett** åpner et rom de allerede er med i. Hver deltaker, inkludert læreren, får S1 og PC1 med en kabel på eth0. Start-PC-ene får ulike adresser i `10.10.10.0/24`. Switchene starter med U i VLAN 1.
 3. Elev A velger S1, velger en ledig port og trykker **Start kabel**. Deretter velges elev Bs switch i brettet. B får en forespørsel, velger en ledig port og trykker **Godta kabel**.
 4. A velger sin PC og Bs PC under **Får du svar?** og sender ping. Undersøk den forklarte pakke- og returveien.
 5. Avtal VLAN 10. Opprett det på begge switchene, sett PC-portene til U i VLAN 10 og forbindelsen mellom switchene til T i VLAN 10. Lagre begge oppsett og prøv igjen. Elevene forklarer hvor taggen legges til og fjernes.
@@ -57,15 +57,17 @@ Faglig kildegrunnlag: [Cisco: inter-VLAN-ruting med ekstern ruter](https://www.c
 
 ## Grensesnitt, samtidighet og lagring
 
+Romlisten er synlig for innloggede brukere og viser navn på rom og lærer, deltakerantall, pause og eget medlemskap. Den viser opptil 100 rom, med egne medlemskap først, deretter nyeste rom. Elevene kan bli med ved å velge et rom; bare lærer/administrator kan opprette rom. Listen oppdateres hvert femte sekund når den er synlig, og har en egen oppdateringsknapp. Nye medlemmer slipper ikke inn i fulle eller pausede rom; eksisterende medlemmer kan fortsatt åpne sitt lagrede område. Før innmelding vises ingen nettverk eller deltakerliste.
+
 Alle medlemmer ser brettet, med eget område nederst. Det åpnes ved eget område én gang ved rombytte; polling skal ikke flytte eleven mens andre områder undersøkes. **Til mitt område** fører tilbake. Nettverksbrettet og VLAN-tabellen kan rulles i to dimensjoner. En vanlig enhetsliste er et alternativ til å velge i brettet. Knapper og skjemafelt støtter tastatur, og valget fører til innstillingene. Et kabelvalg fører tilbake til brettet. Farge suppleres av tekst, status og hendelser.
 
 Grensene i første versjon er 24 deltakere per rom, åtte enheter per deltaker og 30 opprettede rom per lærer. Rom kan gjenbrukes; egen arkiverings-/slettevisning finnes foreløpig ikke. Læreren kan pause redigering og ny innmelding. Eksisterende oppsett forblir lesbart. «Aktiv nå» betyr at kontoen har hentet rommet de siste 15 sekundene, ikke en måling av nettverkstilkoblingen.
 
-`017_vlan_together.sql` lagrer rom, medlemskap og kvitteringer for endringskommandoer i den eksisterende SQLite-databasen. Rommet inneholder topologi, konfigurasjoner og ventende forespørsler. API-et bruker pålogging, kontoheader, Origin/CSRF og eksisterende 8 KiB-grense. Alle skrivehandlinger kontrollerer medlemskap og eierskap. Vanlig SQLite-backup inkluderer tabellene. Serveren må oppdateres sammen med klienten; migrasjonen kjøres ved API-oppstart, før laben kan brukes.
+`017_vlan_together.sql` lagrer rom, medlemskap og kvitteringer for endringskommandoer i den eksisterende SQLite-databasen. Rommet inneholder topologi, konfigurasjoner og ventende forespørsler. API-et bruker pålogging, kontoheader, Origin/CSRF og eksisterende 8 KiB-grense. Alle skrivehandlinger kontrollerer medlemskap og eierskap. Vanlig SQLite-backup inkluderer tabellene. Serveren må oppdateres sammen med klienten; migrasjonen kjøres ved API-oppstart, før laben kan brukes. Innmelding bruker `roomId` fra romlisten. Den gamle kodekolonnen beholdes internt for databasekompatibilitet, men sendes ikke til klienten og brukes ikke til innmelding; eksisterende rom og nettverk bevares.
 
 Portvalg kontrolleres på nytt i én transaksjon ved godkjenning. To samtidige aksepter kan ikke legge to kabler i samme port. Forespørsler utløper etter fem minutter; maksimalt fire per avsender og 48 per rom venter samtidig. Bare sender og mottaker ser forespørselen, mens godkjente kabler er felles. Switch-løkker, gjenbrukte porter, slettede enheter og gamle forespørsler gir forklarte avslag.
 
-Klienten henter rommet omtrent hvert 2,5 sekund når fanen er synlig. Enhetsutkast redigeres lokalt til **Lagre oppsett**; oppdateringer fra andre erstatter ikke utkastet. Revisjon per enhet hindrer en eldre fane i å overskrive et nyere lagret oppsett. Brukeren velger eksplisitt om lagret oppsett skal erstatte et lokalt utkast. Et API-svar fra tidligere konto eller rom ignoreres. Ulagrede utkast overlever ikke en full omlasting.
+Klienten henter rommet omtrent hvert 2,5 sekund når fanen er synlig. Enhetsutkast redigeres lokalt til **Lagre oppsett**; oppdateringer fra andre erstatter ikke utkastet. Revisjon per enhet hindrer en eldre fane i å overskrive et nyere lagret oppsett. Brukeren velger eksplisitt om lagret oppsett skal erstatte et lokalt utkast. Rommet ryddes bare ved faktisk endret konto-ID eller utlogging. Min labs vanlige profiloppdatering hvert 30. sekund, ved fokus og ved nettverkstilbakekomst beholder rom og utkast for samme konto. Et API-svar fra tidligere konto eller rom ignoreres. Ulagrede utkast overlever ikke en full omlasting.
 
 Hver endringskommando har en UUID og en kvittering med innholdets hash. Ved tapt svar kan samme handling prøves igjen uten dobbel virkning, også etter serveromstart. En endret handling med samme UUID avvises. Kvitteringene beholdes så lenge medlemskapet/rommet eksisterer; automatisk arkivering og aldersbasert opprydding er videre driftsarbeid. Sletting av en konto fjerner medlemskap og kvitteringer; tilhørende enheter/kabler renses før neste lesing eller endring av rommet. Sletting av rommets eier fjerner hele rommet med kaskade.
 
@@ -77,12 +79,16 @@ En separat, lokal `localTaskKey` bruker romidentiteten til å tømme samtalen ve
 
 ## Kontroll og utprøving
 
-**Dev-status:** Kildekode og diff er gjennomgått. Nye modell-, API- og kontrakttester er skrevet, men ikke kjørt. Ingen påstand om bestått bygg, Svelte-sjekk, nettleser- eller elevutprøving. Samlet testing gjenstår før main, i tråd med repoets dev-avtale. Svelte MCP var ikke tilgjengelig; eksisterende komponenter og offisiell Svelte-dokumentasjon brukes som grunnlag.
+**Dev-status 4. november 2026:** Feilen der romvisningen ble tømt ved profiloppdatering er gjenskapt i nettleser på forrige versjon. `$effect` leste hele `$lab`-storeobjektet og ryddet lokalt arbeid også når konto-ID-en var uendret. Effekten avhenger nå av en separat `$derived` konto-ID. En avgrenset nettleserkontroll mot ekte lokal API, med én lærer og to separate elevprofiler, bekreftet at gjentatte fokusoppdateringer og den automatiske profiloppdateringen etter 30 sekunder beholder rom og ulagret enhetsnavn. Faktisk kontobytte og utlogging rydder fortsatt rommet. Kodefri innmelding, gjenåpning uten doble medlemskap og pause/fortsett ble også prøvd uten JavaScript-feil. Dette er feilrettingskontroll, ikke full publiseringskontroll eller elevutprøving.
+
+Den avgrensede API-kontrollen `node --test tests/vlanTogetherApi.test.js` besto med 10 tester. Den omfatter også at romlisten ikke gir tilgang til brettet før innmelding, og at eksisterende medlemmer kan åpne et pauset rom. Kontrollen avdekket dessuten at labens feil hadde en kode som den felles feilbehandleren ikke kjente, slik at forventede 400/403/404/409 ble til generiske 500-svar. Feilene bruker nå den eksisterende `NETWORK_`-familien og beholder riktig status og forklaring.
+
+Kildekode og diff er gjennomgått. Samlet testing, Svelte-sjekk og produksjonsbygg gjenstår før main, i tråd med dev-avtalen. Svelte MCP var ikke tilgjengelig; [offisiell dokumentasjon om `$derived`](https://svelte.dev/docs/svelte/$derived) og [`$effect`](https://svelte.dev/docs/svelte/$effect) ble brukt.
 
 Før publisering:
 
 - Kjør full testsuite, Svelte-sjekk og produksjonsbygg mot endringene som faktisk skal merges. Modelltestene dekker kabler/U/T, ulike lokale native-VLAN, ruting via én og flere rutere, returfeil, løkker, adressekonflikter og validering. API-testene dekker eierskap, romisolasjon, samtykke, opptatte porter, samtidige aksepter, gamle revisjoner, utløp, pause, retry, omstart og kontosletting uten XP.
-- Prøv med lærer og minst to separate elevkontoer: opprett/join, godta/avslå/avbryt, egne kabler, manglende porter, utløpte forespørsler, configkonflikt i to faner, tapt svar/retry, konto-/rombytte og serveromstart. Verifiser at enhetsutkast bevares under polling og tilføying av enheter, og at gamle pingresultater mister markeringen.
+- Prøv med lærer og minst to separate elevkontoer: opprett/join, godta/avslå/avbryt, egne kabler, manglende porter, utløpte forespørsler, configkonflikt i to faner, tapt svar/retry, konto-/rombytte og serveromstart. Verifiser at enhetsutkast bevares under rompolling, profiloppdatering for samme konto og tilføying av enheter, og at gamle pingresultater mister markeringen.
 - Prøv 24 samtidige deltakere, inntil åtte enheter hver og en meningsfull felles topologi. Kontroller brettets brukbarhet, responstid, statusoppdatering og faktisk API-grense bak skolens delte IP.
 - Kontroller tastatur og berøring, fokus ved enhets-/kabelvalg, forespørsler mens eleven er langt nede på siden, smal skjerm, zoom og begge temaer. Kontroller at labpartneren tømmer romsamtalen og at eldre aktiviteter fortsatt beholder sine oppdragsgrenser og switchforklaringer.
 

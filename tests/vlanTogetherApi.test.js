@@ -41,7 +41,7 @@ test('shared VLAN API: membership, consent, atomic ports, saved drafts and resta
 	const created = await call(teacher, `${root}/rooms`, { title: 'Nettverk sammen' });
 	assert.equal(created.status, 201);
 	const initial = created.data, path = `${root}/rooms/${initial.id}`;
-	const joinRoom = async (user) => (await call(user, `${root}/join`, { code: initial.code })).data;
+	const joinRoom = async (user) => (await call(user, `${root}/join`, { roomId: initial.id })).data;
 	const ar = await joinRoom(a), br = await joinRoom(b), cr = await joinRoom(c);
 	const owned = (room, kind) => room.devices.find((d) => d.owner === room.me && d.kind === kind);
 	const as = owned(ar, 'switch'), bs = owned(br, 'switch'), cs = owned(cr, 'switch'), ap = owned(ar, 'pc'), bp = owned(br, 'pc');
@@ -50,7 +50,21 @@ test('shared VLAN API: membership, consent, atomic ports, saved drafts and resta
 	const configure = (user, device, patch = {}) => run(user, { action: 'configure', deviceId: device.id, revision: device.revision, name: device.name, config: device.config, ...patch });
 	let addId, acceptedId, acceptedRequest;
 
-	await t.test('rooms are private to members and mutations enforce owner, account, CSRF and Origin', async () => {
+	await t.test('signed-in students discover room metadata and join by selection without a code', async () => {
+		const listing = await call(outsider, `${root}/rooms`);
+		assert.equal(listing.status, 200);
+		const row = listing.data.rooms.find((r) => r.id === initial.id);
+		assert.deepEqual(Object.keys(row).sort(), ['id', 'joined', 'participants', 'paused', 'teacherName', 'title']);
+		assert.equal(row.title, 'Nettverk sammen'); assert.equal(row.participants, 4);
+		assert.equal(row.joined, false); assert.equal(row.paused, false);
+		assert.equal((await call(a, `${root}/rooms`)).data.rooms.find((r) => r.id === initial.id).joined, true);
+		assert.equal((await call(outsider, path)).status, 404, 'listing metadata does not grant access to the board');
+		assert.equal(Object.hasOwn(initial, 'code'), false);
+		assert.equal((await call(outsider, `${root}/join`, { code: 'ABC123' })).status, 400);
+		assert.equal((await call(outsider, `${root}/join`, { roomId: randomUUID() })).status, 404);
+	});
+
+	await t.test('boards require membership and mutations enforce owner, account, CSRF and Origin', async () => {
 		assert.equal((await call(outsider, path)).status, 404);
 		assert.equal((await call(a, path, undefined, { 'X-Lab-Account': b.id })).status, 409);
 		assert.equal((await run(a, { action: 'add', kind: 'pc' }, randomUUID(), { 'X-CSRF-Token': 'wrong' })).status, 403);
@@ -62,7 +76,7 @@ test('shared VLAN API: membership, consent, atomic ports, saved drafts and resta
 		assert.equal((await read()).devices.filter((d) => d.owner === ar.me).length, 2, 'rejoining does not add starting devices');
 		assert.equal(new Set(cr.devices.filter((d) => d.kind === 'pc').map((d) => d.config.ip)).size, 4);
 		const other = (await call(teacher, `${root}/rooms`, { title: 'Et annet rom' })).data;
-		await call(outsider, `${root}/join`, { code: other.code });
+		await call(outsider, `${root}/join`, { roomId: other.id });
 		assert.equal((await run(a, { action: 'request', source: as.id, port: 'eth1', target: other.devices[0].id })).status, 409);
 		assert.equal((await call(outsider, path)).status, 404);
 	});
@@ -132,7 +146,10 @@ test('shared VLAN API: membership, consent, atomic ports, saved drafts and resta
 		assert.equal((await run(a, { action: 'pause', paused: true })).status, 403);
 		assert.equal((await run(teacher, { action: 'pause', paused: true })).status, 200);
 		assert.equal((await run(a, { action: 'add', kind: 'pc' })).status, 409);
-		assert.equal((await call(outsider, `${root}/join`, { code: initial.code })).status, 409);
+		assert.equal((await call(outsider, `${root}/join`, { roomId: initial.id })).status, 409);
+		const pausedMember = await call(a, `${root}/join`, { roomId: initial.id });
+		assert.equal(pausedMember.status, 200, 'an existing member can reopen a paused room');
+		assert.equal(pausedMember.data.me, ar.me); assert.equal(pausedMember.data.paused, true);
 		assert.equal((await call(a, path)).status, 200);
 		assert.equal((await run(teacher, { action: 'pause', paused: false })).status, 200);
 	});

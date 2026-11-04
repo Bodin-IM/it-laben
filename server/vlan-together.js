@@ -4,7 +4,7 @@ import { transaction } from './database.js';
 import { requireTeacher, learningError } from './learning-access.js';
 import { defaultDeviceConfig, devicePorts, portLink, validateTogetherConfig, pingTogether } from '../src/lib/vlanTogether.js';
 
-const problem = (message, status = 400) => learningError('VLAN_ROOM', message, status);
+const problem = (message, status = 400) => learningError('NETWORK_ROOM', message, status);
 const uuid = (id) => typeof id === 'string' && /^[a-f0-9]{8}(?:-[a-f0-9]{4}){3}-[a-f0-9]{12}$/i.test(id);
 function name(value) {
 	if (typeof value !== 'string' || !value.trim() || value.trim().length > 40) throw problem('Bruk et navn på 1–40 tegn.');
@@ -13,7 +13,7 @@ function name(value) {
 function roomFor(db, roomId, userId) {
 	const room = db.prepare('SELECT * FROM vlan_rooms WHERE id=?').get(roomId);
 	const me = db.prepare('SELECT * FROM vlan_members WHERE room_id=? AND user_id=?').get(roomId, userId);
-	if (!room || !me) throw problem('Rommet finnes ikke for denne kontoen. Bli med med romkoden.', 404);
+	if (!room || !me) throw problem('Du er ikke med i dette rommet. Velg rommet i romlisten først.', 404);
 	const members = db.prepare('SELECT m.id,m.last_seen,u.nickname FROM vlan_members m JOIN users u ON u.id=m.user_id WHERE room_id=? ORDER BY m.rowid').all(roomId);
 	const state = JSON.parse(room.state);
 	// Account deletion cascades membership; remove its graph before any read or write.
@@ -54,7 +54,7 @@ function snapshot(db, roomId, userId, now) {
 	const { room, me, members, state } = roomFor(db, roomId, userId);
 	db.prepare('UPDATE vlan_members SET last_seen=? WHERE id=?').run(now, me.id);
 	return {
-		id: room.id, title: room.title, code: room.code, owner: room.owner_id === userId,
+		id: room.id, title: room.title, owner: room.owner_id === userId,
 		me: me.id, paused: !!room.paused, revision: room.revision,
 		members: members.map((m) => ({ id: m.id, name: m.nickname, online: m.id === me.id || now - m.last_seen < 15000 })),
 		devices: state.devices, links: state.links,
@@ -164,11 +164,21 @@ function command(db, roomId, userId, input, now) {
 export function vlanTogetherRouter({ db, authenticated, clock }) {
 	const router = Router(); router.use(authenticated);
 	router.use((req, _res, next) => { if (req.get('X-Lab-Account') !== req.labUser.id) throw problem('Påloggingen er endret. Oppdater siden.', 409); next(); });
-	router.get('/rooms', (req, res) => res.json({ rooms: db.prepare('SELECT r.id,r.title,r.code,r.paused FROM vlan_rooms r JOIN vlan_members m ON m.room_id=r.id WHERE m.user_id=? ORDER BY r.created_at DESC LIMIT 30').all(req.labUser.id) }));
+	// Discovery exposes room metadata to signed-in users, never the board or member list.
+	router.get('/rooms', (req, res) => res.json({
+		rooms: db.prepare(`
+			SELECT r.id,r.title,r.paused,u.nickname AS teacherName,
+				(SELECT COUNT(*) FROM vlan_members m WHERE m.room_id=r.id) AS participants,
+				EXISTS(SELECT 1 FROM vlan_members m WHERE m.room_id=r.id AND m.user_id=?) AS joined
+			FROM vlan_rooms r JOIN users u ON u.id=r.owner_id
+			ORDER BY joined DESC,r.created_at DESC,r.id LIMIT 100
+		`).all(req.labUser.id).map((room) => ({ ...room, paused: !!room.paused, joined: !!room.joined }))
+	}));
 	router.post('/rooms', (req, res) => {
 		requireTeacher(db, req.labUser.id); const title = name(req.body.title);
 		const roomId = transaction(db, () => {
 			if (db.prepare('SELECT COUNT(*) AS n FROM vlan_rooms WHERE owner_id=?').get(req.labUser.id).n >= 30) throw problem('Du har 30 rom. Bruk et eksisterende rom.', 409);
+			// Keep the existing database column compatible; codes are no longer shown or accepted for joining.
 			let code; do { code = randomBytes(3).toString('hex').toUpperCase(); } while (db.prepare('SELECT 1 FROM vlan_rooms WHERE code=?').get(code));
 			const id = randomUUID();
 			db.prepare('INSERT INTO vlan_rooms(id,code,owner_id,title,state,created_at) VALUES (?,?,?,?,?,?)').run(id, code, req.labUser.id, title, JSON.stringify({ devices: [], links: [], requests: [] }), clock());
@@ -178,10 +188,11 @@ export function vlanTogetherRouter({ db, authenticated, clock }) {
 	});
 	router.post('/join', (req, res) => {
 		const id = transaction(db, () => {
-			if (typeof req.body.code !== 'string' || !/^[a-f0-9]{6}$/i.test(req.body.code.trim())) throw problem('Skriv de seks tegnene i romkoden.');
-			const room = db.prepare('SELECT * FROM vlan_rooms WHERE code=?').get(req.body.code.trim().toUpperCase());
-			if (!room) throw problem('Fant ikke rommet. Kontroller romkoden.', 404);
-			if (room.paused) throw problem('Rommet er på pause. Be læreren åpne det.', 409);
+			if (!uuid(req.body.roomId)) throw problem('Velg et rom fra romlisten.');
+			const room = db.prepare('SELECT * FROM vlan_rooms WHERE id=?').get(req.body.roomId);
+			if (!room) throw problem('Rommet finnes ikke lenger. Oppdater romlisten.', 404);
+			const joined = db.prepare('SELECT 1 FROM vlan_members WHERE room_id=? AND user_id=?').get(room.id, req.labUser.id);
+			if (room.paused && !joined) throw problem('Rommet er på pause. Be læreren åpne det.', 409);
 			addMember(db, room, req.labUser.id, clock()); return room.id;
 		});
 		res.json(transaction(db, () => snapshot(db, id, req.labUser.id, clock())));

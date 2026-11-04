@@ -9,8 +9,8 @@
 	/** @typedef {import('#lib/vlanTogether.js').TogetherRoom} Room */
 	/** @typedef {import('#lib/vlanTogether.js').TogetherDevice} Device */
 	let room = $state(/** @type {Room|null} */ (null));
-	let rooms = $state(/** @type {{id:string,title:string,code:string,paused:boolean}[]} */ ([]));
-	let selected = $state(''), code = $state(''), title = $state('Felles nettverkslab');
+	let rooms = $state(/** @type {import('#lib/vlanTogether.js').TogetherRoomListing[]} */ ([]));
+	let selected = $state(''), title = $state('Felles nettverkslab'), roomsError = $state('');
 	let draft = $state(/** @type {Device|null} */ (null));
 	let cable = $state(/** @type {{source:string,port:string}|null} */ (null));
 	let port = $state(''), targetPort = $state('');
@@ -22,6 +22,9 @@
 	let epoch = 0, readVersion = 0, polling = false;
 	/** @type {HTMLElement|undefined} */ let editor = $state();
 	/** @type {HTMLDivElement|undefined} */ let boardSection = $state();
+	// Refreshing Min lab replaces the store object every 30 seconds and on focus.
+	// Only a different account identity should clear the room and unsaved draft.
+	const accountId = $derived($lab.user?.id ?? null);
 	const teacher = $derived(['teacher', 'admin'].includes($lab.user?.role ?? ''));
 	const device = $derived(room?.devices.find((d) => d.id === selected));
 	const mine = $derived(!!device && device.owner === room?.me);
@@ -85,25 +88,27 @@
 		epoch++; readVersion++; room = next; result = null; cable = null; retry = null; accepts = {};
 		selected = next.devices.find((d) => d.owner === next.me && d.kind === 'switch')?.id ?? '';
 		from = next.devices.find((d) => d.owner === next.me && d.kind === 'pc')?.id ?? ''; to = '';
-		loadDraft(); error = ''; notice = ''; connectionError = ''; busy = false;
+		loadDraft(); error = ''; notice = ''; connectionError = ''; busy = false; loading = false; roomsError = '';
 	}
 	async function listRooms() {
+		if (loading) return;
 		const version = epoch; loading = true;
-		try { const value = await togetherRequest('/rooms'); if (version === epoch) rooms = value.rooms; }
-		catch (cause) { if (version === epoch) error = explain(cause); }
+		try { const value = await togetherRequest('/rooms'); if (version === epoch) { rooms = value.rooms; roomsError = ''; } }
+		catch (cause) { if (version === epoch) roomsError = explain(cause); }
 		finally { if (version === epoch) loading = false; }
 	}
 	$effect(() => {
-		const user = $lab.user?.id;
+		const user = accountId;
 		untrack(() => {
 			epoch++; readVersion++; room = null; rooms = []; draft = null; selected = ''; cable = null; retry = null; result = null;
-			code = ''; from = ''; to = ''; accepts = {}; busy = false; pinging = false; loading = false; error = ''; notice = ''; connectionError = '';
+			from = ''; to = ''; accepts = {}; busy = false; pinging = false; loading = false; error = ''; notice = ''; connectionError = ''; roomsError = '';
 			if (user) void listRooms();
 		});
 	});
 	onMount(() => {
 		const timer = setInterval(() => { if (room && !busy && !document.hidden) void refresh(); }, 2500);
-		return () => { clearInterval(timer); epoch++; };
+		const lobbyTimer = setInterval(() => { if (accountId && !room && !busy && !document.hidden) void listRooms(); }, 5000);
+		return () => { clearInterval(timer); clearInterval(lobbyTimer); epoch++; };
 	});
 	async function refresh() {
 		if (!room || polling) return;
@@ -121,7 +126,7 @@
 	}
 	function leave() {
 		if (dirty && mine && !confirm('Bytte rom og forkaste de ulagrede endringene?')) return;
-		epoch++; readVersion++; room = null; draft = null; result = null; cable = null; retry = null; busy = false; pinging = false; error = ''; notice = ''; void listRooms();
+		epoch++; readVersion++; room = null; draft = null; result = null; cable = null; retry = null; busy = false; pinging = false; loading = false; error = ''; notice = ''; roomsError = ''; void listRooms();
 	}
 	/** @param {Record<string,any>} body */
 	async function command(body) {
@@ -168,13 +173,29 @@
 	<header><div><p class="eyebrow">SAMARBEIDSLAB · FØRSTE UTKAST</p><h1>VLAN sammen<span>.</span></h1><p>Bygg ditt nett. Avtal forbindelsen. Få svar fra en medelev.</p></div><a href="/nettverk/vlan-2/">Repeter VLAN og ruting →</a></header>
 	<div class="feedback" aria-live="polite" aria-atomic="true">{#if error}<p class="error">{error}</p>{:else if notice}<p class="notice">{notice}</p>{/if}{#if retry}<p>Svar mangler. Handlingen kan være lagret. Prøv samme handling igjen; den får ikke dobbel virkning.</p><button disabled={busy} onclick={() => { if (retry) void command(retry); }}>Prøv handlingen igjen</button>{/if}{#if (error || notice) && !retry}<button onclick={() => { error = ''; notice = ''; }}>Lukk melding</button>{/if}</div>
 	{#if !$lab.ready}<p role="status">Henter pålogging …</p>
-	{:else if !$lab.user}<section class="panel"><h2>Ta plass på brettet</h2><p>Logg inn i Min lab. Læreren oppretter et rom, og du blir med med romkoden.</p><a class="action" href="/min-lab/">Åpne Min lab →</a></section>
+	{:else if !$lab.user}<section class="panel"><h2>Ta plass på brettet</h2><p>Logg inn i Min lab. Læreren oppretter et rom. Velg det i romlisten for å bli med.</p><a class="action" href="/min-lab/">Åpne Min lab →</a></section>
 	{:else if !room}
-		<div class="lobby"><section class="panel"><h2>Bli med i laben</h2><form onsubmit={(e) => { e.preventDefault(); void openRoom('/join', { code }); }}><label for="join-code">Romkode fra læreren</label><div class="row"><input id="join-code" bind:value={code} maxlength="6" required placeholder="A1B2C3" autocomplete="off" disabled={busy} /><button class="primary" disabled={busy || code.trim().length !== 6}>Bli med →</button></div></form><p class="muted">Du får én PC og én switch. De andre ser enhetene og innstillingene i området ditt. Bruk oppdiktede navn og labadresser.</p></section>
-		{#if teacher}<section class="panel"><h2>Opprett rom som lærer</h2><form onsubmit={(e) => { e.preventDefault(); void openRoom('/rooms', { title }); }}><label for="room-name">Navn på laben</label><input id="room-name" bind:value={title} maxlength="40" required disabled={busy} /><button class="primary" disabled={busy}>Opprett rom</button></form><p class="muted">Inntil 24 deltakere, inkludert deg. Du kan demonstrere fra ditt eget område.</p></section>{/if}</div>
-		{#if loading}<p role="status">Henter rom …</p>{:else if rooms.length}<section class="saved"><h2>Fortsett i en lab</h2><div class="row wrap">{#each rooms as item}<button disabled={busy} onclick={() => openRoom(`/rooms/${item.id}`)}>{item.title} · {item.code}{item.paused ? ' · På pause' : ''}</button>{/each}</div></section>{/if}
+		<div class="lobby">
+			<section class="panel" aria-labelledby="rooms-title">
+				<div class="section-heading"><h2 id="rooms-title">Velg et rom</h2><button disabled={busy || loading} onclick={listRooms}>Oppdater romliste</button></div>
+				<p class="muted">Velg rommet læreren har opprettet. Du får én PC og én switch, og kan fortsette i ditt område senere.</p>
+				{#if roomsError}<p class="banner" role="status">{roomsError}</p>{/if}
+				{#if loading && !rooms.length}<p role="status">Henter rom …</p>
+				{:else if !rooms.length && !roomsError}<p>Ingen rom ennå. Læreren må opprette et rom først. Listen oppdateres automatisk.</p>{/if}
+				<ul class="room-list">
+					{#each rooms as item (item.id)}
+						<li class="room-entry">
+							<div><h3>{item.title}</h3><p>Lærer: {item.teacherName} · {item.participants}/24 deltakere</p><span class="muted">{item.paused ? 'På pause' : item.participants >= 24 ? 'Fullt' : 'Åpent'}{item.joined ? ' · Du har et område her' : ''}</span></div>
+							<button class="primary" disabled={busy || (!item.joined && (item.paused || item.participants >= 24))} onclick={() => openRoom('/join', { roomId: item.id })}>{item.joined ? 'Fortsett' : item.paused ? 'På pause' : item.participants >= 24 ? 'Fullt' : 'Bli med'}</button>
+						</li>
+					{/each}
+				</ul>
+				<p class="muted">De andre i rommet ser enhetene og innstillingene dine. Bruk oppdiktede enhetsnavn og labadresser.</p>
+			</section>
+			{#if teacher}<section class="panel"><h2>Opprett rom som lærer</h2><form onsubmit={(e) => { e.preventDefault(); void openRoom('/rooms', { title }); }}><label for="room-name">Navn på laben</label><input id="room-name" bind:value={title} maxlength="40" required disabled={busy} /><button class="primary" disabled={busy}>Opprett rom</button></form><p class="muted">Rommet vises i elevenes romliste. Inntil 24 deltakere, inkludert deg.</p></section>{/if}
+		</div>
 	{:else}
-		<section class="room-bar" aria-label="Spillrom"><div><strong>{room.title}</strong><span class="muted">Romkode <b>{room.code}</b> · {room.members.length}/24 deltakere</span></div><div class="row wrap"><a href="#mitt-arbeid">Mine innstillinger ↓</a><span aria-live="polite">{#if incoming.length}<a href="#foresporsler">{incoming.length} tilkoblingsforespørsler ↑</a>{/if}</span>{#if room.owner}<button disabled={busy || !!retry} onclick={() => command({ action: 'pause', paused: !room?.paused })}>{room.paused ? 'Fortsett laben' : 'Sett på pause'}</button>{/if}<button disabled={busy} onclick={leave}>Bytt rom</button></div></section>
+		<section class="room-bar" aria-label="Spillrom"><div><strong>{room.title}</strong><span class="muted">{room.members.length}/24 deltakere</span></div><div class="row wrap"><a href="#mitt-arbeid">Mine innstillinger ↓</a><span aria-live="polite">{#if incoming.length}<a href="#foresporsler">{incoming.length} tilkoblingsforespørsler ↑</a>{/if}</span>{#if room.owner}<button disabled={busy || !!retry} onclick={() => command({ action: 'pause', paused: !room?.paused })}>{room.paused ? 'Fortsett laben' : 'Sett på pause'}</button>{/if}<button disabled={busy} onclick={leave}>Bytt rom</button></div></section>
 		{#if room.paused}<p class="banner" role="status">Laben er på pause. Du kan lese oppsettet og undersøke siste ping.</p>{/if}
 		{#if connectionError}<p class="banner" role="status">{connectionError} <button onclick={refresh}>Hent brettet</button></p>{/if}
 		{#if incoming.length || outgoing.length}<section class="requests panel" id="foresporsler" aria-labelledby="request-title"><h2 id="request-title">Tilkoblingsforespørsler</h2>
@@ -230,7 +251,8 @@
 	h2 { font-size:1.25rem; margin:0 0 .7rem; } h3 { font-size:1.1rem; } p { line-height:1.55; } .eyebrow { font-size:var(--font-meta); letter-spacing:.08em; color:var(--color-text-muted); }
 	.muted, small { color:var(--color-text-muted); font-size:var(--font-small); } .back { font-size:var(--font-small); }
 	.panel { padding:1.25rem; border:1px solid var(--color-border); background:var(--color-surface); border-radius:12px; min-width:0; }
-	.lobby { display:grid; grid-template-columns:repeat(auto-fit,minmax(min(100%,22rem),1fr)); gap:1rem; } .saved { margin-top:1.5rem; }
+	.lobby { display:grid; grid-template-columns:repeat(auto-fit,minmax(min(100%,22rem),1fr)); gap:1rem; } .room-list { list-style:none; padding:0; margin:0; }
+	.room-entry { display:flex; align-items:center; justify-content:space-between; gap:1rem; padding:1rem 0; border-bottom:1px solid var(--color-border); } .room-entry h3 { margin:0; overflow-wrap:anywhere; } .room-entry p { margin:.3rem 0; font-size:var(--font-small); } .room-entry button { flex-shrink:0; }
 	.row { display:flex; align-items:center; gap:.6rem; } .wrap { flex-wrap:wrap; } .row input { min-width:0; } .row select { width:auto; max-width:100%; }
 	label { display:block; margin:.8rem 0 .3rem; font-size:var(--font-small); font-weight:650; }
 	input, select, button, .action { font:inherit; min-height:44px; border:1px solid var(--color-border-strong); border-radius:7px; padding:.55rem .7rem; color:var(--color-text); background:var(--color-surface); }
@@ -238,7 +260,7 @@
 	.primary, .action { background:var(--color-action); color:var(--color-on-action); border-color:var(--color-action); font-weight:650; } .primary:hover:not(:disabled) { background:var(--color-action-hover); }
 	form > button { margin-top:.85rem; } .action { display:inline-flex; align-items:center; text-decoration:none; }
 	.room-bar { display:flex; justify-content:space-between; align-items:center; gap:1rem; margin-bottom:1.2rem; padding:.8rem 1rem; background:var(--color-surface); border:1px solid var(--color-border); border-radius:10px; }
-	.room-bar > div:first-child { display:grid; gap:.35rem; } .room-bar b { color:var(--color-text); letter-spacing:.1em; }
+	.room-bar > div:first-child { display:grid; gap:.35rem; }
 	.requests { margin-bottom:1rem; } .request { display:flex; justify-content:space-between; gap:1rem; align-items:center; padding:.6rem 0; border-bottom:1px solid var(--color-border); } .request p { margin:.2rem 0; }
 	.cable-banner { display:flex; align-items:center; justify-content:space-between; gap:1rem; background:var(--color-info-soft); color:var(--color-info); border:1px solid var(--color-info); padding:.65rem 1rem; border-radius:9px; margin-bottom:1rem; }
 	.cable-banner p { margin:0; } .add-devices { display:flex; align-items:center; flex-wrap:wrap; gap:.6rem; padding:1rem 0 1.5rem; } .add-devices > span { font-weight:650; margin-right:.4rem; }
@@ -255,5 +277,5 @@
 	.about { border-top:1px solid var(--color-border); margin-top:1.5rem; max-width:70ch; }
 	:where(button,a,input,select,summary,[tabindex]):focus-visible { outline:3px solid var(--color-focus); outline-offset:3px; }
 	@media(max-width:950px) { .work-grid { grid-template-columns:minmax(0,1fr); } }
-	@media(max-width:640px) { header,.room-bar,.request,.section-heading { flex-direction:column; align-items:stretch; } .fields { grid-template-columns:1fr; } .section-heading select { max-width:none; } .panel { padding:1rem; } }
+	@media(max-width:640px) { header,.room-bar,.room-entry,.request,.section-heading { flex-direction:column; align-items:stretch; } .fields { grid-template-columns:1fr; } .section-heading select { max-width:none; } .panel { padding:1rem; } }
 </style>

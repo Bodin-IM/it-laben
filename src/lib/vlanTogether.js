@@ -25,7 +25,8 @@ export const togetherHints = [
 /** @typedef {{id:string,from:string,to:string,source:string,port:string,target:string,expires:number}} CableRequest */
 /** @typedef {{devices:TogetherDevice[],links:TogetherLink[],requests:CableRequest[]}} TogetherState */
 /** @typedef {{id:string,name:string,online:boolean}} Member */
-/** @typedef {TogetherState & {id:string,title:string,code:string,me:string,owner:boolean,paused:boolean,revision:number,members:Member[]}} TogetherRoom */
+/** @typedef {{id:string,title:string,teacherName:string,paused:boolean,participants:number,joined:boolean}} TogetherRoomListing */
+/** @typedef {TogetherState & {id:string,title:string,me:string,owner:boolean,paused:boolean,revision:number,members:Member[]}} TogetherRoom */
 /** @typedef {{from:string,to:string,text:string,link?:string}} TraceStep */
 /** @typedef {{ok:boolean,code:string,message:string,steps:TraceStep[]}} TogetherPing */
 /** @param {DeviceKind} kind */
