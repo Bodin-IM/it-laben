@@ -2,13 +2,6 @@
 
 Disse instruksjonene gjelder hele repoet. IT-laben er et undervisningsverktøy for IT-fag i videregående skole. Bruk norsk bokmål i elevtekster og lærerveiledninger.
 
-## Git-identitet før commit og push
-
-- Bruk `magne92 <92579836+magne92@users.noreply.github.com>` som både author og committer for agentens commits i dette repoet. Ikke bruk miljøets globale identitet eller personlige e-postadresse.
-- Sett `git config --local user.name magne92` og `git config --local user.email 92579836+magne92@users.noreply.github.com` i hver ny checkout før første commit.
-- Kontroller `git var GIT_AUTHOR_IDENT` og `git var GIT_COMMITTER_IDENT` før commit. Stopp og rett oppsettet ved avvik, inkludert overstyringer fra miljøvariabler.
-- Før push: kontroller author og committer i alle nye commits med `git log --format=fuller`. Ikke push hvis agentens commits har feil identitet.
-
 ## Arbeidsflyt: utvikling på dev, testing før main
 
 - `dev` er arbeidsgrenen. Samle løpende justeringer der; `main` er grenen for publisering.
