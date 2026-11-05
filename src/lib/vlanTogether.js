@@ -39,13 +39,26 @@ export function defaultDeviceConfig(kind) {
 }
 /** @param {TogetherState} state @param {string} id @param {string} port */
 export const portLink = (state, id, port) => state.links.find((l) => l.a === id && l.aPort === port || l.b === id && l.bPort === port);
+/** @param {unknown} v */
 const object = (v) => !!v && typeof v === 'object' && !Array.isArray(v);
+/** @param {number} n */
 const vlanId = (n) => Number.isInteger(n) && n >= 1 && n <= 4094;
+/** @param {unknown} ok @param {string} message */
 function requireInput(ok, message) { if (!ok) throw new Error(message); }
+/** @param {any} value @param {string[]} names */
 function keys(value, names) { requireInput(object(value) && Object.keys(value).every((k) => names.includes(k)), 'Ukjente konfigurasjonsfelt. Hent lagret oppsett og prøv igjen.'); }
+/** @param {unknown} value */
 function ip(value, empty = true) {
-	requireInput(typeof value === 'string' && (empty && value === '' || !!hostAddress(value)), 'Bruk en gyldig IPv4-vertsadresse. I denne laben brukes /24.');
-	return value ? hostAddress(value).address : '';
+	if (empty && value === '') return '';
+	const address = typeof value === 'string' ? hostAddress(value) : null;
+	if (!address) throw new Error('Bruk en gyldig IPv4-vertsadresse. I denne laben brukes /24.');
+	return address.address;
+}
+/** Read an address already validated by the configuration boundary. @param {string} value */
+function address(value) {
+	const parsed = hostAddress(value);
+	if (!parsed) throw new Error('Ugyldig lagret IPv4-adresse.');
+	return parsed;
 }
 /** Validate and rebuild client input before storing or simulating it. @param {DeviceKind} kind @param {unknown} input @returns {any} */
 export function validateTogetherConfig(kind, input) {
@@ -54,18 +67,20 @@ export function validateTogetherConfig(kind, input) {
 	if (kind === 'router') {
 		keys(c, ['interfaces', 'routes']);
 		requireInput(Array.isArray(c.interfaces) && c.interfaces.length <= 8 && Array.isArray(c.routes) && c.routes.length <= 8, 'Ruteren har plass til åtte interfacer og åtte statiske ruter.');
-		const interfaces = c.interfaces.map((i) => {
+		/** @type {RouterInterface[]} */
+		const interfaces = c.interfaces.map(/** @param {RouterInterface} i */ (i) => {
 			keys(i, ['port', 'vlan', 'ip']);
 			requireInput(devicePorts(kind).includes(i.port) && (i.vlan === 0 || vlanId(i.vlan)), 'Velg ruterport og VLAN 1–4094, eller 0 for untagged.');
 			return { port: i.port, vlan: i.vlan, ip: ip(i.ip, false) };
 		});
 		requireInput(new Set(interfaces.map((i) => `${i.port}:${i.vlan}`)).size === interfaces.length, 'Samme port og VLAN kan bare ha én interface.');
-		requireInput(new Set(interfaces.map((i) => hostAddress(i.ip).network)).size === interfaces.length, 'Hver ruterinterface må bruke et eget /24-nett i denne laben.');
-		const routes = c.routes.map((r) => {
+		requireInput(new Set(interfaces.map((i) => address(i.ip).network)).size === interfaces.length, 'Hver ruterinterface må bruke et eget /24-nett i denne laben.');
+		/** @type {StaticRoute[]} */
+		const routes = c.routes.map(/** @param {StaticRoute} r */ (r) => {
 			keys(r, ['network', 'nextHop']);
 			requireInput(typeof r.network === 'string' && r.network.endsWith('.0') && !!hostAddress(r.network.slice(0, -1) + '1'), 'Målnettet skal slutte på .0, for eksempel 10.20.0.0 /24.');
-			const nextHop = ip(r.nextHop, false), network = hostAddress(r.network.slice(0, -1) + '1').network + '.0';
-			requireInput(interfaces.some((i) => hostAddress(i.ip).network === hostAddress(nextHop).network && i.ip !== nextHop), 'Neste hopp må være en annen ruteradresse i et direkte tilkoblet nett.');
+			const nextHop = ip(r.nextHop, false), network = address(r.network.slice(0, -1) + '1').network + '.0';
+			requireInput(interfaces.some((i) => address(i.ip).network === address(nextHop).network && i.ip !== nextHop), 'Neste hopp må være en annen ruteradresse i et direkte tilkoblet nett.');
 			return { network, nextHop };
 		});
 		requireInput(new Set(routes.map((r) => r.network)).size === routes.length, 'Bruk bare én statisk rute til hvert /24-nett.');
@@ -78,7 +93,7 @@ export function validateTogetherConfig(kind, input) {
 		const port = c.ports[p]; keys(port, ['pvid', 'members']); keys(port.members, c.vlans.map(String));
 		requireInput(Object.values(port.members).every((mode) => ['untagged', 'tagged', 'excluded'].includes(mode)), 'Velg U, E eller T på portene.');
 		requireInput(Object.values(port.members).filter((m) => m === 'untagged').length <= 1, 'En port kan bare ha ett Untagged-VLAN.');
-		const members = Object.fromEntries(c.vlans.map((v) => [v, port.members[v] ?? 'excluded']));
+		const members = Object.fromEntries(c.vlans.map(/** @param {number} v */ (v) => [v, port.members[v] ?? 'excluded']));
 		return [p, { pvid: untaggedVlan({ pvid: 1, members }) ?? 1, members }];
 	}));
 	return { vlans: [...c.vlans].sort((a, b) => a - b), ports };
@@ -89,14 +104,17 @@ export function validateTogetherConfig(kind, input) {
 function endpoints(state) {
 	return state.devices.flatMap((d) => d.kind === 'pc'
 		? [{ device: d, port: 'eth0', tag: null, ip: d.config.ip }]
-		: d.kind === 'router' ? d.config.interfaces.map((i) => ({ device: d, port: i.port, tag: i.vlan || null, ip: i.ip })) : []);
+		: d.kind === 'router' ? d.config.interfaces.map(/** @param {RouterInterface} i */ (i) => ({ device: d, port: i.port, tag: i.vlan || null, ip: i.ip })) : []);
 }
-/** Traverse actual cables and U/E/T ports, never route inside a switch. */
+/** Traverse actual cables and U/E/T ports, never route inside a switch. @param {TogetherState} state @param {Endpoint} source */
 function broadcast(state, source) {
 	const all = endpoints(state), found = [], stops = [], seen = new Set();
+	/** @type {{device:string,port:string,tag:number|null,steps:TraceStep[]}[]} */
 	const queue = [{ device: source.device.id, port: source.port, tag: source.tag, steps: [] }];
 	while (queue.length) {
-		const hop = queue.shift(), key = `${hop.device}:${hop.port}:${hop.tag}`;
+		const hop = queue.shift();
+		if (!hop) break;
+		const key = `${hop.device}:${hop.port}:${hop.tag}`;
 		if (seen.has(key)) continue;
 		seen.add(key);
 		const link = portLink(state, hop.device, hop.port);
@@ -124,29 +142,33 @@ function broadcast(state, source) {
 /** Return one explained ICMP path and verify the independently routed reply. @param {TogetherState} state @param {string} from @param {string} to @returns {TogetherPing} */
 export function pingTogether(state, from, to) {
 	const source = state.devices.find((d) => d.id === from && d.kind === 'pc'), target = state.devices.find((d) => d.id === to && d.kind === 'pc');
+	/** @param {string} code @param {string} message @param {TraceStep[]} [steps] */
 	const failure = (code, message, steps = []) => ({ ok: false, code, message, steps });
 	if (!source || !target || source === target) return failure('selection', 'Velg to forskjellige PC-er.');
 	if (!hostAddress(source.config.ip) || !hostAddress(target.config.ip)) return failure('ip', 'Begge PC-ene trenger en gyldig IPv4-adresse med /24-maske.');
 	if (source.config.ip === target.config.ip) return failure('duplicate', 'PC-ene har samme IP-adresse. Et lokalt svar fra egen adresse viser ikke forbindelse til den andre PC-en.');
+	/** @param {TogetherDevice} start @param {TogetherDevice} destination */
 	function travel(start, destination) {
 		let current = start; const steps = [], visited = new Set();
 		for (let ttl = 0; ttl < 16; ttl++) {
 			if (visited.has(current.id)) return failure('route-loop', `Pakken kom tilbake til ${current.name}. Kontroller de statiske rutene.`, steps);
 			visited.add(current.id);
 			const candidates = endpoints(state).filter((e) => e.device.id === current.id);
-			let outgoing, nextHop;
+			let outgoing;
+			/** @type {string} */
+			let nextHop;
 			if (current.kind === 'pc') {
 				outgoing = candidates[0];
-				nextHop = hostAddress(outgoing.ip).network === hostAddress(destination.config.ip).network ? destination.config.ip : current.config.gateway;
-				if (!hostAddress(nextHop) || hostAddress(outgoing.ip).network !== hostAddress(nextHop).network) return failure('gateway', `${current.name} trenger en gateway i sitt eget /24-nett.`, steps);
+				nextHop = address(outgoing.ip).network === address(destination.config.ip).network ? destination.config.ip : current.config.gateway;
+				if (!hostAddress(nextHop) || address(outgoing.ip).network !== address(nextHop).network) return failure('gateway', `${current.name} trenger en gateway i sitt eget /24-nett.`, steps);
 			} else {
-				outgoing = candidates.find((e) => hostAddress(e.ip).network === hostAddress(destination.config.ip).network);
+				outgoing = candidates.find((e) => address(e.ip).network === address(destination.config.ip).network);
 				nextHop = destination.config.ip;
 				if (!outgoing) {
-					const route = current.config.routes.find((r) => r.network === hostAddress(destination.config.ip).network + '.0');
-					if (!route) return failure('route', `${current.name} mangler en rute til ${hostAddress(destination.config.ip).network}.0/24.`, steps);
+					const route = current.config.routes.find(/** @param {StaticRoute} r */ (r) => r.network === address(destination.config.ip).network + '.0');
+					if (!route) return failure('route', `${current.name} mangler en rute til ${address(destination.config.ip).network}.0/24.`, steps);
 					nextHop = route.nextHop;
-					outgoing = candidates.find((e) => hostAddress(e.ip).network === hostAddress(nextHop).network);
+					outgoing = candidates.find((e) => address(e.ip).network === address(nextHop).network);
 				}
 			}
 			if (!outgoing) return failure('interface', `${current.name} mangler en interface mot neste hopp.`, steps);

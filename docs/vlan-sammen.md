@@ -93,3 +93,12 @@ Før publisering:
 - Kontroller tastatur og berøring, fokus ved enhets-/kabelvalg, forespørsler mens eleven er langt nede på siden, smal skjerm, zoom og begge temaer. Kontroller at labpartneren tømmer romsamtalen og at eldre aktiviteter fortsatt beholder sine oppdragsgrenser og switchforklaringer.
 
 Prøv deretter med elever. Observer hvor lenge det tar å få første svar, om de finner egen port og mottakerens godkjenning, om de kan forklare U/T og returvei, og om de klarer et nytt IP-/VLAN-oppsett med mindre støtte. Skill navigasjonsproblemer fra faglige misforståelser. Ingen læringseffekt er dokumentert av denne implementasjonen alene.
+
+
+## Publiseringskontroll 5. november 2026
+
+Kontrollert samlet med main `ac695f5` før PR #25. Full testsuite kjørte 338 tester: 337 bestod, og søkets katalogforventning manglet den nye aktiviteten `vlan-sammen`. Forventningen er oppdatert. Etter retting bestod alle 22 berørte søke-, VLAN-modell- og API-tester. Svelte-sjekken fant først 66 typefeil; presise typeangivelser og eksplisitte adressekontroller rettet disse. Sluttkontrollen har null feil og én advarsel om en ubrukt CSS-selektor. Produksjonsbygget bestod etter retting. Svelte MCP er ikke tilgjengelig i dette miljøet.
+
+Chromium mot ekte lokal API, med lærer og to separate elevprofiler: opprette og velge rom, kabelforespørsel og mottakers godkjenning, vellykket ping, ulagret utkast gjennom fokus-/nettverksoppdatering og automatisk profiloppdatering etter 30 sekunder, lagring og pause/fortsett bestod uten JavaScript-feil. Enhetsvalg og fokus ble prøvd med tastatur ved 390 og 1280 pikslers bredde i lyst og mørkt tema. Kodeeksemplenes åpning, linjeforklaring med tastatur, kopiering til utklippstavlen, delt URL etter omlasting og forstørret tekst ble også prøvd. API-testene dekker ugyldige handlinger, eierskap, samtykke, portkonflikter, utløp, retry og omstart.
+
+Dette er teknisk kontroll. Berøring på fysisk utstyr, full belastning med 24 deltakere og utprøving med elever er ikke gjennomført. Eleven avtaler og konfigurerer et nettverk; ping forklarer funksjon og returvei, mens forståelse må undersøkes gjennom forklaring og et nytt oppsett med mindre støtte som beskrevet ovenfor. Ingen dokumentert læringseffekt eller full WCAG-samsvarsvurdering hevdes.
