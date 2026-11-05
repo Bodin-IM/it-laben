@@ -12,6 +12,7 @@ import { databaseSections, readExamples, insertStages } from '#lib/databaseIntro
 import { workshopTasks } from '#lib/databaseWorkshop.js';
 import { vlanTasks } from '#lib/vlanLab.js';
 import { vlan2Tasks } from '#lib/vlanLab2.js';
+import { moduleCodeExamples } from '#lib/moduleCodeExamples.js';
 export const PAGE_CONTEXT_VERSION = 2;
 export const ADAPTER_VERSION = 1;
 export const MAX_CONTEXT_BYTES = 6000;
@@ -129,13 +130,29 @@ export function readPartnerState(pageId, raw) {
 	const v = wrap.values;
 	/** @type {Record<string,Rule>} */
 	let shape;
-	if (page.kind === 'backend-simulator') {
+	if (page.kind === 'overview' && page.id.startsWith('module-')) {
+		if (!object(v)) return invalidContext();
+		const examples = moduleCodeExamples(page.id.slice('module-'.length));
+		const example = examples.find((item) => item.id === v.exampleId);
+		const file = example?.files.find((item) => item.id === v.fileId);
+		shape = {
+			exampleId: choice([null, ...examples.map((item) => item.id)]),
+			fileId: choice(example ? example.files.map((item) => item.id) : [null]),
+			lineId: choice([null, ...(file?.lines.filter((line) => line.text.trim()).map((line) => line.id) ?? [])])
+		};
+	} else if (page.kind === 'backend-simulator') {
 		shape = {
 			role: choice(['none', 'utstyr', 'program', 'pamelding', 'kiosk']),
 			view: side,
 			published: bool,
 			status: choice([null, 200, 201, 400, 404, 405, 409]),
 			stale: bool
+		};
+	} else if (page.kind === 'vlan-together') {
+		shape = {
+			deviceKind: choice(['none', 'pc', 'switch', 'router']),
+			action: choice(['configure', 'connect']),
+			hasRun: bool, stale: bool, revision: integer(0, 1000000000)
 		};
 	} else if (page.kind === 'vlan2') {
 		if (!object(v)) return invalidContext();

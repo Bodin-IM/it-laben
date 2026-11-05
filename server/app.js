@@ -40,6 +40,7 @@ import { avatars } from '../src/lib/avatars.js';
 import { schoolClasses, classCapacities } from '../src/lib/classes.js';
 import { labPartnerRouter } from './lab-partner/router.js';
 import { backendSimulatorRouter } from './backend-simulator.js';
+import { vlanTogetherRouter } from './vlan-together.js';
 import { saveFeedback, listFeedback, setFeedbackStatus } from './feedback.js';
 import { feedbackPreferences, setFeedbackPreferences, offerFeedbackPrompt, respondToFeedbackPrompt, feedbackTotals } from './activity-feedback.js';
 import { networkLabSnapshot, checkNetworkLab } from './network-labs.js';
@@ -154,6 +155,7 @@ export function createApp({ db, config, clock = Date.now, limits = true }) {
 		app.use('/api/network-labs', limit(60000, 120));
 		// Hele klassen kan dele IP-adresse; brettet henter status hvert andre sekund.
 		app.use('/api/simulator', limit(60000, 4000));
+		app.use('/api/vlan-together', limit(60000, 4000));
 		app.use('/api/checkpoints', limit(60000, 600));
 		app.use('/api/timed', limit(60000, 3000));
 		app.use('/api/practice', limit(60000, 3000));
@@ -168,6 +170,7 @@ export function createApp({ db, config, clock = Date.now, limits = true }) {
 	};
 	app.use('/api/lab-partner', labPartnerRouter({ db, config, authenticated, limits }));
 	app.use('/api/simulator', backendSimulatorRouter({ db, authenticated, clock }));
+	app.use('/api/vlan-together', vlanTogetherRouter({ db, authenticated, clock }));
 	app.get('/api/network-labs/:labId', authenticated, (req, res) => res.json(networkLabSnapshot(db, req.labUser.id, req.params.labId, req.query.preview === '1')));
 	app.post('/api/network-labs/:labId/:taskId/check', authenticated, (req, res) => res.json(checkNetworkLab(db, req.labUser.id, req.params.labId, req.params.taskId, req.body, clock())));
 	const cookieOptions = { httpOnly: true, secure: config.secure, sameSite: 'lax', path: '/' };

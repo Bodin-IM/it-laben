@@ -1,8 +1,8 @@
 <script>
 	import { untaggedVlan } from '#lib/networkCheckFeedback.js';
 	import { membership } from '#lib/vlanLab.js';
-	/** @type {{device:import('#lib/vlanLab2.js').Switch,config:import('#lib/vlanLab.js').SwitchConfig,networks:import('#lib/vlanLab2.js').Network[],disabled?:boolean,onchange:(config:import('#lib/vlanLab.js').SwitchConfig)=>void}} */
-	let { device, config, networks, disabled = false, onchange } = $props();
+	/** @type {{device:import('#lib/vlanLab2.js').Switch,config:import('#lib/vlanLab.js').SwitchConfig,networks:import('#lib/vlanLab2.js').Network[],disabled?:boolean,readOnlyMessage?:string,taggedHelp?:string,onchange:(config:import('#lib/vlanLab.js').SwitchConfig)=>void}} */
+	let { device, config, networks, disabled = false, readOnlyMessage = 'Ferdig oppsatt · kun visning', taggedHelp = 'R1 og AP1 bruker tagged trafikk på kabelen i lab 2.', onchange } = $props();
 	let newVlan = $state(''),
 		message = $state('');
 	const labels = { untagged: 'Untagged', excluded: 'Exclude', tagged: 'Tagged' };
@@ -57,7 +57,7 @@
 	}
 </script>
 
-{#if disabled}<p>Ferdig oppsatt · kun visning</p>{/if}
+{#if disabled}<p>{readOnlyMessage}</p>{/if}
 <div class="heading">
 	<h3>{device.name} · VLAN-medlemskap</h3>
 	<p><b>U</b> Untagged · <b>E</b> Exclude · <b>T</b> Tagged</p>
@@ -128,7 +128,7 @@
 	</p>
 	<p>
 		U sender uten tag; T sender med VLAN-ID; E utelukker
-		VLAN-et. R1 og AP1 bruker tagged trafikk på kabelen i lab 2.
+		VLAN-et. {taggedHelp}
 	</p>
 </details>
 

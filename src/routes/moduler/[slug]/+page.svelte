@@ -17,11 +17,15 @@
 	import DatabaseStart from '#lib/components/DatabaseStart.svelte';
 	import ProjectTask from '#lib/components/ProjectTask.svelte';
 	import { backendSections } from '#lib/backendCourse.js';
+	import { moduleCodeExamples } from '#lib/moduleCodeExamples.js';
+	import ModuleCodeExamples from '#lib/components/ModuleCodeExamples.svelte';
 	/** @type {{data:{module:import('#lib/moduler.js').Module}}} */
 	let { data } = $props();
 	const module = $derived(data.module);
 	const subject = $derived(fag.find((item) => item.id === module.subject));
 	const contents = $derived(moduleContents(module));
+	const examples = $derived(moduleCodeExamples(module.id));
+	const showExamples = $derived(examples.length > 0 && page.url.searchParams.get('visning') === 'eksempler');
 	const progress = $derived(moduleProgress(module, $lab.summary?.progress));
 	const teacher = $derived(hasTeacherRole($lab.user?.role));
 	const publication = $derived(publicationFor(module.id, $modulePublication.modules));
@@ -35,7 +39,7 @@
 	$effect(() => {
 		const hash = page.url.hash,
 			key = `${module.id}:${hash}`;
-		if (!canView || restoredAnchor === key || !/^#(?:forlop|modulinfo|del-\d+)$/.test(hash)) return;
+		if (!canView || restoredAnchor === key || !/^#(?:forlop|modulinfo|examples-title|eksempelkode|del-\d+)$/.test(hash)) return;
 		restoredAnchor = key;
 		// The initial publication request may finish after the browser tried to follow this anchor.
 		void tick().then(() => {
@@ -76,7 +80,7 @@
 >
 
 <div class="module-page">
-	{#if canView}<a class="skip" href="#forlop">Hopp til modulens innhold</a>{/if}
+	{#if canView}<a class="skip" href={showExamples ? '#examples-title' : '#forlop'}>Hopp til modulens innhold</a>{/if}
 	<main id="hovedinnhold" tabindex="-1">
 		<nav class="breadcrumbs" aria-label="Brødsmuler">
 			{#if teacher}<a href="/laerer/undervisning/">Undervisning</a>
@@ -157,6 +161,13 @@
 				</div>
 			{/if}
 			{#key module.id}
+				{#if examples.length}<nav class="module-views" aria-label="Velg innhold i modulen">
+					<a href={`/moduler/${module.id}/`} class:selected={!showExamples} aria-current={!showExamples ? 'page' : undefined}>Innhold</a>
+					<a href={`/moduler/${module.id}/?visning=eksempler`} class:selected={showExamples} aria-current={showExamples ? 'page' : undefined}>Kodeeksempler <span>{examples.length}</span></a>
+				</nav>{/if}
+				{#if showExamples}
+					<ModuleCodeExamples moduleId={module.id} />
+				{:else}
 				<div class="layout">
 					<section id="forlop" aria-labelledby="forlop-title" tabindex="-1">
 						<div class="section-heading">
@@ -251,6 +262,7 @@
 						<a class="back-link" href={`${studentOverview}#utforsk`}>Alle øvinger og spill i {subject?.navn.toLocaleLowerCase('nb-NO')} →</a>
 					</aside>
 				</div>
+				{/if}
 			{/key}
 		{/if}
 	</main>
@@ -276,6 +288,11 @@
 	h3, h4 { font-size: var(--font-body); line-height: 1.5; margin: 14px 0 6px; }
 	p { margin: 8px 0 12px; }
 	.teacher-controls { width: min(100%, 21rem); }
+	.module-views { display: flex; flex-wrap: wrap; gap: 8px; padding-block: 12px; border-bottom: 1px solid var(--color-border); }
+	.module-views a { display: inline-flex; align-items: center; gap: 8px; min-height: 44px; padding: 8px 14px; border: 1px solid transparent; border-radius: 8px; color: var(--color-text-muted); text-decoration: none; font-size: var(--font-small); }
+	.module-views a:hover { background: var(--color-surface-hover); }
+	.module-views a.selected { border-color: var(--color-accent); background: var(--color-accent-soft); color: var(--color-text); font-weight: 650; }
+	.module-views span { font-size: var(--font-meta); color: var(--color-text-muted); }
 	.layout { display: grid; grid-template-columns: minmax(0, 1fr) 20rem; gap: 28px; padding-block: 16px 24px; align-items: start; }
 	#forlop, #modulinfo, .steps > li { min-width: 0; scroll-margin-top: 20px; }
 	.section-heading { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 8px; }

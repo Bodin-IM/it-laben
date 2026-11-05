@@ -1,6 +1,7 @@
 // Server-owned teaching context. Client fields are validated before any reconstruction.
 import { vlanTask, vlanContextLimit } from '../../src/lib/vlanLab.js';
 import { vlan2Tasks } from '../../src/lib/vlanLab2.js';
+import { togetherGoal, togetherHints } from '../../src/lib/vlanTogether.js';
 import {
 	databaseSections,
 	connectionCode,
@@ -21,6 +22,7 @@ import { exerciseFeedback } from '../../src/lib/exerciseFeedback.js';
 import { moduleContext } from '../../src/lib/moduleNavigation.js';
 import { partnerPageById } from '../../src/lib/partnerPages.js';
 import { readPartnerState, invalidContext } from '../../src/lib/partnerContext.js';
+import { moduleCodeExamples } from '../../src/lib/moduleCodeExamples.js';
 import { codeLines as backendCode } from '../../src/lib/frontendBackendLab.js';
 import { codeLines as roomCode, CHATROOM_LESSONS } from '../../src/lib/chatromLab.js';
 import { kilde, forklaringer } from '../../src/lib/storageLesson.js';
@@ -167,7 +169,18 @@ export function pageWork(page, raw) {
 			'Avgrenset status rapportert av nettleseren, ikke dokumentasjon på forståelse. Kode og forklaringer hentes fra IT-labens undervisningsmodeller. Tekstfelt er bare kategorier; eksempler er ikke elevens faktiske tekst.',
 		selection: v
 	};
-	if (page.kind === 'backend-simulator') {
+	if (page.kind === 'overview' && page.id.startsWith('module-')) {
+		const examples = moduleCodeExamples(page.id.slice('module-'.length));
+		const example = examples.find((item) => item.id === v.exampleId);
+		const file = example?.files.find((item) => item.id === v.fileId);
+		work.example = example && file ? {
+			title: example.title, summary: example.summary, source: example.sourceTitle,
+			file: file.label, context: file.context,
+			code: file.lines.map((line) => line.text).join('\n'),
+			selectedLine: file.lines.find((line) => line.id === v.lineId) ?? null
+		} : null;
+		work.limit = 'Dette er offentlig kode fra modulen som eleven har valgt å se på, ikke elevens egen kode eller et kjøreresultat. Gi en kort forklaring og foreslå én undersøkelse i kildeøvingen eller eget prosjekt. Et åpnet eksempel eller en linjeforklaring dokumenterer ikke forståelse.';
+	} else if (page.kind === 'backend-simulator') {
 		work.task = {
 			title: 'Koble sammen en LAN-kveld',
 			goal: 'Publiser et JSON-endepunkt, hent data fra en medelev og vis ett felt i frontend.',
@@ -175,6 +188,12 @@ export function pageWork(page, raw) {
 			transfer: 'Lag og test en ny GET-rute i egen Express-app med mindre støtte.'
 		};
 		work.limit = 'Du ser valgt rolle, panel, publiseringsstatus og siste HTTP-status, men ingen kode, romkode, elevnavn, andre elevers data eller svarinnhold. Ikke anta at en konkret verdi eller løsning er riktig. Simulatoren bruker ekte HTTP til isolerte tjenester i én backend; den starter ikke egne serverprosesser. Markeringene viser handlinger, ikke vurdert forståelse.';
+	} else if (page.kind === 'vlan-together') {
+		work.task = {
+			title: 'VLAN sammen · Bygg et felles nett', goal: togetherGoal, hints: togetherHints,
+			transfer: 'Lag to ulike IP-nett med rutere og et transportnett. Få både ping og returvei til å virke. Forklar én feil, rettingen og hvorfor den virket.'
+		};
+		work.limit = 'Du ser bare valgt enhetstype, handlingstype og om et tidligere pingforsøk er utdatert. Ingen romkode, navn, adresser, konfigurasjon, pakkevei, resultat eller andre elevers data deles. Ikke anta at ping lyktes eller at innstillingene er riktige; be eleven beskrive ett relevant funn. Modellen simulerer U/E/T, statiske /24-nett, gateway og statiske ruter med separat returvei. Den sender ingen virkelige nettverkspakker og har ikke DHCP, DNS, NAT, ACL eller STP. Kabelen krever eiers samtykke; den beviser ikke kommunikasjon. Ingen XP eller automatisk vurdering av forståelse.';
 	} else if (page.kind === 'vlan2') {
 		const task = vlan2Tasks.find((t) => t.id === v.taskId);
 		work.task = { title: task.title, goal: task.goal, ready: task.ready, steps: task.steps, theory: task.theory, reflection: task.reflect, networks: task.networks };

@@ -1,6 +1,6 @@
 import { writable } from 'svelte/store';
 export const partnerChannelKey = Symbol('it-laben-partner-context');
-/** @typedef {{pageId:string,scope:string,state:Record<string,unknown>,running:boolean}} PartnerSource */
+/** @typedef {{pageId:string,scope:string,state:Record<string,unknown>,running:boolean,localTaskKey?:string}} PartnerSource */
 /** One channel per layout instance, never shared across SSR users. Last-owner cleanup cannot clear a newer page. */
 export function createPartnerChannel() {
 	/** @type {symbol|null} */ let owner = null;

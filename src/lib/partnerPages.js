@@ -3,12 +3,14 @@ import { altElevinnhold, fag } from '#lib/innhold.js';
 import { moduler, moduleContents } from '#lib/moduler.js';
 import { guideSteps } from '#lib/studentGuide.js';
 import { lessons } from '#lib/ovingene.js';
+import { togetherHints } from '#lib/vlanTogether.js';
 
 /** @type {Record<string,string>} */
 const kinds = {
 	'backend-simulator': 'backend-simulator',
 	'vlan-lab': 'vlan',
 	'vlan-lab-2': 'vlan2',
+	'vlan-sammen': 'vlan-together',
 	'frontend-backend': 'backend',
 	chatrom: 'chatroom',
 	fillagring: 'storage',
@@ -130,7 +132,7 @@ export const partnerPages = [
 			title: activity.tittel,
 			summary: lesson?.intro ?? activity.beskrivelse,
 			topics: activity.emner,
-			tips: activity.id === 'backend-simulator'
+			tips: activity.id === 'vlan-sammen' ? togetherHints : activity.id === 'backend-simulator'
 				? ['Publiser et GET-endepunkt i Min backend. Velg deretter GET på en medelevs serverkort og send forespørselen fra Min frontend.', 'Et HTTP-svar er et øyeblikksbilde. Etter en reservasjon må du sende GET igjen for å hente oppdaterte data. Sammenlign metode, adresse og statuskode i trafikkloggen.']
 				: activity.id === 'vlan-lab'
 				? [
