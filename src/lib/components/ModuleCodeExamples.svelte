@@ -15,7 +15,7 @@
 	const related = $derived((example?.relatedIds ?? []).flatMap((id) => examples.filter((item) => item.id === id)));
 	const fileKey = $derived(`${moduleId}:${example?.id}:${file?.id}`);
 	/** @type {{key:string,lineId:string|null}|null} */
-	let selection = $state(null);
+	let selection = $state(/** @type {{key:string,lineId:string|null}|null} */ (null));
 	const lineId = $derived(selection?.key === fileKey ? selection.lineId : null);
 	/** @param {string|null} [id] @param {string|null} [fileId] */
 	function href(id = null, fileId = null) {

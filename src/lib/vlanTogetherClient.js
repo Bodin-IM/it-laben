@@ -2,6 +2,7 @@ import { get } from 'svelte/store';
 import { lab } from '#lib/lab.js';
 
 export class TogetherApiError extends Error {
+	/** @param {string} message @param {boolean} [uncertain] */
 	constructor(message, uncertain = false) { super(message); this.uncertain = uncertain; }
 }
 /** @param {string} path @param {unknown} [body] @returns {Promise<any>} */
