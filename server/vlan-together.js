@@ -14,7 +14,7 @@ function roomFor(db, roomId, userId) {
 	const room = db.prepare('SELECT * FROM vlan_rooms WHERE id=?').get(roomId);
 	const me = db.prepare('SELECT * FROM vlan_members WHERE room_id=? AND user_id=?').get(roomId, userId);
 	if (!room || !me) throw problem('Du er ikke med i dette rommet. Velg rommet i romlisten først.', 404);
-	const members = db.prepare('SELECT m.id,m.last_seen,u.nickname FROM vlan_members m JOIN users u ON u.id=m.user_id WHERE room_id=? ORDER BY m.rowid').all(roomId);
+	const members = db.prepare('SELECT m.id,m.last_seen,m.area_name,m.notes,m.document_revision,u.nickname FROM vlan_members m JOIN users u ON u.id=m.user_id WHERE room_id=? ORDER BY m.rowid').all(roomId);
 	const state = JSON.parse(room.state);
 	// Account deletion cascades membership; remove its graph before any read or write.
 	const alive = new Set(members.map((m) => m.id));
@@ -38,7 +38,7 @@ function addMember(db, room, userId, now) {
 	const count = db.prepare('SELECT COUNT(*) AS n FROM vlan_members WHERE room_id=?').get(room.id).n;
 	if (count >= 24) throw problem('Rommet har 24 deltakere. Be læreren opprette et nytt rom.', 409);
 	const id = randomUUID(), sw = randomUUID(), pc = randomUUID();
-	db.prepare('INSERT INTO vlan_members VALUES (?,?,?,?)').run(id, room.id, userId, now);
+	db.prepare('INSERT INTO vlan_members(id,room_id,user_id,last_seen) VALUES (?,?,?,?)').run(id, room.id, userId, now);
 	const state = JSON.parse(room.state);
 	// Find an unused starting address even if an earlier member deleted their account.
 	const used = new Set(state.devices.flatMap((d) => d.kind === 'pc' ? [d.config.ip] : d.kind === 'router' ? d.config.interfaces.map((i) => i.ip) : []));
@@ -56,7 +56,7 @@ function snapshot(db, roomId, userId, now) {
 	return {
 		id: room.id, title: room.title, owner: room.owner_id === userId,
 		me: me.id, paused: !!room.paused, revision: room.revision,
-		members: members.map((m) => ({ id: m.id, name: m.nickname, online: m.id === me.id || now - m.last_seen < 15000 })),
+		members: members.map((m) => ({ id: m.id, name: m.nickname, areaName: m.area_name, notes: m.notes, documentRevision: m.document_revision, online: m.id === me.id || now - m.last_seen < 15000 })),
 		devices: state.devices, links: state.links,
 		requests: state.requests.filter((r) => r.expires > now && (r.from === me.id || r.to === me.id))
 	};
@@ -105,6 +105,14 @@ function command(db, roomId, userId, input, now) {
 	if (room.paused && input.action !== 'pause') throw problem('Læreren har satt rommet på pause. Oppsettet kan fortsatt leses.', 409);
 	state.requests = state.requests.filter((r) => r.expires > now);
 	switch (input.action) {
+		case 'document': {
+			if (input.revision !== me.document_revision) throw problem('Dokumentasjonen er endret i en annen fane. Kopier det du vil beholde, og hent lagret tekst før du prøver igjen.', 409);
+			if (typeof input.areaName !== 'string' || input.areaName.trim().length > 40 || /[\r\n\t]/.test(input.areaName)) throw problem('Områdenavnet kan ha opptil 40 tegn på én linje.');
+			if (typeof input.notes !== 'string' || input.notes.length > 2000 || Buffer.byteLength(input.notes, 'utf8') > 6000) throw problem('Bruk opptil 2000 tegn i dokumentasjonen. Kort ned teksten hvis den inneholder mange spesialtegn.');
+			// The account's own membership is authoritative; no client owner/member ID is used.
+			db.prepare('UPDATE vlan_members SET area_name=?,notes=?,document_revision=document_revision+1 WHERE id=?').run(input.areaName.trim(), input.notes, me.id);
+			break;
+		}
 		case 'add': {
 			if (!['pc', 'switch', 'router'].includes(input.kind)) throw problem('Velg PC, switch eller ruter.');
 			if (state.devices.filter((d) => d.owner === me.id).length >= 8) throw problem('Ditt område har plass til åtte enheter.', 409);
@@ -125,7 +133,8 @@ function command(db, roomId, userId, input, now) {
 			state.requests = state.requests.filter((r) => r.source !== d.id && r.target !== d.id); break;
 		}
 		case 'connect':
-			own(state, input.source, me.id); own(state, input.target, me.id);
+			own(state, input.source, me.id);
+			if (own(state, input.target, me.id).kind === 'pc') throw problem('Avslutt kabelen på en switch eller ruter. En PC kobles ved å starte fra PC-en.');
 			connect(state, input.source, input.port, input.target, input.targetPort); break;
 		case 'request': {
 			const source = own(state, input.source, me.id), target = device(state, input.target);
@@ -157,7 +166,8 @@ function command(db, roomId, userId, input, now) {
 			room.paused = Number(input.paused); break;
 		default: throw problem('Ukjent handling.');
 	}
-	save(db, room, state);
+	// Documentation does not change the network and must not invalidate a ping result.
+	if (input.action !== 'document') save(db, room, state);
 	db.prepare('INSERT INTO vlan_commands VALUES (?,?,?,?)').run(roomId, me.id, input.requestId, fingerprint);
 }
 

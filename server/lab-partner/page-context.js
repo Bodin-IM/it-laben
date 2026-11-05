@@ -1,7 +1,7 @@
 // Server-owned teaching context. Client fields are validated before any reconstruction.
 import { vlanTask, vlanContextLimit } from '../../src/lib/vlanLab.js';
 import { vlan2Tasks } from '../../src/lib/vlanLab2.js';
-import { togetherGoal, togetherHints } from '../../src/lib/vlanTogether.js';
+import { togetherGoal, togetherHints, vlanTogetherActivity } from '../../src/lib/vlanTogether.js';
 import {
 	databaseSections,
 	connectionCode,
@@ -190,7 +190,7 @@ export function pageWork(page, raw) {
 		work.limit = 'Du ser valgt rolle, panel, publiseringsstatus og siste HTTP-status, men ingen kode, romkode, elevnavn, andre elevers data eller svarinnhold. Ikke anta at en konkret verdi eller løsning er riktig. Simulatoren bruker ekte HTTP til isolerte tjenester i én backend; den starter ikke egne serverprosesser. Markeringene viser handlinger, ikke vurdert forståelse.';
 	} else if (page.kind === 'vlan-together') {
 		work.task = {
-			title: 'VLAN sammen · Bygg et felles nett', goal: togetherGoal, hints: togetherHints,
+			title: vlanTogetherActivity.tittel, goal: togetherGoal, hints: togetherHints,
 			transfer: 'Lag to ulike IP-nett med rutere og et transportnett. Få både ping og returvei til å virke. Forklar én feil, rettingen og hvorfor den virket.'
 		};
 		work.limit = 'Du ser bare valgt enhetstype, handlingstype og om et tidligere pingforsøk er utdatert. Ingen romkode, navn, adresser, konfigurasjon, pakkevei, resultat eller andre elevers data deles. Ikke anta at ping lyktes eller at innstillingene er riktige; be eleven beskrive ett relevant funn. Modellen simulerer U/E/T, statiske /24-nett, gateway og statiske ruter med separat returvei. Den sender ingen virkelige nettverkspakker og har ikke DHCP, DNS, NAT, ACL eller STP. Kabelen krever eiers samtykke; den beviser ikke kommunikasjon. Ingen XP eller automatisk vurdering av forståelse.';

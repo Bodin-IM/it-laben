@@ -2,15 +2,15 @@ import { hostAddress, membership } from './vlanLab.js';
 import { untaggedVlan } from './networkCheckFeedback.js';
 
 export const vlanTogetherActivity = {
-	id: 'vlan-sammen', tittel: 'VLAN sammen · Bygg et felles nett',
+	id: 'vlan-sammen', tittel: 'Nettverksligaen · Bygg et felles nett',
 	beskrivelse: 'Bygg ditt nettverk på et felles brett. Avtal porter, koble til medelever og feilsøk kommunikasjonen sammen.',
 	href: '/nettverk/vlan-sammen/', fag: 'drift', audience: 'student', format: 'aktivitet',
 	type: 'Samarbeidslab · første utkast', emner: ['VLAN', 'Trunk', 'Ruting', 'Samarbeid'],
-	sokeord: ['switch', 'ruter', 'PC', 'nettverk', 'flerspiller', 'ping'], symbol: '⇄'
+	sokeord: ['VLAN sammen', 'switch', 'ruter', 'PC', 'nettverk', 'flerspiller', 'ping'], symbol: '⇄'
 };
 export const togetherGoal = 'Avtal en port- og adresseplan, koble sammen to elevers nett og forklar hvordan ping og svar går gjennom VLAN og eventuelle rutere.';
 export const togetherHints = [
-	'Velg din switch og en ledig port. Trykk Start kabel, og velg en medelevs switch i brettet. Medeleven må godta og velge port.',
+	'Trykk Koble kabel. Velg din enhet og en ledig port i menyen ved enheten, og trykk på en switch eller ruter. En medelev velger selv port og godtar forbindelsen.',
 	'Begynn med PC-ene i samme /24-nett. U velger VLAN for umerket trafikk inn og ut. T frakter VLAN-taggen mellom switcher. Begge ender må passe sammen.',
 	'Til et annet IP-nett trenger PC-en gateway. Ruteren trenger en direkte tilkobling eller en statisk rute, og svaret trenger en returvei.',
 	'Endre én innstilling, forutsi resultatet og prøv ping igjen. En godkjent kabel er ikke det samme som fungerende kommunikasjon.'
@@ -24,7 +24,8 @@ export const togetherHints = [
 /** @typedef {{id:string,a:string,aPort:string,b:string,bPort:string}} TogetherLink */
 /** @typedef {{id:string,from:string,to:string,source:string,port:string,target:string,expires:number}} CableRequest */
 /** @typedef {{devices:TogetherDevice[],links:TogetherLink[],requests:CableRequest[]}} TogetherState */
-/** @typedef {{id:string,name:string,online:boolean}} Member */
+/** @typedef {{areaName:string,notes:string,revision:number}} AreaDocument */
+/** @typedef {{id:string,name:string,online:boolean,areaName:string,notes:string,documentRevision:number}} Member */
 /** @typedef {{id:string,title:string,teacherName:string,paused:boolean,participants:number,joined:boolean}} TogetherRoomListing */
 /** @typedef {TogetherState & {id:string,title:string,me:string,owner:boolean,paused:boolean,revision:number,members:Member[]}} TogetherRoom */
 /** @typedef {{from:string,to:string,text:string,link?:string}} TraceStep */

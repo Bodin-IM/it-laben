@@ -1,0 +1,3 @@
+ALTER TABLE vlan_members ADD COLUMN area_name TEXT NOT NULL DEFAULT '';
+ALTER TABLE vlan_members ADD COLUMN notes TEXT NOT NULL DEFAULT '';
+ALTER TABLE vlan_members ADD COLUMN document_revision INTEGER NOT NULL DEFAULT 0;

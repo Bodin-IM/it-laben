@@ -1,9 +1,11 @@
 <script>
 	import { onMount, tick, untrack } from 'svelte';
+	import { beforeNavigate } from '$app/navigation';
 	import { lab, randomId } from '#lib/lab.js';
 	import { devicePorts, portLink, togetherHints } from '#lib/vlanTogether.js';
 	import { togetherRequest, TogetherApiError } from '#lib/vlanTogetherClient.js';
 	import TogetherNetworkBoard from '#lib/components/TogetherNetworkBoard.svelte';
+	import TogetherDocumentation from '#lib/components/TogetherDocumentation.svelte';
 	import NetworkSwitchEditor from '#lib/components/NetworkSwitchEditor.svelte';
 	import PartnerContext from '#lib/components/PartnerContext.svelte';
 	/** @typedef {import('#lib/vlanTogether.js').TogetherRoom} Room */
@@ -13,7 +15,7 @@
 	let selected = $state(''), title = $state('Felles nettverkslab'), roomsError = $state('');
 	let draft = $state(/** @type {Device|null} */ (null));
 	let cable = $state(/** @type {{source:string,port:string}|null} */ (null));
-	let port = $state(''), targetPort = $state('');
+	let connecting = $state(false), documentMember = $state(''), documentationDirty = $state(false);
 	let accepts = $state(/** @type {Record<string,string>} */ ({}));
 	let from = $state(''), to = $state('');
 	let result = $state(/** @type {(import('#lib/vlanTogether.js').TogetherPing & {revision:number,from:string,to:string})|null} */ (null));
@@ -43,7 +45,8 @@
 	/** @param {string} id */
 	function label(id) {
 		const d = room?.devices.find((d) => d.id === id);
-		return d ? `${d.name} · ${d.owner === room?.me ? 'deg' : room?.members.find((m) => m.id === d.owner)?.name}` : 'Fjernet enhet';
+		const member = room?.members.find((m) => m.id === d?.owner);
+		return d ? `${d.name} · ${d.owner === room?.me ? 'deg' : member?.areaName || member?.name}` : 'Fjernet enhet';
 	}
 	/** @param {string} id @param {string} p */
 	function peerLabel(id, p) {
@@ -58,20 +61,14 @@
 	}
 	function loadDraft() {
 		draft = device ? JSON.parse(JSON.stringify(device)) : null;
-		port = device ? freePorts(device.id)[0] ?? '' : '';
-		targetPort = port;
 	}
 	/** @param {string} id */
 	async function inspect(id) {
 		if (!room || busy || pinging) return;
 		const target = room.devices.find((d) => d.id === id);
 		if (!target) return;
-		if (cable && target.owner !== room.me) {
-			if (target.kind === 'pc') { error = 'Velg en switch eller ruter hos den andre deltakeren.'; return; }
-			await command({ action: 'request', ...cable, target: id }); return;
-		}
 		if (dirty && mine && !confirm('Bytte enhet og forkaste de ulagrede endringene?')) return;
-		selected = id; loadDraft();
+		connecting = false; cable = null; selected = id; loadDraft();
 		await tick(); editor?.scrollIntoView({ block: 'start' }); editor?.focus({ preventScroll: true });
 	}
 	/** @param {Room} next */
@@ -79,13 +76,15 @@
 		if (room && next.id === room.id && next.revision < room.revision) return;
 		room = next;
 		if (selected && !next.devices.some((d) => d.id === selected)) { selected = ''; draft = null; }
-		if (cable && !next.devices.some((d) => d.id === cable?.source)) cable = null;
+		if (cable && (!next.devices.some((d) => d.id === cable?.source) || portLink(next, cable.source, cable.port))) { cable = null; error = 'Startporten er endret eller tatt i bruk. Velg en ny port.'; }
+		if (next.paused) { connecting = false; cable = null; }
 		if (from && !next.devices.some((d) => d.id === from)) from = '';
 		if (to && !next.devices.some((d) => d.id === to)) to = '';
 	}
 	/** @param {Room} next */
 	function enter(next) {
-		epoch++; readVersion++; room = next; result = null; cable = null; retry = null; accepts = {};
+		epoch++; readVersion++; room = next; result = null; cable = null; connecting = false; retry = null; accepts = {};
+		documentMember = next.me; documentationDirty = false;
 		selected = next.devices.find((d) => d.owner === next.me && d.kind === 'switch')?.id ?? '';
 		from = next.devices.find((d) => d.owner === next.me && d.kind === 'pc')?.id ?? ''; to = '';
 		loadDraft(); error = ''; notice = ''; connectionError = ''; busy = false; loading = false; roomsError = '';
@@ -100,10 +99,14 @@
 	$effect(() => {
 		const user = accountId;
 		untrack(() => {
-			epoch++; readVersion++; room = null; rooms = []; draft = null; selected = ''; cable = null; retry = null; result = null;
+			epoch++; readVersion++; room = null; rooms = []; draft = null; selected = ''; cable = null; connecting = false; retry = null; result = null; documentMember = ''; documentationDirty = false;
 			from = ''; to = ''; accepts = {}; busy = false; pinging = false; loading = false; error = ''; notice = ''; connectionError = ''; roomsError = '';
 			if (user) void listRooms();
 		});
+	});
+	beforeNavigate(({ cancel, type, from, to }) => {
+		if (!(dirty || documentationDirty) || (type !== 'leave' && to?.url.pathname === from?.url.pathname)) return;
+		if (type === 'leave' || !confirm('Forlate laben og forkaste ulagrede endringer?')) cancel();
 	});
 	onMount(() => {
 		const timer = setInterval(() => { if (room && !busy && !document.hidden) void refresh(); }, 2500);
@@ -125,28 +128,30 @@
 		finally { if (version === epoch) busy = false; }
 	}
 	function leave() {
-		if (dirty && mine && !confirm('Bytte rom og forkaste de ulagrede endringene?')) return;
-		epoch++; readVersion++; room = null; draft = null; result = null; cable = null; retry = null; busy = false; pinging = false; loading = false; error = ''; notice = ''; roomsError = ''; void listRooms();
+		if ((dirty || documentationDirty) && !confirm('Bytte rom og forkaste de ulagrede endringene?')) return;
+		epoch++; readVersion++; room = null; draft = null; result = null; cable = null; connecting = false; documentationDirty = false; retry = null; busy = false; pinging = false; loading = false; error = ''; notice = ''; roomsError = ''; void listRooms();
 	}
-	/** @param {Record<string,any>} body */
+	/** @param {Record<string,any>} body @returns {Promise<boolean>} */
 	async function command(body) {
-		if (!room || busy || retry && body !== retry) return;
+		if (!room || busy || retry && body !== retry) return false;
 		const version = epoch, id = room.id, previous = room.devices.map((d) => d.id);
 		const payload = body.requestId ? body : { ...body, requestId: randomId() };
 		busy = true; error = ''; notice = ''; readVersion++;
 		try {
 			const value = /** @type {Room} */ (await togetherRequest(`/rooms/${id}/commands`, payload));
-			if (version !== epoch) return;
+			if (version !== epoch) return false;
+			if (['connect', 'request'].includes(payload.action)) { cable = null; connecting = false; }
 			receive(value); retry = null; readVersion++;
 			if (payload.action === 'configure' && selected === payload.deviceId) loadDraft();
 			if (payload.action === 'add' && !dirty) { selected = value.devices.find((d) => d.owner === value.me && !previous.includes(d.id))?.id ?? selected; loadDraft(); }
-			if (['connect', 'request'].includes(payload.action)) cable = null;
-			notice = payload.action === 'request' ? 'Forespørsel sendt. Den andre eieren velger port og godtar.' : 'Lagret. Brettet er oppdatert.';
+			notice = payload.action === 'request' ? 'Forespørsel sendt. Den andre eieren velger port og godtar.' : payload.action === 'document' ? 'Dokumentasjonen er lagret og delt med rommet.' : 'Lagret. Brettet er oppdatert.';
+			return true;
 		} catch (cause) {
-			if (version !== epoch) return;
+			if (version !== epoch) return false;
 			error = explain(cause);
 			retry = cause instanceof TogetherApiError && cause.uncertain ? payload : null;
 			if (!retry) void refresh();
+			return false;
 		} finally { if (version === epoch) busy = false; }
 	}
 	async function ping() {
@@ -158,20 +163,45 @@
 		} catch (cause) { if (version === epoch) error = explain(cause); }
 		finally { if (version === epoch) pinging = false; }
 	}
-	function startCable() {
-		if (!device || !mine || !port || disabled) return;
-		cable = { source: device.id, port }; error = ''; notice = 'Velg en annen enhet i brettet. En annen eier får en forespørsel.';
-		boardSection?.scrollIntoView({ block: 'start' }); boardSection?.focus({ preventScroll: true });
+	function toggleCable() {
+		if (disabled && !connecting) return;
+		connecting = !connecting; cable = null; error = ''; notice = '';
 	}
+	/** @param {string} id @param {string} port */
+	async function chooseCablePort(id, port) {
+		if (!room || disabled || !connecting) return;
+		const target = room.devices.find((d) => d.id === id && d.owner === room?.me);
+		if (!target || !freePorts(id).includes(port)) { error = 'Porten er ikke lenger ledig. Velg en annen port.'; return; }
+		if (!cable || cable.source === id) { cable = { source: id, port }; error = ''; notice = ''; return; }
+		if (target.kind === 'pc') { error = 'Avslutt kabelen på en switch eller ruter.'; return; }
+		await command({ action: 'connect', ...cable, target: id, targetPort: port });
+	}
+	/** @param {string} id */
+	async function requestCable(id) {
+		if (!connecting || !cable || disabled) return;
+		await command({ action: 'request', ...cable, target: id });
+	}
+	/** @param {string} id */
+	async function showDocument(id) {
+		documentMember = id; connecting = false; cable = null;
+		await tick();
+		const heading = document.getElementById('documentation-title');
+		heading?.scrollIntoView({ block: 'start' }); heading?.focus({ preventScroll: true });
+	}
+
 </script>
 
-<svelte:head><title>VLAN sammen – IT-laben</title><meta name="description" content="Bygg nettverk sammen. Avtal porter, konfigurer VLAN og rutere og følg ping mellom elevenes områder." /></svelte:head>
-{#key room?.id ?? 'lobby'}<PartnerContext pageId="vlan-sammen" localTaskKey={room?.id ?? 'lobby'} values={{ deviceKind: device?.kind ?? 'none', action: cable ? 'connect' : 'configure', hasRun: !!result, stale, revision: room?.revision ?? 0 }} running={busy || pinging} />{/key}
+<svelte:head><title>Nettverksligaen – IT-laben</title><meta name="description" content="Bygg nettverk sammen. Avtal porter, konfigurer VLAN og rutere og følg ping mellom elevenes områder." /></svelte:head>
+{#key room?.id ?? 'lobby'}<PartnerContext pageId="vlan-sammen" localTaskKey={room?.id ?? 'lobby'} values={{ deviceKind: device?.kind ?? 'none', action: connecting ? 'connect' : 'configure', hasRun: !!result, stale, revision: room?.revision ?? 0 }} running={busy || pinging} />{/key}
+
+{#snippet feedback()}
+	<div class="feedback" role="status" aria-atomic="true"><p class:error={!!error} class:notice={!error && !!notice}>{error || notice || (busy ? 'Lagrer …' : '')}</p>{#if retry}<p>Svar mangler. Handlingen kan være lagret. Prøv igjen; den får ikke dobbel virkning.</p><button disabled={busy} onclick={() => { if (retry) void command(retry); }}>Prøv handlingen igjen</button>{/if}</div>
+{/snippet}
 
 <main id="hovedinnhold" tabindex="-1">
 	<a class="back" href="/?fag=drift#utforsk">← Driftsstøtte</a>
-	<header><div><p class="eyebrow">SAMARBEIDSLAB · FØRSTE UTKAST</p><h1>VLAN sammen<span>.</span></h1><p>Bygg ditt nett. Avtal forbindelsen. Få svar fra en medelev.</p></div><a href="/nettverk/vlan-2/">Repeter VLAN og ruting →</a></header>
-	<div class="feedback" aria-live="polite" aria-atomic="true">{#if error}<p class="error">{error}</p>{:else if notice}<p class="notice">{notice}</p>{/if}{#if retry}<p>Svar mangler. Handlingen kan være lagret. Prøv samme handling igjen; den får ikke dobbel virkning.</p><button disabled={busy} onclick={() => { if (retry) void command(retry); }}>Prøv handlingen igjen</button>{/if}{#if (error || notice) && !retry}<button onclick={() => { error = ''; notice = ''; }}>Lukk melding</button>{/if}</div>
+	<header><div><p class="eyebrow">SAMARBEIDSLAB · FØRSTE UTKAST</p><h1>Nettverksligaen<span>.</span></h1><p>Bygg ditt nett. Avtal forbindelsen. Få svar fra en medelev.</p></div><a href="/nettverk/vlan-2/">Repeter VLAN og ruting →</a></header>
+	{#if !room}{@render feedback()}{/if}
 	{#if !$lab.ready}<p role="status">Henter pålogging …</p>
 	{:else if !$lab.user}<section class="panel"><h2>Ta plass på brettet</h2><p>Logg inn i Min lab. Læreren oppretter et rom. Velg det i romlisten for å bli med.</p><a class="action" href="/min-lab/">Åpne Min lab →</a></section>
 	{:else if !room}
@@ -190,7 +220,7 @@
 						</li>
 					{/each}
 				</ul>
-				<p class="muted">De andre i rommet ser enhetene og innstillingene dine. Bruk oppdiktede enhetsnavn og labadresser.</p>
+				<p class="muted">De andre i rommet ser enhetene, innstillingene og dokumentasjonen din. Bruk oppdiktede navn og labadresser.</p>
 			</section>
 			{#if teacher}<section class="panel"><h2>Opprett rom som lærer</h2><form onsubmit={(e) => { e.preventDefault(); void openRoom('/rooms', { title }); }}><label for="room-name">Navn på laben</label><input id="room-name" bind:value={title} maxlength="40" required disabled={busy} /><button class="primary" disabled={busy}>Opprett rom</button></form><p class="muted">Rommet vises i elevenes romliste. Inntil 24 deltakere, inkludert deg.</p></section>{/if}
 		</div>
@@ -202,17 +232,19 @@
 			{#each incoming as request (request.id)}<div class="request"><p><strong>{label(request.source)} · {request.port}</strong><br />ønsker kabel til din <strong>{label(request.target)}</strong>.</p><div class="row wrap"><label for={`accept-${request.id}`}>Din port</label><select id={`accept-${request.id}`} bind:value={accepts[request.id]} disabled={disabled}><option value="">Velg ledig port</option>{#each freePorts(request.target) as p}<option value={p}>{p}</option>{/each}</select><button class="primary" disabled={disabled || !accepts[request.id]} onclick={() => command({ action: 'respond', id: request.id, accept: true, targetPort: accepts[request.id] })}>Godta kabel</button><button disabled={disabled} onclick={() => command({ action: 'respond', id: request.id, accept: false })}>Avslå</button></div></div>{/each}
 			{#each outgoing as request (request.id)}<div class="request"><p>Venter på <strong>{label(request.target)}</strong> fra {label(request.source)} · {request.port}.</p><button disabled={disabled} onclick={() => command({ action: 'respond', id: request.id, accept: false })}>Avbryt forespørsel</button></div>{/each}<p class="muted">Forespørsler utløper etter fem minutter. Ingen kabel kobles før eieren godtar.</p>
 		</section>{/if}
-		{#if cable}<div class="cable-banner" role="status"><p><strong>Kobler fra {label(cable.source)} · {cable.port}</strong><br />Velg en annen enhet i brettet. Medelevens switch/ruter får en forespørsel.</p><button onclick={() => cable = null}>Avbryt kabelvalg</button></div>{/if}
-		<div bind:this={boardSection} tabindex="-1"><TogetherNetworkBoard {room} {selected} source={cable?.source ?? ''} {highlight} onselect={inspect} /></div>
+		<div bind:this={boardSection} tabindex="-1">
+			{@render feedback()}
+			<TogetherNetworkBoard {room} {selected} {cable} {connecting} disabled={disabled || pinging} {highlight} onselect={inspect} ontoggle={toggleCable} onrestart={() => { cable = null; error = ''; }} onport={chooseCablePort} onrequest={requestCable} onfeedback={(message) => { error = message; notice = ''; }} ondocument={showDocument} />
+		</div>
 		<div class="add-devices"><span>Legg til i ditt område</span>{#each ['switch', 'router', 'pc'] as kind}<button disabled={disabled || myDevices.length >= 8} onclick={() => command({ action: 'add', kind })}>+ {kind === 'switch' ? 'Switch' : kind === 'router' ? 'Ruter' : 'PC'}</button>{/each}<small>{myDevices.length}/8 enheter</small></div>
+		{#key room.id}<TogetherDocumentation {room} memberId={documentMember} {disabled} onsave={(document) => command({ action: 'document', ...document })} onselect={(id) => documentMember = id} ondirty={(value) => documentationDirty = value} />{/key}
 		<div class="work-grid">
 			<section class="panel editor" id="mitt-arbeid" bind:this={editor} tabindex="-1" aria-labelledby="editor-title">
 				<div class="section-heading"><h2 id="editor-title">{device ? label(device.id) : 'Velg en enhet'}</h2><select aria-label="Velg enhet fra listen" value={selected} onchange={async (e) => { const select = e.currentTarget; await inspect(select.value); select.value = selected; }} disabled={busy}><option value="">Velg en enhet</option>{#each room.devices as d}<option value={d.id}>{label(d.id)}</option>{/each}</select></div>
 				{#if device && draft}
 					{#if !mine}<p class="muted">Du ser den andres lagrede oppsett. Bare eieren kan endre det.</p>{/if}
 					<section class="ports"><h3>Porter og kabler</h3>
-						{#if mine && (!cable || cable.source === device.id)}<div class="row wrap"><label for="source-port">Din ledige port</label><select id="source-port" bind:value={port} disabled={disabled}><option value="">Velg port</option>{#each freePorts(device.id) as p}<option>{p}</option>{/each}</select><button disabled={disabled || !port} onclick={startCable}>Start kabel →</button></div>
-						{:else if mine && cable}<div class="row wrap"><label for="target-port">Port på {device.name}</label><select id="target-port" bind:value={targetPort} disabled={disabled}><option value="">Velg port</option>{#each freePorts(device.id) as p}<option>{p}</option>{/each}</select><button class="primary" disabled={disabled || !targetPort} onclick={() => command({ action: 'connect', ...cable, target: device.id, targetPort })}>Koble mine enheter</button></div>{/if}
+						{#if mine}<button disabled={disabled} onclick={() => { connecting = true; cable = null; boardSection?.scrollIntoView({ block: 'start' }); boardSection?.focus({ preventScroll: true }); }}>Koble kabel på brettet ↑</button>{/if}
 						<details><summary>Vis alle porter og kabler</summary><ul>{#each devicePorts(device.kind) as p}{@const link = portLink(room, device.id, p)}<li><strong>{p}</strong><span>{peerLabel(device.id, p)}</span>{#if link && mine}<button disabled={disabled} onclick={() => command({ action: 'disconnect', id: link.id })}>Koble fra</button>{/if}</li>{/each}</ul></details>
 					</section>
 					{#if mine}<label for="device-name">Enhetsnavn</label><input id="device-name" bind:value={draft.name} maxlength="40" disabled={disabled} />{/if}
@@ -262,8 +294,7 @@
 	.room-bar { display:flex; justify-content:space-between; align-items:center; gap:1rem; margin-bottom:1.2rem; padding:.8rem 1rem; background:var(--color-surface); border:1px solid var(--color-border); border-radius:10px; }
 	.room-bar > div:first-child { display:grid; gap:.35rem; }
 	.requests { margin-bottom:1rem; } .request { display:flex; justify-content:space-between; gap:1rem; align-items:center; padding:.6rem 0; border-bottom:1px solid var(--color-border); } .request p { margin:.2rem 0; }
-	.cable-banner { display:flex; align-items:center; justify-content:space-between; gap:1rem; background:var(--color-info-soft); color:var(--color-info); border:1px solid var(--color-info); padding:.65rem 1rem; border-radius:9px; margin-bottom:1rem; }
-	.cable-banner p { margin:0; } .add-devices { display:flex; align-items:center; flex-wrap:wrap; gap:.6rem; padding:1rem 0 1.5rem; } .add-devices > span { font-weight:650; margin-right:.4rem; }
+	.add-devices { display:flex; align-items:center; flex-wrap:wrap; gap:.6rem; padding:1rem 0 1.5rem; } .add-devices > span { font-weight:650; margin-right:.4rem; }
 	.work-grid { display:grid; grid-template-columns:minmax(0,1.8fr) minmax(18rem,1fr); gap:1.2rem; align-items:start; }
 	.editor { scroll-margin-top:1rem; } .section-heading { display:flex; justify-content:space-between; align-items:center; gap:1rem; } .section-heading select { max-width:18rem; } .section-heading h2 { overflow-wrap:anywhere; }
 	.fields { display:grid; grid-template-columns:1fr 1fr 2fr; gap:.65rem; } fieldset { border:1px solid var(--color-border); border-radius:8px; padding:.7rem; margin:.7rem 0; min-width:0; } fieldset button { margin-top:.6rem; }
@@ -273,7 +304,7 @@
 	ol { padding-left:1.4rem; } li { line-height:1.5; } li + li { margin-top:.6rem; } summary { cursor:pointer; min-height:44px; padding:.65rem 0; font-weight:650; color:var(--color-accent); }
 	details { margin-top:.7rem; } details p { font-size:var(--font-small); } .help { border-top:1px solid var(--color-border); }
 	.banner { color:var(--color-warning); background:var(--color-warning-soft); border:1px solid var(--color-warning-border); padding:.8rem; border-radius:8px; }
-	.feedback { position:sticky; top:.6rem; z-index:3; margin-bottom:1rem; } .feedback:has(p) { background:var(--color-surface); border:1px solid var(--color-border); padding:.8rem 1rem; border-radius:10px; box-shadow:0 4px 18px #0002; } .feedback p { margin:.3rem 0; } .error { color:var(--color-danger); } .notice { color:var(--color-success); }
+	.feedback { min-height:2.8rem; margin-bottom:.4rem; font-size:var(--font-small); overflow-wrap:anywhere; } .feedback p { margin:.3rem 0; min-height:1.5em; } .error { color:var(--color-danger); } .notice { color:var(--color-success); }
 	.about { border-top:1px solid var(--color-border); margin-top:1.5rem; max-width:70ch; }
 	:where(button,a,input,select,summary,[tabindex]):focus-visible { outline:3px solid var(--color-focus); outline-offset:3px; }
 	@media(max-width:950px) { .work-grid { grid-template-columns:minmax(0,1fr); } }
