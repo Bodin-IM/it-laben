@@ -53,11 +53,14 @@ function addMember(db, room, userId, now) {
 function snapshot(db, roomId, userId, now) {
 	const { room, me, members, state } = roomFor(db, roomId, userId);
 	db.prepare('UPDATE vlan_members SET last_seen=? WHERE id=?').run(now, me.id);
+	db.prepare('DELETE FROM vlan_pings WHERE room_id=? AND expires_at<=?').run(roomId, now);
 	return {
 		id: room.id, title: room.title, owner: room.owner_id === userId,
 		me: me.id, paused: !!room.paused, revision: room.revision,
 		members: members.map((m) => ({ id: m.id, name: m.nickname, areaName: m.area_name, notes: m.notes, documentRevision: m.document_revision, online: m.id === me.id || now - m.last_seen < 15000 })),
 		devices: state.devices, links: state.links,
+		serverNow: now,
+		pings: db.prepare('SELECT payload FROM vlan_pings WHERE room_id=? AND revision=? ORDER BY created_at DESC,id DESC LIMIT 64').all(roomId, room.revision).map((p) => JSON.parse(p.payload)),
 		requests: state.requests.filter((r) => r.expires > now && (r.from === me.id || r.to === me.id))
 	};
 }
@@ -214,9 +217,30 @@ export function vlanTogetherRouter({ db, authenticated, clock }) {
 	})));
 	router.post('/rooms/:roomId/ping', (req, res) => res.json(transaction(db, () => {
 		const { room, me, state } = roomFor(db, req.params.roomId, req.labUser.id);
-		const from = own(state, req.body.from, me.id); device(state, req.body.to);
-		if (from.kind !== 'pc') throw problem('Start ping fra en av dine PC-er.');
-		return { ...pingTogether(state, from.id, req.body.to), revision: room.revision };
+		const from = own(state, req.body.from, me.id), to = device(state, req.body.to), now = clock();
+		if (from.kind !== 'pc' || to.kind !== 'pc' || from.id === to.id) throw problem('Velg din avsender-PC og en annen PC som mottaker.');
+		// Old clients may still send a private probe. The board tool always sends an ID.
+		if (req.body.requestId === undefined) return { ...pingTogether(state, from.id, to.id), revision: room.revision };
+		if (!uuid(req.body.requestId)) throw problem('Ping mangler en gyldig forespørsels-ID.');
+		db.prepare('DELETE FROM vlan_pings WHERE room_id=? AND expires_at<=?').run(room.id, now);
+		const previous = db.prepare('SELECT payload FROM vlan_pings WHERE room_id=? AND member_id=? AND request_id=?').get(room.id, me.id, req.body.requestId);
+		if (previous) {
+			const ping = JSON.parse(previous.payload);
+			if (ping.from !== from.id || ping.to !== to.id) throw problem('Denne ping-ID-en er allerede brukt til et annet mål.', 409);
+			return { ...ping, serverNow: now };
+		}
+		if (room.paused) throw problem('Læreren har satt rommet på pause.', 409);
+		const active = db.prepare('SELECT payload FROM vlan_pings WHERE room_id=? AND member_id=? AND revision=? ORDER BY created_at DESC LIMIT 1').get(room.id, me.id, room.revision);
+		if (active) {
+			const ping = JSON.parse(active.payload);
+			if (now < ping.startsAt + ping.duration) throw problem('Vent til din forrige ping er ferdig før du sender en ny.', 429);
+		}
+		const result = pingTogether(state, from.id, to.id);
+		const startsAt = now + 2800, duration = Math.max(4000, Math.min(18000, result.steps.length * 650));
+		const ping = { ...result, id: randomUUID(), by: me.id, from: from.id, to: to.id, revision: room.revision, startsAt, duration, expiresAt: startsAt + duration + 8000 };
+		db.prepare('INSERT INTO vlan_pings VALUES (?,?,?,?,?,?,?,?)').run(ping.id, room.id, me.id, req.body.requestId, now, ping.expiresAt, room.revision, JSON.stringify(ping));
+		db.prepare('DELETE FROM vlan_pings WHERE room_id=? AND id NOT IN (SELECT id FROM vlan_pings WHERE room_id=? ORDER BY created_at DESC,id DESC LIMIT 64)').run(room.id, room.id);
+		return { ...ping, serverNow: now };
 	})));
 	return router;
 }

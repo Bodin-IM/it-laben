@@ -87,8 +87,11 @@ test('shared VLAN API: membership, consent, atomic ports, saved drafts and resta
 		// Recreate the previous member schema around a populated room, then run the real migration.
 		db.exec('ALTER TABLE vlan_members DROP COLUMN area_name; ALTER TABLE vlan_members DROP COLUMN notes; ALTER TABLE vlan_members DROP COLUMN document_revision;');
 		db.prepare('DELETE FROM migrations WHERE name=?').run('018_vlan_documentation.sql');
+		db.exec('DROP TABLE vlan_pings');
+		db.prepare('DELETE FROM migrations WHERE name=?').run('019_vlan_pings.sql');
 		db.close(); db = openDatabase(filename); await start();
 		const after = await read();
+		assert.deepEqual(after.pings, []);
 		assert.deepEqual(after.devices, before.devices); assert.deepEqual(after.links, before.links);
 		assert.deepEqual(after.members.map((m) => m.id), before.members.map((m) => m.id));
 		assert.ok(after.members.every((m) => m.areaName === '' && m.notes === '' && m.documentRevision === 0));
@@ -157,6 +160,43 @@ test('shared VLAN API: membership, consent, atomic ports, saved drafts and resta
 		assert.equal((await call(b, `${path}/ping`, { from: bp.id, to: ap.id })).data.ok, true);
 	});
 
+	await t.test('shared ping is room-scoped, bounded, retry-safe and invalidated by network edits', async () => {
+		const before = await read(), requestId = randomUUID();
+		const body = { from: ap.id, to: bp.id, requestId };
+		assert.equal((await call(outsider, `${path}/ping`, body)).status, 404);
+		assert.equal((await call(b, `${path}/ping`, body)).status, 403);
+		assert.equal((await call(a, `${path}/ping`, { ...body, to: as.id })).status, 400);
+		const sent = await call(a, `${path}/ping`, body);
+		assert.equal(sent.status, 200); assert.equal(sent.data.ok, true);
+		assert.equal(sent.data.serverNow, now);
+		assert.equal(sent.data.startsAt, now + 2800);
+		assert.ok(sent.data.steps.some((step) => step.phase === 'request'));
+		assert.ok(sent.data.steps.some((step) => step.phase === 'reply'));
+		const observed = await read(c);
+		assert.equal(observed.revision, before.revision, 'ping never changes the network');
+		assert.equal(observed.pings[0].id, sent.data.id);
+		assert.equal(observed.pings[0].by, ar.me, 'only the room member ID is shared');
+		assert.equal((await call(a, `${path}/ping`, body)).data.id, sent.data.id);
+		assert.equal((await read()).pings.length, 1, 'retry does not rebroadcast');
+		assert.equal((await call(a, `${path}/ping`, { ...body, to: owned(cr, 'pc').id })).status, 409);
+		assert.equal((await call(a, `${path}/ping`, { ...body, requestId: randomUUID() })).status, 429);
+		const other = (await call(teacher, `${root}/rooms`, { title: 'Annet rom' })).data;
+		assert.deepEqual(other.pings, []);
+		assert.equal((await call(teacher, `${root}/rooms/${other.id}/ping`, body)).status, 404);
+		const member = before.members.find((m) => m.id === br.me);
+		const documented = await run(b, { action: 'document', revision: member.documentRevision, areaName: member.areaName, notes: 'Returveien er undersøkt.' });
+		assert.equal(documented.status, 200); assert.equal(documented.data.pings[0].id, sent.data.id);
+		now = sent.data.startsAt + sent.data.duration;
+		assert.equal((await call(a, `${path}/ping`, { ...body, requestId: randomUUID() })).status, 200);
+		const paused = await run(teacher, { action: 'pause', paused: true });
+		assert.deepEqual(paused.data.pings, [], 'events for the old revision are not replayed');
+		assert.equal((await call(a, `${path}/ping`, { ...body, requestId: randomUUID() })).status, 409);
+		await run(teacher, { action: 'pause', paused: false });
+		now += 30000;
+		assert.deepEqual((await read()).pings, []);
+		assert.equal(db.prepare('SELECT COUNT(*) AS n FROM vlan_pings WHERE room_id=?').get(initial.id).n, 0);
+	});
+
 	await t.test('simultaneous acceptance cannot reuse a port, and a redundant switch loop is rejected', async () => {
 		const qa = (await run(a, { action: 'request', source: as.id, port: 'eth2', target: cs.id })).data.requests[0];
 		const qb = (await run(b, { action: 'request', source: bs.id, port: 'eth2', target: cs.id })).data.requests[0];
@@ -222,7 +262,10 @@ test('shared VLAN API: membership, consent, atomic ports, saved drafts and resta
 		assert.equal((await run(a, { action: 'remove', deviceId: as.id })).status, 409, 'connected devices must be unplugged first');
 		const link = state.links.find((l) => l.a === as.id && l.b === bs.id);
 		assert.equal((await run(b, { action: 'disconnect', id: link.id })).status, 200, 'either endpoint owner may unplug');
+		const cp = owned(cr, 'pc');
+		assert.equal((await call(c, `${path}/ping`, { from: cp.id, to: ap.id, requestId: randomUUID() })).status, 200);
 		db.prepare('DELETE FROM users WHERE id=?').run(c.id);
+		assert.equal(db.prepare('SELECT COUNT(*) AS n FROM vlan_pings WHERE member_id=?').get(cr.me).n, 0);
 		state = await read();
 		assert.equal(state.members.some((m) => m.id === cr.me), false);
 		assert.equal(state.devices.some((d) => d.owner === cr.me), false);

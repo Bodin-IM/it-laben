@@ -184,6 +184,7 @@ Punktene nedenfor er vår praktiske anvendelse av kildene og tidligere avklaring
 
 - La knapper ha synlige handlingsnavn. Bruk semantiske kontroller, for eksempel knapper for handlinger og lenker for navigasjon.
 - Reserver en stabil plass til respons, eller plasser den slik at viktige kontroller ikke hopper uventet ved klikk. På mobil skal hjelp fortsatt være nær og tilgjengelig.
+- Bruk myk rulling ved brukerutløste hopp til innhold på samme side, med riktig fokus og respekt for både nettstedets og operativsystemets valg for redusert bevegelse. Gjenbruk `createViewNavigation` og `reducedMotion`. Polling og andre elevers handlinger skal ikke flytte leseposisjon eller fokus. Dette er brukerens avklarte retning fra 5. november 2026; første plassering ved åpning av et stort brett kan være umiddelbar.
 - Hvis lagring inngår, skill mellom «Lagrer», «Lagret» og «Kunne ikke lagre». Bekreft lagring først når den faktisk er bekreftet.
 - Vis en forståelig tomtilstand og en vei videre ved lasting og teknisk feil. Tilby nytt forsøk når funksjonen støtter det.
 - La eleven velge tempo ved stegvis kjøring. Skille mellom simulert systemtilstand og faktiske nettverkskall skal være forståelig når forskjellen er relevant.
@@ -274,3 +275,5 @@ Dette er den operative versjonen i repoet. [AGENTS.md](../AGENTS.md) krever at a
 
 - **27. oktober 2026 – v0.1, forslag:** Første kildebaserte utkast. Skiller originalfunn, veiledning, WCAG-kriterier og prosjektvalg. Supplerer det pedagogiske grunnlaget uten å endre det.
 - **27. oktober 2026 – v1.0, tatt i bruk:** Innført som felles grunnlag etter brukerens avklaring. Koblet til agentinstruksjoner, pedagogisk grunnlag og aktivitetsmal. Forskningsfunn og avgrensninger er videreført fra utkastet.
+
+- **5. november 2026:** Brukerutløste hopp skal bruke myk rulling, fokus og felles valg for redusert bevegelse. Felles navigasjonshjelper er trukket ut fra VLAN-labene. Automatisk oppdatering skal fortsatt bevare arbeidsposisjonen.

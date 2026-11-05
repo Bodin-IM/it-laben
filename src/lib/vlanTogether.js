@@ -27,9 +27,10 @@ export const togetherHints = [
 /** @typedef {{areaName:string,notes:string,revision:number}} AreaDocument */
 /** @typedef {{id:string,name:string,online:boolean,areaName:string,notes:string,documentRevision:number}} Member */
 /** @typedef {{id:string,title:string,teacherName:string,paused:boolean,participants:number,joined:boolean}} TogetherRoomListing */
-/** @typedef {TogetherState & {id:string,title:string,me:string,owner:boolean,paused:boolean,revision:number,members:Member[]}} TogetherRoom */
-/** @typedef {{from:string,to:string,text:string,link?:string}} TraceStep */
+/** @typedef {TogetherState & {id:string,title:string,me:string,owner:boolean,paused:boolean,revision:number,members:Member[],pings:SharedPing[],serverNow:number}} TogetherRoom */
+/** @typedef {{from:string,to:string,text:string,link?:string,phase?:'request'|'reply'}} TraceStep */
 /** @typedef {{ok:boolean,code:string,message:string,steps:TraceStep[]}} TogetherPing */
+/** @typedef {TogetherPing & {id:string,by:string,from:string,to:string,revision:number,startsAt:number,duration:number,expiresAt:number}} SharedPing */
 /** @param {DeviceKind} kind */
 export const devicePorts = (kind) => Array.from({ length: kind === 'switch' ? 8 : kind === 'router' ? 4 : 1 }, (_, i) => `eth${i}`);
 /** @param {DeviceKind} kind @returns {any} */
@@ -187,9 +188,10 @@ export function pingTogether(state, from, to) {
 		return failure('ttl', 'Pakken nådde grensen på 16 rutere. Kontroller rutene.', steps);
 	}
 	const forward = travel(source, target);
-	if (!forward.ok) return forward;
+	if (!forward.ok) return { ...forward, steps: forward.steps.map((step) => ({ ...step, phase: 'request' })) };
 	const reply = travel(target, source);
-	const steps = [...forward.steps, { from: target.id, to: target.id, text: 'Ping nådde målet. Nå prøves returveien.' }, ...reply.steps];
+	/** @type {TraceStep[]} */
+	const steps = [...forward.steps.map((step) => ({ ...step, phase: /** @type {const} */ ('request') })), { from: target.id, to: target.id, phase: 'reply', text: 'Ping nådde målet. Nå prøves returveien.' }, ...reply.steps.map((step) => ({ ...step, phase: /** @type {const} */ ('reply') }))];
 	return reply.ok ? { ok: true, code: 'reply', message: 'Ping-svar mottatt. Både fram- og returveien virker i modellen.', steps }
 		: failure(reply.code, `Pakken når fram, men svaret stopper: ${reply.message}`, steps);
 }
