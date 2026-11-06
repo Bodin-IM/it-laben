@@ -20,14 +20,14 @@ export const togetherHints = [
 /** @typedef {{network:string,nextHop:string}} StaticRoute */
 /** @typedef {{ip:string,gateway:string}} PcConfig */
 /** @typedef {{interfaces:RouterInterface[],routes:StaticRoute[]}} RouterConfig */
-/** @typedef {{id:string,owner:string,kind:DeviceKind,name:string,revision:number,config:any}} TogetherDevice */
+/** @typedef {{id:string,owner:string,kind:DeviceKind,name:string,revision:number,config:any,slot?:number}} TogetherDevice */
 /** @typedef {{id:string,a:string,aPort:string,b:string,bPort:string}} TogetherLink */
 /** @typedef {{id:string,from:string,to:string,source:string,port:string,target:string,expires:number}} CableRequest */
-/** @typedef {{devices:TogetherDevice[],links:TogetherLink[],requests:CableRequest[]}} TogetherState */
+/** @typedef {{devices:TogetherDevice[],links:TogetherLink[],requests:CableRequest[],layoutRevisions?:Record<string,number>}} TogetherState */
 /** @typedef {{areaName:string,notes:string,revision:number}} AreaDocument */
 /** @typedef {{id:string,name:string,online:boolean,areaName:string,notes:string,documentRevision:number}} Member */
 /** @typedef {{id:string,title:string,teacherName:string,paused:boolean,participants:number,joined:boolean}} TogetherRoomListing */
-/** @typedef {TogetherState & {id:string,title:string,me:string,owner:boolean,paused:boolean,revision:number,members:Member[],pings:SharedPing[],serverNow:number}} TogetherRoom */
+/** @typedef {TogetherState & {id:string,title:string,me:string,owner:boolean,paused:boolean,revision:number,layoutRevision?:number,members:Member[],pings:SharedPing[],serverNow:number}} TogetherRoom */
 /** @typedef {{from:string,to:string,text:string,link?:string,phase?:'request'|'reply'}} TraceStep */
 /** @typedef {{ok:boolean,code:string,message:string,steps:TraceStep[]}} TogetherPing */
 /** @typedef {TogetherPing & {id:string,by:string,from:string,to:string,revision:number,startsAt:number,duration:number,expiresAt:number}} SharedPing */

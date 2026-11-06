@@ -140,6 +140,32 @@ test('shared VLAN API: membership, consent, atomic ports, saved drafts and resta
 		assert.deepEqual((await read()).devices.find((d) => d.id === ap.id), stored);
 	});
 
+	await t.test('placement is owned, atomic, revisioned separately and retry-safe', async () => {
+		const before = await read();
+		const source = before.devices.find((d) => d.id === ap.id), target = before.devices.find((d) => d.id === as.id);
+		const body = { action: 'move', deviceId: ap.id, slot: target.slot, layoutRevision: before.layoutRevision };
+		assert.equal((await run(b, body)).status, 403);
+		assert.equal((await run(outsider, body)).status, 404);
+		for (const slot of [-1, 8, 1.5, '2', null]) assert.equal((await run(a, { ...body, slot })).status, 400);
+		const id = randomUUID(), moved = await run(a, body, id);
+		assert.equal(moved.status, 200);
+		assert.equal(moved.data.revision, before.revision, 'moving does not change the network');
+		assert.equal(moved.data.layoutRevision, before.layoutRevision + 1);
+		assert.equal(moved.data.devices.find((d) => d.id === source.id).slot, target.slot);
+		assert.equal(moved.data.devices.find((d) => d.id === target.id).slot, source.slot);
+		assert.equal(moved.data.devices.find((d) => d.id === source.id).revision, source.revision, 'configuration draft stays valid');
+		assert.deepEqual(moved.data.links, before.links, 'moving never reconnects a cable');
+		assert.equal((await run(a, body, id)).data.layoutRevision, moved.data.layoutRevision, 'retry does not swap back');
+		assert.equal((await run(a, body)).status, 409, 'a stale tab cannot overwrite a placement');
+		assert.equal((await read(b)).devices.find((d) => d.id === source.id).slot, target.slot, 'peers see the saved place');
+		const bBefore = await read(b);
+		const race = await Promise.all([6, 7].map((slot) => run(a, { ...body, slot, layoutRevision: moved.data.layoutRevision })));
+		assert.deepEqual(race.map((r) => r.status).sort(), [200, 409], 'only one same-version move commits');
+		assert.equal((await run(b, { action: 'move', deviceId: bp.id, slot: 4, layoutRevision: bBefore.layoutRevision })).status, 200, 'different owners have independent layouts');
+		const latest = await read();
+		assert.equal(new Set(latest.devices.filter((d) => d.owner === ar.me).map((d) => d.slot)).size, 2);
+	});
+
 	await t.test('recipient chooses its own free port; acceptance and retries create exactly one cable', async () => {
 		const sent = await run(a, { action: 'request', source: as.id, port: 'eth1', target: bs.id });
 		assert.equal(sent.status, 200); acceptedRequest = sent.data.requests[0].id;
@@ -186,6 +212,9 @@ test('shared VLAN API: membership, consent, atomic ports, saved drafts and resta
 		const member = before.members.find((m) => m.id === br.me);
 		const documented = await run(b, { action: 'document', revision: member.documentRevision, areaName: member.areaName, notes: 'Returveien er undersøkt.' });
 		assert.equal(documented.status, 200); assert.equal(documented.data.pings[0].id, sent.data.id);
+		const placement = await read();
+		const moved = await run(a, { action: 'move', deviceId: ap.id, slot: 3, layoutRevision: placement.layoutRevision });
+		assert.equal(moved.status, 200); assert.equal(moved.data.pings[0].id, sent.data.id, 'a shared ping survives placement changes');
 		now = sent.data.startsAt + sent.data.duration;
 		assert.equal((await call(a, `${path}/ping`, { ...body, requestId: randomUUID() })).status, 200);
 		const paused = await run(teacher, { action: 'pause', paused: true });
@@ -233,6 +262,7 @@ test('shared VLAN API: membership, consent, atomic ports, saved drafts and resta
 		assert.equal((await run(a, { action: 'pause', paused: true })).status, 403);
 		assert.equal((await run(teacher, { action: 'pause', paused: true })).status, 200);
 		assert.equal((await run(a, { action: 'add', kind: 'pc' })).status, 409);
+		assert.equal((await run(a, { action: 'move', deviceId: ap.id, slot: 0, layoutRevision: (await read()).layoutRevision })).status, 409);
 		assert.equal((await run(a, { action: 'document', revision: 1, areaName: 'Pause', notes: 'Endring under pause' })).status, 409);
 		assert.equal((await call(outsider, `${root}/join`, { roomId: initial.id })).status, 409);
 		const pausedMember = await call(a, `${root}/join`, { roomId: initial.id });
