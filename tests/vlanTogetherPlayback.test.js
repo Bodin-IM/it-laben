@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { cablePoint, cableGeometry, pingFrame } from '../src/lib/vlanTogetherPlayback.js';
+import { cablePoint, cableGeometry, cableLanes, cableColors, pingFrame } from '../src/lib/vlanTogetherPlayback.js';
 import { slotPoint } from '../src/lib/vlanTogetherLayout.js';
 
 const points = { a: { x: 0, y: 100, width: 100 }, b: { x: 600, y: 0, width: 200 } };
@@ -26,9 +26,9 @@ test('cable lanes avoid every device box, including inter-area cables and all ei
 	const all = areas.flatMap((area) => Array.from({ length: 8 }, (_, slot) => slotPoint(area, slot)));
 	for (const a of all) for (const b of all) {
 		if (a === b) continue;
-		for (const port of ['eth0', 'eth7']) {
+		for (const port of ['eth0', 'eth7']) for (let lane = 0; lane < 6; lane++) {
 			const link = { ...links[0], id: `route-${port}`, aPort: port, bPort: port };
-			const route = cableGeometry({ ...a, portCount: 8 }, { ...b, portCount: 8 }, link);
+			const route = cableGeometry({ ...a, portCount: 8 }, { ...b, portCount: 8 }, link, lane);
 			for (let i = 1; i < route.length; i++) {
 				const p = route[i - 1], q = route[i];
 				assert.ok(p.x === q.x || p.y === q.y, 'every segment stays in a lane');
@@ -41,6 +41,33 @@ test('cable lanes avoid every device box, including inter-area cables and all ei
 			}
 		}
 	}
+});
+
+test('overlapping cables with colliding IDs get separate lanes and endpoint colors without growing the board', () => {
+	const area = { id: 'mine', x: 8, y: 12, width: 984 };
+	const nodes = Object.fromEntries(['a', 'b', 'c', 'd'].map((id, slot) => [id, { ...slotPoint(area, slot), portCount: 8 }]));
+	// Each ID has the same character sum: the old lane hash put these on top of one another.
+	const cables = ['af', 'be', 'cd'].map((id, i) => ({ id, a: 'a', aPort: `eth${i}`, b: ['b', 'c', 'd'][i], bPort: 'eth0' }));
+	const lanes = cableLanes(nodes, cables), colors = cableColors(cables);
+	assert.equal(new Set(Object.values(lanes)).size, 3);
+	assert.equal(new Set(Object.values(colors)).size, 3);
+	assert.deepEqual(cableLanes(nodes, [...cables].reverse()), lanes, 'snapshot ordering does not change lanes');
+	assert.deepEqual(cableColors([...cables].reverse()), colors, 'snapshot ordering does not change colors');
+	const rows = cables.map((link) => cableGeometry(nodes[link.a], nodes[link.b], link, lanes[link.id])[1].y).sort((a, b) => a - b);
+	for (let i = 1; i < rows.length; i++) assert.ok(rows[i] - rows[i - 1] >= 5);
+	assert.ok(rows[0] > nodes.a.y + 58 && rows.at(-1) < slotPoint(area, 4).y, 'lanes fit in the existing gap');
+	const moved = { ...nodes, b: { ...slotPoint(area, 7), portCount: 8 } };
+	assert.equal(Object.keys(cableLanes(moved, cables)).length, cables.length);
+	assert.deepEqual(cableLanes({}, cables), {}, 'missing endpoints are ignored');
+});
+
+test('packets use the allocated lane for both outgoing and returning traffic', () => {
+	const lanes = { cable: 5 };
+	const outgoing = pingFrame(ping, 1500, points, links, false, lanes);
+	const returning = pingFrame(ping, 4500, points, links, false, lanes);
+	const expected = cablePoint(points.a, points.b, .25, links[0], lanes.cable);
+	assert.deepEqual({ x: outgoing.x, y: outgoing.y }, expected);
+	assert.deepEqual({ x: returning.x, y: returning.y }, expected);
 });
 
 test('moving endpoints updates both the live cable and ping path without restarting playback', () => {

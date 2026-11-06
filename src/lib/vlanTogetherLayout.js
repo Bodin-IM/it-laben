@@ -30,14 +30,14 @@ export function deviceSlots(devices) {
 }
 /** @param {Area} area @param {number} slot @returns {DevicePoint} */
 export function slotPoint(area, slot) {
-	const step = (area.width - 48) / 4, row = Math.floor(slot / 4);
-	return { x: area.x + 24 + slot % 4 * step, y: area.y + 82 + row * 100, width: step - 16,
-		areaId: area.id, areaX: area.x, areaWidth: area.width, corridor: area.y + 158 + row * 100 };
+	const step = (area.width - 64) / 4, row = Math.floor(slot / 4);
+	return { x: area.x + 32 + slot % 4 * step, y: area.y + 82 + row * 100, width: step - 16,
+		areaId: area.id, areaX: area.x, areaWidth: area.width, corridor: area.y + 150 + row * 100 };
 }
 /** @param {Area} area @param {number} x @param {number} y */
 export function slotAt(area, x, y) {
 	if (x < area.x + 12 || x > area.x + area.width - 12 || y < area.y + 72 || y > area.y + 282) return null;
-	const col = Math.max(0, Math.min(3, Math.floor((x - area.x - 16) / ((area.width - 32) / 4))));
+	const col = Math.max(0, Math.min(3, Math.floor((x - area.x - 24) / ((area.width - 64) / 4))));
 	return col + (y >= area.y + 172 ? 4 : 0);
 }
 /** Preview the same atomic move/swap used on the server.

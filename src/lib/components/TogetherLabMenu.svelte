@@ -44,6 +44,7 @@
 		<p>Bygg ditt nett. Avtal forbindelsen. Få svar fra en medelev. Ditt område ligger nederst på brettet.</p>
 		<ul>
 			<li>Trykk på en enhet for å åpne innstillingene.</li>
+			<li><strong>Kabler:</strong> Fargene hjelper deg å følge forbindelsene; de viser ikke VLAN eller om nettet virker. Pek på eller velg en enhet for å framheve kablene. Pingveien vises også med stiplet strek.</li>
 			<li><strong>Flytt:</strong> Dra en egen enhet til en av de åtte plassene i området. Slipp på en annen enhet for å bytte plass. Du kan også velge Flytt, trykke på enheten og deretter målplassen. Escape avbryter.</li>
 			<li><strong>Koble kabel:</strong> Velg din enhet og en ledig port, deretter en switch eller ruter. Den andre eieren velger sin port og godtar.</li>
 			<li><strong>Ping:</strong> Velg din PC og deretter en annen PC. Alle i rommet kan se pakken og svaret.</li>

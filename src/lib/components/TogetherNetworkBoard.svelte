@@ -1,7 +1,7 @@
 <script>
 	import { tick, untrack, onDestroy } from 'svelte';
 	import { reducedMotion } from '#lib/labPreferences.js';
-	import { cablePath, cableGeometry, pingFrame } from '#lib/vlanTogetherPlayback.js';
+	import { cablePath, cableGeometry, cableLanes, cableColors, pingFrame } from '#lib/vlanTogetherPlayback.js';
 	import { AREA_HEIGHT, AREA_STEP, deviceSlots, movedSlots, slotPoint, slotAt } from '#lib/vlanTogetherLayout.js';
 	import { devicePorts, portLink } from '#lib/vlanTogether.js';
 	/** @typedef {import('#lib/vlanTogether.js').TogetherDevice} Device */
@@ -14,6 +14,17 @@
 	/** @type {SVGSVGElement|undefined} */ let diagram = $state();
 	/** @type {HTMLButtonElement|null} */ let dragHandle = null;
 	let moveMode = $state(false), movingId = $state(''), moveStatus = $state(''), hovered = $state('');
+	const moveHints = {
+		idle: 'Trykk for å konfigurere. Dra egne enheter for å flytte dem.',
+		select: 'Velg din enhet, og så en plass. Du kan også dra enheten direkte.',
+		target: 'Velg en ledig plass eller en egen enhet å bytte med.',
+		drop: 'Slipp her for å flytte. Enheter på samme plass bytter.',
+		outside: 'Slipp i ditt eget område, eller trykk Escape for å avbryte.',
+		saving: 'Lagrer plasseringen …', saved: 'Plasseringen er lagret og delt.',
+		failed: 'Plasseringen ble ikke bekreftet. Se meldingen ved brettet.',
+		cancelled: 'Flytting avbrutt. Enheten må bli i ditt område.',
+		changed: 'Plasseringen er endret i en annen fane. Prøv igjen.'
+	};
 	let suppressClick = '', moveRequest = 0;
 	/** @type {ReturnType<typeof setTimeout>|undefined} */ let clickTimer;
 	/** @type {{id:string,pointerId:number,x:number,y:number,revision:number,moved:boolean,target:number|null}|null} */ let drag = $state(null);
@@ -26,7 +37,7 @@
 	const events = $derived((room.pings ?? []).filter((ping) => ping.revision === room.revision));
 	const recent = $derived(events.filter((ping) => ping.expiresAt > clock));
 	const ownPingActive = $derived(recent.some((ping) => ping.by === room.me && clock < ping.startsAt + ping.duration));
-	const frames = $derived(showPackets ? recent.map((ping) => ({ ping, frame: pingFrame(ping, clock, points, room.links, $reducedMotion) })) : []);
+	const frames = $derived(showPackets ? recent.map((ping) => ({ ping, frame: pingFrame(ping, clock, points, room.links, $reducedMotion, lanes) })) : []);
 	const activeLinks = $derived(frames.flatMap(({ ping, frame }) => frame && !frame.done ? ping.steps.flatMap((step) => step.link ? [step.link] : []) : []));
 	$effect(() => {
 		const now = room.serverNow;
@@ -66,10 +77,12 @@
 	const preview = $derived(drag?.moved && drag.target !== null ? { id: drag.id, slot: drag.target } : pendingMove);
 	const slots = $derived(preview ? movedSlots(room.devices, preview.id, preview.slot) : savedSlots);
 	const points = $derived(Object.fromEntries(areas.flatMap((area) => room.devices.filter((d) => d.owner === area.id).map((d) => [d.id, { ...slotPoint(area, slots[d.id]), portCount: devicePorts(d.kind).length }]))));
+	const lanes = $derived(cableLanes(points, room.links));
+	const colors = $derived(cableColors(room.links));
 	const emphasis = $derived(hovered || drag?.id || movingId || selected);
 	const drawnLinks = $derived(room.links.map((link) => ({ link, focused: link.a === emphasis || link.b === emphasis, active: highlight.includes(link.id) || activeLinks.includes(link.id) })).sort((a, b) => Number(a.focused || a.active) - Number(b.focused || b.active)));
 	const sourceDevice = $derived(room.devices.find((d) => d.id === cable?.source));
-	const instruction = $derived(pendingMove ? 'Lagrer plasseringen …' : drag?.moved ? drag.target === null ? 'Slipp i ditt eget område, eller trykk Escape for å avbryte.' : `Slipp på plass ${drag.target + 1}. Enheter på samme plass bytter.` : moveMode ? movingId ? `Flytt ${deviceLabel(movingId)}: velg en ledig plass eller en egen enhet å bytte med.` : 'Velg din enhet, og så en plass. Du kan også dra enheten direkte.' : pingMode ? pingSource ? `Fra ${deviceLabel(pingSource)}. Velg en annen PC som mottaker.` : 'Velg din PC som avsender. Deretter velger du mottaker-PC.' : !connecting ? moveStatus || 'Trykk for å konfigurere. Dra egne enheter for å flytte dem.' : cable ? `Fra ${sourceDevice?.name ?? 'enheten'} · ${cable.port}. Velg en switch eller ruter.` : 'Velg din enhet, og så en ledig port.');
+	const instruction = $derived(pendingMove ? moveHints.saving : drag?.moved ? drag.target === null ? moveHints.outside : moveHints.drop : moveMode ? movingId ? moveHints.target : moveHints.select : pingMode ? pingSource ? `Fra ${deviceLabel(pingSource)}. Velg en annen PC som mottaker.` : 'Velg din PC som avsender. Deretter velger du mottaker-PC.' : !connecting ? moveStatus || moveHints.idle : cable ? `Fra ${sourceDevice?.name ?? 'enheten'} · ${cable.port}. Velg en switch eller ruter.` : 'Velg din enhet, og så en ledig port.');
 	function suppressDeviceClick(id = '') {
 		suppressClick = id; clearTimeout(clickTimer);
 		clickTimer = setTimeout(() => { suppressClick = ''; }, 0);
@@ -104,7 +117,7 @@
 		const current = drag; cancelDrag();
 		if (!current.moved) return;
 		event.preventDefault();
-		if (current.target === null) { moveStatus = 'Flytting avbrutt. Enheten må bli i ditt område.'; return; }
+		if (current.target === null) { moveStatus = moveHints.cancelled; return; }
 		void place(current.id, current.target, current.revision);
 	}
 	/** @param {string} id @param {number} slot @param {number} [revision] */
@@ -117,7 +130,7 @@
 		try {
 			const ok = await onmove(id, slot, revision);
 			if (request !== moveRequest || room.id !== roomId) return;
-			moveStatus = ok ? 'Plasseringen er lagret og delt.' : 'Plasseringen ble ikke bekreftet. Se meldingen ved brettet.';
+			moveStatus = ok ? moveHints.saved : moveHints.failed;
 		} finally {
 			if (request === moveRequest && room.id === roomId) {
 				pendingMove = null;
@@ -135,7 +148,7 @@
 	$effect(() => {
 		const blocked = disabled || connecting || pingMode, version = room.layoutRevision ?? 0;
 		if (blocked) { moveMode = false; movingId = ''; cancelDrag(); }
-		else if (drag && drag.revision !== version) { cancelDrag(); moveStatus = 'Plasseringen er endret i en annen fane. Prøv igjen.'; }
+		else if (drag && drag.revision !== version) { cancelDrag(); moveStatus = moveHints.changed; }
 	});
 	onDestroy(() => { cancelDrag(); clearTimeout(clickTimer); moveRequest++; });
 	function myArea(initial = false) { if (viewport) { viewport.scrollTo({ top: viewport.scrollHeight, behavior: initial || $reducedMotion ? 'instant' : 'smooth' }); if (!initial) viewport.focus({ preventScroll: true }); } }
@@ -219,7 +232,11 @@
 	<h2 id="board-title" tabindex="-1" class="board-title">Felles nettverksbrett</h2>
 	<div class="board-actions"><button class:enabled={connecting} aria-pressed={connecting} disabled={disabled && !connecting} onclick={ontoggle}>{connecting ? 'Avslutt kabelmodus' : 'Koble kabel'}</button><button class:enabled={pingMode} aria-pressed={pingMode} disabled={disabled || ownPingActive && !pingMode} onclick={onpingtoggle}>{pingMode ? 'Avslutt pingmodus' : ownPingActive ? 'Ping pågår …' : 'Ping'}</button><button class:enabled={moveMode} aria-pressed={moveMode} disabled={disabled || !!pendingMove} onclick={toggleMove}>{moveMode ? 'Avslutt flytting' : 'Flytt'}</button><button onclick={() => myArea()}>Til mitt område ↓</button></div>
 </div>
-<p id={`${componentId}-instruction`} class="cable-instruction" class:enabled={connecting || pingMode || moveMode || !!drag?.moved} role="status">{instruction}{#if connecting && cable} <button class="restart" disabled={disabled} onclick={onrestart}>Velg ny start</button>{/if}</p>
+<div class="instruction-space">
+	<!-- Shared grid cell reserves wrapping space before dragging, including on narrow screens. -->
+	{#each Object.values(moveHints) as hint}<p class="instruction-reserve" aria-hidden="true">{hint}</p>{/each}
+	<p id={`${componentId}-instruction`} class="cable-instruction" class:enabled={connecting || pingMode || moveMode || !!drag?.moved} role="status">{instruction}{#if connecting && cable} <button class="restart" disabled={disabled} onclick={onrestart}>Velg ny start</button>{/if}</p>
+</div>
 <!-- svelte-ignore a11y_no_noninteractive_tabindex (The network diagram scrolls in two dimensions.) -->
 <div class="viewport" bind:this={viewport} tabindex="0" role="region" aria-label="Nettverksbrett, rull opp for å se andre områder" onscroll={() => { closePicker(); cancelDrag(); }}>
 	<svg bind:this={diagram} viewBox={`0 0 1000 ${height}`} style:height={`${height}px`} aria-label="Nettverksområder og kabler">
@@ -227,7 +244,7 @@
 		<rect width="1000" {height} fill="url(#vlan-board-dots)" class="dots" />
 		{#each areas as area (area.id)}
 			<rect x={area.x} y={area.y} width={area.width} height={AREA_HEIGHT} rx="14" class:own={area.own} class="area" />
-			<foreignObject x={area.x + 16} y={area.y + 8} width={area.width - 32} height="66">
+			<foreignObject x={area.x + 32} y={area.y + 8} width={area.width - 64} height="66">
 				<div class="area-heading"><div><strong title={area.areaName || area.name}>{area.areaName || (area.own ? 'Ditt nettverk' : area.name)}</strong><small>{area.own ? 'Ditt område' : area.name} · {area.online ? 'Aktiv nå' : 'Ikke aktiv nå'}</small></div><button onclick={() => ondocument(area.id)} aria-label={`Dokumentasjon for ${area.areaName || area.name}`}>Dokumentasjon</button></div>
 			</foreignObject>
 		{/each}
@@ -243,8 +260,8 @@
 		{#each drawnLinks as { link, focused, active } (link.id)}
 			{@const a = points[link.a]}{@const b = points[link.b]}
 			{#if a && b}
-				{@const path = cablePath(a, b, link)}{@const route = cableGeometry(a, b, link)}
-				<g class="cable-group" class:focused class:active>
+				{@const path = cablePath(a, b, link, lanes[link.id])}{@const route = cableGeometry(a, b, link, lanes[link.id])}
+				<g class="cable-group" class:focused class:active style:color={`var(--color-${colors[link.id]})`}>
 					<title>{deviceLabel(link.a)} {link.aPort} ↔ {deviceLabel(link.b)} {link.bPort}</title>
 					<path d={path} class="cable-outline" /><path d={path} class="cable" />
 					<circle cx={route[0].x} cy={route[0].y} r="3" class="cable-port" /><circle cx={route[route.length - 1].x} cy={route[route.length - 1].y} r="3" class="cable-port" />
@@ -283,7 +300,7 @@
 	{#if picker}<strong>{picker.name} · {cable && cable.source !== picker.id ? 'Koble til port' : 'Start fra port'}</strong><div class="port-grid">{#each devicePorts(picker.kind) as p}{@const status = portStatus(picker, p)}<button disabled={disabled || status !== 'Ledig'} onclick={() => choosePort(p)}>{p}<small>{status}</small></button>{/each}</div>{/if}
 	<button class="dismiss" onclick={() => closePicker(true)}>Avbryt portvalg</button>
 </div>
-<div class="legend"><p><span>━</span> Kabel · <span class="tested">━</span> Pingvei{$reducedMotion ? ' · Pakker vises uten bevegelse' : ''}</p><button aria-pressed={showPackets} onclick={() => showPackets = !showPackets}>{showPackets ? 'Skjul pakker' : 'Vis pakker'}</button></div>
+<div class="legend"><p>Farger skiller kablene · Stiplet strek viser pingvei{$reducedMotion ? ' · Pakker vises uten bevegelse' : ''}</p><button aria-pressed={showPackets} onclick={() => showPackets = !showPackets}>{showPackets ? 'Skjul pakker' : 'Vis pakker'}</button></div>
 {#if recent.length}<details class="shared-pings"><summary>Siste ping i rommet · {recent.length}</summary><ul>{#each recent as ping (ping.id)}<li><strong>{ownerLabel(ping.by)}</strong> · {deviceLabel(ping.from)} → {deviceLabel(ping.to)}<br />{ping.ok ? '✓' : '×'} {ping.message}</li>{/each}</ul></details>{/if}
 
 <style>
@@ -292,15 +309,19 @@
 	p { margin:.4rem 0 0; color:var(--color-text-muted); font-size:var(--font-small); }
 	button { background:var(--color-surface); color:var(--color-text); border:1px solid var(--color-border-strong); border-radius:8px; padding:.6rem .8rem; font:inherit; cursor:pointer; min-height:44px; }
 	button:disabled { opacity:.55; cursor:default; } button.enabled { background:var(--color-action); color:var(--color-on-action); border-color:var(--color-action); }
-	.cable-instruction { display:flex; align-items:center; flex-wrap:wrap; gap:.5rem; min-height:1.55em; padding:.25rem 0; margin:0 0 .25rem; border:1px solid transparent; border-radius:8px; }
-	.cable-instruction.enabled { padding:.4rem .7rem; background:var(--color-info-soft); color:var(--color-info); border-color:var(--color-info); } .restart { font-size:var(--font-small); margin-left:auto; }
+	.instruction-space { display:grid; margin-bottom:.25rem; }
+	.cable-instruction, .instruction-reserve { grid-area:1 / 1; align-content:center; box-sizing:border-box; min-width:0; padding:.25rem .7rem; margin:0; line-height:1.55; overflow-wrap:anywhere; border:1px solid transparent; border-radius:8px; }
+	.instruction-reserve { visibility:hidden; pointer-events:none; }
+	.cable-instruction { display:flex; align-items:center; flex-wrap:wrap; gap:.5rem; }
+	.cable-instruction.enabled { background:var(--color-info-soft); color:var(--color-info); border-color:var(--color-info); } .restart { font-size:var(--font-small); margin-left:auto; }
 	.viewport { overflow:auto; max-height:65vh; min-height:320px; border:1px solid var(--color-border-strong); border-radius:14px; background:var(--color-surface-soft); }
 	svg { display:block; min-width:1000px; width:100%; color:var(--color-text-subtle); }
 	.dots { opacity:.22; } .area { fill:var(--color-surface); stroke:var(--color-border-strong); } .area.own { fill:var(--color-accent-soft); stroke:var(--color-accent); stroke-width:2; }
 	.area-heading { display:flex; align-items:center; justify-content:space-between; gap:12px; height:60px; color:var(--color-text); } .area-heading > div { min-width:0; } .area-heading strong { display:block; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; font-size:15px; } .area-heading button { flex-shrink:0; font-size:13px; }
-	.cable-group { color:var(--color-text-muted); pointer-events:none; } .cable-group.focused { color:var(--color-accent); } .cable-group.active { color:var(--color-info); }
+	.cable-group { pointer-events:none; }
 	.cable, .cable-outline { fill:none; stroke-linejoin:round; stroke-linecap:round; } .cable { stroke:currentColor; stroke-width:3; } .cable-outline { stroke:var(--color-surface); stroke-width:7; }
 	.cable-group.focused .cable, .cable-group.active .cable { stroke-width:4.5; } .cable-port { fill:var(--color-surface); stroke:currentColor; stroke-width:2; }
+	.cable-group.active .cable { stroke-dasharray:9 4; }
 	.drop-slot { fill:none; stroke:var(--color-border-strong); stroke-dasharray:5 4; pointer-events:none; } .drop-slot.drop-target { fill:var(--color-info-soft); stroke:var(--color-info); stroke-width:2; stroke-dasharray:none; }
 	.empty-slot { width:100%; height:58px; border-style:dashed; background:var(--color-surface-soft); }
 	.device { width:100%; height:58px; display:flex; align-items:center; gap:7px; padding:6px; font-size:14px; text-align:left; }
@@ -309,7 +330,7 @@
 	.device.selected { border:2px solid var(--color-accent); } .device.source { box-shadow:inset 0 0 0 2px var(--color-info); }
 	.symbol { color:var(--color-accent); font-size:23px; } .device-label { min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; font-weight:700; }
 	small { display:block; font-size:12px; font-weight:400; color:var(--color-text-muted); overflow:hidden; text-overflow:ellipsis; }
-	.legend { padding:.35rem 0; } .legend button { font-size:var(--font-small); } .legend span { color:var(--color-text-subtle); } .legend .tested { color:var(--color-info); }
+	.legend { padding:.35rem 0; } .legend button { font-size:var(--font-small); }
 	.packets { pointer-events:none; } .packet { color:var(--color-info); } .packet.reply { color:var(--color-success); } .packet.failed { color:var(--color-danger); }
 	.packet rect { fill:var(--color-surface); stroke:currentColor; stroke-width:2; } .packet path { fill:none; stroke:currentColor; stroke-width:1.5; } .packet text { fill:var(--color-text); font:11px system-ui,sans-serif; } .packet .packet-label { stroke-width:1; }
 	.shared-pings { font-size:var(--font-small); margin:.2rem 0 .5rem; } summary { cursor:pointer; min-height:44px; padding:.65rem 0; color:var(--color-accent); font-weight:650; } .shared-pings li { margin:.6rem 0; line-height:1.5; }
