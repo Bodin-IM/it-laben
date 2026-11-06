@@ -2,13 +2,14 @@
 	import { onMount, untrack } from 'svelte';
 	import { beforeNavigate } from '$app/navigation';
 	import { lab, randomId } from '#lib/lab.js';
-	import { devicePorts, portLink, togetherHints, validateTogetherConfig } from '#lib/vlanTogether.js';
+	import { devicePorts, portLink, validateTogetherConfig } from '#lib/vlanTogether.js';
 	import { togetherRequest, TogetherApiError } from '#lib/vlanTogetherClient.js';
 	import { reducedMotion } from '#lib/labPreferences.js';
 	import { createViewNavigation } from '#lib/viewNavigation.js';
 	import { deviceDraftKey, documentDraftKey, acknowledgeDevice, acknowledgeDocument } from '#lib/vlanTogetherDrafts.js';
 	import TogetherNetworkBoard from '#lib/components/TogetherNetworkBoard.svelte';
 	import TogetherDocumentation from '#lib/components/TogetherDocumentation.svelte';
+	import TogetherLabMenu from '#lib/components/TogetherLabMenu.svelte';
 	import NetworkSwitchEditor from '#lib/components/NetworkSwitchEditor.svelte';
 	import PartnerContext from '#lib/components/PartnerContext.svelte';
 	/** @typedef {import('#lib/vlanTogether.js').TogetherRoom} Room */
@@ -298,8 +299,13 @@
 {/snippet}
 
 <main id="hovedinnhold" tabindex="-1">
-	<a class="back" href="/?fag=drift#utforsk">← Driftsstøtte</a>
-	<header><div><p class="eyebrow">SAMARBEIDSLAB · FØRSTE UTKAST</p><h1>Nettverksligaen<span>.</span></h1><p>Bygg ditt nett. Avtal forbindelsen. Få svar fra en medelev.</p></div><a href="/nettverk/vlan-2/">Repeter VLAN og ruting →</a></header>
+	<header class="lab-heading">
+		<h1>Nettverksligaen<span>.</span></h1>
+		<div class="heading-actions">
+			<span aria-live="polite">{#if incoming.length}<a class="request-link" href="#foresporsler" onclick={(event) => { event.preventDefault(); void navigation.reveal('request-title', 'foresporsler'); }}>{incoming.length} {incoming.length === 1 ? 'forespørsel' : 'forespørsler'}</a>{/if}</span>
+			{#key roomId}<TogetherLabMenu {room} {busy} uncertain={!!retry} onpause={() => { void command({ action: 'pause', paused: !room?.paused }); }} onleave={() => { void leave(); }} oneditor={() => { void navigation.reveal('editor-title', 'mitt-arbeid'); }} ondocument={() => { if (room) void showDocument(room.me); }} />{/key}
+		</div>
+	</header>
 	{#if !room}{@render feedback()}{/if}
 	{#if !$lab.ready}<p role="status">Henter pålogging …</p>
 	{:else if !$lab.user}<section class="panel"><h2>Ta plass på brettet</h2><p>Logg inn i Min lab. Læreren oppretter et rom. Velg det i romlisten for å bli med.</p><a class="action" href="/min-lab/">Åpne Min lab →</a></section>
@@ -324,7 +330,6 @@
 			{#if teacher}<section class="panel"><h2>Opprett rom som lærer</h2><form onsubmit={(e) => { e.preventDefault(); void openRoom('/rooms', { title }); }}><label for="room-name">Navn på laben</label><input id="room-name" bind:value={title} maxlength="40" required disabled={busy} /><button class="primary" disabled={busy}>Opprett rom</button></form><p class="muted">Rommet vises i elevenes romliste. Inntil 24 deltakere, inkludert deg.</p></section>{/if}
 		</div>
 	{:else}
-		<section class="room-bar" aria-label="Spillrom"><div><strong>{room.title}</strong><span class="muted">{room.members.length}/24 deltakere</span></div><div class="row wrap"><a href="#mitt-arbeid" onclick={(event) => { event.preventDefault(); void navigation.reveal('editor-title', 'mitt-arbeid'); }}>Mine innstillinger ↓</a><span aria-live="polite">{#if incoming.length}<a href="#foresporsler" onclick={(event) => { event.preventDefault(); void navigation.reveal('request-title', 'foresporsler'); }}>{incoming.length} tilkoblingsforespørsler ↑</a>{/if}</span>{#if room.owner}<button disabled={busy || !!retry} onclick={() => command({ action: 'pause', paused: !room?.paused })}>{room.paused ? 'Fortsett laben' : 'Sett på pause'}</button>{/if}<button disabled={busy} onclick={leave}>Bytt rom</button></div></section>
 		{#if room.paused}<p class="banner" role="status">Laben er på pause. Du kan lese oppsettet og undersøke siste ping.</p>{/if}
 		{#if connectionError}<p class="banner" role="status">{connectionError} <button onclick={refresh}>Hent brettet</button></p>{/if}
 		{#if incoming.length || outgoing.length}<section class="requests panel" id="foresporsler" aria-labelledby="request-title"><h2 id="request-title" tabindex="-1">Tilkoblingsforespørsler</h2>
@@ -367,15 +372,15 @@
 			{/if}
 		</section>
 	{/if}
-	<details class="about"><summary>Om denne laben og neste utfordring</summary><p>Velg Ping på brettet, trykk på din PC og deretter en annen PC. Forutsi resultatet sammen. Ping bruker det automatisk lagrede nettet. Alle i rommet kan se pakken og svaret.</p><details><summary>Hjelp til feilsøking</summary>{#each togetherHints as hint}<p>{hint}</p>{/each}</details><p>Dette er et felles, simulert nettverk. Kabler, VLAN, adresser, gateway og statiske /24-ruter styrer kommunikasjonen. Ingen pakker sendes til virkelige nettverksenheter.</p><p>Neste utfordring: lag to ulike IP-nett, legg til rutere og avtal et transportnett mellom dem. Få ping og returvei til å virke. Dokumenter én feil, rettingen og hvorfor den virket.</p><p>Ingen XP eller automatisk godkjenning av forståelse. Forklar portvalgene og pakkeveien for en medelev.</p><p class="muted">Første versjon har ikke DHCP, DNS, Wi-Fi, NAT, brannmur eller STP. Switch-løkker avvises. Bare medlemmer i rommet ser brettet; alle medlemmer kan undersøke konfigurasjonen.</p></details>
 </main>
 
 <style>
-	main { max-width:var(--layout-width); margin:auto; padding:1.5rem var(--layout-gutter) 4rem; color:var(--color-text); }
+	main { max-width:var(--layout-width); margin:auto; padding:.75rem var(--layout-gutter) 4rem; color:var(--color-text); }
 	main :global(*) { box-sizing:border-box; } a { color:var(--color-accent); text-underline-offset:4px; }
-	header { display:flex; justify-content:space-between; align-items:center; gap:1rem; margin:1.5rem 0; } h1 { font-size:clamp(2rem,4vw,3rem); letter-spacing:-.04em; margin:.3rem 0; } h1 span { color:var(--color-accent); }
-	h2 { font-size:1.25rem; margin:0 0 .7rem; } h3 { font-size:1.1rem; } p { line-height:1.55; } .eyebrow { font-size:var(--font-meta); letter-spacing:.08em; color:var(--color-text-muted); }
-	.muted, small { color:var(--color-text-muted); font-size:var(--font-small); } .back { font-size:var(--font-small); }
+	.lab-heading { display:flex; justify-content:space-between; align-items:center; gap:.75rem; flex-wrap:wrap; margin:0 0 .5rem; } h1 { font-size:clamp(1.35rem,2.5vw,1.8rem); letter-spacing:-.035em; margin:0; } h1 span { color:var(--color-accent); }
+	.heading-actions { display:flex; align-items:center; justify-content:flex-end; gap:.65rem; margin-left:auto; } .request-link { display:inline-flex; align-items:center; min-height:44px; font-size:var(--font-small); }
+	h2 { font-size:1.25rem; margin:0 0 .7rem; } h3 { font-size:1.1rem; } p { line-height:1.55; }
+	.muted, small { color:var(--color-text-muted); font-size:var(--font-small); }
 	.panel { padding:1.25rem; border:1px solid var(--color-border); background:var(--color-surface); border-radius:12px; min-width:0; }
 	.lobby { display:grid; grid-template-columns:repeat(auto-fit,minmax(min(100%,22rem),1fr)); gap:1rem; } .room-list { list-style:none; padding:0; margin:0; }
 	.room-entry { display:flex; align-items:center; justify-content:space-between; gap:1rem; padding:1rem 0; border-bottom:1px solid var(--color-border); } .room-entry h3 { margin:0; overflow-wrap:anywhere; } .room-entry p { margin:.3rem 0; font-size:var(--font-small); } .room-entry button { flex-shrink:0; }
@@ -385,8 +390,6 @@
 	input, select { width:100%; } button, .action { cursor:pointer; } button:hover:not(:disabled) { background:var(--color-surface-hover); } button:disabled { opacity:.6; cursor:default; }
 	.primary, .action { background:var(--color-action); color:var(--color-on-action); border-color:var(--color-action); font-weight:650; } .primary:hover:not(:disabled) { background:var(--color-action-hover); }
 	form > button { margin-top:.85rem; } .action { display:inline-flex; align-items:center; text-decoration:none; }
-	.room-bar { display:flex; justify-content:space-between; align-items:center; gap:1rem; margin-bottom:1.2rem; padding:.8rem 1rem; background:var(--color-surface); border:1px solid var(--color-border); border-radius:10px; }
-	.room-bar > div:first-child { display:grid; gap:.35rem; }
 	.requests { margin-bottom:1rem; } .request { display:flex; justify-content:space-between; gap:1rem; align-items:center; padding:.6rem 0; border-bottom:1px solid var(--color-border); } .request p { margin:.2rem 0; }
 	.add-devices { display:flex; align-items:center; flex-wrap:wrap; gap:.6rem; padding:1rem 0 1.5rem; } .add-devices > span { font-weight:650; margin-right:.4rem; }
 	.editor { scroll-margin-top:1rem; } .section-heading { display:flex; justify-content:space-between; align-items:center; gap:1rem; } .section-heading select { max-width:18rem; } .section-heading h2 { overflow-wrap:anywhere; }
@@ -397,8 +400,7 @@
 	ol { padding-left:1.4rem; } li { line-height:1.5; } li + li { margin-top:.6rem; } summary { cursor:pointer; min-height:44px; padding:.65rem 0; font-weight:650; color:var(--color-accent); }
 	details { margin-top:.7rem; } details p { font-size:var(--font-small); }
 	.banner { color:var(--color-warning); background:var(--color-warning-soft); border:1px solid var(--color-warning-border); padding:.8rem; border-radius:8px; }
-	.feedback { min-height:2.8rem; margin-bottom:.4rem; font-size:var(--font-small); overflow-wrap:anywhere; } .feedback p { margin:.3rem 0; min-height:1.5em; } .error { color:var(--color-danger); } .notice { color:var(--color-success); }
-	.about { border-top:1px solid var(--color-border); margin-top:1.5rem; max-width:70ch; }
+	.feedback { min-height:1.55em; margin-bottom:.25rem; font-size:var(--font-small); overflow-wrap:anywhere; } .feedback p { margin:0; min-height:1.55em; } .error { color:var(--color-danger); } .notice { color:var(--color-success); }
 	:where(button,a,input,select,summary,[tabindex]):focus-visible { outline:3px solid var(--color-focus); outline-offset:3px; }
-	@media(max-width:640px) { header,.room-bar,.room-entry,.request,.section-heading { flex-direction:column; align-items:stretch; } .fields { grid-template-columns:1fr; } .section-heading select { max-width:none; } .panel { padding:1rem; } }
+	@media(max-width:640px) { .room-entry,.request,.section-heading { flex-direction:column; align-items:stretch; } .fields { grid-template-columns:1fr; } .section-heading select { max-width:none; } .panel { padding:1rem; } }
 </style>

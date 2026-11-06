@@ -115,13 +115,16 @@
 <svelte:document onvisibilitychange={() => visible = !document.hidden} />
 <svelte:window onresize={() => closePicker()} onscroll={() => closePicker()} onkeydown={(event) => {
 	if (event.key !== 'Escape') return;
+	// Let native panels (for example room settings) handle Escape before board tools.
+	const openPopover = document.querySelector('[popover]:popover-open');
+	if (openPopover && openPopover !== portMenu) return;
 	if (pingMode) { event.preventDefault(); onpingtoggle(); return; }
 	if (!connecting) return;
 	event.preventDefault();
 	if (pickerId) closePicker(true); else ontoggle();
 }} />
 <div class="board-heading">
-	<div><h2 id="board-title" tabindex="-1">Felles nettverksbrett</h2><p>Ditt område ligger nederst.</p></div>
+	<h2 id="board-title" tabindex="-1" class="board-title">Felles nettverksbrett</h2>
 	<div class="board-actions"><button class:enabled={connecting} aria-pressed={connecting} disabled={disabled && !connecting} onclick={ontoggle}>{connecting ? 'Avslutt kabelmodus' : 'Koble kabel'}</button><button class:enabled={pingMode} aria-pressed={pingMode} disabled={disabled || ownPingActive && !pingMode} onclick={onpingtoggle}>{pingMode ? 'Avslutt pingmodus' : ownPingActive ? 'Ping pågår …' : 'Ping'}</button><button onclick={() => myArea()}>Til mitt område ↓</button></div>
 </div>
 <p class="cable-instruction" class:enabled={connecting || pingMode} role="status">{instruction}{#if connecting && cable} <button class="restart" disabled={disabled} onclick={onrestart}>Velg ny start</button>{/if}</p>
@@ -176,11 +179,12 @@
 
 <style>
 	.board-heading, .board-actions, .legend { display:flex; justify-content:space-between; align-items:center; gap:.65rem; flex-wrap:wrap; }
-	.board-heading { margin-bottom:.5rem; } h2 { font-size:1.2rem; margin:0; } p { margin:.4rem 0 0; color:var(--color-text-muted); font-size:var(--font-small); }
+	.board-heading { position:relative; margin-bottom:.25rem; } .board-title { position:absolute; width:1px; height:1px; padding:0; margin:-1px; overflow:hidden; clip-path:inset(50%); white-space:nowrap; } .board-title:focus-visible { position:static; width:auto; height:auto; margin:0; clip-path:none; white-space:normal; font-size:1.1rem; }
+	p { margin:.4rem 0 0; color:var(--color-text-muted); font-size:var(--font-small); }
 	button { background:var(--color-surface); color:var(--color-text); border:1px solid var(--color-border-strong); border-radius:8px; padding:.6rem .8rem; font:inherit; cursor:pointer; min-height:44px; }
 	button:disabled { opacity:.55; cursor:default; } button.enabled { background:var(--color-action); color:var(--color-on-action); border-color:var(--color-action); }
-	.cable-instruction { display:flex; align-items:center; flex-wrap:wrap; gap:.5rem; min-height:52px; padding:.4rem .7rem; margin:0 0 .5rem; border:1px solid transparent; border-radius:8px; }
-	.cable-instruction.enabled { background:var(--color-info-soft); color:var(--color-info); border-color:var(--color-info); } .restart { font-size:var(--font-small); margin-left:auto; }
+	.cable-instruction { display:flex; align-items:center; flex-wrap:wrap; gap:.5rem; min-height:1.55em; padding:.25rem 0; margin:0 0 .25rem; border:1px solid transparent; border-radius:8px; }
+	.cable-instruction.enabled { padding:.4rem .7rem; background:var(--color-info-soft); color:var(--color-info); border-color:var(--color-info); } .restart { font-size:var(--font-small); margin-left:auto; }
 	.viewport { overflow:auto; max-height:65vh; min-height:320px; border:1px solid var(--color-border-strong); border-radius:14px; background:var(--color-surface-soft); }
 	svg { display:block; min-width:1000px; width:100%; color:var(--color-text-subtle); }
 	.dots { opacity:.22; } .area { fill:var(--color-surface); stroke:var(--color-border-strong); } .area.own { fill:var(--color-accent-soft); stroke:var(--color-accent); stroke-width:2; }
