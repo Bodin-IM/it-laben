@@ -262,16 +262,63 @@ const topics = [
 	{ id: 'slett-melding', topic: 'delete', title: 'Slett én melding med filter', summary: 'Hver melding har sin egen sletteknapp. DELETE sender ID-en til Express, som lagrer resten av listen og bekrefter før meldingen fjernes på siden.', sourceTitle: 'Øving 6 · Endre riktig melding', sourceHref: '/oving-6/' }
 ];
 
-/** Every card contains a complete pair; cards replace each other, rather than being pasted together.
+/** Select complete blocks from the original file, preserving line IDs and source order.
+ * Boundaries are exact source lines, including indentation; missing boundaries need an explicit update.
+ * @param {import('./moduleCodeExamples.js').ExampleLine[]} source
+ * @param {string} context
+ * @param {[start:string,end?:string][]} ranges
+ */
+function excerpt(source, context, ranges) {
+	const selected = new Set();
+	for (const [startText, endText = startText] of ranges) {
+		const start = source.findIndex((line) => line.text === startText);
+		const end = source.findIndex((line, index) => index >= start && line.text === endText);
+		if (start < 0 || end < start) throw new Error(`Mangler kodeblokk i utdraget: ${startText} → ${endText}`);
+		for (let index = start; index <= end; index++) selected.add(source[index].id);
+	}
+	return { context, lineIds: source.filter((line) => selected.has(line.id)).map((line) => line.id) };
+}
+
+/** @param {Topic} topic @param {import('./moduleCodeExamples.js').ExampleLine[]} source */
+function backendExcerpt(topic, source) {
+	if (topic === 'storage') return excerpt(source, 'Utdrag fra server.js: funksjonene som leser og skriver JSON-filen.', [
+		['import { readFileSync, writeFileSync } from "node:fs";', 'const fil = "./meldinger.json";'],
+		['function lesMeldinger() {', 'let meldinger = lesMeldinger();'],
+		['function lagreMeldinger(liste) {', '}']
+	]);
+	const method = topic === 'save' ? 'post' : topic;
+	const path = method === 'patch' || method === 'delete' ? '/meldinger/:id' : '/meldinger';
+	return excerpt(source, `Utdrag fra server.js: hele ${method.toUpperCase()} ${path}-ruten.`, [
+		[`app.${method}("${path}", (req, res) => {`, '});']
+	]);
+}
+
+/** @param {Topic} topic @param {import('./moduleCodeExamples.js').ExampleLine[]} source */
+function frontendExcerpt(topic, source) {
+	const fetching = topic === 'get' || topic === 'storage';
+	const sending = topic === 'post' || topic === 'save';
+	const name = fetching ? 'hentMeldinger' : sending ? 'sendMelding' : topic === 'patch' ? 'endreMelding' : 'slettMelding';
+	return excerpt(source, `Utdrag fra +page.svelte: ${name} i script-delen, med tilhørende HTML og meldingslisten.`, [
+		['<script>'],
+		[`  async function ${name}(${fetching || sending ? '' : 'id'}) {`, '  }'],
+		['</script>'],
+		...(fetching ? /** @type {[string][]} */ ([['<button onclick={hentMeldinger} disabled={jobber}>Hent meldinger</button>']]) : []),
+		['<p role="status">{status}</p>'],
+		...(sending ? /** @type {[string,string][]} */ ([['<label>Navn <input bind:value={avsender} disabled={jobber} /></label>', '<button onclick={sendMelding} disabled={jobber}>Send melding</button>']]) : []),
+		['<ul>', '</ul>']
+	]);
+}
+
+/** Every card contains a complete pair, with a focused excerpt shown first.
  * @type {import('./moduleCodeExamples.js').ModuleExample[]} */
-export const backendModuleExamples = topics.map(({ topic, ...example }) => ({
-	...example,
-	files: [
+export const backendModuleExamples = topics.map(({ topic, ...example }) => {
+	const serverLines = lines(backend(topic)), frontendLines = lines(frontend(topic));
+	return { ...example, files: [
 		{ id: 'backend', label: 'Backend · server.js',
 			context: 'Hele server.js i en egen backendmappe. Første gang: npm init -y, npm pkg set type=module og npm install express cors. Start med node server.js. Bruk én eksempelvariant om gangen.',
-			lines: lines(backend(topic)) },
+			lines: serverLines, excerpt: backendExcerpt(topic, serverLines) },
 		{ id: 'frontend', label: 'Frontend · +page.svelte',
 			context: 'Hele src/routes/+page.svelte i et SvelteKit-prosjekt med Svelte 5. Start frontend med npm run dev på http://localhost:5173, og la backend kjøre i en annen terminal.',
-			lines: lines(frontend(topic)) }
-	]
-}));
+			lines: frontendLines, excerpt: frontendExcerpt(topic, frontendLines) }
+	] };
+});

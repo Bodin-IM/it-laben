@@ -50,7 +50,7 @@
 			<article class="viewer" aria-labelledby="current-example">
 				<header><h3 id="current-example" tabindex="-1">{example.title}</h3><p>{example.summary}</p></header>
 				{#if example.files.length > 1}<nav class="files" aria-label="Velg kodefil eller variant">{#each example.files as item}<a href={href(example.id, item.id)} onclick={navigate} class:active={file.id === item.id} aria-current={file.id === item.id ? 'true' : undefined}>{item.label}</a>{/each}</nav>{/if}
-				<div id="eksempelkode" tabindex="-1"><p class="context">{file.context}</p>
+				<div id="eksempelkode" tabindex="-1">
 					{#key fileKey}<AnnotatedCode {file} onselect={(id) => selection = { key: fileKey, lineId: id }} />{/key}
 				</div>
 				{#if related.length}<nav class="related" aria-label="Kode som hører sammen"><strong>Hører sammen med:</strong>{#each related as item}<a href={href(item.id)} onclick={navigate}>{item.title} →</a>{/each}</nav>{/if}
@@ -77,8 +77,6 @@
 	.example-layout { min-width: 0; }
 	.opened { display: grid; grid-template-columns: minmax(0, 1fr) 17rem; gap: 24px; align-items: start; }
 	.viewer { min-width: 0; }
-	.context { color: var(--color-text-muted); font-size: var(--font-small); }
-	.context { margin-top: 0; }
 	.example-picker ul { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 16rem), 1fr)); gap: 10px; }
 	.example-picker li { min-width: 0; }
 	.example-picker li a { display: flex; align-items: center; gap: 10px; min-height: 64px; height: 100%; padding: 12px; text-decoration: none; background: var(--color-surface); color: var(--color-text); border: 1px solid var(--color-border-strong); border-radius: 9px; font-size: var(--font-small); line-height: 1.4; }

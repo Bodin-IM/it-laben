@@ -2,7 +2,7 @@ import { backendModuleExamples } from '#lib/backendModuleExamples.js';
 import { connectionCode, connectionExplanations, readExample, insertCode } from '#lib/databaseIntro.js';
 
 /** @typedef {{id:string,text:string,title:string,explanation:string,important?:boolean}} ExampleLine */
-/** @typedef {{id:string,label:string,context:string,lines:ExampleLine[]}} ExampleFile */
+/** @typedef {{id:string,label:string,context:string,lines:ExampleLine[],excerpt?:{context:string,lineIds:string[]}}} ExampleFile */
 /** @typedef {{id:string,title:string,summary:string,sourceTitle:string,sourceHref:string,files:ExampleFile[],relatedIds?:string[]}} ModuleExample */
 
 /** Preserve the source text exactly; explanations are keyed by content, never by shifting line numbers.
