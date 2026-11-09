@@ -208,7 +208,7 @@ test('shared VLAN API: membership, consent, atomic ports, saved drafts and resta
 		assert.equal((await call(a, `${path}/ping`, { ...body, requestId: randomUUID() })).status, 429);
 		const other = (await call(teacher, `${root}/rooms`, { title: 'Annet rom' })).data;
 		assert.deepEqual(other.pings, []);
-		assert.equal((await call(teacher, `${root}/rooms/${other.id}/ping`, body)).status, 404);
+		assert.equal((await call(teacher, `${root}/rooms/${other.id}/ping`, body)).status, 409, 'a device outside this room is unavailable, as for other commands');
 		const member = before.members.find((m) => m.id === br.me);
 		const documented = await run(b, { action: 'document', revision: member.documentRevision, areaName: member.areaName, notes: 'Returveien er undersøkt.' });
 		assert.equal(documented.status, 200); assert.equal(documented.data.pings[0].id, sent.data.id);

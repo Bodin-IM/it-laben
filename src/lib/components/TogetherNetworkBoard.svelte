@@ -27,8 +27,9 @@
 	};
 	let suppressClick = '', moveRequest = 0;
 	/** @type {ReturnType<typeof setTimeout>|undefined} */ let clickTimer;
-	/** @type {{id:string,pointerId:number,x:number,y:number,revision:number,moved:boolean,target:number|null}|null} */ let drag = $state(null);
-	/** @type {{id:string,slot:number}|null} */ let pendingMove = $state(null);
+	/** @typedef {{id:string,pointerId:number,x:number,y:number,revision:number,moved:boolean,target:number|null}} Drag */
+	let drag = $state(/** @type {Drag|null} */ (null));
+	let pendingMove = $state(/** @type {{id:string,slot:number}|null} */ (null));
 	/** @type {HTMLButtonElement|null} */ let menuAnchor = null;
 	let pickerId = $state(''), menuX = $state(0), menuY = $state(0);
 	let shownRoom = '';

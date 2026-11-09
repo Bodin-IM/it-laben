@@ -112,6 +112,8 @@ Før publisering:
 Prøv deretter med elever. Observer hvor lenge det tar å få første svar, om de finner egen port og mottakerens godkjenning, om de kan forklare U/T og returvei, og om de klarer et nytt IP-/VLAN-oppsett med mindre støtte. Skill navigasjonsproblemer fra faglige misforståelser. Ingen læringseffekt er dokumentert av denne implementasjonen alene.
 
 
+Siste tekniske gjennomgang: [kontroll av dev mot main 9. november 2026](publisering-2026-11-09.md), inkludert rettinger, beståtte kontroller og gjenstående nettleserprøving.
+
 ## Publiseringskontroll 5. november 2026
 
 Kontrollert samlet med main `ac695f5` før PR #25. Full testsuite kjørte 338 tester: 337 bestod, og søkets katalogforventning manglet den nye aktiviteten `vlan-sammen`. Forventningen er oppdatert. Etter retting bestod alle 22 berørte søke-, VLAN-modell- og API-tester. Svelte-sjekken fant først 66 typefeil; presise typeangivelser og eksplisitte adressekontroller rettet disse. Sluttkontrollen har null feil og én advarsel om en ubrukt CSS-selektor. Produksjonsbygget bestod etter retting. Svelte MCP er ikke tilgjengelig i dette miljøet.

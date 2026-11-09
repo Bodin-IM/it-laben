@@ -41,6 +41,7 @@
 	const disabled = $derived(busy || !!retry || !!room?.paused);
 	const editingDisabled = $derived(!!retry || !!room?.paused || busy && !autoSaving);
 	const dirty = $derived(mine && !!draft && !!device && deviceDraftKey(draft) !== deviceDraftKey(device));
+	const conflict = $derived(mine && !!draft && !!device && draft.revision !== device.revision);
 	const ownDocument = $derived(savedDocument(room));
 	const documentationDirty = $derived(documentDraftKey(documentDraft) !== documentDraftKey(ownDocument));
 	const documentConflict = $derived(documentDraft.revision !== ownDocument.revision);
@@ -48,7 +49,6 @@
 	const documentKey = $derived(documentationDirty ? `${documentDraft.revision}:${documentDraftKey(documentDraft)}` : '');
 	const deviceStatus = $derived(autoSaving === 'device' ? 'Lagrer automatisk …' : retry && (dirty || retry.action === 'configure') ? 'Lagring venter. Se meldingen ved brettet.' : conflict ? 'Nyere oppsett finnes i en annen fane.' : dirty ? room?.paused ? 'Lagring venter til laben fortsetter.' : deviceIssue && failedDevice === deviceKey ? deviceIssue : 'Lagrer snart …' : 'Alle endringer er lagret.');
 	const documentStatus = $derived(autoSaving === 'document' ? 'Lagrer automatisk …' : retry && (documentationDirty || retry.action === 'document') ? 'Lagring venter. Se meldingen ved brettet.' : documentConflict ? 'Nyere tekst finnes i en annen fane.' : documentationDirty ? room?.paused ? 'Lagring venter til laben fortsetter.' : documentIssue && failedDocument === documentKey ? documentIssue : 'Lagrer snart …' : 'Alle endringer er lagret og delt.');
-	const conflict = $derived(mine && !!draft && !!device && draft.revision !== device.revision);
 	const stale = $derived(!!result && (result.revision !== room?.revision || dirty || !!connectionError));
 	const incoming = $derived(room?.requests.filter((r) => r.to === room?.me) ?? []);
 	const outgoing = $derived(room?.requests.filter((r) => r.from === room?.me) ?? []);

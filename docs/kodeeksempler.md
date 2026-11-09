@@ -1,5 +1,7 @@
 # Kodeeksempler under modulene – alternativ arbeidsmåte på dev
 
+Siste tekniske gjennomgang: [kontroll av dev mot main 9. november 2026](publisering-2026-11-09.md), inkludert rettinger, beståtte kontroller og gjenstående nettleserprøving.
+
 ## Standard for nye kodeeksempler
 
 Brukeren har valgt oppsettet nedenfor som fast praksis for nye og vesentlig reviderte kodeeksempler i alle modulsamlinger. Det er en lokal, avklart utformingsstandard; det innebærer ikke dokumentert læringseffekt.
