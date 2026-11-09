@@ -1,28 +1,53 @@
-# Kodeeksempler under modulene – oppslagsverk på dev
+# Kodeeksempler under modulene – alternativ arbeidsmåte på dev
 
-Modulsiden har valgene **Innhold** og **Kodeeksempler**. Eksempeloversikten viser kompakte kort med nummer og tittel. Når et eksempel åpnes, får koden hovedplassen og kortene en egen kolonne til høyre. På smale skjermer ligger en vannrett liste over koden. Modulinformasjon og øvingslisten vises under Innhold, slik at de ikke fortrenger eksemplet.
+Siste tekniske gjennomgang: [kontroll av dev mot main 9. november 2026](publisering-2026-11-09.md), inkludert rettinger, beståtte kontroller og gjenstående nettleserprøving.
+
+## Standard for nye kodeeksempler
+
+Brukeren har valgt oppsettet nedenfor som fast praksis for nye og vesentlig reviderte kodeeksempler i alle modulsamlinger. Det er en lokal, avklart utformingsstandard; det innebærer ikke dokumentert læringseffekt.
+
+- Velg tema etter hva eleven trenger å gjøre i egen kode. Bruk en tydelig tittel og en kort forklaring, og vis hvor koden hører hjemme.
+- Start med et relevant utdrag. I backend vises hele aktuelle endpoints eller funksjoner. I frontend vises den aktuelle funksjonen og relevant HTML/Svelte-kode, med for eksempel hele `each`-løkken rundt en knapp som bruker meldingens ID. Behold validering og feilhåndtering som hører til blokken.
+- La oppsett og andre funksjoner være skjult fra start. Når slikt innhold finnes, skal «Vis hele koden» åpne den komplette filen, og «Skjul resten av koden» gå tilbake til utdraget. Fil-/eksempelbytte starter med utdraget igjen.
+- Gi tilstrekkelig helhet i full visning: filnavn og plassering, nødvendige imports, tilstand, hjelpefunksjoner og oppstart. Ved klient–server-samspill skal frontend og backend høre sammen, med samsvarende URL-er, felter og svarformater. Eleven skal kunne finne hvor utdraget plasseres og hva som skjer på begge sider.
+- Fremhev de sentrale linjene. Hver kodelinje med innhold skal ha en konkret forklaring som kan åpnes med mus eller tastatur. Behold de samme linjenumrene, ID-ene, forklaringene og markeringene i begge visninger.
+- Gjenbruk `ModuleCodeExamples`, `AnnotatedCode`, `CodeTokens` og `CodeExplanation`. Lag utdrag fra hele kildefilen gjennom `ExampleFile.excerpt`; ikke vedlikehold en separat kopi av utdragskoden. Kontroller at utvalget omfatter hele blokker.
+- La «Kopier utdrag» kopiere synlig kode og «Kopier hele koden» kopiere hele filen. Skilletekst, linjenumre, markeringer og forklaringer skal ikke følge med.
+- Hold eksemplene til kort introduksjon, kode, valgfri helvisning, kopiering og linjeforklaringer. Simulatorer, kontrollspørsmål og oppgavesteg hører til egne øvinger, med mindre brukeren ber om noe annet.
+
+Følg repoets vanlige arbeidsflyt: gjennomgå innhold og diff på dev, og prøv kode, visninger, kopiering og tilgjengelighet samlet før main. Standarden er skrevet inn i `AGENTS.md`, slik at den følger videre arbeid i repoet.
+
+## Dagens samling
+
+Modulsiden har valgene **Innhold** og **Kodeeksempler**. Eksempeloversikten viser kompakte kort med tittel. Når et eksempel åpnes, får koden hovedplassen og kortene en egen kolonne til høyre. På smale skjermer ligger en vannrett liste over koden. Modulinformasjon og øvingslisten vises under Innhold, slik at de ikke fortrenger eksemplet.
 
 Eksemplene velges etter hva eleven trenger å gjøre i egen kode. Antall øvinger og øvingssteg bestemmer ikke antall kort. Kortene har funksjonsnavn uten løpenummer; kildeøvingen ligger som en lenke under koden. Dette er brukerens avklarte retning for samlingen.
 
 | Modul | Eksempel | Hva koden viser |
 | --- | --- | --- |
-| Backend | Hent meldinger med GET | Forespørsel i frontend og svar fra Express |
-| Backend | Send en melding med POST | JSON fra frontend, mottak og kontroll i backend |
-| Backend | Lese og skrive en JSON-fil | Import, filsti, innlesing ved oppstart og skrivefunksjon samlet |
-| Backend | Lagre en ny melding | Ny liste, lagring, oppdatering av minnet og svar med try/catch |
-| Backend | Endre én melding med map | Ny liste med én endret melding |
-| Backend | Slett én melding med filter | Ny liste uten meldingen som skal slettes |
+| Backend | Hent meldinger med GET | Hel Express-server og Svelte-side med henting og visning av listen |
+| Backend | Send en melding med POST | Tekstfelt, knapp, JSON, validering, ny ID og oppdatert liste i frontend |
+| Backend | Lese og skrive en JSON-fil | Hel liten chat med frontend, GET/POST og filoperasjonene framhevet |
+| Backend | Lagre en ny melding | Samme komplette filoppsett, med lagring og bekreftelse i POST framhevet |
+| Backend | Endre én melding med map | Redigeringsfelt i each, PATCH, ID-oppslag, validering, map, lagring og oppdatert frontend |
+| Backend | Slett én melding med filter | Sletteknapp i each, DELETE, filter, lagring, 204 og fjerning fra frontend |
 | Databaser | Koble Node.js til MongoDB | Tilkobling, database og collection |
 | Databaser | Hente og filtrere dokumenter | Fire valg: alle dokumenter, ett vilkår, flere vilkår og prisgrense |
 | Databaser | Legg inn ett dokument | Objekt, insertOne og bekreftet ID |
 
-Backend har dermed seks kort og Databaser tre. GET og POST har valg for frontend/backend. Søkevariantene erstatter hverandre og samles under ett kort fordi de viser samme operasjon med forskjellige filtre. Fillagring deles i to fordi oppsettet plasseres før rutene, mens lagringen av en ny melding plasseres inne i POST-ruten. Relaterte eksempler lenkes sammen.
+Backend har seks kort og Databaser tre. Hvert backendkort inneholder både en komplett `server.js` og en komplett `src/routes/+page.svelte`, men åpnes med et kortere utdrag. Backend viser hele den aktuelle ruten, eller lese-/skrivefunksjonene i JSON-eksemplet. Frontend viser den aktuelle funksjonen og tilhørende HTML, inkludert meldingslisten. **Vis hele koden** åpner resten av filen og oppstartsinstruksjonene; **Skjul resten av koden** går tilbake til utdraget. Bytte av eksempel eller fil starter med utdraget igjen.
 
-Eksemplene har en kort forklaring, plassering/forutsetninger, kopiering og lenke tilbake til kildeøvingen. De viser kode; de kjører ikke elevens kode eller starter nettverkskall. Utdrag merkes med sammenhengen de hører til i. Lagringsreferansen bruker den rettede rekkefølgen fra øving 5. Forsøket med feil rekkefølge blir værende i øvingen, der eleven undersøker feilen. Hver ikke-tomme kodelinje kan åpnes med mus eller tastatur; den eksisterende `CodeExplanation` brukes for forklaringen. Escape og lukkeknappen lukker og gir fokus tilbake til linjen.
+Frontend- og backendfilen i samme kort brukes sammen; eksemplene er alternativer, ikke kodeblokker som skal limes etter hverandre. Utdraget forutsetter oppsettet fra hele filen. Backend vises først. Gamle delte lenker med eksplisitt `fil=frontend` åpner fortsatt frontend.
+
+Eksemplene er en alternativ arbeidsmåte med mindre interaktivitet: en kort introduksjon, kode med valgfri helvisning, kopiering og en forklaring når eleven trykker på en kodelinje. Ingen simulator, oppgavefelt, stegvis kjøring eller kontrollspørsmål er lagt til. De viktigste linjene markeres med bakgrunn, kant og ◆ ved linjenummeret, og omtales som viktige i knappens tilgjengelige navn. Markeringen endrer ikke koden som kopieres. Den eksisterende `CodeExplanation` åpnes ved linjen med mus eller tastatur; Escape og lukkeknappen gir fokus tilbake.
+
+GET/POST-eksemplene begynner med én melding i serverminnet. De fire eksemplene med fillagring begynner med en tom liste når filen mangler; alle har sendefelt og POST slik at eleven kan opprette data uten et annet eksempel. PATCH og DELETE har også GET og POST, ID-er opprettes på serveren, og feil vises i frontend uten at utkastet eller listen tømmes. POST svarer med 201 og meldingsobjektet, PATCH med 200 og det endrede objektet, DELETE med 204 uten body. Frontend behandler akkurat disse formatene. Den oppdaterer sin lokale liste etter bekreftet svar; **Hent meldinger** leser hele listen på nytt.
+
+Fillagringens to kort viser samme komplette kode med ulike framhevinger: lese-/skrivefunksjonene i det ene og rekkefølgen ny liste → lagre → minne → svar i det andre. Lagringsfunksjonen kommer fra øving 5. Forsøket med feil rekkefølge blir værende i øvingen. Eksemplene er lokale øvingsservere uten innlogging eller eierskapskontroll; disse temaene behandles i øving 8–9. Databaseeksemplenes innhold og varianter er uendret.
 
 ## Mål, elevarbeid og oppfølging
 
-Målgruppen er Vg2 IT. Dette er en valgfri lesestøtte til eksisterende øvinger og arbeid i eget prosjekt. Eleven bør kjenne variabler, funksjoner og JavaScript-objekter, og ha arbeidet med innledningen til den aktuelle modulen. Målet er å kunne forklare en bestemt linjes rolle i dataflyten og bruke eksemplet i en beslektet oppgave.
+Målgruppen er Vg2 IT. Dette er en valgfri måte å arbeide med komplette eksempler i eget prosjekt, med mindre interaktivitet enn øvingene. Eleven bør kjenne variabler, funksjoner og JavaScript-objekter, og ha arbeidet med innledningen til den aktuelle modulen. Målet er å kunne forklare en bestemt linjes rolle i dataflyten og bruke eksemplet i en beslektet oppgave.
 
 Læreplantilknytning i Utvikling, [ITK02-01](laereplan/ITK02-01.md):
 
@@ -44,7 +69,9 @@ For fillagring kan eleven lagre en liste med utstyr i eget prosjekt og finne den
 
 ## Felles kilder og vedlikehold
 
-`moduleCodeExamples.js` samler metadata og henter selve koden fra `frontendBackendLab.js`, `storageExercise.js`, `ovingModel.js` og `databaseIntro.js`. Utvalget er redaksjonelt og opprettes ikke automatisk fra alle øvingssteg. Fillagringsoppsettet setter sammen `storageSetupCode`, `storageSafeReadCode` og `storageSaveCode`; bruken i POST henter `storageRepairedCode`. Import og filsti eies også av `storageExercise.js`. Koden fra øvingene kopieres ikke inn i en ny innholdskilde. Eksisterende linjeforklaringer gjenbrukes; manglende forklaringer til lagring og databaseutdrag er knyttet til linjenes tekst. Hvis disse kildene endres med en ny linje, skal forklaringen oppdateres samtidig. Ukjent tekst stopper katalogopprettingen i stedet for å få en upresis standardforklaring.
+`moduleCodeExamples.js` samler katalog og valg. `backendModuleExamples.js` eier de komplette backendeksemplene og setter sammen felles server-/frontenddeler med linjeforklaringer og valgfrie `important`-markeringer. De er egne sammenhengende eksempler, ikke lenger løse utdrag fra simulatorens trinn. Lese-/skrivefunksjonene og den rettede POST-lagringen gjenbrukes fortsatt fra `storageExercise.js`; linjeforklaringene til disse er knyttet til tekst, og nye ukjente linjer krever en forklaring. Databasekoden hentes fortsatt fra `databaseIntro.js`. De eksisterende interaktive øvingene og deres modeller er ikke endret.
+
+De komplette frontendfilene har script, import, tilstandsvariabler, hendelsesfunksjoner og HTML samlet. De komplette backendfilene har import, app, middleware, liste, nødvendige ruter og app.listen. Utdragene velges som hele blokker fra de samme kildene og beholder opprinnelige linjenumre, ID-er, forklaringer og markeringer. Utelatt kode vises med en liten skillelinje. **Kopier utdrag** kopierer bare de synlige kodelinjene; **Kopier hele koden** kopierer hele filen. Markeringer, forklaringer og tekst om skjult kode følger ikke med i utklippstavlen. Databaseeksemplene har fortsatt full visning uten denne bryteren.
 
 `ModuleCodeExamples` eier oversikt, kort og filvalg. `AnnotatedCode` gjenbruker `CodeTokens` og `CodeExplanation`, og åpnes på nytt ved bytte av eksempel/fil. Forklaringsboksen ligger rett under linjen også på stor skjerm, slik at høyrekolonnen kan brukes til eksemplene. Den nye valgfrie `responsive`-innstillingen i `CodeExplanation` lar denne visningen bruke inline-modus på alle bredder; standardoppførselen på eksisterende sider er uendret.
 
@@ -78,3 +105,18 @@ Kontrollert samlet med main `ac695f5` før PR #25. Full testsuite kjørte 338 te
 Chromium mot ekte lokal API, med lærer og to separate elevprofiler: opprette og velge rom, kabelforespørsel og mottakers godkjenning, vellykket ping, ulagret utkast gjennom fokus-/nettverksoppdatering og automatisk profiloppdatering etter 30 sekunder, lagring og pause/fortsett bestod uten JavaScript-feil. Enhetsvalg og fokus ble prøvd med tastatur ved 390 og 1280 pikslers bredde i lyst og mørkt tema. Kodeeksemplenes åpning, linjeforklaring med tastatur, kopiering til utklippstavlen, delt URL etter omlasting og forstørret tekst ble også prøvd. API-testene dekker ugyldige handlinger, eierskap, samtykke, portkonflikter, utløp, retry og omstart.
 
 Dette er teknisk kontroll. Berøring på fysisk utstyr, full belastning med 24 deltakere og utprøving med elever er ikke gjennomført. Eleven avtaler og konfigurerer et nettverk; ping forklarer funksjon og returvei, mens forståelse må undersøkes gjennom forklaring og et nytt oppsett med mindre støtte som beskrevet ovenfor. Ingen dokumentert læringseffekt eller full WCAG-samsvarsvurdering hevdes.
+
+
+## Komplette backendeksempler på dev – 9. november 2026
+
+Brukerens gjennomgang avdekket at særlig lagring, PATCH og DELETE manglet både omgivende rutekode og frontend. Alle seks backendeksempler er derfor utvidet til hele filpar med konsistente request- og responseformater. De to sentrale PATCH-linjene med objektspredning og map er framhevet inne i hele ruten; frontend viser redigeringsfelt, ID i adressen, JSON-body og oppdatering etter bekreftelse. Dette følger pedagogikkens kobling mellom handling, kode og resultat og designgrunnlagets hjelp ved behov. Det er ikke lagt inn nye elevoppgaver eller progresjonskrav.
+
+Kildekode, linjeforklaringer, dataflyt, lenker og diff er gjennomgått. Eksisterende katalogtester er oppdatert for hele Svelte-filer, gjenbruk av lagringskode og markeringer. En regresjonstest beskriver kjøring av den viste serverkoden med kontrollerte request-/respons- og filadaptere: GET, POST, PATCH, DELETE, ugyldig input, ukjent ID, skrivefeil og gjeninnlesing. Testene er ikke kjørt i denne dev-leveransen. Samlet testing, Svelte-sjekk, bygg og nettleserprøving gjenstår før main. Svelte MCP er ikke tilgjengelig; offisiell Svelte 5- og Express-dokumentasjon er brukt.
+
+Før main: prøv alle seks filpar i egne øvingsmapper mot en faktisk Express-server og Svelte-frontend. Kontroller oppstart, manglende fil, innlegging av to meldinger, endring/sletting av bare valgt ID, feilvisning, omstart og 204 uten JSON-parsing. Prøv linjeforklaring og kopiering på markerte og umarkerte linjer, begge temaer, smal skjerm, forstørret tekst og gamle direktelenker. Kontroller også labpartnerens validerte eksempel-/fil-/linjevalg. Elevutprøving må undersøke om eleven nå finner hvor koden hører hjemme og kan tilpasse den til eget arbeid.
+
+## Kortere standardvisning på dev – 9. november 2026
+
+Brukeren ønsket mindre kode synlig ved åpning, med hele filen tilgjengelig ved behov. Utdragene beholder hele den aktuelle ruten eller funksjonen, inkludert feilhåndtering, og frontendens relevante HTML. Oppsett og andre funksjoner skjules som standard. Knappen for helvisning kan brukes med tastatur og angir åpen/lukket tilstand; linjevalget tømmes ved bytte av visning. Dette endrer støttemengden, ikke læringsmål eller vurdering.
+
+Kilde og diff er gjennomgått. Ingen tester, Svelte-sjekk, bygg eller nettleserprøving er kjørt i denne dev-justeringen. Samlet testing gjenstår før main. Prøv da standardutdraget og helvisningen i alle seks filpar, hele kodeblokker med riktige linjenumre, kopiering i begge visninger, linjeforklaring, tastaturfokus, fil-/eksempelbytte og smal skjerm.

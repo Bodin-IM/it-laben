@@ -2,7 +2,8 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { existsSync } from 'node:fs';
 import { moduleCodeExamples, moduleCodeExampleSelection } from '../src/lib/moduleCodeExamples.js';
-import { codeLines } from '../src/lib/frontendBackendLab.js';
+import { runInNewContext } from 'node:vm';
+import { compile } from 'svelte/compiler';
 import { storageSetupCode, storageSaveCode, storageSafeReadCode, storageRepairedCode } from '../src/lib/storageExercise.js';
 import { connectionCode, readExamples, readExample, insertCode } from '../src/lib/databaseIntro.js';
 import { readPartnerState, ADAPTER_VERSION } from '../src/lib/partnerContext.js';
@@ -11,14 +12,19 @@ import { pageWork } from '../server/lab-partner/page-context.js';
 
 const code = (file) => file.lines.map((line) => line.text).join('\n');
 
-test('module examples preserve the exact source code and valid source links', () => {
+test('module examples provide complete frontend files, shared storage code and valid source links', () => {
 	const backend = moduleCodeExamples('backend'), database = moduleCodeExamples('databaser');
-	for (const operation of ['get', 'post']) {
-		const example = backend.find((item) => item.id === `${operation}-meldinger`);
-		for (const file of example.files) assert.deepEqual(file.lines, codeLines(operation, file.id));
+	for (const example of backend) {
+		const frontend = example.files.find((file) => file.id === 'frontend');
+		const server = example.files.find((file) => file.id === 'backend');
+		assert.doesNotThrow(() => compile(code(frontend), { filename: '+page.svelte', generate: 'client' }), example.id);
+		assert.ok(server.lines.some((line) => line.important), 'the central server lines are marked');
+		assert.ok(frontend.lines.some((line) => line.important), 'the matching frontend lines are marked');
 	}
-	assert.equal(code(backend.find((item) => item.id === 'json-fil').files[0]), [storageSetupCode, storageSafeReadCode, storageSaveCode].join('\n\n'));
-	assert.equal(code(backend.find((item) => item.id === 'lagre-melding').files[0]), storageRepairedCode);
+	const storage = code(backend.find((item) => item.id === 'json-fil').files[0]);
+	for (const block of [storageSetupCode, storageSafeReadCode, storageSaveCode]) assert.ok(storage.includes(block));
+	const saved = code(backend.find((item) => item.id === 'lagre-melding').files[0]);
+	assert.ok(saved.includes(storageRepairedCode.split('\n').map((line) => `  ${line}`).join('\n')));
 	assert.equal(code(database.find((item) => item.id === 'mongo-tilkobling').files[0]), connectionCode);
 	assert.equal(code(database.find((item) => item.id === 'mongo-innsetting').files[0]), insertCode);
 	for (const source of readExamples) {
@@ -39,6 +45,65 @@ test('module examples preserve the exact source code and valid source links', ()
 	}
 	assert.deepEqual(moduleCodeExamples('finnes-ikke'), []);
 	assert.deepEqual(moduleCodeExamples('__proto__'), []);
+});
+
+test('the displayed backend files accept frontend payloads and confirm only saved changes', () => {
+	for (const example of moduleCodeExamples('backend')) {
+		const source = code(example.files.find((file) => file.id === 'backend'));
+		const persistent = source.includes('readFileSync');
+		let disk, failWrite = false, nextId = 0;
+		const start = () => {
+			const routes = new Map();
+			const app = { use() {}, listen() {} };
+			for (const method of ['get', 'post', 'patch', 'delete']) app[method] = (path, handler) => routes.set(`${method} ${path}`, handler);
+			const express = Object.assign(() => app, { json() {} });
+			runInNewContext(source.replace(/^import .*;\n/gm, ''), {
+				express, cors() {}, console, randomUUID: () => `m-${++nextId}`,
+				readFileSync() { if (disk === undefined) throw Object.assign(new Error('Missing'), { code: 'ENOENT' }); return disk; },
+				writeFileSync(path, json) { if (failWrite) throw new Error('Disk full'); disk = json; }
+			});
+			return (method, path, body, id) => {
+				let status = 200, result, ended = false;
+				const res = { status(value) { status = value; return res; }, json(value) { result = structuredClone(value); return res; }, end() { ended = true; return res; } };
+				routes.get(`${method} ${path}`)({ body, params: { id } }, res);
+				return { status, result, ended };
+			};
+		};
+		let request = start();
+		const initial = request('get', '/meldinger').result;
+		assert.ok(Array.isArray(initial));
+		if (example.id === 'get-meldinger') continue;
+		assert.equal(request('post', '/meldinger', { avsender: 'Ada', tekst: '  ' }).status, 400);
+		assert.deepEqual(request('get', '/meldinger').result, initial);
+		const created = request('post', '/meldinger', { avsender: ' Ada ', tekst: ' Hei! ' });
+		assert.equal(created.status, 201);
+		assert.deepEqual(created.result, { id: 'm-1', avsender: 'Ada', tekst: 'Hei!' });
+		if (persistent) request = start();
+		assert.equal(request('get', '/meldinger').result.at(-1).id, created.result.id);
+		if (example.id === 'endre-melding') {
+			assert.equal(request('patch', '/meldinger/:id', { tekst: 'ny' }, 'ukjent').status, 404);
+			assert.equal(request('patch', '/meldinger/:id', { tekst: 42 }, 'm-1').status, 400);
+			failWrite = true;
+			assert.equal(request('patch', '/meldinger/:id', { tekst: 'ny' }, 'm-1').status, 500);
+			assert.equal(request('get', '/meldinger').result[0].tekst, 'Hei!');
+			failWrite = false;
+			assert.deepEqual(request('patch', '/meldinger/:id', { tekst: ' Vi sees! ' }, 'm-1').result, { id: 'm-1', avsender: 'Ada', tekst: 'Vi sees!' });
+			assert.equal(start()('get', '/meldinger').result[0].tekst, 'Vi sees!');
+		} else if (example.id === 'slett-melding') {
+			failWrite = true;
+			assert.equal(request('delete', '/meldinger/:id', undefined, 'm-1').status, 500);
+			assert.equal(request('get', '/meldinger').result.length, 1);
+			failWrite = false;
+			assert.deepEqual(request('delete', '/meldinger/:id', undefined, 'm-1'), { status: 204, result: undefined, ended: true });
+			assert.equal(request('delete', '/meldinger/:id', undefined, 'm-1').status, 404);
+			assert.equal(start()('get', '/meldinger').result.length, 0);
+		} else if (persistent) {
+			failWrite = true;
+			assert.equal(request('post', '/meldinger', { avsender: 'Ada', tekst: 'Ulagret' }).status, 500);
+			assert.equal(request('get', '/meldinger').result.length, 1);
+			assert.equal(start()('get', '/meldinger').result.length, 1);
+		}
+	}
 });
 
 test('shared example links retain their topic and database variant after regrouping', () => {

@@ -2,15 +2,15 @@ import { hostAddress, membership } from './vlanLab.js';
 import { untaggedVlan } from './networkCheckFeedback.js';
 
 export const vlanTogetherActivity = {
-	id: 'vlan-sammen', tittel: 'VLAN sammen · Bygg et felles nett',
+	id: 'vlan-sammen', tittel: 'Nettverksligaen · Bygg et felles nett',
 	beskrivelse: 'Bygg ditt nettverk på et felles brett. Avtal porter, koble til medelever og feilsøk kommunikasjonen sammen.',
 	href: '/nettverk/vlan-sammen/', fag: 'drift', audience: 'student', format: 'aktivitet',
 	type: 'Samarbeidslab · første utkast', emner: ['VLAN', 'Trunk', 'Ruting', 'Samarbeid'],
-	sokeord: ['switch', 'ruter', 'PC', 'nettverk', 'flerspiller', 'ping'], symbol: '⇄'
+	sokeord: ['VLAN sammen', 'switch', 'ruter', 'PC', 'nettverk', 'flerspiller', 'ping'], symbol: '⇄'
 };
 export const togetherGoal = 'Avtal en port- og adresseplan, koble sammen to elevers nett og forklar hvordan ping og svar går gjennom VLAN og eventuelle rutere.';
 export const togetherHints = [
-	'Velg din switch og en ledig port. Trykk Start kabel, og velg en medelevs switch i brettet. Medeleven må godta og velge port.',
+	'Trykk Koble kabel. Velg din enhet og en ledig port i menyen ved enheten, og trykk på en switch eller ruter. En medelev velger selv port og godtar forbindelsen.',
 	'Begynn med PC-ene i samme /24-nett. U velger VLAN for umerket trafikk inn og ut. T frakter VLAN-taggen mellom switcher. Begge ender må passe sammen.',
 	'Til et annet IP-nett trenger PC-en gateway. Ruteren trenger en direkte tilkobling eller en statisk rute, og svaret trenger en returvei.',
 	'Endre én innstilling, forutsi resultatet og prøv ping igjen. En godkjent kabel er ikke det samme som fungerende kommunikasjon.'
@@ -20,15 +20,17 @@ export const togetherHints = [
 /** @typedef {{network:string,nextHop:string}} StaticRoute */
 /** @typedef {{ip:string,gateway:string}} PcConfig */
 /** @typedef {{interfaces:RouterInterface[],routes:StaticRoute[]}} RouterConfig */
-/** @typedef {{id:string,owner:string,kind:DeviceKind,name:string,revision:number,config:any}} TogetherDevice */
+/** @typedef {{id:string,owner:string,kind:DeviceKind,name:string,revision:number,config:any,slot?:number}} TogetherDevice */
 /** @typedef {{id:string,a:string,aPort:string,b:string,bPort:string}} TogetherLink */
 /** @typedef {{id:string,from:string,to:string,source:string,port:string,target:string,expires:number}} CableRequest */
-/** @typedef {{devices:TogetherDevice[],links:TogetherLink[],requests:CableRequest[]}} TogetherState */
-/** @typedef {{id:string,name:string,online:boolean}} Member */
+/** @typedef {{devices:TogetherDevice[],links:TogetherLink[],requests:CableRequest[],layoutRevisions?:Record<string,number>}} TogetherState */
+/** @typedef {{areaName:string,notes:string,revision:number}} AreaDocument */
+/** @typedef {{id:string,name:string,online:boolean,areaName:string,notes:string,documentRevision:number}} Member */
 /** @typedef {{id:string,title:string,teacherName:string,paused:boolean,participants:number,joined:boolean}} TogetherRoomListing */
-/** @typedef {TogetherState & {id:string,title:string,me:string,owner:boolean,paused:boolean,revision:number,members:Member[]}} TogetherRoom */
-/** @typedef {{from:string,to:string,text:string,link?:string}} TraceStep */
+/** @typedef {TogetherState & {id:string,title:string,me:string,owner:boolean,paused:boolean,revision:number,layoutRevision?:number,members:Member[],pings:SharedPing[],serverNow:number}} TogetherRoom */
+/** @typedef {{from:string,to:string,text:string,link?:string,phase?:'request'|'reply'}} TraceStep */
 /** @typedef {{ok:boolean,code:string,message:string,steps:TraceStep[]}} TogetherPing */
+/** @typedef {TogetherPing & {id:string,by:string,from:string,to:string,revision:number,startsAt:number,duration:number,expiresAt:number}} SharedPing */
 /** @param {DeviceKind} kind */
 export const devicePorts = (kind) => Array.from({ length: kind === 'switch' ? 8 : kind === 'router' ? 4 : 1 }, (_, i) => `eth${i}`);
 /** @param {DeviceKind} kind @returns {any} */
@@ -186,9 +188,10 @@ export function pingTogether(state, from, to) {
 		return failure('ttl', 'Pakken nådde grensen på 16 rutere. Kontroller rutene.', steps);
 	}
 	const forward = travel(source, target);
-	if (!forward.ok) return forward;
+	if (!forward.ok) return { ...forward, steps: forward.steps.map((step) => ({ ...step, phase: 'request' })) };
 	const reply = travel(target, source);
-	const steps = [...forward.steps, { from: target.id, to: target.id, text: 'Ping nådde målet. Nå prøves returveien.' }, ...reply.steps];
+	/** @type {TraceStep[]} */
+	const steps = [...forward.steps.map((step) => ({ ...step, phase: /** @type {const} */ ('request') })), { from: target.id, to: target.id, phase: 'reply', text: 'Ping nådde målet. Nå prøves returveien.' }, ...reply.steps.map((step) => ({ ...step, phase: /** @type {const} */ ('reply') }))];
 	return reply.ok ? { ok: true, code: 'reply', message: 'Ping-svar mottatt. Både fram- og returveien virker i modellen.', steps }
 		: failure(reply.code, `Pakken når fram, men svaret stopper: ${reply.message}`, steps);
 }

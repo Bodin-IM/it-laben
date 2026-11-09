@@ -81,6 +81,56 @@ test('shared VLAN API: membership, consent, atomic ports, saved drafts and resta
 		assert.equal((await call(outsider, path)).status, 404);
 	});
 
+	await t.test('existing rooms survive the documentation migration with empty defaults', async () => {
+		const before = await read();
+		await stop();
+		// Recreate the previous member schema around a populated room, then run the real migration.
+		db.exec('ALTER TABLE vlan_members DROP COLUMN area_name; ALTER TABLE vlan_members DROP COLUMN notes; ALTER TABLE vlan_members DROP COLUMN document_revision;');
+		db.prepare('DELETE FROM migrations WHERE name=?').run('018_vlan_documentation.sql');
+		db.exec('DROP TABLE vlan_pings');
+		db.prepare('DELETE FROM migrations WHERE name=?').run('019_vlan_pings.sql');
+		db.close(); db = openDatabase(filename); await start();
+		const after = await read();
+		assert.deepEqual(after.pings, []);
+		assert.deepEqual(after.devices, before.devices); assert.deepEqual(after.links, before.links);
+		assert.deepEqual(after.members.map((m) => m.id), before.members.map((m) => m.id));
+		assert.ok(after.members.every((m) => m.areaName === '' && m.notes === '' && m.documentRevision === 0));
+	});
+
+	await t.test('documentation is shared only inside the room, owned, revisioned and retry-safe', async () => {
+		const before = await read(), requestId = randomUUID();
+		const body = { action: 'document', revision: 0, areaName: '  Pakkeparadiset  ', notes: 'VLAN 10\neth1: trunk til naboen. <b>Ren tekst</b>' };
+		const first = await run(a, body, requestId);
+		assert.equal(first.status, 200);
+		assert.equal(first.data.revision, before.revision, 'notes do not invalidate a network ping');
+		const saved = first.data.members.find((m) => m.id === ar.me);
+		assert.equal(saved.areaName, 'Pakkeparadiset'); assert.equal(saved.notes, body.notes); assert.equal(saved.documentRevision, 1);
+		assert.deepEqual((await read(b)).members.find((m) => m.id === ar.me), saved);
+		assert.equal((await run(a, body, requestId)).data.members.find((m) => m.id === ar.me).documentRevision, 1);
+		assert.equal((await run(a, { ...body, notes: 'Gammelt utkast' })).status, 409);
+		assert.equal((await run(a, { ...body, notes: 'Annen handling' }, requestId)).status, 409);
+		for (const patch of [{ areaName: 'x'.repeat(41) }, { areaName: 'To\nlinjer' }, { notes: null }, { notes: 'x'.repeat(2001) }]) {
+			assert.equal((await run(a, { ...body, revision: 1, ...patch })).status, 400);
+		}
+		assert.equal((await run(outsider, body)).status, 404);
+		// Forging the member/owner cannot overwrite A's document; B can only save B's own.
+		assert.equal((await run(b, { ...body, memberId: ar.me, owner: ar.me, areaName: 'Ruterriket', notes: 'Vårt eget oppsett' })).status, 200);
+		assert.deepEqual((await read()).members.find((m) => m.id === ar.me), saved);
+		assert.equal((await read()).members.find((m) => m.id === br.me).areaName, 'Ruterriket');
+		const listing = await call(outsider, `${root}/rooms`);
+		assert.equal(JSON.stringify(listing.data).includes('Pakkeparadiset'), false);
+		assert.equal(JSON.stringify(listing.data).includes(body.notes), false);
+	});
+
+	await t.test('cables end on switches or routers; a PC can start a local cable', async () => {
+		assert.equal((await run(a, { action: 'request', source: as.id, port: 'eth7', target: bp.id })).status, 400);
+		assert.equal((await run(a, { action: 'connect', source: as.id, port: 'eth7', target: ap.id, targetPort: 'eth0' })).status, 400);
+		const link = (await read()).links.find((l) => l.a === ap.id || l.b === ap.id);
+		assert.equal((await run(a, { action: 'disconnect', id: link.id })).status, 200);
+		assert.equal((await run(a, { action: 'request', source: ap.id, port: 'eth0', target: bs.id })).status, 400);
+		assert.equal((await run(a, { action: 'connect', source: ap.id, port: 'eth0', target: as.id, targetPort: 'eth0' })).status, 200);
+	});
+
 	await t.test('configuration revisions preserve newer work and reject invalid input', async () => {
 		assert.equal((await configure(a, ap, { name: 'Arbeids-PC' })).status, 200);
 		assert.equal((await configure(a, ap, { name: 'Gammelt utkast' })).status, 409);
@@ -88,6 +138,32 @@ test('shared VLAN API: membership, consent, atomic ports, saved drafts and resta
 		assert.equal(stored.name, 'Arbeids-PC');
 		assert.equal((await configure(a, stored, { config: { ip: '10.10.10.255', gateway: '' } })).status, 400);
 		assert.deepEqual((await read()).devices.find((d) => d.id === ap.id), stored);
+	});
+
+	await t.test('placement is owned, atomic, revisioned separately and retry-safe', async () => {
+		const before = await read();
+		const source = before.devices.find((d) => d.id === ap.id), target = before.devices.find((d) => d.id === as.id);
+		const body = { action: 'move', deviceId: ap.id, slot: target.slot, layoutRevision: before.layoutRevision };
+		assert.equal((await run(b, body)).status, 403);
+		assert.equal((await run(outsider, body)).status, 404);
+		for (const slot of [-1, 8, 1.5, '2', null]) assert.equal((await run(a, { ...body, slot })).status, 400);
+		const id = randomUUID(), moved = await run(a, body, id);
+		assert.equal(moved.status, 200);
+		assert.equal(moved.data.revision, before.revision, 'moving does not change the network');
+		assert.equal(moved.data.layoutRevision, before.layoutRevision + 1);
+		assert.equal(moved.data.devices.find((d) => d.id === source.id).slot, target.slot);
+		assert.equal(moved.data.devices.find((d) => d.id === target.id).slot, source.slot);
+		assert.equal(moved.data.devices.find((d) => d.id === source.id).revision, source.revision, 'configuration draft stays valid');
+		assert.deepEqual(moved.data.links, before.links, 'moving never reconnects a cable');
+		assert.equal((await run(a, body, id)).data.layoutRevision, moved.data.layoutRevision, 'retry does not swap back');
+		assert.equal((await run(a, body)).status, 409, 'a stale tab cannot overwrite a placement');
+		assert.equal((await read(b)).devices.find((d) => d.id === source.id).slot, target.slot, 'peers see the saved place');
+		const bBefore = await read(b);
+		const race = await Promise.all([6, 7].map((slot) => run(a, { ...body, slot, layoutRevision: moved.data.layoutRevision })));
+		assert.deepEqual(race.map((r) => r.status).sort(), [200, 409], 'only one same-version move commits');
+		assert.equal((await run(b, { action: 'move', deviceId: bp.id, slot: 4, layoutRevision: bBefore.layoutRevision })).status, 200, 'different owners have independent layouts');
+		const latest = await read();
+		assert.equal(new Set(latest.devices.filter((d) => d.owner === ar.me).map((d) => d.slot)).size, 2);
 	});
 
 	await t.test('recipient chooses its own free port; acceptance and retries create exactly one cable', async () => {
@@ -108,6 +184,46 @@ test('shared VLAN API: membership, consent, atomic ports, saved drafts and resta
 		const ping = await call(a, `${path}/ping`, { from: ap.id, to: bp.id });
 		assert.equal(ping.data.ok, true); assert.equal(ping.data.revision, connected.revision);
 		assert.equal((await call(b, `${path}/ping`, { from: bp.id, to: ap.id })).data.ok, true);
+	});
+
+	await t.test('shared ping is room-scoped, bounded, retry-safe and invalidated by network edits', async () => {
+		const before = await read(), requestId = randomUUID();
+		const body = { from: ap.id, to: bp.id, requestId };
+		assert.equal((await call(outsider, `${path}/ping`, body)).status, 404);
+		assert.equal((await call(b, `${path}/ping`, body)).status, 403);
+		assert.equal((await call(a, `${path}/ping`, { ...body, to: as.id })).status, 400);
+		const sent = await call(a, `${path}/ping`, body);
+		assert.equal(sent.status, 200); assert.equal(sent.data.ok, true);
+		assert.equal(sent.data.serverNow, now);
+		assert.equal(sent.data.startsAt, now + 2800);
+		assert.ok(sent.data.steps.some((step) => step.phase === 'request'));
+		assert.ok(sent.data.steps.some((step) => step.phase === 'reply'));
+		const observed = await read(c);
+		assert.equal(observed.revision, before.revision, 'ping never changes the network');
+		assert.equal(observed.pings[0].id, sent.data.id);
+		assert.equal(observed.pings[0].by, ar.me, 'only the room member ID is shared');
+		assert.equal((await call(a, `${path}/ping`, body)).data.id, sent.data.id);
+		assert.equal((await read()).pings.length, 1, 'retry does not rebroadcast');
+		assert.equal((await call(a, `${path}/ping`, { ...body, to: owned(cr, 'pc').id })).status, 409);
+		assert.equal((await call(a, `${path}/ping`, { ...body, requestId: randomUUID() })).status, 429);
+		const other = (await call(teacher, `${root}/rooms`, { title: 'Annet rom' })).data;
+		assert.deepEqual(other.pings, []);
+		assert.equal((await call(teacher, `${root}/rooms/${other.id}/ping`, body)).status, 409, 'a device outside this room is unavailable, as for other commands');
+		const member = before.members.find((m) => m.id === br.me);
+		const documented = await run(b, { action: 'document', revision: member.documentRevision, areaName: member.areaName, notes: 'Returveien er undersøkt.' });
+		assert.equal(documented.status, 200); assert.equal(documented.data.pings[0].id, sent.data.id);
+		const placement = await read();
+		const moved = await run(a, { action: 'move', deviceId: ap.id, slot: 3, layoutRevision: placement.layoutRevision });
+		assert.equal(moved.status, 200); assert.equal(moved.data.pings[0].id, sent.data.id, 'a shared ping survives placement changes');
+		now = sent.data.startsAt + sent.data.duration;
+		assert.equal((await call(a, `${path}/ping`, { ...body, requestId: randomUUID() })).status, 200);
+		const paused = await run(teacher, { action: 'pause', paused: true });
+		assert.deepEqual(paused.data.pings, [], 'events for the old revision are not replayed');
+		assert.equal((await call(a, `${path}/ping`, { ...body, requestId: randomUUID() })).status, 409);
+		await run(teacher, { action: 'pause', paused: false });
+		now += 30000;
+		assert.deepEqual((await read()).pings, []);
+		assert.equal(db.prepare('SELECT COUNT(*) AS n FROM vlan_pings WHERE room_id=?').get(initial.id).n, 0);
 	});
 
 	await t.test('simultaneous acceptance cannot reuse a port, and a redundant switch loop is rejected', async () => {
@@ -146,6 +262,8 @@ test('shared VLAN API: membership, consent, atomic ports, saved drafts and resta
 		assert.equal((await run(a, { action: 'pause', paused: true })).status, 403);
 		assert.equal((await run(teacher, { action: 'pause', paused: true })).status, 200);
 		assert.equal((await run(a, { action: 'add', kind: 'pc' })).status, 409);
+		assert.equal((await run(a, { action: 'move', deviceId: ap.id, slot: 0, layoutRevision: (await read()).layoutRevision })).status, 409);
+		assert.equal((await run(a, { action: 'document', revision: 1, areaName: 'Pause', notes: 'Endring under pause' })).status, 409);
 		assert.equal((await call(outsider, `${root}/join`, { roomId: initial.id })).status, 409);
 		const pausedMember = await call(a, `${root}/join`, { roomId: initial.id });
 		assert.equal(pausedMember.status, 200, 'an existing member can reopen a paused room');
@@ -158,6 +276,8 @@ test('shared VLAN API: membership, consent, atomic ports, saved drafts and resta
 		const before = await read(); await stop(); db.close(); db = openDatabase(filename); await start();
 		const after = await read();
 		assert.deepEqual(after.devices, before.devices); assert.deepEqual(after.links, before.links);
+		assert.deepEqual(after.members, before.members);
+		assert.equal(after.members.find((m) => m.id === ar.me).areaName, 'Pakkeparadiset');
 		assert.equal((await run(a, { action: 'add', kind: 'router', owner: br.me }, addId)).data.devices.length, before.devices.length);
 		assert.equal((await call(a, `${path}/ping`, { from: ap.id, to: bp.id })).data.ok, true);
 		assert.equal(db.prepare('SELECT COUNT(*) AS n FROM rewards').get().n, 0);
@@ -172,7 +292,10 @@ test('shared VLAN API: membership, consent, atomic ports, saved drafts and resta
 		assert.equal((await run(a, { action: 'remove', deviceId: as.id })).status, 409, 'connected devices must be unplugged first');
 		const link = state.links.find((l) => l.a === as.id && l.b === bs.id);
 		assert.equal((await run(b, { action: 'disconnect', id: link.id })).status, 200, 'either endpoint owner may unplug');
+		const cp = owned(cr, 'pc');
+		assert.equal((await call(c, `${path}/ping`, { from: cp.id, to: ap.id, requestId: randomUUID() })).status, 200);
 		db.prepare('DELETE FROM users WHERE id=?').run(c.id);
+		assert.equal(db.prepare('SELECT COUNT(*) AS n FROM vlan_pings WHERE member_id=?').get(cr.me).n, 0);
 		state = await read();
 		assert.equal(state.members.some((m) => m.id === cr.me), false);
 		assert.equal(state.devices.some((d) => d.owner === cr.me), false);

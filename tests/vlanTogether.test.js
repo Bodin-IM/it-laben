@@ -115,7 +115,7 @@ test('shared VLAN: labpartner contract excludes room and peer data, configuratio
 	const values = { deviceKind: 'switch', action: 'connect', hasRun: true, stale: false, revision: 3 };
 	const state = { version: ADAPTER_VERSION, values };
 	assert.deepEqual(readPartnerState('vlan-sammen', state).values, values);
-	for (const extra of [{ code: 'ABC123' }, { name: 'Elev' }, { devices: [] }, { result: { ok: true } }, { deviceKind: 'ap' }, { revision: -1 }, { localTaskKey: 'room-id' }])
+	for (const extra of [{ areaName: 'Mitt område' }, { notes: 'Privat nettverksnotat' }, { code: 'ABC123' }, { name: 'Elev' }, { devices: [] }, { result: { ok: true } }, { deviceKind: 'ap' }, { revision: -1 }, { localTaskKey: 'room-id' }])
 		assert.throws(() => readPartnerState('vlan-sammen', { ...state, values: { ...values, ...extra } }));
 	assert.throws(() => readPartnerState('vlan-sammen', { ...state, version: 99 }));
 	const work = pageWork(partnerPageById('vlan-sammen'), state);

@@ -3,9 +3,16 @@ import { randomBytes, randomUUID, createHash } from 'node:crypto';
 import { transaction } from './database.js';
 import { requireTeacher, learningError } from './learning-access.js';
 import { defaultDeviceConfig, devicePorts, portLink, validateTogetherConfig, pingTogether } from '../src/lib/vlanTogether.js';
+import { deviceSlots, movedSlots, SLOT_COUNT } from '../src/lib/vlanTogetherLayout.js';
 
 const problem = (message, status = 400) => learningError('NETWORK_ROOM', message, status);
 const uuid = (id) => typeof id === 'string' && /^[a-f0-9]{8}(?:-[a-f0-9]{4}){3}-[a-f0-9]{12}$/i.test(id);
+function normalizeLayout(state) {
+	const slots = deviceSlots(state.devices);
+	for (const d of state.devices) d.slot = slots[d.id];
+	state.layoutRevisions ??= {};
+}
+function changedLayout(state, owner) { state.layoutRevisions[owner] = (state.layoutRevisions[owner] ?? 0) + 1; }
 function name(value) {
 	if (typeof value !== 'string' || !value.trim() || value.trim().length > 40) throw problem('Bruk et navn på 1–40 tegn.');
 	return value.trim();
@@ -14,8 +21,9 @@ function roomFor(db, roomId, userId) {
 	const room = db.prepare('SELECT * FROM vlan_rooms WHERE id=?').get(roomId);
 	const me = db.prepare('SELECT * FROM vlan_members WHERE room_id=? AND user_id=?').get(roomId, userId);
 	if (!room || !me) throw problem('Du er ikke med i dette rommet. Velg rommet i romlisten først.', 404);
-	const members = db.prepare('SELECT m.id,m.last_seen,u.nickname FROM vlan_members m JOIN users u ON u.id=m.user_id WHERE room_id=? ORDER BY m.rowid').all(roomId);
+	const members = db.prepare('SELECT m.id,m.last_seen,m.area_name,m.notes,m.document_revision,u.nickname FROM vlan_members m JOIN users u ON u.id=m.user_id WHERE room_id=? ORDER BY m.rowid').all(roomId);
 	const state = JSON.parse(room.state);
+	normalizeLayout(state);
 	// Account deletion cascades membership; remove its graph before any read or write.
 	const alive = new Set(members.map((m) => m.id));
 	const before = state.devices.length;
@@ -24,12 +32,13 @@ function roomFor(db, roomId, userId) {
 		const ids = new Set(state.devices.map((d) => d.id));
 		state.links = state.links.filter((l) => ids.has(l.a) && ids.has(l.b));
 		state.requests = state.requests.filter((r) => ids.has(r.source) && ids.has(r.target));
+		state.layoutRevisions = Object.fromEntries(Object.entries(state.layoutRevisions).filter(([id]) => alive.has(id)));
 		save(db, room, state);
 	}
 	return { room, me, members, state };
 }
-function save(db, room, state) {
-	room.revision++;
+function save(db, room, state, networkChanged = true) {
+	if (networkChanged) room.revision++;
 	db.prepare('UPDATE vlan_rooms SET state=?,revision=?,paused=? WHERE id=?').run(JSON.stringify(state), room.revision, room.paused, room.id);
 }
 function addMember(db, room, userId, now) {
@@ -38,14 +47,15 @@ function addMember(db, room, userId, now) {
 	const count = db.prepare('SELECT COUNT(*) AS n FROM vlan_members WHERE room_id=?').get(room.id).n;
 	if (count >= 24) throw problem('Rommet har 24 deltakere. Be læreren opprette et nytt rom.', 409);
 	const id = randomUUID(), sw = randomUUID(), pc = randomUUID();
-	db.prepare('INSERT INTO vlan_members VALUES (?,?,?,?)').run(id, room.id, userId, now);
+	db.prepare('INSERT INTO vlan_members(id,room_id,user_id,last_seen) VALUES (?,?,?,?)').run(id, room.id, userId, now);
 	const state = JSON.parse(room.state);
+	normalizeLayout(state);
 	// Find an unused starting address even if an earlier member deleted their account.
 	const used = new Set(state.devices.flatMap((d) => d.kind === 'pc' ? [d.config.ip] : d.kind === 'router' ? d.config.interfaces.map((i) => i.ip) : []));
 	let host = 11; while (used.has(`10.10.10.${host}`)) host++;
 	state.devices.push(
-		{ id: sw, owner: id, kind: 'switch', name: 'S1', revision: 0, config: defaultDeviceConfig('switch') },
-		{ id: pc, owner: id, kind: 'pc', name: 'PC1', revision: 0, config: { ip: `10.10.10.${host}`, gateway: '' } }
+		{ id: sw, owner: id, kind: 'switch', name: 'S1', slot: 0, revision: 0, config: defaultDeviceConfig('switch') },
+		{ id: pc, owner: id, kind: 'pc', name: 'PC1', slot: 1, revision: 0, config: { ip: `10.10.10.${host}`, gateway: '' } }
 	);
 	state.links.push({ id: randomUUID(), a: sw, aPort: 'eth0', b: pc, bPort: 'eth0' });
 	save(db, room, state);
@@ -53,11 +63,15 @@ function addMember(db, room, userId, now) {
 function snapshot(db, roomId, userId, now) {
 	const { room, me, members, state } = roomFor(db, roomId, userId);
 	db.prepare('UPDATE vlan_members SET last_seen=? WHERE id=?').run(now, me.id);
+	db.prepare('DELETE FROM vlan_pings WHERE room_id=? AND expires_at<=?').run(roomId, now);
 	return {
 		id: room.id, title: room.title, owner: room.owner_id === userId,
 		me: me.id, paused: !!room.paused, revision: room.revision,
-		members: members.map((m) => ({ id: m.id, name: m.nickname, online: m.id === me.id || now - m.last_seen < 15000 })),
+		layoutRevision: state.layoutRevisions[me.id] ?? 0,
+		members: members.map((m) => ({ id: m.id, name: m.nickname, areaName: m.area_name, notes: m.notes, documentRevision: m.document_revision, online: m.id === me.id || now - m.last_seen < 15000 })),
 		devices: state.devices, links: state.links,
+		serverNow: now,
+		pings: db.prepare('SELECT payload FROM vlan_pings WHERE room_id=? AND revision=? ORDER BY created_at DESC,id DESC LIMIT 64').all(roomId, room.revision).map((p) => JSON.parse(p.payload)),
 		requests: state.requests.filter((r) => r.expires > now && (r.from === me.id || r.to === me.id))
 	};
 }
@@ -105,12 +119,31 @@ function command(db, roomId, userId, input, now) {
 	if (room.paused && input.action !== 'pause') throw problem('Læreren har satt rommet på pause. Oppsettet kan fortsatt leses.', 409);
 	state.requests = state.requests.filter((r) => r.expires > now);
 	switch (input.action) {
+		case 'move': {
+			const d = own(state, input.deviceId, me.id);
+			if (!Number.isInteger(input.slot) || input.slot < 0 || input.slot >= SLOT_COUNT) throw problem('Velg en plass i ditt eget område.');
+			if (input.layoutRevision !== (state.layoutRevisions[me.id] ?? 0)) throw problem('Plasseringen er endret i en annen fane. Brettet oppdateres; prøv flyttingen igjen.', 409);
+			const slots = movedSlots(state.devices, d.id, input.slot);
+			for (const item of state.devices.filter((item) => item.owner === me.id)) item.slot = slots[item.id];
+			changedLayout(state, me.id); break;
+		}
+		case 'document': {
+			if (input.revision !== me.document_revision) throw problem('Dokumentasjonen er endret i en annen fane. Kopier det du vil beholde, og hent lagret tekst før du prøver igjen.', 409);
+			if (typeof input.areaName !== 'string' || input.areaName.trim().length > 40 || /[\r\n\t]/.test(input.areaName)) throw problem('Områdenavnet kan ha opptil 40 tegn på én linje.');
+			if (typeof input.notes !== 'string' || input.notes.length > 2000 || Buffer.byteLength(input.notes, 'utf8') > 6000) throw problem('Bruk opptil 2000 tegn i dokumentasjonen. Kort ned teksten hvis den inneholder mange spesialtegn.');
+			// The account's own membership is authoritative; no client owner/member ID is used.
+			db.prepare('UPDATE vlan_members SET area_name=?,notes=?,document_revision=document_revision+1 WHERE id=?').run(input.areaName.trim(), input.notes, me.id);
+			break;
+		}
 		case 'add': {
 			if (!['pc', 'switch', 'router'].includes(input.kind)) throw problem('Velg PC, switch eller ruter.');
 			if (state.devices.filter((d) => d.owner === me.id).length >= 8) throw problem('Ditt område har plass til åtte enheter.', 409);
 			const prefix = { pc: 'PC', switch: 'S', router: 'R' }[input.kind];
 			let n = 1; while (state.devices.some((d) => d.owner === me.id && d.name === `${prefix}${n}`)) n++;
-			state.devices.push({ id: randomUUID(), owner: me.id, kind: input.kind, name: `${prefix}${n}`, revision: 0, config: defaultDeviceConfig(input.kind) }); break;
+			const occupied = new Set(state.devices.filter((d) => d.owner === me.id).map((d) => d.slot));
+			let slot = 0; while (occupied.has(slot)) slot++;
+			state.devices.push({ id: randomUUID(), owner: me.id, kind: input.kind, name: `${prefix}${n}`, slot, revision: 0, config: defaultDeviceConfig(input.kind) });
+			changedLayout(state, me.id); break;
 		}
 		case 'configure': {
 			const d = own(state, input.deviceId, me.id);
@@ -122,10 +155,12 @@ function command(db, roomId, userId, input, now) {
 			const d = own(state, input.deviceId, me.id);
 			if (state.links.some((l) => l.a === d.id || l.b === d.id)) throw problem('Koble fra kablene før du fjerner enheten.', 409);
 			state.devices = state.devices.filter((item) => item.id !== d.id);
+			changedLayout(state, me.id);
 			state.requests = state.requests.filter((r) => r.source !== d.id && r.target !== d.id); break;
 		}
 		case 'connect':
-			own(state, input.source, me.id); own(state, input.target, me.id);
+			own(state, input.source, me.id);
+			if (own(state, input.target, me.id).kind === 'pc') throw problem('Avslutt kabelen på en switch eller ruter. En PC kobles ved å starte fra PC-en.');
 			connect(state, input.source, input.port, input.target, input.targetPort); break;
 		case 'request': {
 			const source = own(state, input.source, me.id), target = device(state, input.target);
@@ -157,7 +192,8 @@ function command(db, roomId, userId, input, now) {
 			room.paused = Number(input.paused); break;
 		default: throw problem('Ukjent handling.');
 	}
-	save(db, room, state);
+	// Documentation and physical placement do not change the simulated network.
+	if (input.action !== 'document') save(db, room, state, input.action !== 'move');
 	db.prepare('INSERT INTO vlan_commands VALUES (?,?,?,?)').run(roomId, me.id, input.requestId, fingerprint);
 }
 
@@ -204,9 +240,30 @@ export function vlanTogetherRouter({ db, authenticated, clock }) {
 	})));
 	router.post('/rooms/:roomId/ping', (req, res) => res.json(transaction(db, () => {
 		const { room, me, state } = roomFor(db, req.params.roomId, req.labUser.id);
-		const from = own(state, req.body.from, me.id); device(state, req.body.to);
-		if (from.kind !== 'pc') throw problem('Start ping fra en av dine PC-er.');
-		return { ...pingTogether(state, from.id, req.body.to), revision: room.revision };
+		const from = own(state, req.body.from, me.id), to = device(state, req.body.to), now = clock();
+		if (from.kind !== 'pc' || to.kind !== 'pc' || from.id === to.id) throw problem('Velg din avsender-PC og en annen PC som mottaker.');
+		// Old clients may still send a private probe. The board tool always sends an ID.
+		if (req.body.requestId === undefined) return { ...pingTogether(state, from.id, to.id), revision: room.revision };
+		if (!uuid(req.body.requestId)) throw problem('Ping mangler en gyldig forespørsels-ID.');
+		db.prepare('DELETE FROM vlan_pings WHERE room_id=? AND expires_at<=?').run(room.id, now);
+		const previous = db.prepare('SELECT payload FROM vlan_pings WHERE room_id=? AND member_id=? AND request_id=?').get(room.id, me.id, req.body.requestId);
+		if (previous) {
+			const ping = JSON.parse(previous.payload);
+			if (ping.from !== from.id || ping.to !== to.id) throw problem('Denne ping-ID-en er allerede brukt til et annet mål.', 409);
+			return { ...ping, serverNow: now };
+		}
+		if (room.paused) throw problem('Læreren har satt rommet på pause.', 409);
+		const active = db.prepare('SELECT payload FROM vlan_pings WHERE room_id=? AND member_id=? AND revision=? ORDER BY created_at DESC LIMIT 1').get(room.id, me.id, room.revision);
+		if (active) {
+			const ping = JSON.parse(active.payload);
+			if (now < ping.startsAt + ping.duration) throw problem('Vent til din forrige ping er ferdig før du sender en ny.', 429);
+		}
+		const result = pingTogether(state, from.id, to.id);
+		const startsAt = now + 2800, duration = Math.max(4000, Math.min(18000, result.steps.length * 650));
+		const ping = { ...result, id: randomUUID(), by: me.id, from: from.id, to: to.id, revision: room.revision, startsAt, duration, expiresAt: startsAt + duration + 8000 };
+		db.prepare('INSERT INTO vlan_pings VALUES (?,?,?,?,?,?,?,?)').run(ping.id, room.id, me.id, req.body.requestId, now, ping.expiresAt, room.revision, JSON.stringify(ping));
+		db.prepare('DELETE FROM vlan_pings WHERE room_id=? AND id NOT IN (SELECT id FROM vlan_pings WHERE room_id=? ORDER BY created_at DESC,id DESC LIMIT 64)').run(room.id, room.id);
+		return { ...ping, serverNow: now };
 	})));
 	return router;
 }

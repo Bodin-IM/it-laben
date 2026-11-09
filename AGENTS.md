@@ -29,8 +29,19 @@ Ved utvikling eller endring av moduler, aktiviteter, undervisning, leksjoner og 
 - Legg inn eller beskriv en beslektet oppgave med mindre støtte for å undersøke overføring. Den kan ligge i lærerens opplegg; hver liten side trenger ikke alle fasene.
 - Bruk felles komponenter og temavariabler. Sørg for lesbarhet, tastaturbetjening, mobilbruk, tydelig progresjon og hjelp som eleven kan åpne ved behov.
 - Hovedmenyen eies av `src/routes/+layout.svelte` og `LabHeader.svelte`. Nye sider skal arve denne, ikke lage en egen toppmeny, kontolenke eller temavelger. Lærersider bruker `TeacherShell.svelte`; lokale stegmenyer og relaterte lenker hører til sideinnholdet. Gi sidens eneste `main` element `id="hovedinnhold"` og `tabindex="-1"`, slik at den felles hopplenken virker. Se [felles navigasjon og design](docs/felles-navigasjon.md).
+- Ved brukerutløste hopp til et annet sted på samme side: bruk myk rulling, behold tydelig tastaturfokus og respekter både nettstedets innstilling og operativsystemets valg for redusert bevegelse. Gjenbruk `createViewNavigation` i `src/lib/viewNavigation.js` og `reducedMotion` fra `labPreferences.js`. Automatisk polling og andre elevers handlinger skal ikke rulle eller flytte fokus. Første plassering ved åpning av et stort brett kan gjøres uten animasjon.
 - Gjør brukerens plassering, handlinger og systemets status forståelige. Bruk WCAG 2.2 nivå AA som arbeidsmål for nye og vesentlig endrede brukerflyter. Skill forskningsfunn, standardkrav og lokale designvalg; en bestemt kortfarge eller tekststørrelse er ikke et forskningskrav.
 - Bruk grunnlagene innenfor oppgavens omfang. Ikke endre andre aktiviteter, eksisterende XP-regler eller vurderingsordninger som en sideeffekt. Hvis brukeren ber om et annet pedagogisk valg eller designvalg, følg den avklarte retningen og dokumenter begrunnelsen kort.
+
+## Fast oppsett for kodeeksempler
+
+Nye og vesentlig reviderte kodeeksempler i modulsamlingene skal følge oppsettet brukeren har valgt for backendeksemplene. Les [standarden for nye kodeeksempler](docs/kodeeksempler.md#standard-for-nye-kodeeksempler) før du lager dem.
+
+- Gi en kort forklaring på hva eksemplet viser. Eksemplene er en alternativ arbeidsmåte med lite interaktivitet: kode, kopiering og linjeforklaring. Ikke legg til simulator, oppgavesteg eller kontrollspørsmål uten at brukeren ber om det.
+- Vis relevant kode først: hele aktuelle endpoints/funksjoner og tilhørende HTML i frontend, inkludert løkker eller betingelser som trengs for å forstå plasseringen. Behold nødvendig validering og feilhåndtering i blokken; unngå løsrevne enkeltlinjer.
+- Skjul øvrig oppsett og andre funksjoner fra start. Bruk «Vis hele koden» / «Skjul resten av koden» for hele filen. Ta med sammenhengende frontend og backend når eksemplet handler om samspillet mellom dem, med filplassering og nødvendig oppsett i helvisningen.
+- Fremhev de viktigste linjene, og gi forklaring ved klikk eller tastatur på hver kodelinje. Utdrag og helvisning skal bruke samme kilde, linje-ID-er og forklaringer.
+- Gjenbruk `ModuleCodeExamples` og `AnnotatedCode`. Kopieringsknappen skal tydelig skille mellom utdrag og hele filen, og kopiere det valgte omfanget.
 
 ## Før publisering til main
 
