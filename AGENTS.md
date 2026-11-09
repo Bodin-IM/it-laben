@@ -33,6 +33,16 @@ Ved utvikling eller endring av moduler, aktiviteter, undervisning, leksjoner og 
 - Gjør brukerens plassering, handlinger og systemets status forståelige. Bruk WCAG 2.2 nivå AA som arbeidsmål for nye og vesentlig endrede brukerflyter. Skill forskningsfunn, standardkrav og lokale designvalg; en bestemt kortfarge eller tekststørrelse er ikke et forskningskrav.
 - Bruk grunnlagene innenfor oppgavens omfang. Ikke endre andre aktiviteter, eksisterende XP-regler eller vurderingsordninger som en sideeffekt. Hvis brukeren ber om et annet pedagogisk valg eller designvalg, følg den avklarte retningen og dokumenter begrunnelsen kort.
 
+## Fast oppsett for kodeeksempler
+
+Nye og vesentlig reviderte kodeeksempler i modulsamlingene skal følge oppsettet brukeren har valgt for backendeksemplene. Les [standarden for nye kodeeksempler](docs/kodeeksempler.md#standard-for-nye-kodeeksempler) før du lager dem.
+
+- Gi en kort forklaring på hva eksemplet viser. Eksemplene er en alternativ arbeidsmåte med lite interaktivitet: kode, kopiering og linjeforklaring. Ikke legg til simulator, oppgavesteg eller kontrollspørsmål uten at brukeren ber om det.
+- Vis relevant kode først: hele aktuelle endpoints/funksjoner og tilhørende HTML i frontend, inkludert løkker eller betingelser som trengs for å forstå plasseringen. Behold nødvendig validering og feilhåndtering i blokken; unngå løsrevne enkeltlinjer.
+- Skjul øvrig oppsett og andre funksjoner fra start. Bruk «Vis hele koden» / «Skjul resten av koden» for hele filen. Ta med sammenhengende frontend og backend når eksemplet handler om samspillet mellom dem, med filplassering og nødvendig oppsett i helvisningen.
+- Fremhev de viktigste linjene, og gi forklaring ved klikk eller tastatur på hver kodelinje. Utdrag og helvisning skal bruke samme kilde, linje-ID-er og forklaringer.
+- Gjenbruk `ModuleCodeExamples` og `AnnotatedCode`. Kopieringsknappen skal tydelig skille mellom utdrag og hele filen, og kopiere det valgte omfanget.
+
 ## Før publisering til main
 
 - Gå gjennom sjekklisten i det pedagogiske grunnlaget. Beskriv kort hva eleven gjør, hva responsen forteller, og hvordan forståelsen kan undersøkes. Skill mellom det som er teknisk kontrollert og det som ennå må prøves med elever.

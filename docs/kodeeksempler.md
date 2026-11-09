@@ -1,5 +1,22 @@
 # Kodeeksempler under modulene – alternativ arbeidsmåte på dev
 
+## Standard for nye kodeeksempler
+
+Brukeren har valgt oppsettet nedenfor som fast praksis for nye og vesentlig reviderte kodeeksempler i alle modulsamlinger. Det er en lokal, avklart utformingsstandard; det innebærer ikke dokumentert læringseffekt.
+
+- Velg tema etter hva eleven trenger å gjøre i egen kode. Bruk en tydelig tittel og en kort forklaring, og vis hvor koden hører hjemme.
+- Start med et relevant utdrag. I backend vises hele aktuelle endpoints eller funksjoner. I frontend vises den aktuelle funksjonen og relevant HTML/Svelte-kode, med for eksempel hele `each`-løkken rundt en knapp som bruker meldingens ID. Behold validering og feilhåndtering som hører til blokken.
+- La oppsett og andre funksjoner være skjult fra start. Når slikt innhold finnes, skal «Vis hele koden» åpne den komplette filen, og «Skjul resten av koden» gå tilbake til utdraget. Fil-/eksempelbytte starter med utdraget igjen.
+- Gi tilstrekkelig helhet i full visning: filnavn og plassering, nødvendige imports, tilstand, hjelpefunksjoner og oppstart. Ved klient–server-samspill skal frontend og backend høre sammen, med samsvarende URL-er, felter og svarformater. Eleven skal kunne finne hvor utdraget plasseres og hva som skjer på begge sider.
+- Fremhev de sentrale linjene. Hver kodelinje med innhold skal ha en konkret forklaring som kan åpnes med mus eller tastatur. Behold de samme linjenumrene, ID-ene, forklaringene og markeringene i begge visninger.
+- Gjenbruk `ModuleCodeExamples`, `AnnotatedCode`, `CodeTokens` og `CodeExplanation`. Lag utdrag fra hele kildefilen gjennom `ExampleFile.excerpt`; ikke vedlikehold en separat kopi av utdragskoden. Kontroller at utvalget omfatter hele blokker.
+- La «Kopier utdrag» kopiere synlig kode og «Kopier hele koden» kopiere hele filen. Skilletekst, linjenumre, markeringer og forklaringer skal ikke følge med.
+- Hold eksemplene til kort introduksjon, kode, valgfri helvisning, kopiering og linjeforklaringer. Simulatorer, kontrollspørsmål og oppgavesteg hører til egne øvinger, med mindre brukeren ber om noe annet.
+
+Følg repoets vanlige arbeidsflyt: gjennomgå innhold og diff på dev, og prøv kode, visninger, kopiering og tilgjengelighet samlet før main. Standarden er skrevet inn i `AGENTS.md`, slik at den følger videre arbeid i repoet.
+
+## Dagens samling
+
 Modulsiden har valgene **Innhold** og **Kodeeksempler**. Eksempeloversikten viser kompakte kort med tittel. Når et eksempel åpnes, får koden hovedplassen og kortene en egen kolonne til høyre. På smale skjermer ligger en vannrett liste over koden. Modulinformasjon og øvingslisten vises under Innhold, slik at de ikke fortrenger eksemplet.
 
 Eksemplene velges etter hva eleven trenger å gjøre i egen kode. Antall øvinger og øvingssteg bestemmer ikke antall kort. Kortene har funksjonsnavn uten løpenummer; kildeøvingen ligger som en lenke under koden. Dette er brukerens avklarte retning for samlingen.
