@@ -43,19 +43,18 @@
 <PartnerContext pageId={`module-${moduleId}`} values={{ exampleId: example?.id ?? null, fileId: file?.id ?? null, lineId }} />
 
 <section class="examples" aria-labelledby="examples-title">
-	<div class="heading"><div><h2 id="examples-title" tabindex="-1">Kodeeksempler</h2><p>{example ? 'Bytt eksempel i listen. Trykk på koden for linjeforklaringer.' : 'Finn kode til det du skal lage. Velg et eksempel og trykk på en linje for å se hva den gjør.'}</p></div>{#if example}<a class="overview" href={href()} onclick={navigate}>Alle eksempler ↗</a>{/if}</div>
+	<div class="heading"><div><h2 id="examples-title" tabindex="-1">Kodeeksempler</h2>{#if !example}<p>Velg et eksempel og les koden i ditt eget tempo. Trykk på en linje for å se hva den gjør.</p>{/if}</div>{#if example}<a class="overview" href={href()} onclick={navigate}>Alle eksempler ↗</a>{/if}</div>
 	{#if exampleId && !example}<p role="status">Dette eksemplet finnes ikke i modulen. Velg et eksempel nedenfor.</p>{/if}
 	<div class="example-layout" class:opened={!!example}>
 		{#if example && file}
 			<article class="viewer" aria-labelledby="current-example">
 				<header><h3 id="current-example" tabindex="-1">{example.title}</h3><p>{example.summary}</p></header>
-				{#if example.files.length > 1}<nav class="files" aria-label="Velg kodevariant">{#each example.files as item}<a href={href(example.id, item.id)} onclick={navigate} class:active={file.id === item.id} aria-current={file.id === item.id ? 'true' : undefined}>{item.label}</a>{/each}</nav>{/if}
+				{#if example.files.length > 1}<nav class="files" aria-label="Velg kodefil eller variant">{#each example.files as item}<a href={href(example.id, item.id)} onclick={navigate} class:active={file.id === item.id} aria-current={file.id === item.id ? 'true' : undefined}>{item.label}</a>{/each}</nav>{/if}
 				<div id="eksempelkode" tabindex="-1"><p class="context">{file.context}</p>
 					{#key fileKey}<AnnotatedCode {file} onselect={(id) => selection = { key: fileKey, lineId: id }} />{/key}
 				</div>
 				{#if related.length}<nav class="related" aria-label="Kode som hører sammen"><strong>Hører sammen med:</strong>{#each related as item}<a href={href(item.id)} onclick={navigate}>{item.title} →</a>{/each}</nav>{/if}
 				<a class="source-link" href={moduleLink(example.sourceHref, moduleId)}>Åpne øvingen: {example.sourceTitle} →</a>
-				<p class="small">Koden vises her. Den kjøres og prøves i øvingen eller ditt eget prosjekt.</p>
 			</article>
 		{/if}
 		<nav class="example-picker" aria-label="Kodeeksempler i modulen">
@@ -78,7 +77,7 @@
 	.example-layout { min-width: 0; }
 	.opened { display: grid; grid-template-columns: minmax(0, 1fr) 17rem; gap: 24px; align-items: start; }
 	.viewer { min-width: 0; }
-	.context, .small { color: var(--color-text-muted); font-size: var(--font-small); }
+	.context { color: var(--color-text-muted); font-size: var(--font-small); }
 	.context { margin-top: 0; }
 	.example-picker ul { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 16rem), 1fr)); gap: 10px; }
 	.example-picker li { min-width: 0; }
