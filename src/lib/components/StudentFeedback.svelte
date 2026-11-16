@@ -8,7 +8,7 @@
 	import { connection, secureHref } from '#lib/connection.js';
 	import { feedbackCategories, feedbackMaxLength, feedbackPage } from '#lib/feedback.js';
 	import { feedbackRequest } from '#lib/feedbackClient.js';
-	import { feedbackAnswers } from '#lib/activityFeedback.js';
+	import { feedbackAnswers, feedbackActivity } from '#lib/activityFeedback.js';
 	import ActivityFeedbackPrompt from '#lib/components/ActivityFeedbackPrompt.svelte';
 	import FeedbackPromptSettings from '#lib/components/FeedbackPromptSettings.svelte';
 	import { getInterfaceHelp } from '#lib/interfaceHelp.js';
@@ -146,7 +146,7 @@
 </script>
 
 <ActivityFeedbackPrompt
-	enabled={visible && !opened && !message.trim() && !$rewardNotice && !$interfaceHelp.active && $labPreferences.companion}
+	enabled={visible && feedbackActivity(page.url.pathname) !== null && !opened && !message.trim() && !$rewardNotice && !$interfaceHelp.active}
 	{avatar}
 	oncomment={openForPrompt}
 	onclose={() => launcher?.focus({ preventScroll: true })}
@@ -212,7 +212,7 @@
 	{#if survey && !sent}<p><strong>{survey.prompt.question}</strong> {feedbackAnswers.find((item) => item.id === survey?.answer)?.label}</p>{/if}
 	{#if source}<div class="source">
 			<span>Gjelder siden</span><strong>{source.title}</strong><code>{source.href}</code><small
-				>{survey ? 'Siden følger svaret ditt på oppgaven.' : 'Siden ble lagt ved automatisk da du åpnet skjemaet.'}</small
+				>{survey ? 'Siden følger svaret ditt på spørsmålet.' : 'Siden ble lagt ved automatisk da du åpnet skjemaet.'}</small
 			>
 			{#if !sent && source.href !== currentPage?.href}
 				<small>Du har gått videre til en annen side. Utkastet gjelder fortsatt siden over.</small>
@@ -223,7 +223,7 @@
 		</div>{/if}
 	{#if sent}
 		<div class="actions">
-			<button class="primary" onclick={close}>Tilbake til oppgaven</button><button
+			<button class="primary" onclick={close}>Tilbake til siden</button><button
 				class="secondary"
 				onclick={reset}>Send en ny tilbakemelding</button
 			>

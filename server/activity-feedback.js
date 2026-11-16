@@ -1,4 +1,4 @@
-import { feedbackPilot, feedbackQuestion, feedbackAnswers } from '../src/lib/activityFeedback.js';
+import { feedbackActivities, feedbackAnswers, feedbackSchoolDay } from '../src/lib/activityFeedback.js';
 import { feedbackPage } from '../src/lib/feedback.js';
 import { transaction } from './database.js';
 import { isTeacher, requireAdmin, learningError } from './learning-access.js';
@@ -32,28 +32,30 @@ function publicPrompt(row) {
 export function offerFeedbackPrompt(db, userId, body, now) {
 	requireStudent(db, userId);
 	keys(body, ['id', 'activityId', 'version', 'pageHref', 'trigger']);
-	const activity = feedbackPilot.find((item) => item.id === body.activityId && item.version === body.version);
+	const activity = feedbackActivities.find((item) => item.id === body.activityId && item.version === body.version);
 	const page = feedbackPage(body.pageHref);
 	if (!activity || page?.path !== activity.href ||
 		typeof body.id !== 'string' || !/^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(body.id) ||
 		!['run-finished', 'left-activity'].includes(body.trigger))
-		throw new TypeError('Ukjent oppgave eller oppgaveversjon.');
-	const day = new Intl.DateTimeFormat('en-CA', { timeZone: 'Europe/Oslo', year: 'numeric', month: '2-digit', day: '2-digit' }).format(now);
+		throw new TypeError('Ukjent side eller sideversjon.');
+	const day = feedbackSchoolDay(now);
 	return transaction(db, () => {
 		const existing = db.prepare('SELECT * FROM activity_feedback_prompts WHERE id=?').get(body.id);
 		if (existing && (existing.user_id !== userId || existing.activity_id !== activity.id ||
 			existing.activity_version !== activity.version || existing.page_href !== page.href || existing.trigger !== body.trigger))
 			throw learningError('FEEDBACK_CONFLICT', 'Forespørselen tilhører et annet forsøk.');
 		if (!feedbackPreferences(db, userId).enabled) return { prompt: null };
-		if (existing) return { prompt: existing.answer || existing.dismissed_at !== null ? null : publicPrompt(existing) };
+		if (existing) return { prompt: existing.answer || existing.dismissed_at !== null ? null : publicPrompt(existing), schoolDay: existing.school_day };
 		// Reserving the invitation and checking both caps is one transaction, across tabs/devices.
-		if (db.prepare('SELECT id FROM activity_feedback_prompts WHERE user_id=? AND (school_day=? OR (activity_id=? AND activity_version=?))')
-			.get(userId, day, activity.id, activity.version)) return { prompt: null };
+		if (db.prepare('SELECT id FROM activity_feedback_prompts WHERE user_id=? AND school_day=?').get(userId, day))
+			return { prompt: null, schoolDay: day };
+		if (db.prepare('SELECT id FROM activity_feedback_prompts WHERE user_id=? AND activity_id=? AND activity_version=?')
+			.get(userId, activity.id, activity.version)) return { prompt: null };
 		db.prepare(`INSERT INTO activity_feedback_prompts
 			(id,user_id,activity_id,activity_version,activity_title,question_id,question_text,page_href,trigger,school_day,created_at)
 			VALUES (?,?,?,?,?,?,?,?,?,?,?)`).run(body.id, userId, activity.id, activity.version, activity.title,
-			feedbackQuestion.id, feedbackQuestion.text, page.href, body.trigger, day, now);
-		return { prompt: publicPrompt(db.prepare('SELECT * FROM activity_feedback_prompts WHERE id=?').get(body.id)) };
+			activity.question.id, activity.question.text, page.href, body.trigger, day, now);
+		return { prompt: publicPrompt(db.prepare('SELECT * FROM activity_feedback_prompts WHERE id=?').get(body.id)), schoolDay: day };
 	});
 }
 export function respondToFeedbackPrompt(db, userId, id, body, now) {

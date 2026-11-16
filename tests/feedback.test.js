@@ -10,7 +10,7 @@ import { createApp } from '../server/app.js';
 import { readConfig } from '../server/config.js';
 import { feedbackPage } from '../src/lib/feedback.js';
 import { saveFeedback, listFeedback, setFeedbackStatus } from '../server/feedback.js';
-import { feedbackPilot } from '../src/lib/activityFeedback.js';
+import { feedbackActivities } from '../src/lib/activityFeedback.js';
 import { offerFeedbackPrompt, respondToFeedbackPrompt, feedbackPreferences, setFeedbackPreferences, feedbackTotals } from '../server/activity-feedback.js';
 
 function submission(overrides = {}) {
@@ -24,7 +24,7 @@ function submission(overrides = {}) {
 	};
 }
 function invitation(activityId = 'oving-5', overrides = {}) {
-	const activity = feedbackPilot.find((item) => item.id === activityId);
+	const activity = feedbackActivities.find((item) => item.id === activityId);
 	return { id: randomUUID(), activityId, version: activity.version, pageHref: activity.href, trigger: 'run-finished', ...overrides };
 }
 async function fixture(t, secure = false) {
@@ -95,12 +95,15 @@ test('feedback: kjent side og fag/modul/steg beholdes, vilkårlige parametre og 
 		'https://example.com/backend/',
 		'//example.com/backend/',
 		'/\\example.com/',
-		'/laerer/elever/?elev=123',
+		'/laerer/ukjent/?elev=123',
 		'/ukjent/',
 		null
 	])
 		assert.equal(feedbackPage(value), null);
 	assert.equal(feedbackPage('/backend/?modul=ukjent').href, '/backend/');
+	assert.deepEqual(feedbackPage('/laerer/elever?elev=123&token=hemmelig'), {
+		path: '/laerer/elever/', href: '/laerer/elever/', title: 'Elever · lærer'
+	});
 	assert.equal(
 		feedbackPage('/databaser/grunnlag/?del=tilkobling&token=hemmelig').href,
 		'/databaser/grunnlag/?del=tilkobling'
@@ -203,7 +206,7 @@ test('feedback: Origin, CSRF, konto, validering og duplikatvern håndheves på b
 		{ message: 'x'.repeat(2001) },
 		{ category: 'unknown' },
 		{ pageHref: '//evil.invalid/' },
-		{ pageHref: '/laerer/' },
+		{ pageHref: '/laerer/ukjent/' },
 		{ pageTitle: 'Forged' },
 		{ message: 'a\u0000b' },
 		{ id: '1' }

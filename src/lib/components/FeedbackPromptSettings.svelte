@@ -22,7 +22,7 @@
 	<div class="feedback-settings">
 		<label><input type="checkbox" checked={$feedbackPromptPreference.accountId === accountId && $feedbackPromptPreference.enabled === true}
 			disabled={busy || $feedbackPromptPreference.accountId !== accountId || $feedbackPromptPreference.enabled === null}
-			onchange={(event) => change(event.currentTarget.checked)} />Spør meg om oppgavene</label>
+			onchange={(event) => change(event.currentTarget.checked)} />Spør meg om sidene og oppgavene</label>
 		<p>Frivillig, høyst én gang om dagen. Lagres på profilen din.</p>
 		{#if $feedbackPromptPreference.enabled === null}<button type="button" onclick={() => change(null)} disabled={busy}>Hent innstillingen</button>{/if}
 		{#if busy}<p role="status">Lagrer …</p>{/if}

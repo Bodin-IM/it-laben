@@ -1,10 +1,11 @@
 <script>
 	import { onMount, untrack, tick } from 'svelte';
 	import { afterNavigate } from '$app/navigation';
+	import { page } from '$app/state';
 	import { lab } from '#lib/lab.js';
 	import { feedbackRequest } from '#lib/feedbackClient.js';
 	import { feedbackAnswers } from '#lib/activityFeedback.js';
-	import { feedbackOpportunity, feedbackPromptPreference, resetFeedbackSession, loadFeedbackPreference, setFeedbackPromptPreference, leaveFeedbackActivity } from '#lib/activityFeedbackClient.js';
+	import { feedbackOpportunity, feedbackPromptPreference, resetFeedbackSession, loadFeedbackPreference, setFeedbackPromptPreference, leaveFeedbackActivity, noteFeedbackPageVisit, setFeedbackPageVisibility, noteFeedbackInvitationDay } from '#lib/activityFeedbackClient.js';
 	import Avatar from '#lib/components/Avatar.svelte';
 	/** @type {{enabled:boolean,avatar:string,oncomment:(prompt:import('#lib/activityFeedback.js').FeedbackPrompt,answer:string)=>void,onclose:()=>void}} */
 	let { enabled, avatar, oncomment, onclose } = $props();
@@ -35,7 +36,10 @@
 			clear();
 			considered = '';
 			resetFeedbackSession();
-			if (actor) void loadFeedbackPreference().catch(() => {});
+			if (actor) {
+				noteFeedbackPageVisit(page.url.pathname + page.url.search, document.visibilityState === 'visible');
+				void loadFeedbackPreference().catch(() => {});
+			}
 		});
 		return () => { clear(); };
 	});
@@ -56,6 +60,7 @@
 		controller = new AbortController();
 		try {
 			const result = await feedbackRequest('/feedback/prompts', opportunity, controller.signal);
+			if (opportunity.accountId === accountId) noteFeedbackInvitationDay(result.schoolDay);
 			if (request !== serial || opportunity.accountId !== accountId || !enabled || !safeMoment()) return;
 			prompt = result.prompt;
 			answer = '';
@@ -84,7 +89,10 @@
 	});
 	afterNavigate(({ to, type }) => {
 		if (type !== 'enter') clear();
-		if (to) leaveFeedbackActivity(to.url.pathname);
+		if (to) {
+			leaveFeedbackActivity(to.url.pathname);
+			noteFeedbackPageVisit(to.url.pathname + to.url.search, document.visibilityState === 'visible');
+		}
 	});
 	function dismiss(restoreFocus = false) {
 		const current = prompt;
@@ -106,7 +114,11 @@
 			else if (!['Tab', 'Shift', 'Control', 'Alt', 'Meta'].includes(event.key)) continuing(event);
 		}
 		function focusChanged() { if (coversFocus()) dismiss(); }
-		function hidden() { if (document.visibilityState !== 'visible') dismiss(); }
+		function hidden() {
+			const visible = document.visibilityState === 'visible';
+			setFeedbackPageVisibility(visible);
+			if (!visible) dismiss();
+		}
 		document.addEventListener('pointerdown', continuing);
 		document.addEventListener('input', continuing);
 		document.addEventListener('keydown', keydown);
