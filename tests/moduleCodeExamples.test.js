@@ -54,18 +54,21 @@ test('the displayed backend files accept frontend payloads and confirm only save
 		let disk, failWrite = false, nextId = 0;
 		const start = () => {
 			const routes = new Map();
-			const app = { use() {}, listen() {} };
+			const middleware = [];
+			const app = { use(handler) { if (typeof handler === 'function') middleware.push(handler); }, listen() {} };
 			for (const method of ['get', 'post', 'patch', 'delete']) app[method] = (path, handler) => routes.set(`${method} ${path}`, handler);
 			const express = Object.assign(() => app, { json() {} });
 			runInNewContext(source.replace(/^import .*;\n/gm, ''), {
-				express, cors() {}, console, randomUUID: () => `m-${++nextId}`,
+				express, cors() {}, console: { ...console, error() {} }, randomUUID: () => `m-${++nextId}`,
 				readFileSync() { if (disk === undefined) throw Object.assign(new Error('Missing'), { code: 'ENOENT' }); return disk; },
 				writeFileSync(path, json) { if (failWrite) throw new Error('Disk full'); disk = json; }
 			});
 			return (method, path, body, id) => {
 				let status = 200, result, ended = false;
 				const res = { status(value) { status = value; return res; }, json(value) { result = structuredClone(value); return res; }, end() { ended = true; return res; } };
-				routes.get(`${method} ${path}`)({ body, params: { id } }, res);
+				const req = { body, params: { id } };
+				const next = (error) => middleware.find((handler) => handler.length === 4)(error, req, res, next);
+				routes.get(`${method} ${path}`)(req, res, next);
 				return { status, result, ended };
 			};
 		};

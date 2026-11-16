@@ -20,7 +20,7 @@ export function backendContinuation(activityId, inValidation = false, atProject 
 	if (activityId === 'redd-chatten' && inValidation) return {
 		backHref: '/moduler/backend/#del-8',
 		previous: { title: 'Øving 7: undersøk valideringen', href: moduleLink(validationJourney[0].href, 'backend') },
-		next: { title: 'Valider et visningsnavn i egen kode', href: moduleLink(validationJourney[2].href, 'backend') }
+		next: { title: 'Gi tilbakemeldinger i egen chat', href: moduleLink(validationJourney[2].href, 'backend') }
 	};
 	return {
 		backHref: `/moduler/backend/#del-${contents.indexOf(current) + 1}`,

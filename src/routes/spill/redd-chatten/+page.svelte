@@ -860,8 +860,8 @@
 									</div>
 								</dl>
 								{#if mission.id === 'tekst'}
-									<p>Bruk nå prinsippet på et annet felt. Lag validering for et visningsnavn i eget prosjekt, og undersøk både svaret og dataene.</p>
-									<a class="project-link" href={moduleLink(validationJourney[2].href, partnerModule)}>Neste: Valider et visningsnavn i egen kode →</a>
+									<p>Bruk nå kontrollen i både POST og PATCH i din egen chat. Vis en forståelig beskjed i frontend, og undersøk både svaret og dataene.</p>
+									<a class="project-link" href={moduleLink(validationJourney[2].href, partnerModule)}>Neste: Gi tilbakemeldinger i egen chat →</a>
 								{:else}
 								<details class="transfer-task">
 									<summary>Prøv prinsippet i egen kode</summary>
