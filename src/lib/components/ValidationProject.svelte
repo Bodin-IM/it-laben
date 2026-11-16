@@ -60,7 +60,6 @@
 	.eyebrow { margin: 0; font-weight: 650; }
 	code { overflow-wrap: anywhere; }
 	details { margin-top: 12px; padding: 0 14px; border: 1px solid var(--color-border); border-radius: 8px; }
-	details details { margin-bottom: 14px; }
 	summary { min-height: 44px; padding-block: 12px; box-sizing: border-box; cursor: pointer; color: var(--color-action); }
 	summary:focus-visible, section:focus-visible { outline: 3px solid var(--color-focus); outline-offset: 4px; }
 </style>
