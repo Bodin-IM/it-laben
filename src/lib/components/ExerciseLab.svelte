@@ -6,7 +6,7 @@
 	import StorageExercise from '#lib/components/StorageExercise.svelte';
 	import ValidationJourney from '#lib/components/ValidationJourney.svelte';
 	import ValidationProject from '#lib/components/ValidationProject.svelte';
-	import { validationJourney } from '#lib/backendValidation.js';
+	import { validationJourney, validationExamples } from '#lib/backendValidation.js';
 	import { lessonChoices } from '#lib/partnerContext.js';
 
 	import { onMount } from 'svelte';
@@ -340,12 +340,13 @@
 
 		{#if lesson.number === 7}
 			<div class="validation-next">
-				<h2>Neste: få tekstkontrollen til å virke</h2>
-				<p>I Redd chatten reparerer du koden du nettopp undersøkte.</p>
-				<a href={moduleLink(validationJourney[1].href, moduleId)}>Reparer tekstkontrollen →</a>
+				<h2>Kodehjelp til del 7 i din egen chat</h2>
+				<p>Bruk eksemplene når du bygger videre. Hvert eksempel har backend, frontend og forklaring til hver linje.</p>
+				<ul>{#each validationExamples as example}<li><a href={example.href}>{example.label} →</a></li>{/each}</ul>
+				<p>Vil du øve på kontrollen først? <a href={moduleLink(validationJourney[1].href, moduleId)}>Reparer tekstkontrollen i Redd chatten →</a></p>
 			</div>
 			<details id="eget-prosjekt" class="project-fold" open={ready && page.url.hash === '#eget-prosjekt'}>
-				<summary>Bygg selv: gi brukeren et gyldig visningsnavn</summary>
+				<summary>Bygg selv: gi forståelige tilbakemeldinger i din chat</summary>
 				<ValidationJourney current="bruk-selv" {moduleId} />
 				<ValidationProject id="validation-project" />
 			</details>

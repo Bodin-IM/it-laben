@@ -141,7 +141,7 @@ export const teachingGuides = [
 			questions: ['Hva blir lengden før og etter trim?', 'Hvorfor er HTTP 400 ikke nok hvis data allerede er lagret?', 'Hvilke to tester undersøker en lengdegrense?'],
 			notes: ['La elevene forutsi før kjøringen. Sammenlign normal tekst, mellomrom, feil datatype og grensen 500/501.', 'Skill feil i JSON-parsing fra feil verdi og fra manglende nettverkskontakt. fetch avviser ikke automatisk ved HTTP 400.']
 		}],
-		wrapUp: ['Reparer tekstoppdraget i Redd chatten; de andre oppdragene kommer etter innlogging.', 'La elevene lage visningsnavn med 1–30 tegn etter trim i egen app, velge tester og forklare kontrollrekkefølgen.', 'I en senere time: bruk samme prinsipp på et annet felt og en annen grense. Noter hva eleven klarer med og uten hjelp.']
+		wrapUp: ['Reparer tekstoppdraget i Redd chatten; de andre oppdragene kommer etter innlogging.', 'La elevene bruke samme tekstFeil i POST og PATCH i egen chat, samle feil med next og vise feil og bekreftelser i frontend. Prøv også sletting: 204 har ingen JSON-body.', 'Be eleven vise normal-, feil- og grensetester, forklare kontrollrekkefølgen og kontrollere data før og etter avvisning. I en senere time: valider et visningsnavn på 1–30 tegn med mindre støtte.']
 	},
 	{
 		planId: 'backend-publisering',

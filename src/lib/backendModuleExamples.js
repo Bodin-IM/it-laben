@@ -1,8 +1,8 @@
 import { storageSetupCode, storageSaveCode, storageSafeReadCode, storageRepairedCode } from '#lib/storageExercise.js';
 
 /** Complete, read-only teaching examples. These strings are never executed by IT-laben.
- * Shared fragments keep the six examples consistent while each displayed file stands on its own.
- * @typedef {'get'|'post'|'storage'|'save'|'patch'|'delete'} Topic
+ * Shared fragments keep the examples consistent while each displayed file stands on its own.
+ * @typedef {'get'|'post'|'storage'|'save'|'patch'|'delete'|'validation'|'errors'|'feedback'} Topic
  * @typedef {[text:string, explanation:string, important?:boolean]} Row
  */
 /** @type {Record<string,string>} */
@@ -46,10 +46,32 @@ function lines(rows) {
 	}));
 }
 
+/** @param {Topic} topic */
+function isValidation(topic) {
+	return ['validation', 'errors', 'feedback'].includes(topic);
+}
+
+/** @type {Row[]} */
+const textValidation = [
+	['function tekstFeil(tekst) {', 'Samler tekstreglene på ett sted. Både POST og PATCH kaller denne funksjonen.', true],
+	['  if (typeof tekst !== "string") return "Tekst må være en streng.";', 'Sjekker typen først. Tall og manglende felt avvises før trim blir brukt.', true],
+	['  if (!tekst.trim()) return "Skriv en melding.";', 'Tom tekst og bare mellomrom gir samme forståelige beskjed.', true],
+	['  if (tekst.trim().length > 500) return "Bruk maks 500 tegn.";', '500 godtas, 501 avvises etter trim. length teller UTF-16-kodeenheter; enkelte emoji teller som to.', true],
+	['  return "";', 'En tom streng betyr at ingen av kontrollene fant en feil. Funksjonen lagrer ingenting.'],
+	['}', 'Avslutter valideringsfunksjonen. Den plasseres før rutene.']
+];
+
+/** @type {Row[]} */
+const textCheck = [
+	['  const feil = tekstFeil(tekst);', 'Bruker den samme funksjonen for en ny melding og en redigering.', true],
+	['  if (feil) return res.status(400).json({ beskjed: feil });', 'Sender forklaringen og stopper ruten før data endres. Gyldig tekst går videre til lagring.', true]
+];
+
 /** @param {Topic} topic @returns {Row[]} */
 function backend(topic) {
 	const persistent = !['get', 'post'].includes(topic);
-	const changing = topic === 'patch' || topic === 'delete';
+	const validation = isValidation(topic);
+	const changing = topic === 'patch' || topic === 'delete' || validation;
 	const storageFocus = new Set(topic === 'storage' ? [
 		'const tekst = readFileSync(fil, "utf8");', 'const liste = JSON.parse(tekst);',
 		'let meldinger = lesMeldinger();', 'const json = JSON.stringify(liste, null, 2);', 'writeFileSync(fil, json, "utf8");'
@@ -63,7 +85,7 @@ function backend(topic) {
 		['', ''],
 		['const app = express();', 'Oppretter Express-appen. Ruter og middleware registreres på denne appen.'],
 		['app.use(cors({ origin: "http://localhost:5173" }));', 'Tillater nettleserkall fra denne frontend-adressen. Bruk den faktiske adressen og porten hvis frontend kjører et annet sted. CORS er ikke innlogging eller tilgangskontroll.'],
-		['app.use(express.json());', 'Leser JSON-bodyen før rutene kjører, slik at feltene finnes i req.body.'],
+		[validation ? 'app.use(express.json({ limit: "10kb" }));' : 'app.use(express.json());', validation ? 'Leser JSON før rutene. Dette er den eneste JSON-parseren: erstatt den gamle linjen. Ugyldig JSON og body over 10 kB sendes til feilmiddleware. Bytegrensen er forskjellig fra tekstgrensen på 500 tegn.' : 'Leser JSON-bodyen før rutene kjører, slik at feltene finnes i req.body.', validation],
 		['', ''],
 		...(persistent ? [
 			...storageLines(storageSafeReadCode, storageFocus), /** @type {Row} */ (['', '']),
@@ -74,40 +96,47 @@ function backend(topic) {
 			['];', 'Avslutter listen med startdata.']
 		])),
 		['', ''],
+		...(validation ? [...textValidation, /** @type {Row} */ (['', ''])] : []),
 		['app.get("/meldinger", (req, res) => {', 'Express kjører funksjonen når frontend sender GET til /meldinger.', topic === 'get'],
 		['  res.json(meldinger);', 'Sender hele listen som JSON med status 200. Frontend leser den med svar.json().', topic === 'get'],
 		['});', 'Avslutter og registrerer GET-ruten. Den venter nå på en forespørsel.']
 	];
 	if (topic !== 'get') rows.push(
 		['', ''],
-		['app.post("/meldinger", (req, res) => {', 'Mottar en ny melding fra frontendens send-knapp.'],
+		[validation ? 'app.post("/meldinger", (req, res, next) => {' : 'app.post("/meldinger", (req, res) => {', validation ? 'Mottar en ny melding. next sender uventede feil til felles feilmiddleware.' : 'Mottar en ny melding fra frontendens send-knapp.'],
 		['  const avsender = req.body?.avsender;', 'Leser avsender fra JSON-bodyen. ?. gjør at manglende body gir undefined.'],
 		['  const tekst = req.body?.tekst;', 'Leser tekst fra bodyen. Feltnavnet må være det samme som frontend sender.'],
-		['  if (typeof avsender !== "string" || !avsender.trim()) {', 'Avviser manglende navn, feil datatype og navn med bare mellomrom. Typekontrollen skjer før trim.'],
-		['    return res.status(400).json({ beskjed: "Skriv et avsendernavn." });', 'Sender en forklaring med status 400. return stopper ruten før noe endres.'],
+		['  if (typeof avsender !== "string" || !avsender.trim() || avsender.trim().length > 40) {', 'Krever et avsendernavn på 1–40 tegn etter trim. Typekontrollen skjer før trim. Med innlogging skal avsender i stedet hentes fra sessionen.'],
+		['    return res.status(400).json({ beskjed: "Bruk et avsendernavn på 1–40 tegn." });', 'Sender en forklaring med status 400. return stopper ruten før noe endres.'],
 		['  }', 'Avslutter kontrollen av avsender.'],
-		['  if (typeof tekst !== "string" || !tekst.trim() || tekst.trim().length > 500) {', 'Krever en tekst på 1–500 tegn etter at mellomrom i kantene er fjernet. Backend kontrollerer selv om frontend også begrenser feltet.'],
-		['    return res.status(400).json({ beskjed: "Skriv en melding på 1–500 tegn." });', 'Avviser teksten med et JSON-svar før listen eller filen endres.'],
-		['  }', 'Avslutter tekstkontrollen.'],
+		...(validation ? textCheck : /** @type {Row[]} */ ([
+			['  if (typeof tekst !== "string" || !tekst.trim() || tekst.trim().length > 500) {', 'Krever en tekst på 1–500 tegn etter at mellomrom i kantene er fjernet. Backend kontrollerer selv om frontend også begrenser feltet.'],
+			['    return res.status(400).json({ beskjed: "Skriv en melding på 1–500 tegn." });', 'Avviser teksten med et JSON-svar før listen eller filen endres.'],
+			['  }', 'Avslutter tekstkontrollen.']
+		])),
 		['  const nyMelding = { id: randomUUID(), avsender: avsender.trim(), tekst: tekst.trim() };', 'Serveren lager ID-en og det ferdige objektet. ID-en brukes senere når én bestemt melding skal endres eller slettes.', topic === 'post'],
 		...(persistent ? storageLines(storageRepairedCode, new Set(topic === 'save' ? [
 			'const nyListe = [...meldinger, nyMelding];', 'lagreMeldinger(nyListe);', 'meldinger = nyListe;', 'res.status(201).json(nyMelding);'
-		] : [])).map(([text, explanation, important]) => /** @type {Row} */ ([`  ${text}`, explanation, important])) : /** @type {Row[]} */ ([
+		] : [])).map(([text, explanation, important]) => /** @type {Row} */ (validation && text.trim().startsWith('res.status(500)')
+			? ['    next(feil);', 'Sender lagringsfeilen videre til felles feilmiddleware. Ikke send et nytt svar her.', true]
+			: [`  ${text}`, explanation, important])) : /** @type {Row[]} */ ([
 			['  meldinger = [...meldinger, nyMelding];', 'Lager en ny liste med de gamle meldingene og den nye meldingen til slutt.', true],
 			['  res.status(201).json(nyMelding);', 'Bekrefter oppretting med status 201 og sender det nye objektet, inkludert ID, til frontend.', true]
 		])),
 		['});', 'Avslutter og registrerer POST-ruten.']
 	);
-	if (changing) rows.push(
+	for (const method of (validation ? ['patch', 'delete'] : changing ? [topic] : [])) rows.push(
 		['', ''],
-		[`app.${topic}("/meldinger/:id", (req, res) => {`, `Registrerer ${topic.toUpperCase()}-ruten. :id tar imot ID-en som frontend legger i adressen.`, true],
+		[`app.${method}("/meldinger/:id", (req, res${validation ? ', next' : ''}) => {`, `Registrerer ${method.toUpperCase()}-ruten. :id tar imot ID-en som frontend legger i adressen.`, true],
 		['  const melding = meldinger.find(m => m.id === req.params.id);', 'Finner meldingen med samme ID som i request-adressen, ikke ved å sammenligne teksten.', true],
 		['  if (!melding) return res.status(404).json({ beskjed: "Meldingen finnes ikke." });', 'Stopper med 404 hvis ID-en er ukjent. Ingen data blir endret.'],
-		...(topic === 'patch' ? /** @type {Row[]} */ ([
+		...(method === 'patch' ? /** @type {Row[]} */ ([
 			['  const tekst = req.body?.tekst;', 'Henter den nye teksten som frontend sendte i PATCH-bodyen.'],
-			['  if (typeof tekst !== "string" || !tekst.trim() || tekst.trim().length > 500) {', 'Kontrollerer den nye teksten før et endret objekt lages.'],
-			['    return res.status(400).json({ beskjed: "Skriv en melding på 1–500 tegn." });', 'Avviser ugyldig tekst. Den gamle meldingen beholdes.'],
-			['  }', 'Avslutter valideringen av endringen.'],
+			...(validation ? textCheck : /** @type {Row[]} */ ([
+				['  if (typeof tekst !== "string" || !tekst.trim() || tekst.trim().length > 500) {', 'Kontrollerer den nye teksten før et endret objekt lages.'],
+				['    return res.status(400).json({ beskjed: "Skriv en melding på 1–500 tegn." });', 'Avviser ugyldig tekst. Den gamle meldingen beholdes.'],
+				['  }', 'Avslutter valideringen av endringen.']
+			])),
 			['  const endret = { ...melding, tekst: tekst.trim() };', 'Kopierer feltene i meldingen og erstatter bare tekst. ID og avsender beholdes; originalobjektet endres ikke.', true],
 			['  const nyListe = meldinger.map(m => m.id === req.params.id ? endret : m);', 'map lager en ny liste. Bare meldingen med riktig ID erstattes av endret; alle andre beholdes.', true]
 		]) : /** @type {Row[]} */ ([
@@ -116,15 +145,32 @@ function backend(topic) {
 		['  try {', 'Forsøker å lagre den nye listen før serverens minne endres.'],
 		['    lagreMeldinger(nyListe);', 'Skriver den nye listen til JSON-filen. Ved skrivefeil går kjøringen til catch.'],
 		['    meldinger = nyListe;', 'Tar den nye listen i bruk i minnet først etter vellykket lagring.'],
-		...(topic === 'patch' ? /** @type {Row[]} */ ([
+		...(method === 'patch' ? /** @type {Row[]} */ ([
 			['    res.json(endret);', 'Sender det bekreftede meldingsobjektet med status 200. Frontend bruker objektet til å oppdatere visningen.', true]
 		]) : /** @type {Row[]} */ ([
 			['    res.status(204).end();', 'Bekrefter slettingen med 204 No Content. Svaret har ingen JSON-body; frontend skal derfor ikke kalle svar.json() ved suksess.', true]
 		])),
 		['  } catch (feil) {', 'Fanger en feil ved lagringen. Minnet er uendret hvis lagreMeldinger kastet feilen.'],
-		['    res.status(500).json({ beskjed: "Kunne ikke lagre." });', 'Sender et feilsvar. Frontend beholder sin liste og viser beskjeden.'],
+		[validation ? '    next(feil);' : '    res.status(500).json({ beskjed: "Kunne ikke lagre." });', validation ? 'Sender feilen til felles feilmiddleware. Ikke send et ekstra svar etter next(feil).' : 'Sender et feilsvar. Frontend beholder sin liste og viser beskjeden.', validation],
 		['  }', 'Avslutter feilhåndteringen.'],
 		['});', 'Avslutter og registrerer ruten for den valgte ID-en.']
+	);
+	if (validation) rows.push(
+		['', ''],
+		['app.use((req, res) => {', 'Plasseres etter alle ruter. Denne håndterer forespørsler som ingen rute svarte på.', true],
+		['  res.status(404).json({ beskjed: "Ruten finnes ikke." });', 'Gir et JSON-svar ved ukjent rute. Ukjent meldings-ID håndteres inne i PATCH og DELETE.', true],
+		['});', 'Avslutter fallback for ukjent rute.'],
+		['', ''],
+		['app.use((feil, req, res, next) => {', 'Feilmiddleware må ha fire parametere. Den registreres etter rutene og 404, før listen. next(feil) og parserfeil havner her.', true],
+		['  if (feil.type === "entity.parse.failed") {', 'Gjenkjenner ugyldig JSON fra express.json, før ruten ble kjørt.'],
+		['    return res.status(400).json({ beskjed: "Ugyldig JSON." });', 'Sender en forståelig 400-feil. return hindrer at det også sendes et 500-svar.', true],
+		['  }', 'Avslutter kontrollen for ugyldig JSON.'],
+		['  if (feil.type === "entity.too.large") {', 'Ekstra grense: parseren har stoppet en request-body over 10 kB.'],
+		['    return res.status(413).json({ beskjed: "Forespørselen er for stor." });', 'Skiller for stor body (413) fra for lang meldingstekst (400).', true],
+		['  }', 'Avslutter kontrollen for body-størrelse.'],
+		['  console.error(feil);', 'Logger detaljer i backend-terminalen for feilsøking. Feildetaljene sendes ikke til brukeren.'],
+		['  res.status(500).json({ beskjed: "En serverfeil oppstod." });', 'Sender en generell beskjed ved uventede feil, for eksempel skrivefeil. Feil under innlesing ved oppstart må håndteres i lesMeldinger.', true],
+		['});', 'Avslutter felles feilmiddleware.']
 	);
 	rows.push(['', ''], ['app.listen(3000, () => console.log("Backend kjører på http://localhost:3000"));', 'Starter HTTP-serveren etter at alle ruter er registrert. La denne terminalen kjøre mens frontend brukes.']);
 	return rows;
@@ -152,7 +198,8 @@ function requestFunction(name, description, body, id = false) {
 
 /** @param {Topic} topic @returns {Row[]} */
 function frontend(topic) {
-	const sending = topic !== 'get', editing = topic === 'patch', deleting = topic === 'delete';
+	const validation = isValidation(topic);
+	const sending = topic !== 'get', editing = topic === 'patch' || validation, deleting = topic === 'delete' || validation;
 	const sendFocus = ['post', 'save'].includes(topic), getFocus = topic === 'get' || topic === 'storage';
 	/** @type {Row[]} */
 	const rows = [
@@ -186,10 +233,10 @@ function frontend(topic) {
 		['  body: JSON.stringify({ avsender, tekst })', 'Gjør feltenes verdier om til JSON. Navnene avsender og tekst må passe med req.body i backend.', sendFocus],
 		['});', 'Avslutter fetch-innstillingene og venter på svaret.'],
 		['const mottatt = await svar.json();', 'Leser svaret. Ved suksess er dette selve meldingsobjektet, med ID fra serveren.'],
-		['if (!svar.ok) throw new Error(mottatt.beskjed);', 'Ved et feilsvar hopper koden til catch før listen oppdateres eller tekstfeltet tømmes.'],
+		['if (!svar.ok) throw new Error(mottatt.beskjed ?? `HTTP ${svar.status}`);', 'Ved et feilsvar hopper koden til catch før listen oppdateres eller tekstfeltet tømmes. HTTP-status brukes hvis beskjed mangler.', validation],
 		['meldinger = [...meldinger, mottatt];', 'Legger bare det bekreftede objektet fra backend til i frontend-listen.', sendFocus],
 		['tekst = "";', 'Tømmer feltet etter vellykket sending.'],
-		['status = "Meldingen er sendt.";', 'Viser bekreftelse etter at serveren har svart med suksess.']
+		['status = "Meldingen er sendt.";', 'POST returnerer selve meldingen, uten beskjed-felt. Derfor bruker vi en egen bekreftelsestekst etter suksess.', validation]
 	]));
 	if (editing) rows.push(...requestFunction('endreMelding', 'Tar imot ID-en fra Lagre endring-knappen og sender redigeringsutkastet til backend.', [
 		['const svar = await fetch(API + "/meldinger/" + encodeURIComponent(id), {', 'Legger meldings-ID-en i adressen. Express henter den som req.params.id. encodeURIComponent gjør verdien trygg som URL-del.', true],
@@ -198,18 +245,18 @@ function frontend(topic) {
 		['  body: JSON.stringify({ tekst: nyTekst })', 'Sender redigeringsutkastet under feltnavnet tekst, som PATCH-ruten forventer.', true],
 		['});', 'Avslutter forespørselen og venter på svaret.'],
 		['const mottatt = await svar.json();', 'Leser den oppdaterte meldingen eller en feilmelding fra backend.'],
-		['if (!svar.ok) throw new Error(mottatt.beskjed);', 'Stopper oppdateringen av frontend hvis serveren avviste endringen. Redigeringsfeltet og utkastet beholdes.'],
+		['if (!svar.ok) throw new Error(mottatt.beskjed ?? `HTTP ${svar.status}`);', 'Stopper oppdateringen av frontend hvis serveren avviste endringen. Redigeringsfeltet og utkastet beholdes.', validation],
 		['meldinger = meldinger.map(m => m.id === mottatt.id ? mottatt : m);', 'Erstatter bare den bekreftede meldingen i frontend-listen. Serverens map endret backend-listen; denne linjen oppdaterer nettsiden.', true],
 		['redigerer = "";', 'Lukker redigeringsfeltet etter at endringen er bekreftet.'],
-		['status = "Meldingen er endret.";', 'Viser at backend har lagret endringen.']
+		['status = "Meldingen er endret.";', 'PATCH returnerer meldingsobjektet. Denne bekreftelsen vises etter at backend har lagret endringen.', validation]
 	], true));
 	if (deleting) rows.push(...requestFunction('slettMelding', 'Tar imot ID-en fra sletteknappen til én bestemt melding i each-løkken.', [
 		['const svar = await fetch(API + "/meldinger/" + encodeURIComponent(id), {', 'Sender ID-en som del av adressen. Express leser den med req.params.id.', true],
 		['  method: "DELETE"', 'Velger sletting. Det trengs ingen body, fordi ID-en allerede finnes i adressen.', true],
 		['});', 'Venter på at backend bekrefter eller avviser slettingen.'],
 		['if (!svar.ok) {', 'Ved et feilsvar må frontend lese forklaringen før den prøver å endre listen.'],
-		['  const mottatt = await svar.json();', 'Leser JSON fra feilsvaret. Denne linjen kjøres ikke for det vellykkede, tomme 204-svaret.'],
-		['  throw new Error(mottatt.beskjed);', 'Går til catch. Den lokale meldingen beholdes når slettingen ble avvist.'],
+		['  const mottatt = await svar.json();', 'Leser JSON bare fra feilsvaret. Et vellykket 204-svar er tomt: svar.json() ville kastet en feil selv om slettingen lyktes.', validation],
+		['  throw new Error(mottatt.beskjed ?? `HTTP ${svar.status}`);', 'Går til catch. Den lokale meldingen beholdes når slettingen ble avvist.'],
 		['}', 'Avslutter kontrollen av feilsvar. Ved suksess trengs ingen svar.json().'],
 		['meldinger = meldinger.filter(m => m.id !== id);', 'Fjerner meldingen fra nettsiden først etter at backend har bekreftet slettingen.', true],
 		['status = "Meldingen er slettet.";', 'Viser at slettingen er bekreftet.']
@@ -259,7 +306,10 @@ const topics = [
 	{ id: 'json-fil', topic: 'storage', title: 'Lese og skrive en JSON-fil', summary: 'En liten chat som leser meldinger ved oppstart og lagrer dem i meldinger.json. Frontend sender og viser meldinger som før.', sourceTitle: 'Øving 5 · Ta vare på meldingene', sourceHref: '/oving-5/' },
 	{ id: 'lagre-melding', topic: 'save', title: 'Lagre en ny melding', summary: 'Følg en ny melding fra frontend til POST-ruten: lag en ny liste, lagre filen, oppdater minnet og bekreft til frontend.', sourceTitle: 'Øving 5 · Ta vare på meldingene', sourceHref: '/oving-5/#endre-koden' },
 	{ id: 'endre-melding', topic: 'patch', title: 'Endre én melding med map', summary: 'Endre-knappen åpner et tekstfelt. PATCH sender ID og ny tekst til Express, som lagrer endringen før frontend oppdaterer listen.', sourceTitle: 'Øving 6 · Endre riktig melding', sourceHref: '/oving-6/' },
-	{ id: 'slett-melding', topic: 'delete', title: 'Slett én melding med filter', summary: 'Hver melding har sin egen sletteknapp. DELETE sender ID-en til Express, som lagrer resten av listen og bekrefter før meldingen fjernes på siden.', sourceTitle: 'Øving 6 · Endre riktig melding', sourceHref: '/oving-6/' }
+	{ id: 'slett-melding', topic: 'delete', title: 'Slett én melding med filter', summary: 'Hver melding har sin egen sletteknapp. DELETE sender ID-en til Express, som lagrer resten av listen og bekrefter før meldingen fjernes på siden.', sourceTitle: 'Øving 6 · Endre riktig melding', sourceHref: '/oving-6/' },
+	{ id: 'valider-melding', topic: 'validation', title: 'Samme validering i POST og PATCH', summary: 'Én tekstFeil-funksjon stopper feil datatype, tom tekst og mer enn 500 tegn før lagring. Hele eksemplet har GET, POST, PATCH, DELETE og en Svelte-chat. Har chatten din innlogging, behold session og eierskapskontroll.', sourceTitle: 'Øving 7 · Bruk i egen chat', sourceHref: '/oving-7/#eget-prosjekt' },
+	{ id: 'felles-feilbehandling', topic: 'errors', title: 'Felles feilbehandling med next', summary: 'Send lagringsfeil videre med next(feil). En felles feilmiddleware gir JSON ved ugyldig JSON (400), for stor body (413) og serverfeil (500). Ukjent rute gir 404. Dette er samme komplette chat som i valideringseksemplet.', sourceTitle: 'Øving 7 · Bruk i egen chat', sourceHref: '/oving-7/#eget-prosjekt' },
+	{ id: 'vis-feilmelding', topic: 'feedback', title: 'Vis feil og bekreftelser i frontend', summary: 'Send, endre og slett med synlige tilbakemeldinger. Behold utkastet ved feil. POST/PATCH gir meldingsobjektet, så frontend lager bekreftelsen selv. DELETE gir 204 uten JSON; bare feilsvaret leses som JSON.', sourceTitle: 'Øving 7 · Bruk i egen chat', sourceHref: '/oving-7/#eget-prosjekt' }
 ];
 
 /** Select complete blocks from the original file, preserving line IDs and source order.
@@ -281,6 +331,18 @@ function excerpt(source, context, ranges) {
 
 /** @param {Topic} topic @param {import('./moduleCodeExamples.js').ExampleLine[]} source */
 function backendExcerpt(topic, source) {
+	if (isValidation(topic)) return excerpt(source, topic === 'errors'
+		? 'Utdrag fra server.js: JSON-parser, tekstkontroll, hele POST-ruten og felles feilbehandling. I helvisningen bruker også PATCH og DELETE next(feil).'
+		: 'Utdrag fra server.js: delt tekstkontroll og hele rutene. Åpne hele koden for filfunksjonene, oppsett og felles feilmiddleware.', [
+		...(topic === 'errors' ? /** @type {[string][]} */ ([['app.use(express.json({ limit: "10kb" }));']]) : []),
+		['function tekstFeil(tekst) {', '}'],
+		['app.post("/meldinger", (req, res, next) => {', '});'],
+		...(topic !== 'errors' ? /** @type {[string,string][]} */ ([['app.patch("/meldinger/:id", (req, res, next) => {', '});']]) : []),
+		...(topic === 'feedback' ? /** @type {[string,string][]} */ ([['app.delete("/meldinger/:id", (req, res, next) => {', '});']]) : []),
+		...(topic === 'errors' ? /** @type {[string,string][]} */ ([
+			['app.use((req, res) => {', '});'], ['app.use((feil, req, res, next) => {', '});']
+		]) : [])
+	]);
 	if (topic === 'storage') return excerpt(source, 'Utdrag fra server.js: funksjonene som leser og skriver JSON-filen.', [
 		['import { readFileSync, writeFileSync } from "node:fs";', 'const fil = "./meldinger.json";'],
 		['function lesMeldinger() {', 'let meldinger = lesMeldinger();'],
@@ -295,6 +357,14 @@ function backendExcerpt(topic, source) {
 
 /** @param {Topic} topic @param {import('./moduleCodeExamples.js').ExampleLine[]} source */
 function frontendExcerpt(topic, source) {
+	if (isValidation(topic)) return excerpt(source, 'Utdrag fra +page.svelte: hele funksjonene for å sende, endre og slette, med statusfelt, tekstfelt og meldingsliste. Åpne hele koden for tilstandsvariabler og GET.', [
+		['<script>'],
+		['  async function sendMelding() {', '  }'],
+		['  async function endreMelding(id) {', '  }'],
+		['  async function slettMelding(id) {', '  }'],
+		['</script>'],
+		['<p role="status">{status}</p>', '</ul>']
+	]);
 	const fetching = topic === 'get' || topic === 'storage';
 	const sending = topic === 'post' || topic === 'save';
 	const name = fetching ? 'hentMeldinger' : sending ? 'sendMelding' : topic === 'patch' ? 'endreMelding' : 'slettMelding';
@@ -315,10 +385,10 @@ export const backendModuleExamples = topics.map(({ topic, ...example }) => {
 	const serverLines = lines(backend(topic)), frontendLines = lines(frontend(topic));
 	return { ...example, files: [
 		{ id: 'backend', label: 'Backend · server.js',
-			context: 'Hele server.js i en egen backendmappe. Første gang: npm init -y, npm pkg set type=module og npm install express cors. Start med node server.js. Bruk én eksempelvariant om gangen.',
+			context: 'Hele server.js i en egen backendmappe. Første gang: npm init -y, npm pkg set type=module og npm install express cors. Start med node server.js. Bruk én eksempelvariant om gangen. Dette er en lokal øvingschat uten innlogging. Har du session, behold innlogging, eierskapskontroll og hent avsender fra sessionen.',
 			lines: serverLines, excerpt: backendExcerpt(topic, serverLines) },
 		{ id: 'frontend', label: 'Frontend · +page.svelte',
-			context: 'Hele src/routes/+page.svelte i et SvelteKit-prosjekt med Svelte 5. Start frontend med npm run dev på http://localhost:5173, og la backend kjøre i en annen terminal.',
+			context: 'Hele src/routes/+page.svelte i et SvelteKit-prosjekt med Svelte 5. Start frontend med npm run dev på http://localhost:5173, og la backend kjøre i en annen terminal. I en chat med session beholder du credentials: "include" og tilhørende CORS-oppsett fra eget prosjekt.',
 			lines: frontendLines, excerpt: frontendExcerpt(topic, frontendLines) }
 	] };
 });

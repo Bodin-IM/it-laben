@@ -128,6 +128,6 @@ Ollamas faktiske svar på tutorialen og elevenes bruk er ikke prøvd. Kontrakt o
 
 ![Tannhjulet i mobilvisningen](designutkast/labpartner-tannhjul-mobil.png)
 
-## Frivillig spørsmål om tydelighet, 31. oktober 2026 (dev)
+## Frivillig spørsmål om tydelighet, utvidet 16. november 2026 (dev)
 
-Øving 5, 8 og 10 kan tilby ett kort spørsmål ved slutten av en simulert kjøring eller etter intern navigasjon bort fra et påbegynt forsøk. Eleven velger Ja, Delvis eller Nei til «Var det tydelig hva du skulle gjøre?», kan hoppe over og kan slå av spørsmålene. Svaret har ingen kobling til vurdering eller XP. Se [elevtilbakemeldinger](elevtilbakemeldinger.md) for forskningsgrunnlag, hyppighetsgrenser, sidekontekst, lagring, adminvisning og gjenstående kontroller før main.
+Alle øvinger med simulator kan tilby ett kort spørsmål ved slutten av en kjøring eller etter intern navigasjon bort fra et påbegynt forsøk. Øvrige elevsider kan tilby et spørsmål ved sidebytte etter minst 30 sekunder med synlig fane. Eleven velger Ja, Delvis eller Nei, kan hoppe over og kan slå av spørsmålene. Det tilbys høyst ett spørsmål per dag, uten kobling til vurdering eller XP. Den manuelle tilbakemeldingsknappen finnes på alle vanlige sider. Se [elevtilbakemeldinger](elevtilbakemeldinger.md) for forskningsgrunnlag, hyppighetsgrenser, sidekontekst, lagring, adminvisning og gjenstående kontroller før main.

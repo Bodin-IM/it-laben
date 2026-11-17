@@ -17,9 +17,24 @@ const pages = new Map([
 	['/kom-i-gang/', 'Kom i gang'],
 	['/tutorial/', 'Slik bruker du IT-laben'],
 	['/spill/redd-chatten/pilot/', 'Redd chatten · pilot'],
+	['/laerer/', 'Læreroversikt'],
+	['/laerer/undervisning/', 'Undervisning · lærer'],
+	['/laerer/elever/', 'Elever · lærer'],
+	['/laerer/aktiviteter/', 'Aktiviteter · lærer'],
+	['/laerer/tilbakemeldinger/', 'Tilbakemeldinger · admin'],
 	...altElevinnhold.map((item) => /** @type {[string,string]} */ ([item.href, item.tittel])),
 	...moduler.map((item) => /** @type {[string,string]} */ ([`/moduler/${item.id}/`, item.title]))
 ]);
+
+// One catalogue for the manual form, optional questions and the admin filter.
+// New learning content and modules inherit feedback without local components.
+export const feedbackPages = [...pages].map(([href, title]) => ({
+	id: altElevinnhold.find((item) => item.href === href)?.id ??
+		`side-${href.split('/').filter(Boolean).join('-') || 'forside'}`,
+	href,
+	title,
+	student: !href.startsWith('/laerer/')
+}));
 
 /** Curated page context shared by client and server. Never retain arbitrary URL parameters.
  * @param {unknown} href
@@ -35,6 +50,8 @@ export function feedbackPage(href) {
 	)
 		return null;
 	const url = new URL(href, 'https://it-laben.invalid');
+	// Accept the same known route with or without SvelteKit's trailing slash.
+	url.pathname = url.pathname.replace(/\/+$/, '') + '/';
 	const title = pages.get(url.pathname);
 	if (!title) return null;
 	const clean = new URLSearchParams();

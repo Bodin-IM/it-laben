@@ -2,7 +2,7 @@ import { createHash } from 'node:crypto';
 import { feedbackPage, feedbackCategories, feedbackMaxLength } from '../src/lib/feedback.js';
 import { requireAdmin, learningError } from './learning-access.js';
 import { transaction } from './database.js';
-import { feedbackPilot } from '../src/lib/activityFeedback.js';
+import { feedbackActivities } from '../src/lib/activityFeedback.js';
 
 export function saveFeedback(db, userId, body, now) {
 	if (
@@ -20,7 +20,7 @@ export function saveFeedback(db, userId, body, now) {
 		throw new TypeError('Velg en type og skriv en melding på 1–2000 tegn.');
 	const page = feedbackPage(body.pageHref);
 	if (!page)
-		throw new TypeError('Siden kunne ikke gjenkjennes. Åpne tilbakemeldingen fra en elevside.');
+		throw new TypeError('Siden kunne ikke gjenkjennes. Åpne tilbakemeldingen fra en side i IT-laben.');
 	const message = body.message.trim();
 	const prompt = body.promptId === undefined ? null : db.prepare(
 		'SELECT id,page_href FROM activity_feedback_prompts WHERE id=? AND user_id=? AND answer IS NOT NULL'
@@ -64,7 +64,7 @@ export function listFeedback(db, actorId, query) {
 	const status = query.status ?? 'new';
 	if (
 		!['new', 'handled', 'all'].includes(status) ||
-		(query.activity !== undefined && !feedbackPilot.some((item) => item.id === query.activity)) ||
+		(query.activity !== undefined && !feedbackActivities.some((item) => item.id === query.activity)) ||
 		(query.page !== undefined &&
 			(typeof query.page !== 'string' || !/^[1-9][0-9]{0,5}$/.test(query.page)))
 	)

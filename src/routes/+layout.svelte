@@ -88,11 +88,7 @@
 			{/if}
 		</div>
 	</div>
-	<StudentFeedback
-		enabled={showStudentTools &&
-			!hasTeacherRole($lab.user?.role) &&
-			!page.url.pathname.startsWith('/laerer/')}
-	/>
+	<StudentFeedback enabled={showStudentTools} />
 	<InterfaceHelpNotice />
 </div>
 

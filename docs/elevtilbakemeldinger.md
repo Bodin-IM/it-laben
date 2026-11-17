@@ -1,24 +1,24 @@
 # Elevtilbakemeldinger
 
-28. oktober 2026. En egen kanal for feil og forslag om IT-laben. Den endrer ikke faglig respons, vurdering, progresjon eller XP.
+Opprettet 28. oktober 2026, utvidet på dev 16. november 2026. En egen kanal for feil og forslag om IT-laben. Den endrer ikke faglig respons, vurdering, progresjon eller XP.
 
 ## Elevens flyt og designvalg
 
 `StudentFeedback.svelte` eier knappen og skjemaet i felles layout. Den bruker elevens valgte `Avatar`, men er uavhengig av `LabPartnerPanel`, samtalehistorikken og KI-tjenesten. Det er et skjema til administratorene, ikke en ny modus i oppgaveassistenten.
 
-- En liten tekstmerket knapp «Tilbakemelding» står nederst til høyre på elevsidene. Det manuelle skjemaet åpnes aldri automatisk, og knappen har ingen animasjon eller varselteller. Et separat, frivillig oppgavespørsmål kan vises over knappen på pilotøvingene; se utvidelsen nedenfor. Trykkflaten er minst 44 piksler høy. Det reserveres plass nederst på siden, og knappen viker midlertidig for belønningsvarselet.
+- En liten tekstmerket knapp «Tilbakemelding» står nederst til høyre på alle vanlige sider, inkludert forsiden, moduler, øvinger, spill, Min lab og lærerområdet. Det manuelle skjemaet åpnes aldri automatisk, og knappen har ingen animasjon eller varselteller. Et separat, frivillig spørsmål kan vises over knappen på elevsidene; se nedenfor. Trykkflaten er minst 44 piksler høy. Det reserveres plass nederst på siden, og knappen viker midlertidig for belønningsvarselet og «Vis meg hvor».
 - Dialogen viser kjent figur, et kort spørsmål, hva meldingen gjelder, type og ett tekstfelt. Ingen vurderingsskala eller obligatorisk spørreskjema. På mobil er den en rullbar visning nederst på skjermen.
 - Siden registreres når skjemaet åpnes. Tittel og adresse vises før sending. Utkastet beholder denne siden ved navigasjon; eleven kan uttrykkelig forkaste det og starte for den nye siden.
 - Lukk og Escape går tilbake til oppgaven. Utkastet beholdes i minnet ved lukking og intern navigasjon, men ikke ved omlasting eller kontobytte. Det skrives ikke til lokal lagring.
 - «Sender» betyr at svaret avventes. «Meldingen er sendt» vises først etter bekreftelse fra backend. Ved feil beholdes teksten og samme innsending kan prøves igjen uten å opprette en kopi. Dersom eleven endrer innholdet etter et forsøk, regnes det som en ny innsending.
 - Bekreftelsen beholdes også dersom eleven lukker mens sendingen pågår. «Send en ny tilbakemelding» starter et nytt skjema for gjeldende side.
-- Gjester kan sende uten profilnavn, blant annet for å melde om innloggingsproblemer. Innloggede elever ser at profilnavnet følger med. Knappen vises ikke på lærersider, for lærer-/administratorprofiler eller i presentasjonsvisning.
+- Gjester kan sende uten profilnavn, blant annet for å melde om innloggingsproblemer. Alle innloggede profiler, også lærere og administratorer, kan sende og ser at profilnavnet følger med. Knappen skjules fortsatt i lærerens presentasjonsvisning.
 
 Dette bruker U1, U3 og U6 i [designgrunnlaget](webdesign-og-brukeropplevelse.md): forståelige handlinger og systemtilstander, lite konkurrerende innhold og gjenkjennelig utforming. Dialogens fokus, tastatur, etiketter, kontrast og rulling følger prosjektets WCAG-arbeidsmål. Hjørneplassering og 44 piksler er lokale designvalg. De er ikke dokumentert som én optimal utforming. [Pedagogikkgrunnlaget](pedagogisk-grunnlag.md) videreføres: funksjonen samler erfaringer med verktøyet og vurderer ingen elevsvar.
 
 ## Sidekontekst og lagring
 
-`feedbackPage` i `src/lib/feedback.js` gjenbruker den offentlige innholdskatalogen og modulene. Backend validerer siden og henter tittelen selv. Bare kjente interne elevadresser godtas. Fagvalg på forsiden, kjent modulreferanse, kjent omvisningssteg og kjent kapittel i databaseinnføringen beholdes. Andre søkeparametre og fragmenter fjernes, inkludert eventuelle fritekstsøk eller nøkler. Verken DOM, kode, elevsvar, vedlegg, passord eller KI-samtaler samles inn automatisk.
+`feedbackPages` og `feedbackPage` i `src/lib/feedback.js` gjenbruker innholdskatalogen og modulene, supplert med navngitte oversikts- og lærersider. Nye katalogaktiviteter og moduler arver funksjonen. Nye frittstående sider må legges i denne felles listen; rutekontrollen i `tests/feedbackPages.test.js` fanger opp mangler. Backend validerer siden og henter tittelen selv. Bare kjente interne adresser godtas, med eller uten avsluttende skråstrek. Fagvalg på forsiden, kjent modulreferanse, kjent omvisningssteg og kjent kapittel i databaseinnføringen beholdes. Andre søkeparametre og fragmenter fjernes, inkludert elev-ID-er fra lærerområdet, fritekstsøk og nøkler. Verken DOM, kode, elevsvar, vedlegg, passord eller KI-samtaler samles inn automatisk.
 
 Migrasjon `012_student_feedback.sql` oppretter `student_feedback` i den eksisterende SQLite-databasen. En rad inneholder:
 
@@ -41,7 +41,7 @@ Når en statusendring fjerner en melding fra filteret, flyttes tastaturfokus til
 
 | API | Tilgang og oppførsel |
 | --- | --- |
-| `POST /api/feedback` | Elev/gjest; kontoen må samsvare med aktuell sesjon eller være uttrykkelig tom for gjest. Bekrefter bare ID og tidspunkt. |
+| `POST /api/feedback` | Alle profiler/gjest; kontoen må samsvare med aktuell sesjon eller være uttrykkelig tom for gjest. Bekrefter bare ID og tidspunkt. |
 | `GET /api/admin/feedback` | Innlogget administrator, kontrollert på serveren ved hvert kall. |
 | `POST /api/admin/feedback/:id/status` | Innlogget administrator og samsvarende konto. Setter Ny/Behandlet. |
 
@@ -66,9 +66,9 @@ Utført kontroll med midlertidig database og oppdiktede meldinger:
 
 Utprøving med elever og administrator på skoleinstallasjonen gjenstår. Be eleven melde fra om et konkret problem uten å angi knappens plassering. Undersøk om eleven finner knappen, forstår hvem som mottar meldingen, ser riktig side og kan gå tilbake til arbeidet. Prøv administratorens vei fra melding til siden den gjelder. Tekniske tester dokumenterer ikke brukervennlighet eller læringseffekt med elever.
 
-## Korte oppgavespørsmål – første versjon på dev, 31. oktober 2026
+## Korte spørsmål – utvidet til alle elevsider på dev, 16. november 2026
 
-Dette utvider den manuelle kanalen med ett frivillig spørsmål på **øving 5, 8 og 10**: «Var det tydelig hva du skulle gjøre?» med likeverdige knapper **Ja, Delvis og Nei**. Det samler erfaringer med instruksjonene; svaret vurderer ikke eleven, godkjenner ingen oppgave og gir ingen XP. Oppgavespørsmålene har en egen versjon, uavhengig av eksisterende progresjons- og fagsjekkversjoner.
+Den første piloten fra 31. oktober omfattet øving 5, 8 og 10. Nå bygger `feedbackActivities` på alle kjente elevsider i den felles sidelisten. Aktiviteter og leksjoner spør «Var det tydelig hva du skulle gjøre?». Oversiktssider, moduler, Min lab og hjelpesider spør «Var det enkelt å finne fram på denne siden?». Begge bruker likeverdige knapper **Ja, Delvis og Nei**, med valgfri kommentar. Svaret vurderer ikke eleven, godkjenner ingen oppgave og gir ingen XP. Pilotens ID-er, spørsmål og versjoner er beholdt, slik at historikk og engangsgrenser fortsatt gjelder. Nye sider bruker en egen tilbakemeldingsversjon, uavhengig av progresjon og fagsjekker.
 
 ### Begrunnelse og avgrensning
 
@@ -81,15 +81,19 @@ Utformingen følger designgrunnlagets U1, U3, U6 og U7: styring, lite konkurrere
 
 ### Når og hvordan spørsmålet vises
 
-`ExerciseLab` melder bare at en innlogget elev har startet et simulert forsøk. Spørsmålet kan tilbys ved siste steg i kjøringen, også ved simulerte feilsituasjoner. Alternativt kan det tilbys etter at eleven går til en annen intern elevside etter å ha startet et forsøk. Det kreves ikke bestått fagsjekk, og bare åpning av en side er ikke nok. Dette begrenser utvalget til elever som har prøvd, men inkluderer dem som går videre uten å fullføre. Nettleserlukking og eksterne navigasjoner avbrytes aldri. Vi fanger dermed ikke opp alle som gir opp; svarene er ikke et representativt mål for hele klassen.
+`ExerciseLab` og `ExercisePlayground` melder at en innlogget elev har startet et simulert forsøk. Spørsmålet kan tilbys ved siste steg i kjøringen, også ved simulerte feilsituasjoner, eller etter intern navigasjon bort fra et påbegynt forsøk. Dette gjelder nå alle øvinger som bruker disse felleskomponentene.
+
+Andre sider, inkludert øvinger som utføres i eget prosjekt, får samme mulighet via felles layout: etter minst **30 sekunder med synlig fane** kan et spørsmål om siden tilbys når eleven går til en annen kjent elevside. Tiden måles bare i minnet; skjult fane teller ikke. Ingen klokke åpner et spørsmål midt i lesingen. Bytte av kapittel eller søkeparametre på samme side utløser ikke et spørsmål. Sideadressen renses før den brukes, og den opprinnelige siden følger svar og kommentar.
+
+Tretti sekunder er et lokalt valg for utprøving, ikke dokumentasjon på arbeid eller forståelse. Det kreves ikke bestått fagsjekk. Nettleserlukking, eksterne lenker og navigasjon til lærerområdet gir ingen invitasjon. Kontoendring nullstiller også lesetiden. Når serveren bekrefter at dagens invitasjon er brukt, stopper klienten nye invitasjonskall resten av Oslo-døgnet. Dette begrenser trafikken på delt skolenett; serveren håndhever fortsatt alle grensene. Svarene er fortsatt ikke et representativt mål for hele klassen.
 
 `ActivityFeedbackPrompt.svelte` vises ved den eksisterende knappen. Det er et lite, ikke-modalt kort med valgt figur, én kort innkomstbevegelse og ingen lyd. Det tar ikke fokus automatisk. Kortet viker når eleven fortsetter med peker eller tastatur, og ved navigasjon. Tab kan brukes for å nå kortet; Escape og Hopp over lukker. Kortet skal ikke dekke elementet som har tastaturfokus. Redusert bevegelse respekteres.
 
-Forespørselen hoppes over hvis eleven skriver, en dialog er åpen, belønningsvarselet vises, en tidligere melding har et utkast, labpartneren er slått av, eller siden er skjult/ikke en elevside. Den venter ikke på en anledning til å dukke opp senere. Lærere, administratorer og gjester får ingen automatiske oppgavespørsmål. Den vanlige feedbackknappen er fortsatt tilgjengelig for elever og gjester.
+Forespørselen hoppes over hvis eleven skriver, en dialog er åpen, belønningsvarselet eller «Vis meg hvor» vises, en tidligere melding har et utkast, eller siden er skjult/ikke en elevside. Den venter ikke på en anledning til å dukke opp senere. Spørsmålene følger sin egen profilinnstilling, uavhengig av om KI-labpartneren er synlig. Lærere, administratorer og gjester får ingen automatiske spørsmål, men har den manuelle knappen.
 
 Backend reserverer høyst én invitasjon per profil per kalenderdag i **Europe/Oslo**, og høyst én per oppgaveversjon. Begge grensene håndheves i én transaksjon med unike databasebegrensninger, også på tvers av faner og maskiner. Avviste og ubesvarte forespørsler gjentas ikke for samme versjon. En invitasjon registrert av serveren er ikke bevis for at eleven så kortet; dette forklares i adminvisningen.
 
-**Ikke spør meg igjen** lagres på profilen. Eleven kan slå funksjonen på igjen i **Min lab → Innstillinger → Labpartner, lyd og animasjoner**, eller i tilbakemeldingsdialogens innstillinger. Kontoendring tømmer klientens muligheter, avbryter forespørsler og avviser sene svar. Avmelding endrer ikke manuell feedback eller eksisterende tilbakemeldinger.
+**Ikke spør meg igjen** lagres på profilen. Eleven kan slå **Spør meg om sidene og oppgavene** på igjen i **Min lab → Innstillinger → Labpartner, lyd og animasjoner**, eller i tilbakemeldingsdialogens innstillinger. Kontoendring tømmer klientens muligheter, avbryter forespørsler og avviser sene svar. Avmelding endrer ikke manuell feedback eller eksisterende tilbakemeldinger.
 
 ### Svar, kommentar og administrasjon
 
@@ -109,11 +113,17 @@ Invitasjonen lagrer kun validert oppgave-ID og versjon, servereid tittel/spørsm
 | `POST /api/feedback/prompts/:id` | Bare eieren; svare eller hoppe over, idempotent. |
 | `GET /api/admin/feedback/activities` | Administrator; svarfordeling per versjon. |
 | `POST /api/feedback` med `promptId` | Kommentar til eget registrerte svar; siden må samsvare. |
-| `GET /api/admin/feedback?activity=oving-5` | Administrator; kommentarer til valgt pilotoppgave. |
+| `GET /api/admin/feedback?activity=oving-5` | Administrator; kommentarer til valgt side eller aktivitet i felleslisten. |
 
 Eksisterende Origin-, CSRF-, kontosamsvars-, HTTPS- og IP-grenser brukes. Oppgaveversjon, felt, svaralternativer, eierskap og administratorrolle kontrolleres på serveren.
 
 ### Kontrollstatus og videre utprøving
+
+**Utvidelsen 16. november:** Tre avgrensede regresjonstester i `tests/feedbackPages.test.js` bestod. De kontrollerer dekning av alle nåværende sider, rensing av lærerlenker og andre private URL-data, synlig lesetid, korte besøk, samme side, lærerområde, nullstilling, lagring/svar/kommentarer på nye sider, avmelding, døgn- og versjonsgrenser og uendret adminbeskyttelse. Diffen er gjennomgått. Full testsuite, Svelte-sjekk, produksjonsbygg og nettleserprøving er ikke kjørt for denne dev-versjonen og gjenstår før main. Svelte MCP er ikke tilgjengelig; offisiell dokumentasjon for `$app/navigation` og `$effect` er brukt.
+
+Før main må både manuell feedback fra elev-, lærer- og administratorsider og spørsmål etter lesing prøves i nettleseren. Prøv særlig første innlogging, sidebytte etter 30 synlige sekunder, skjult fane, rask navigasjon, kontobytte, avmelding, avslått labpartner, gamle utkast og lærerens presentasjonsvisning. Kontroller mobil, begge temaer, tastatur og at spørsmål fortsatt viker for arbeid og dialoger.
+
+**Historisk status for første pilot, 31. oktober:**
 
 På dev er kildekode og diff gjennomgått. Nye regresjonstester er lagt til for tilgang, kontobytte, ugyldige felt, eierskap, gjentatt sending, døgnskifte i Oslo, engang per versjon, avmelding, omstart, profilsletting, kommentarfiltrering og uendret progresjon/XP. **Testene er ikke kjørt i denne dev-leveransen**; full testsuite, Svelte-sjekk, bygg og relevant nettleserprøving gjenstår før main. Svelte MCP var ikke tilgjengelig; offisiell Svelte-/SvelteKit-dokumentasjon er brukt.
 

@@ -133,7 +133,7 @@ export const lessons = [
 		question: 'Hvor skal en ugyldig request stoppe?',
 		category: 'Utvikling',
 		intro:
-			'Kontroller datatype, tom tekst og lengde før du lagrer. Følg koden og se hvilken kontroll som stopper en ugyldig melding.',
+			'Kontroller datatype, tom tekst og lengde før du lagrer. Undersøk POST her, og bruk deretter samme kontroll i POST og PATCH i din egen chat.',
 		context:
 			'POST /meldinger med express.json({ limit: "10kb" }), tekstFeil og felles feilmiddleware. Koden viser de relevante delene av requestkjeden.',
 		example: {
@@ -205,7 +205,7 @@ export const lessons = [
 			}
 		],
 		takeaway:
-			'Parser → validering → lagring → svar. Ugyldige requests skal aldri endre data. Frontend leser JSON én gang og sjekker svar.ok.',
+			'Parser → validering → lagring → svar. Avvist input skal ikke endre data. Frontend sjekker svar.ok og leser JSON én gang når svaret har JSON-innhold. Et tomt 204-svar skal ikke JSON-parses.',
 		related: []
 	},
 	{

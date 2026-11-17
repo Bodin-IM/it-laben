@@ -31,17 +31,20 @@ Eksemplene velges etter hva eleven trenger å gjøre i egen kode. Antall øvinge
 | Backend | Lagre en ny melding | Samme komplette filoppsett, med lagring og bekreftelse i POST framhevet |
 | Backend | Endre én melding med map | Redigeringsfelt i each, PATCH, ID-oppslag, validering, map, lagring og oppdatert frontend |
 | Backend | Slett én melding med filter | Sletteknapp i each, DELETE, filter, lagring, 204 og fjerning fra frontend |
+| Backend | Samme validering i POST og PATCH | Delt tekstFeil, 1–500 tegn og validering før lagring |
+| Backend | Felles feilbehandling med next | JSON-parser, next fra lagring, 404 og feilmiddleware for 400/413/500 |
+| Backend | Vis feil og bekreftelser i frontend | POST/PATCH med JSON, DELETE med 204, synlige beskjeder og bevarte utkast ved feil |
 | Databaser | Koble Node.js til MongoDB | Tilkobling, database og collection |
 | Databaser | Hente og filtrere dokumenter | Fire valg: alle dokumenter, ett vilkår, flere vilkår og prisgrense |
 | Databaser | Legg inn ett dokument | Objekt, insertOne og bekreftet ID |
 
-Backend har seks kort og Databaser tre. Hvert backendkort inneholder både en komplett `server.js` og en komplett `src/routes/+page.svelte`, men åpnes med et kortere utdrag. Backend viser hele den aktuelle ruten, eller lese-/skrivefunksjonene i JSON-eksemplet. Frontend viser den aktuelle funksjonen og tilhørende HTML, inkludert meldingslisten. **Vis hele koden** åpner resten av filen og oppstartsinstruksjonene; **Skjul resten av koden** går tilbake til utdraget. Bytte av eksempel eller fil starter med utdraget igjen.
+Backend har ni kort og Databaser tre. Hvert backendkort inneholder både en komplett `server.js` og en komplett `src/routes/+page.svelte`, men åpnes med et kortere utdrag. Backend viser hele den aktuelle ruten, eller lese-/skrivefunksjonene i JSON-eksemplet. Frontend viser den aktuelle funksjonen og tilhørende HTML, inkludert meldingslisten. **Vis hele koden** åpner resten av filen og oppstartsinstruksjonene; **Skjul resten av koden** går tilbake til utdraget. Bytte av eksempel eller fil starter med utdraget igjen.
 
 Frontend- og backendfilen i samme kort brukes sammen; eksemplene er alternativer, ikke kodeblokker som skal limes etter hverandre. Utdraget forutsetter oppsettet fra hele filen. Backend vises først. Gamle delte lenker med eksplisitt `fil=frontend` åpner fortsatt frontend.
 
 Eksemplene er en alternativ arbeidsmåte med mindre interaktivitet: en kort introduksjon, kode med valgfri helvisning, kopiering og en forklaring når eleven trykker på en kodelinje. Ingen simulator, oppgavefelt, stegvis kjøring eller kontrollspørsmål er lagt til. De viktigste linjene markeres med bakgrunn, kant og ◆ ved linjenummeret, og omtales som viktige i knappens tilgjengelige navn. Markeringen endrer ikke koden som kopieres. Den eksisterende `CodeExplanation` åpnes ved linjen med mus eller tastatur; Escape og lukkeknappen gir fokus tilbake.
 
-GET/POST-eksemplene begynner med én melding i serverminnet. De fire eksemplene med fillagring begynner med en tom liste når filen mangler; alle har sendefelt og POST slik at eleven kan opprette data uten et annet eksempel. PATCH og DELETE har også GET og POST, ID-er opprettes på serveren, og feil vises i frontend uten at utkastet eller listen tømmes. POST svarer med 201 og meldingsobjektet, PATCH med 200 og det endrede objektet, DELETE med 204 uten body. Frontend behandler akkurat disse formatene. Den oppdaterer sin lokale liste etter bekreftet svar; **Hent meldinger** leser hele listen på nytt.
+GET/POST-eksemplene begynner med én melding i serverminnet. Eksemplene med fillagring begynner med en tom liste når filen mangler; alle har sendefelt og POST slik at eleven kan opprette data uten et annet eksempel. PATCH og DELETE har også GET og POST, ID-er opprettes på serveren, og feil vises i frontend uten at utkastet eller listen tømmes. POST svarer med 201 og meldingsobjektet, PATCH med 200 og det endrede objektet, DELETE med 204 uten body. Frontend behandler akkurat disse formatene. Den oppdaterer sin lokale liste etter bekreftet svar; **Hent meldinger** leser hele listen på nytt.
 
 Fillagringens to kort viser samme komplette kode med ulike framhevinger: lese-/skrivefunksjonene i det ene og rekkefølgen ny liste → lagre → minne → svar i det andre. Lagringsfunksjonen kommer fra øving 5. Forsøket med feil rekkefølge blir værende i øvingen. Eksemplene er lokale øvingsservere uten innlogging eller eierskapskontroll; disse temaene behandles i øving 8–9. Databaseeksemplenes innhold og varianter er uendret.
 
@@ -120,3 +123,12 @@ Før main: prøv alle seks filpar i egne øvingsmapper mot en faktisk Express-se
 Brukeren ønsket mindre kode synlig ved åpning, med hele filen tilgjengelig ved behov. Utdragene beholder hele den aktuelle ruten eller funksjonen, inkludert feilhåndtering, og frontendens relevante HTML. Oppsett og andre funksjoner skjules som standard. Knappen for helvisning kan brukes med tastatur og angir åpen/lukket tilstand; linjevalget tømmes ved bytte av visning. Dette endrer støttemengden, ikke læringsmål eller vurdering.
 
 Kilde og diff er gjennomgått. Ingen tester, Svelte-sjekk, bygg eller nettleserprøving er kjørt i denne dev-justeringen. Samlet testing gjenstår før main. Prøv da standardutdraget og helvisningen i alle seks filpar, hele kodeblokker med riktige linjenumre, kopiering i begge visninger, linjeforklaring, tastaturfokus, fil-/eksempelbytte og smal skjerm.
+
+
+## Validering og feilhåndtering på dev – 16. november 2026
+
+Tre kort for del 7 er lagt til: `valider-melding`, `felles-feilbehandling` og `vis-feilmelding`. De bygger samme komplette Express-/Svelte-chat fra felles kode, med ulike utdrag og forklaringer. POST og PATCH gjenbruker `tekstFeil`. Alle tre skriveruter videresender lagringsfeil med `next(feil)`. Parser og felles feilmiddleware gir JSON-svar for ugyldig JSON, for stor body og serverfeil; ukjent rute og ukjent ID har hver sin 404. Avsender kontrolleres nå også mot 40-tegnsgrensen i de eldre skriveeksemplene.
+
+Svarformatet er beholdt fra de eksisterende kortene: POST 201 og PATCH 200 med meldingsobjekt; DELETE 204 uten body. Frontend viser egne suksessbeskjeder, leser DELETE-JSON bare ved feil og endrer ikke utkast/liste før bekreftelse. Det nye frontendeksemplet kan åpnes direkte fra øving 7. De komplette filene forklarer også hvordan session, eierskap og credentials må beholdes i et eksisterende innloggingsprosjekt. Eksempelkoden er fortsatt en lokal øvingschat uten innlogging.
+
+[Mål, elevarbeid, testmatrise og læreroppfølging](backend-undervisning.md#del-7-validering-og-forståelige-tilbakemeldinger--16-november-2026) er oppdatert. `tests/validationExamples.test.js` gir en avgrenset regresjonskontroll av inputvalidering, videresendte lagringsfeil, svarformat og frontendens bevaring av utkast. Katalogtesten er tilpasset feilmiddleware. Begge de avgrensede regresjonstestene bestod på dev. Samlet testing, Svelte-sjekk, bygg og nettleserprøving av de nye kortene gjenstår før main.

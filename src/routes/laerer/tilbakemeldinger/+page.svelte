@@ -4,7 +4,7 @@
 	import { schoolDate } from '#lib/school.js';
 	import { feedbackCategories } from '#lib/feedback.js';
 	import { feedbackRequest } from '#lib/feedbackClient.js';
-	import { feedbackPilot, feedbackAnswers } from '#lib/activityFeedback.js';
+	import { feedbackActivities, feedbackAnswers } from '#lib/activityFeedback.js';
 	import TeacherShell from '#lib/components/TeacherShell.svelte';
 	/** @type {import('#lib/feedback.js').FeedbackList|null} */
 	let listing = $state(null);
@@ -103,12 +103,12 @@
 <TeacherShell
 	title="Tilbakemeldinger"
 	adminOnly
-	intro="Meldinger fra elevene om IT-laben. Siden de åpnet skjemaet fra følger med automatisk."
+	intro="Meldinger om IT-laben. Siden avsenderen åpnet skjemaet fra følger med automatisk."
 >
 	{#if totals.length}
 		<details class="survey-summary" open>
-			<summary>Svar på oppgaver</summary>
-			<p class="small">Elevenes opplevelse av tydelighet. Tallene viser alle svar per oppgaveversjon og er uavhengige av meldingsfilteret.</p>
+			<summary>Svar om sider og oppgaver</summary>
+			<p class="small">Elevenes opplevelse av sidene og oppgavene. Tallene viser alle svar per side- og spørsmålsversjon og er uavhengige av meldingsfilteret.</p>
 			<div class="survey-grid">
 				{#each totals as item (`${item.activityId}:${item.activityVersion}:${item.questionId}`)}
 					<section class="survey-card" aria-label={item.title}>
@@ -143,10 +143,10 @@
 				></select
 			>
 		</div>
-		<div><label for="feedback-activity">Oppgavekommentarer</label>
+		<div><label for="feedback-activity">Kommentarer til spørsmål</label>
 			<select id="feedback-activity" bind:value={activityFilter} onchange={() => { currentPage = 1; }} disabled={!!busy}>
 				<option value="">Alle meldinger</option>
-				{#each feedbackPilot as item}<option value={item.id}>{item.title}</option>{/each}
+				{#each feedbackActivities as item}<option value={item.id}>{item.title}</option>{/each}
 			</select>
 		</div>
 		<button class="secondary" onclick={load} disabled={loading || !!busy}>Oppdater</button>
@@ -166,7 +166,7 @@
 				<h2>
 					{filter === 'new' ? 'Ingen nye tilbakemeldinger' : 'Ingen tilbakemeldinger her ennå'}
 				</h2>
-				<p>Elevene kan sende en melding med knappen «Tilbakemelding» nederst på elevsidene.</p>
+				<p>Knappen «Tilbakemelding» er tilgjengelig nederst på alle vanlige sider, også i lærerområdet.</p>
 			</section>{/if}
 		{#each listing.items as item (item.id)}
 			<article class="panel feedback-item" aria-labelledby={`feedback-${item.id}`}>
@@ -178,14 +178,14 @@
 					>
 				</div>
 				<h2 id={`feedback-${item.id}`}>
-					{item.question ? 'Kommentar til oppgaven' : feedbackCategories.find((category) => category.id === item.category)?.label}
+					{item.question ? 'Kommentar til spørsmålet' : feedbackCategories.find((category) => category.id === item.category)?.label}
 				</h2>
 				<p class="page-context">
 					<strong>Side:</strong>
 					<a href={item.pageHref === '/' ? '/?visning=elev' : item.pageHref}>{item.pageTitle} →</a
 					><code>{item.pageHref}</code>
 				</p>
-				{#if item.question}<p><strong>{item.question}</strong> {feedbackAnswers.find((answer) => answer.id === item.answer)?.label}<br /><span class="small">Oppgaveversjon {item.activityVersion}</span></p>{/if}
+				{#if item.question}<p><strong>{item.question}</strong> {feedbackAnswers.find((answer) => answer.id === item.answer)?.label}<br /><span class="small">Sideversjon {item.activityVersion}</span></p>{/if}
 				<p class="feedback-message">{item.message}</p>
 				<p class="small">
 					{item.nickname ? `Fra ${item.nickname}` : 'Sendt uten profilnavn'}{item.handledAt
