@@ -61,7 +61,7 @@ test('backend: samler utviklingsoppgavene og Øving 10, mens databaser har egen 
 	assert.ok(!ids.some((id) => id.startsWith('database-')));
 	assert.deepEqual(
 		moduler.map((item) => item.id),
-		['backend', 'databaser']
+		['protokoller', 'backend', 'databaser']
 	);
 });
 
