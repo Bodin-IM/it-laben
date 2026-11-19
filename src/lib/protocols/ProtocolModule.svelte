@@ -1,5 +1,6 @@
 <script>
   import { onMount } from 'svelte';
+  import { fade } from 'svelte/transition';
   import { replaceState } from '$app/navigation';
   import { page } from '$app/state';
   import { protocols, protocolById } from './protocols.js';
@@ -111,7 +112,7 @@
       <div class="sidebar-heading">
         <span class="sidebar-eyebrow">DRIFTSSTØTTE</span>
         <strong>Protokoller</strong>
-        <span class="sidebar-subtitle">8 emner · nettverk</span>
+        <div class="sidebar-subtitle">{#key chosen}<span in:fade={{ duration: 180 }} out:fade={{ duration: 90 }}>{p?.short ?? '8 emner · nettverk'}</span>{/key}</div>
       </div>
       <button class="sidebar-close" aria-label="Lukk emnemenyen" onclick={() => sidebarOpen = false}>×</button>
     </div>
@@ -124,7 +125,7 @@
       {#each protocolList as proto, i}
         <button class:active={chosen === proto.id} aria-current={chosen === proto.id ? 'page' : undefined} class="navbtn" onclick={() => openProtocol(proto.id)}>
           <span class="nav-number">{String(i + 1).padStart(2,'0')}</span>
-          <span class="nav-text"><strong>{proto.name}</strong>{#if chosen === proto.id}<small>{proto.short}</small>{/if}</span>
+          <span class="nav-text"><strong>{proto.name}</strong></span>
           <span class="nav-chevron" aria-hidden="true">›</span>
         </button>
       {/each}
@@ -388,6 +389,20 @@ aside { top:70px; height:calc(100dvh - 70px); }
   .shell > aside { width: min(290px, 85vw); flex-basis: auto; }
   .sidebar-close { display: grid; place-items: center; }
   .protocol-nav .navbtn { min-height: 48px; }
+}
+
+/* Hold alle menyvalg på samme plass når aktivt emne skifter. */
+.sidebar-subtitle { display: block; height: 2.9em; line-height: 1.45; overflow: hidden; }
+.sidebar-subtitle span { display: block; }
+.protocol-nav .navbtn { height: 46px; min-height: 46px; flex-shrink: 0; transition: background-color 190ms ease, border-color 190ms ease, color 190ms ease; }
+.protocol-nav .navbtn::before { content: ''; position: absolute; left: 0; top: 9px; bottom: 9px; width: 3px; border-radius: 3px; background: #82bcff; transform: scaleY(0); opacity: 0; transition: transform 190ms ease, opacity 190ms ease; }
+.protocol-nav .navbtn.active::before { transform: scaleY(1); opacity: 1; }
+.protocol-nav .nav-chevron { transition: transform 190ms ease, opacity 190ms ease, color 190ms ease; }
+.protocol-nav .navbtn.active .nav-chevron { transform: translateX(2px); }
+.protocol-nav .navbtn:hover:not(.active) { background: #14283e; }
+@media (max-width: 780px) { .protocol-nav .navbtn { height: 48px; min-height: 48px; } }
+@media (prefers-reduced-motion: reduce) {
+  .protocol-nav .navbtn, .protocol-nav .navbtn::before, .protocol-nav .nav-chevron { transition: none; }
 }
 
 </style>
