@@ -22,7 +22,7 @@ test('moduler peker til eksisterende sider og gir ikke nye XP-aktiviteter', () =
 });
 
 test('modulfremgang skiller undervisning og påbegynt arbeid fra gjennomgått eller bestått', () => {
-	const module = moduler[0];
+	const module = moduler.find((item) => item.id === 'backend');
 	assert.deepEqual(moduleProgress(module), { completed: 0, total: 13, started: false });
 	assert.deepEqual(
 		moduleProgress(module, [
@@ -42,33 +42,33 @@ test('modulfremgang skiller undervisning og påbegynt arbeid fra gjennomgått el
 });
 
 test('modulkatalogen avviser brutte referanser, duplikater og feil innholdstype', () => {
-	assert.throws(() => validateModules([moduler[0], moduler[0]]), /Ugyldig modul/);
+	assert.throws(() => validateModules([moduler.find((item) => item.id === 'backend'), moduler.find((item) => item.id === 'backend')]), /Ugyldig modul/);
 	assert.throws(
-		() => validateModules([{ ...moduler[0], steps: [{ kind: 'oving', id: 'finnes-ikke' }] }]),
+		() => validateModules([{ ...moduler.find((item) => item.id === 'backend'), steps: [{ kind: 'oving', id: 'finnes-ikke' }] }]),
 		/Feil innholdstype/
 	);
 	assert.throws(
 		() =>
-			validateModules([{ ...moduler[0], steps: [{ kind: 'undervisning', id: 'finnes-ikke' }] }]),
+			validateModules([{ ...moduler.find((item) => item.id === 'backend'), steps: [{ kind: 'undervisning', id: 'finnes-ikke' }] }]),
 		/Ukjent undervisningsopplegg/
 	);
 	assert.throws(
-		() => validateModules([{ ...moduler[0], steps: [{ kind: 'oving', id: 'chat' }] }]),
+		() => validateModules([{ ...moduler.find((item) => item.id === 'backend'), steps: [{ kind: 'oving', id: 'chat' }] }]),
 		/Feil innholdstype/
 	);
 	assert.throws(
-		() => validateModules([{ ...moduler[0], steps: [{ kind: 'oving', id: 'oving-10' }] }]),
+		() => validateModules([{ ...moduler.find((item) => item.id === 'backend'), steps: [{ kind: 'oving', id: 'oving-10' }] }]),
 		/Feil innholdstype eller fag/
 	);
 	assert.doesNotThrow(() =>
 		validateModules([
-			{ ...moduler[0], steps: [{ kind: 'oving', id: 'oving-10', subject: 'drift' }] }
+			{ ...moduler.find((item) => item.id === 'backend'), steps: [{ kind: 'oving', id: 'oving-10', subject: 'drift' }] }
 		])
 	);
 	assert.throws(
 		() =>
 			validateModules([
-				{ ...moduler[0], steps: [{ kind: 'oving', id: 'oving-10', subject: 'ukjent' }] }
+				{ ...moduler.find((item) => item.id === 'backend'), steps: [{ kind: 'oving', id: 'oving-10', subject: 'ukjent' }] }
 			]),
 		/Ugyldig modulsteg/
 	);
