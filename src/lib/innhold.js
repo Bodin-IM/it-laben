@@ -196,6 +196,14 @@ export const aktiviteter = [
 // Offentlig, formativ øving uten fagsjekk, opplåsing eller XP.
 // Behold den utenfor serverkatalogen og vis alt samlet i forsiden.
 export const repetisjonsaktiviteter = [
+	{
+		id: 'protokoller', tittel: 'Protokoller',
+		beskrivelse: 'Følg pakkene gjennom nettverket og utforsk åtte protokoller med illustrasjoner, fagstoff og oppgaver.',
+		href: '/protokoller/', fag: 'drift', audience: 'student', format: 'leksjon',
+		type: 'Interaktiv læringsmodul', symbol: '◈',
+		emner: ['ARP', 'DHCP', 'DNS', 'IP', 'TCP', 'UDP', 'HTTP', 'NAT'],
+		sokeord: ['protokoller', 'nettverk', 'pakker', 'porter', 'PAT']
+	},
 	simulatorActivity,
 	vlanActivity,
 	vlan2Activity,
