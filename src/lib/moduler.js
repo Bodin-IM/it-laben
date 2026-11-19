@@ -141,6 +141,13 @@ export const moduleAliases = Object.freeze({
 /** @type {Module[]} */
 export const moduler = [
 	{
+		id: 'protokoller', title: 'Protokoller', subject: 'drift',
+		description: 'Følg pakkene gjennom nettverket og utforsk ARP, DHCP, DNS, IP, TCP, UDP, HTTP og NAT.',
+		goals: ['Utforske og beskrive hvordan nettverksprotokoller samarbeider.', 'Koble illustrerte pakkeforløp til praktiske nettverkskommandoer.'],
+		prerequisites: 'Grunnleggende kjennskap til PC-er, switcher, rutere og IP-adresser.',
+		steps: [{ kind: 'teori', id: 'protokoller' }], resources: []
+	},
+	{
 		id: 'backend',
 		title: 'Backend',
 		teachingPlanIds: ['meldingens-reise', 'data-som-overlever', 'backend-validering', 'hvem-er-logget-inn', 'backend-publisering'],

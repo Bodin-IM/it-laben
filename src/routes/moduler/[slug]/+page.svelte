@@ -1,4 +1,5 @@
 <script>
+	import ProtocolModule from '#lib/protocols/ProtocolModule.svelte';
 	import { page } from '$app/state';
 	import { tick } from 'svelte';
 	import { moduleLink } from '#lib/moduleNavigation.js';
@@ -79,6 +80,12 @@
 	/></svelte:head
 >
 
+{#if module.id === 'protokoller' && canView}
+	{#if teacher}
+		<div class="protocol-admin"><ModuleAdministration moduleId={module.id} title={module.title} compact autoSave /></div>
+	{/if}
+	<ProtocolModule />
+{:else}
 <div class="module-page">
 	{#if canView}<a class="skip" href={showExamples ? '#examples-title' : '#forlop'}>Hopp til modulens innhold</a>{/if}
 	<main id="hovedinnhold" tabindex="-1">
@@ -272,7 +279,10 @@
 	</footer>
 </div>
 
+{/if}
+
 <style>
+	.protocol-admin { padding: 12px 24px; }
 	.module-page { font-family: var(--font-ui); color: var(--color-text); overflow-wrap: anywhere; }
 	.module-page :global(*) { box-sizing: border-box; }
 	main, footer { width: min(var(--layout-width), calc(100% - 2 * var(--layout-gutter))); margin-inline: auto; }
