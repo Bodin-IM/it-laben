@@ -106,27 +106,35 @@
 </svelte:head>
 
 <div class="shell">
-  <aside class:open={sidebarOpen}>
-    <div class="brand">
-      <div class="brand-symbol">◈</div>
-      <div><strong>DRIFTSSTØTTE</strong><span>Interaktiv læringsmodul</span></div>
+  <aside class:open={sidebarOpen} aria-label="Navigasjon i protokollmodulen">
+    <div class="sidebar-header">
+      <div class="sidebar-heading">
+        <span class="sidebar-eyebrow">DRIFTSSTØTTE</span>
+        <strong>Protokoller</strong>
+        <span class="sidebar-subtitle">8 emner · nettverk</span>
+      </div>
+      <button class="sidebar-close" aria-label="Lukk emnemenyen" onclick={() => sidebarOpen = false}>×</button>
     </div>
-    <div class="aside-heading">MODUL / NETTVERK</div>
-    <button class:active={chosen === 'intro'} class="navbtn" onclick={() => openProtocol('intro')}><span class="nav-icon">⌂</span><span>Introduksjon</span></button>
-    <div class="aside-heading protoheading">PROTOKOLLER</div>
-    {#each protocolList as proto, i}
-      <button class:active={chosen === proto.id} class="navbtn" onclick={() => openProtocol(proto.id)}>
-        <span class="nav-number">{String(i + 1).padStart(2,'0')}</span>
-        <span class="nav-text"><strong>{proto.name}</strong><small>{proto.short}</small></span>
-        <span class="nav-chevron">›</span>
+    <nav class="protocol-nav" aria-label="Velg emne">
+      <button class:active={chosen === 'intro'} aria-current={chosen === 'intro' ? 'page' : undefined} class="navbtn intro-link" onclick={() => openProtocol('intro')}>
+        <span class="nav-icon" aria-hidden="true">⌂</span>
+        <span class="nav-text"><strong>Oversikt</strong></span>
       </button>
-    {/each}
-    <div class="sidebar-note"><span class="status-dot"></span> Ingen innlogging · fungerer lokalt</div>
+      <div class="aside-heading protoheading">EMNER</div>
+      {#each protocolList as proto, i}
+        <button class:active={chosen === proto.id} aria-current={chosen === proto.id ? 'page' : undefined} class="navbtn" onclick={() => openProtocol(proto.id)}>
+          <span class="nav-number">{String(i + 1).padStart(2,'0')}</span>
+          <span class="nav-text"><strong>{proto.name}</strong>{#if chosen === proto.id}<small>{proto.short}</small>{/if}</span>
+          <span class="nav-chevron" aria-hidden="true">›</span>
+        </button>
+      {/each}
+    </nav>
+    <a class="sidebar-back" href="/?visning=elev&fag=drift">← Til Driftsstøtte</a>
   </aside>
   {#if sidebarOpen}<button class="scrim" aria-label="Lukk meny" onclick={() => sidebarOpen = false}></button>{/if}
   <div class="main-layout">
     <header class="topbar">
-      <button class="menu-toggle" aria-label="Åpne meny" onclick={() => sidebarOpen = !sidebarOpen}>☰</button>
+      <button class="menu-toggle" aria-label="Åpne emnemeny" aria-expanded={sidebarOpen} onclick={() => sidebarOpen = !sidebarOpen}>☰</button>
       <span>MODUL 02 <span class="crumb-sep">/</span> PROTOKOLLER <span class="crumb-sep">/</span> {p ? p.name : 'INTRODUKSJON'}</span>
       <span class="header-pill">VG2 · IT-DRIFT</span>
     </header>
@@ -350,5 +358,36 @@
 .shell { isolation:isolate; }
 aside { top:70px; height:calc(100dvh - 70px); }
 @media(max-width:780px) { aside { top:70px; bottom:0; } }
+
+
+/* Kompakt modulmeny: én tittel, tydelig aktivt emne og mindre visuell støy. */
+.shell > aside { padding: 0 12px 16px; width: 246px; flex-basis: 246px; gap: 0; }
+.sidebar-header { display: flex; align-items: flex-start; justify-content: space-between; gap: 8px; padding: 22px 12px 18px; border-bottom: 1px solid #26374c; }
+.sidebar-heading { display: grid; gap: 5px; min-width: 0; }
+.sidebar-eyebrow { color: #8ea5c1; font-size: 10px; font-weight: 700; letter-spacing: .11em; }
+.sidebar-heading strong { font-size: 20px; letter-spacing: -.025em; color: #f0f5ff; }
+.sidebar-subtitle { color: #94a8c2; font-size: 12px; }
+.sidebar-close { display: none; color: #c4d8ef; background: transparent; border: 0; border-radius: 8px; font-size: 27px; line-height: 1; width: 36px; height: 36px; }
+.protocol-nav { display: grid; gap: 3px; padding-top: 12px; }
+.protocol-nav .aside-heading { padding: 16px 12px 8px; font-size: 10px; color: #91a6c0; }
+.protocol-nav .navbtn { position: relative; gap: 10px; min-height: 43px; padding: 10px 11px; border-radius: 8px; }
+.protocol-nav .navbtn.active { background: #1c354f; border-color: #41688e; }
+.protocol-nav .navbtn.active::before { content: ''; position: absolute; left: 0; top: 9px; bottom: 9px; width: 3px; border-radius: 3px; background: #82bcff; }
+.protocol-nav .nav-number { width: 25px; flex: 0 0 25px; color: #91aac9; font-size: 11px; }
+.protocol-nav .navbtn.active .nav-number { color: #b9d9ff; }
+.protocol-nav .nav-text { min-width: 0; gap: 4px; }
+.protocol-nav .nav-text strong { font-size: 14px; line-height: 1.3; }
+.protocol-nav .nav-text small { color: #adc3da; font-size: 11px; line-height: 1.4; }
+.protocol-nav .nav-chevron { margin-left: auto; font-size: 17px; opacity: .55; }
+.protocol-nav .navbtn.active .nav-chevron { opacity: 1; color: #b9d9ff; }
+.protocol-nav .intro-link { margin-bottom: 3px; }
+.protocol-nav .nav-icon { font-size: 18px; flex: 0 0 25px; }
+.sidebar-back { display: block; margin: 18px 10px 0; padding: 13px 2px; border-top: 1px solid #26374c; color: #a9bfdb; font-size: 12px; text-decoration: none; }
+.sidebar-back:hover { color: #e5f1ff; }
+@media (max-width: 780px) {
+  .shell > aside { width: min(290px, 85vw); flex-basis: auto; }
+  .sidebar-close { display: grid; place-items: center; }
+  .protocol-nav .navbtn { min-height: 48px; }
+}
 
 </style>
