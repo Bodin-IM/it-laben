@@ -205,7 +205,7 @@ test('modulpublisering: status bevarer elevdata og historisk driftmodul uten å 
 	const original = (await teacher.request('/modules')).modules;
 	assert.deepEqual(
 		original.map((module) => module.id),
-		['backend', 'databaser']
+		['protokoller', 'backend', 'databaser']
 	);
 	const removed = await teacher.set('fra-kode-til-drift', 'completed', 0);
 	assert.equal(removed.status, 404);
