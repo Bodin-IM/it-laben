@@ -1,5 +1,7 @@
 // Innholdet er laget for undervisning: representativ IPv4-trafikk, ikke pakkefangst.
+/** @param {string} title @param {string} from @param {string | string[]} to @param {string} label @param {string} explanation @param {string[]} packet @param {Record<string, unknown>} [extra] */
 const step = (title, from, to, label, explanation, packet, extra = {}) => ({ title, from, to, label, explanation, packet, ...extra });
+/** @param {string} question @param {string[]} choices @param {number} correct @param {string} explanation */
 const q = (question, choices, correct, explanation) => ({ question, choices, correct, explanation });
 
 export const protocols = [
