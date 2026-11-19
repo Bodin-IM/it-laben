@@ -8,7 +8,7 @@ test('felles søk viser hele katalogen og beholder bare valgt fag', () => {
 	assert.equal(searchCatalogue().modules.length, moduler.length);
 	assert.equal(searchCatalogue().activities.length, altElevinnhold.length);
 	const drift = searchCatalogue({ subject: 'drift' });
-	assert.deepEqual(drift.modules, []);
+	assert.deepEqual(drift.modules.map((module) => module.id), ['protokoller']);
 	assert.deepEqual(
 		drift.activities.map((x) => x.id),
 		['oving-10', 'vlan-lab', 'vlan-lab-2', 'vlan-sammen']
