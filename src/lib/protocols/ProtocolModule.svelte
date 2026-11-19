@@ -4,19 +4,27 @@
   import { page } from '$app/state';
   import { protocols, protocolById } from './protocols.js';
 
+  /** @typedef {{id:string,name:string,sub:string,icon:string,x:number,y:number}} NetworkNode */
+  /** @typedef {{title:string,from:string,to:string|string[],label:string,explanation:string,packet:string[]}} NetworkStep */
+  /** @typedef {{question:string,choices:string[],correct:number,explanation:string}} ProtocolQuestion */
+  /** @typedef {{code:string,detail:string}} ProtocolCommand */
+  /** @typedef {{id:string,name:string,full:string,layer:string,ports:string,color:string,short:string,intro:string,points:string[],nodes:NetworkNode[],links:string[][],steps:NetworkStep[],commands:ProtocolCommand[],questions:ProtocolQuestion[],challenge:string,localSteps?:NetworkStep[],localNodes?:NetworkNode[],localLinks?:string[][]}} Protocol */
+  const protocolList = /** @type {Protocol[]} */ (protocols);
+  const protocolMap = /** @type {Record<string, Protocol>} */ (protocolById);
+
   let chosen = $state('intro');
   let stepIndex = $state(0);
   let playing = $state(false);
   let speed = $state(3400);
-  let answers = $state({});
-  let revealed = $state({});
+  let answers = $state(/** @type {Record<string, number>} */ ({}));
+  let revealed = $state(/** @type {Record<string, boolean>} */ ({}));
   let sidebarOpen = $state(false);
   let showPacket = $state(true);
   let dnsMode = $state('hierarchy');
-  let p = $derived(protocolById[chosen]);
-  let activeSteps = $derived(p?.id === 'dns' && dnsMode === 'local' ? p.localSteps : p?.steps ?? []);
-  let activeNodes = $derived(p?.id === 'dns' && dnsMode === 'local' ? p.localNodes : p?.nodes ?? []);
-  let activeLinks = $derived(p?.id === 'dns' && dnsMode === 'local' ? p.localLinks : p?.links ?? []);
+  let p = $derived(/** @type {Protocol | undefined} */ (protocolMap[chosen]));
+  let activeSteps = $derived(p?.id === 'dns' && dnsMode === 'local' ? p.localSteps ?? p.steps : p?.steps ?? []);
+  let activeNodes = $derived(p?.id === 'dns' && dnsMode === 'local' ? p.localNodes ?? p.nodes : p?.nodes ?? []);
+  let activeLinks = $derived(p?.id === 'dns' && dnsMode === 'local' ? p.localLinks ?? p.links : p?.links ?? []);
   let current = $derived(activeSteps[stepIndex]);
   let arpCachePopulated = $derived(p?.id === 'arp' && stepIndex >= 4);
   let dhcpConfigured = $derived(p?.id === 'dhcp' && stepIndex >= 4);
@@ -28,6 +36,7 @@
   let internetTopology = $derived(['dns','ip','tcp','udp'].includes(chosen) && !(chosen === 'dns' && dnsMode === 'local'));
 
 
+  /** @param {string} id */
   function openProtocol(id) {
     chosen = id;
     stepIndex = 0;
@@ -39,25 +48,31 @@
   function next() { if (p) stepIndex = (stepIndex + 1) % activeSteps.length; }
   function previous() { if (p) stepIndex = (stepIndex + activeSteps.length - 1) % activeSteps.length; }
   function reset() { stepIndex = 0; playing = false; }
+  /** @param {number} question @param {number} choice */
   function chooseAnswer(question, choice) {
     answers = { ...answers, [`${chosen}-${question}`]: choice };
     revealed = { ...revealed, [`${chosen}-${question}`]: true };
   }
+  /** @param {string | undefined} id */
   function node(id) { return activeNodes.find(n => n.id === id); }
   function origin() { return node(current?.from); }
-  function destination() { return current?.to ? (Array.isArray(current.to) ? current.to.map(node).filter(Boolean) : [node(current.to)].filter(Boolean)) : []; }
+  /** @returns {NetworkNode[]} */
+  function destination() { return current?.to ? (Array.isArray(current.to) ? current.to.map(node).filter((n) => n !== undefined) : [node(current.to)].filter((n) => n !== undefined)) : []; }
   // Finn kabelfølgen via switch/ruter i stedet for å animere rett gjennom lufta.
+  /** @param {string} fromId @param {string} toId */
   function networkPath(fromId, toId) {
     const from = node(fromId), to = node(toId);
     if (!from || !to || fromId === toId) return '';
+    /** @type {string[][]} */
     const queue = [[fromId]];
     const visited = new Set([fromId]);
     while (queue.length) {
       const path = queue.shift();
+      if (!path) continue;
       const last = path[path.length - 1];
       if (last === toId) return path.map((id, i) => {
         const n = node(id);
-        return `${i === 0 ? 'M' : 'L'}${n.x},${n.y}`;
+        return n ? `${i === 0 ? 'M' : 'L'}${n.x},${n.y}` : '';
       }).join(' ');
       for (const [a,b] of activeLinks) {
         const next = a === last ? b : b === last ? a : null;
@@ -68,9 +83,10 @@
   }
   onMount(() => {
     let id = decodeURIComponent(location.hash.slice(1));
-    if (protocolById[id]) chosen = id;
+    if (protocolMap[id]) chosen = id;
+    /** @param {KeyboardEvent} event */
     const keyHandler = (event) => {
-      if (event.target?.matches?.('input,textarea,select,button')) return;
+      if (event.target instanceof Element && event.target.matches('input,textarea,select,button')) return;
       if (event.key === 'ArrowRight' && p) next();
       if (event.key === 'ArrowLeft' && p) previous();
     };
@@ -98,7 +114,7 @@
     <div class="aside-heading">MODUL / NETTVERK</div>
     <button class:active={chosen === 'intro'} class="navbtn" onclick={() => openProtocol('intro')}><span class="nav-icon">⌂</span><span>Introduksjon</span></button>
     <div class="aside-heading protoheading">PROTOKOLLER</div>
-    {#each protocols as proto, i}
+    {#each protocolList as proto, i}
       <button class:active={chosen === proto.id} class="navbtn" onclick={() => openProtocol(proto.id)}>
         <span class="nav-number">{String(i + 1).padStart(2,'0')}</span>
         <span class="nav-text"><strong>{proto.name}</strong><small>{proto.short}</small></span>
@@ -134,7 +150,7 @@
           <h2>Åtte emner. Ett nettverk.</h2>
           <p>Velg en protokoll fra menyen, les forklaringen, kjør animasjonen steg for steg, undersøk pakkefeltene og test forståelsen med oppgavene.</p>
           <div class="protocol-grid">
-            {#each protocols as proto, i}
+            {#each protocolList as proto, i}
               <button class="protocol-tile" onclick={() => openProtocol(proto.id)} style={`--tile:${proto.color}`}>
                 <span class="tile-index">{String(i+1).padStart(2,'0')}</span>
                 <strong>{proto.name}</strong>
@@ -147,7 +163,7 @@
         </section>
       {:else}
         <section class="protocol-header">
-          <div class="eyebrow"><span class="spark">✦</span> PROTOKOLL {String(protocols.indexOf(p) + 1).padStart(2,'0')} / 08</div>
+          <div class="eyebrow"><span class="spark">✦</span> PROTOKOLL {String(protocolList.indexOf(p) + 1).padStart(2,'0')} / 08</div>
           <div class="heading-row"><div><h1>{p.name}<span class="heading-dot" style={`background:${p.color}`}></span></h1><div class="subtitle">{p.full}</div></div><div class="pill-stack"><span>{p.layer}</span><span>{p.ports}</span></div></div>
           <p>{p.intro}</p>
         </section>
@@ -283,7 +299,7 @@
           <div class="challenge"><div class="section-kicker">UTFORSK SELV</div><h3>Praktisk oppgave</h3><p>{p.challenge}</p></div>
           <div class="exercise-footer"><span>{p.questions.filter((_,i) => revealed[`${chosen}-${i}`] && answers[`${chosen}-${i}`]===p.questions[i].correct).length} av {p.questions.length} riktige</span><button class="secondary" onclick={() => { const a={...answers}, r={...revealed}; p.questions.forEach((_,i) => { delete a[`${chosen}-${i}`]; delete r[`${chosen}-${i}`] }); answers=a; revealed=r; }}>Prøv oppgavene på nytt ↺</button></div>
         </section>
-        <div class="next-module">{#if protocols.indexOf(p) < protocols.length - 1}<span>KLAR FOR NESTE EMNE?</span><button class="primary" onclick={() => openProtocol(protocols[protocols.indexOf(p)+1].id)}>Neste: {protocols[protocols.indexOf(p)+1].name} →</button>{:else}<span>DU HAR VÆRT GJENNOM ALLE EMNENE</span><button class="primary" onclick={() => openProtocol('intro')}>Til oversikten ↗</button>{/if}</div>
+        <div class="next-module">{#if protocolList.indexOf(p) < protocolList.length - 1}<span>KLAR FOR NESTE EMNE?</span><button class="primary" onclick={() => openProtocol(protocolList[protocolList.indexOf(p)+1].id)}>Neste: {protocolList[protocolList.indexOf(p)+1].name} →</button>{:else}<span>DU HAR VÆRT GJENNOM ALLE EMNENE</span><button class="primary" onclick={() => openProtocol('intro')}>Til oversikten ↗</button>{/if}</div>
       {/if}
       <footer>DRIFTSSTØTTE · MODUL PROTOKOLLER <span>Illustrasjonene er forenklede undervisningseksempler med dokumentasjonsadresser. Reell pakketrafikk kan variere.</span></footer>
     </main>
